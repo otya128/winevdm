@@ -867,7 +867,7 @@ void DOSVM_InitSegments(void)
 {
 	//ERR("DOSVM_InitSegments!\n");
 	//return;
-	DWORD old_prot;
+    DWORD old_prot;
 	LPSTR ptr;
     int   i;
 
