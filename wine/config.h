@@ -1123,6 +1123,9 @@
 /* Define to 1 if you have the <sys/vm86.h> header file. */
 /* #undef HAVE_SYS_VM86_H */
 
+/* Define to 1 if you have the <sys/vnode.h> header file. */
+/* #undef HAVE_SYS_VNODE_H */
+
 /* Define to 1 if you have the <sys/wait.h> header file. */
 /* #define HAVE_SYS_WAIT_H 1 */
 
