@@ -1071,11 +1071,11 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
     if ((p = strrchr( basename, '/' ))) basename = p + 1;
 
     if (strlen(basename) < sizeof(dllname)-6)
-	{
-		DWORD count;
+    {
+        DWORD count;
         char *q;
 
-		ReleaseThunkLock(&count);
+        ReleaseThunkLock( &count );
 
         strcpy( dllname, basename );
         q = strrchr( dllname, '.' );
@@ -1105,7 +1105,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
                     {
                         WARN( "couldn't load owner %s for 16-bit dll %s\n", main_module, dllname );
                         FreeLibrary( mod32 );
-						RestoreThunkLock( count );
+                        RestoreThunkLock( count );
                         return ERROR_FILE_NOT_FOUND;
                     }
                     /* check if module was loaded native */
@@ -1118,7 +1118,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
                 }
             }
         }
-		RestoreThunkLock( count );
+        RestoreThunkLock( count );
 
         /* loading the 32-bit library can have the side effect of loading the module */
         /* if so, simply incr the ref count and return the module */
