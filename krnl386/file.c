@@ -584,7 +584,7 @@ UINT WINAPI GetTempDrive( BYTE ignored )
     WCHAR buffer[MAX_PATH];
     BYTE ret;
 
-    if (GetTempPathW(MAX_PATH, buffer )) ret = (BYTE)toupperW(buffer[0]);
+    if (GetTempPathW( MAX_PATH, buffer )) ret = (BYTE)toupperW(buffer[0]);
     else ret = 'C';
     return MAKELONG( ret | (':' << 8), 1 );
 }
