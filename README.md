@@ -1,5 +1,11 @@
 # winevdm
 winevdm on windows(64bit)
+16bit用Windowsのプログラムを動かすプログラム
+winevdmの移植版
+# コンパイルに必要そうなもの
++ VC++
++ gas
+
 # convspec
 convert wine spec file
 # gdi
