@@ -1,0 +1,3 @@
+LIBRARY vm86.dll
+EXPORTS
+	wine_call_to_16_regs_vm86

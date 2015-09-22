@@ -1,0 +1,6 @@
+; File generated automatically from gdi.exe16.spec; do not edit!
+
+LIBRARY gdi.exe16
+
+EXPORTS
+  _wine_spec_dos_header;=.L__wine_spec_dos_header @1 DATA PRIVATE

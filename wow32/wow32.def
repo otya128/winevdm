@@ -1,0 +1,22 @@
+; File generated automatically from wow32.spec; do not edit!
+
+LIBRARY wow32.dll
+
+EXPORTS
+  WOWGetDescriptor @1
+  WOWCallback16 @2
+  WOWCallback16Ex @3
+  WOWDirectedYield16 @4
+  WOWGetVDMPointer @5
+  WOWGetVDMPointerFix @6
+  WOWGetVDMPointerUnfix @7
+  WOWGlobalAlloc16 @8
+  WOWGlobalAllocLock16 @9
+  WOWGlobalFree16 @10
+  WOWGlobalLock16 @11
+  WOWGlobalLockSize16 @12
+  WOWGlobalUnlock16 @13
+  WOWGlobalUnlockFree16 @14
+  WOWHandle16 @15
+  WOWHandle32 @16
+  WOWYield16 @17
