@@ -768,6 +768,14 @@ failed:
  *
  * Load all DLLs implicitly linked to a module.
  */
+WINUSERAPI
+int
+WINAPI
+MessageBoxA(
+_In_opt_ HWND hWnd,
+_In_opt_ LPCSTR lpText,
+_In_opt_ LPCSTR lpCaption,
+_In_ UINT uType);
 static BOOL NE_LoadDLLs( NE_MODULE *pModule )
 {
     int i;
@@ -795,8 +803,15 @@ static BOOL NE_LoadDLLs( NE_MODULE *pModule )
             if ((hDLL = MODULE_LoadModule16( buffer, TRUE, TRUE )) < 32)
             {
                 /* FIXME: cleanup what was done */
-
-                MESSAGE( "Could not load '%s' required by '%.*s', error=%d\n",
+				char msg[256];
+				if (strlen("Could not load '' required by '', error=") + 10 + 1 + strlen(buffer) + *((BYTE*)pModule + pModule->ne_restab) < 256)
+				{
+					sprintf(msg, "Could not load '%s' required by '%.*s', error=%d\n",
+						buffer, *((BYTE*)pModule + pModule->ne_restab),
+						(char *)pModule + pModule->ne_restab + 1, hDLL);
+					MessageBoxA(NULL, msg, NULL, 0);
+				}
+				MESSAGE("Could not load '%s' required by '%.*s', error=%d\n",
                      buffer, *((BYTE*)pModule + pModule->ne_restab),
                      (char *)pModule + pModule->ne_restab + 1, hDLL );
                 return FALSE;
