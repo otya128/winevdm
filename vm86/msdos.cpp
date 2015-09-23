@@ -7120,6 +7120,47 @@ extern "C"
 		}
 		return sel;
 	}
+	void save_context(CONTEXT *context)
+	{
+		context->Eax = REG16(AX);
+		context->Ecx = REG16(CX);
+		context->Edx = REG16(DX);
+		context->Ebx = REG16(BX);
+		context->Esp = REG16(SP);
+		context->Ebp = REG16(BP);
+		context->Esi = REG16(SI);
+		context->Edi = REG16(DI);
+		context->SegEs = SREG(ES);
+		context->SegCs = SREG(CS);
+		context->SegSs = SREG(SS);
+		context->SegDs = SREG(DS);
+		setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
+	}
+	void load_context(CONTEXT *context)
+	{
+		REG16(AX) = (WORD)context->Eax;
+		REG16(CX) = (WORD)context->Ecx;
+		REG16(DX) = (WORD)context->Edx;
+		REG16(BX) = (WORD)context->Ebx;
+		REG16(SP) = (WORD)context->Esp;
+		REG16(BP) = (WORD)context->Ebp;
+		REG16(SI) = (WORD)context->Esi;
+		REG16(DI) = (WORD)context->Edi;
+		SREG(ES) = (WORD)context->SegEs;
+		SREG(CS) = (WORD)context->SegCs;
+		SREG(SS) = (WORD)context->SegSs;
+		SREG(DS) = (WORD)context->SegDs;//ES, CS, SS, DS
+		//ES, CS, SS, DS, FS, GS
+		SREG(FS) = (WORD)context->SegFs;
+		SREG(GS) = (WORD)context->SegGs;
+		i386_load_segment_descriptor(ES);
+		i386_load_segment_descriptor(SS);
+		i386_load_segment_descriptor(DS);
+		i386_load_segment_descriptor(FS);
+		i386_load_segment_descriptor(GS);
+	}
+	void __wine_call_int_handler(CONTEXT *context, BYTE intnum);
+	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
 	unsigned char iret[100] = { 0xcf };
 	WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags);
 	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);
@@ -7164,6 +7205,13 @@ extern "C"
 		dasm = true;
 		while (!m_halted) {
 			bool reg = false;
+			if (m_pc == (UINT)/*ptr!*/iret)
+			{
+				CONTEXT context;
+				save_context(&context);
+				__wine_call_int_handler(&context, 0x21);
+				load_context(&context);
+			}
 			if ((void(*)(void))m_eip == from16_reg)
 			{
 				reg = true;
@@ -7208,18 +7256,6 @@ extern "C"
 				{
 					CONTEXT context;
 					WORD osp = REG16(SP);
-					context.Eax = REG16(AX);
-					context.Ecx = REG16(CX);
-					context.Edx = REG16(DX);
-					context.Ebx = REG16(BX);
-					context.Esp = REG16(SP);
-					context.Ebp = REG16(BP);
-					context.Esi = REG16(SI);
-					context.Edi = REG16(DI);
-					context.SegEs = SREG(ES);
-					context.SegCs = SREG(CS);
-					context.SegSs = SREG(SS);
-					context.SegDs = SREG(DS);
 					PUSH16(SREG(GS));
 					PUSH16(SREG(FS));
 					PUSH16(SREG(ES));
@@ -7227,8 +7263,8 @@ extern "C"
 					PUSH32(REG32(EBP));
 					PUSH32(REG32(ECX));
 					PUSH32(REG32(EDX));
-					PUSH32(context.Esp);
-					setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
+					PUSH32(/*context.Esp*/osp);
+					save_context(&context);
 					int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
 					REG16(AX) = (WORD)context.Eax;
 					REG16(CX) = (WORD)context.Ecx;
