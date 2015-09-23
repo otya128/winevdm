@@ -23,10 +23,7 @@ static void(*lock_ldt)(void) = nop;
 static void(*unlock_ldt)(void) = nop;
 #define LDT_FIRST_ENTRY 512
 #define LDT_SIZE 8192
-unsigned long align16(unsigned long offset)
-{
 
-}
 /***********************************************************************
  *           wine_ldt_get_ptr
  *
@@ -142,8 +139,59 @@ unsigned short wine_ldt_alloc_entries(int count)
 #include <wownt32.h>
 unsigned short wine_ldt_realloc_entries(unsigned short sel, int oldcount, int newcount)
 {
+	int i;
+
+	if (oldcount < newcount)  /* we need to add selectors */
+	{
+		int index = sel >> 3;
+
+		lock_ldt();
+		/* check if the next selectors are free */
+		if (index + newcount > LDT_SIZE) i = oldcount;
+		else
+			for (i = oldcount; i < newcount; i++)
+				if (wine_ldt_copy.flags[index + i] & WINE_LDT_FLAGS_ALLOCATED) break;
+
+		if (i < newcount)  /* they are not free */
+		{
+			wine_ldt_free_entries(sel, oldcount);
+			sel = wine_ldt_alloc_entries(newcount);
+		}
+		else  /* mark the selectors as allocated */
+		{
+			for (i = oldcount; i < newcount; i++)
+				wine_ldt_copy.flags[index + i] |= WINE_LDT_FLAGS_ALLOCATED;
+		}
+		unlock_ldt();
+	}
+	else if (oldcount > newcount) /* we need to remove selectors */
+	{
+		wine_ldt_free_entries(sel + (newcount << 3), newcount - oldcount);
+	}
+	return sel;
 	DPRINTF("NOTIMPL:wine_ldt_realloc_entries(0x%04X,%d,%d)\n", sel, oldcount, newcount);
 	return 0;
+}
+/***********************************************************************
+*           internal_set_entry
+*
+* Set an LDT entry, without locking. For internal use only.
+*/
+static int internal_set_entry(unsigned short sel, const LDT_ENTRY *entry)
+{
+	int ret = 0, index = sel >> 3;
+
+	if (index < LDT_FIRST_ENTRY) return 0;  /* cannot modify reserved entries */
+
+	if (ret >= 0)
+	{
+		wine_ldt_copy.base[index] = wine_ldt_get_base(entry);
+		wine_ldt_copy.limit[index] = wine_ldt_get_limit(entry);
+		wine_ldt_copy.flags[index] = (entry->HighWord.Bits.Type |
+			(entry->HighWord.Bits.Default_Big ? WINE_LDT_FLAGS_32BIT : 0) |
+			(wine_ldt_copy.flags[index] & WINE_LDT_FLAGS_ALLOCATED));
+	}
+	return ret;
 }
 /***********************************************************************
 *           wine_ldt_free_entries
@@ -152,6 +200,15 @@ unsigned short wine_ldt_realloc_entries(unsigned short sel, int oldcount, int ne
 */
 void wine_ldt_free_entries(unsigned short sel, int count)
 {
+	int index;
+
+	lock_ldt();
+	for (index = sel >> 3; count > 0; count--, index++)
+	{
+		internal_set_entry(sel, &null_entry);
+		wine_ldt_copy.flags[index] = 0;
+	}
+	unlock_ldt();
 	DPRINTF("NOTIMPL:wine_ldt_free_entries(0x%04X,%d)\n", sel, count);
 }
 /***********************************************************************
@@ -161,6 +218,7 @@ void wine_ldt_free_entries(unsigned short sel, int count)
 */
 int wine_ldt_is_system(unsigned short sel)
 {
+	return is_gdt_sel(sel) || ((sel >> 3) < LDT_FIRST_ENTRY);
 	DPRINTF("NOTIMPL:wine_ldt_is_system(%04X)\n", sel);
 	return 0;
 }
