@@ -24,4 +24,9 @@
       <Filter>ソース ファイル</Filter>
     </Object>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="win87em.def">
+      <Filter>ソース ファイル</Filter>
+    </None>
+  </ItemGroup>
 </Project>
