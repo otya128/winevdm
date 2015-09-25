@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gdi", "gdi\gdi.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "win87em", "win87em\win87em.vcxproj", "{08AEBC9F-464E-41DD-B4CB-F2921F69B591}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shell", "shell\shell.vcxproj", "{BD91A02B-907B-4512-A963-1166D1EBC5C4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -82,6 +84,12 @@ Global
 		{08AEBC9F-464E-41DD-B4CB-F2921F69B591}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
 		{08AEBC9F-464E-41DD-B4CB-F2921F69B591}.Release|Win32.ActiveCfg = Release|Win32
 		{08AEBC9F-464E-41DD-B4CB-F2921F69B591}.Release|Win32.Build.0 = Release|Win32
+		{BD91A02B-907B-4512-A963-1166D1EBC5C4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BD91A02B-907B-4512-A963-1166D1EBC5C4}.Debug|Win32.Build.0 = Debug|Win32
+		{BD91A02B-907B-4512-A963-1166D1EBC5C4}.Debug-USER.EXE|Win32.ActiveCfg = Debug|Win32
+		{BD91A02B-907B-4512-A963-1166D1EBC5C4}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
+		{BD91A02B-907B-4512-A963-1166D1EBC5C4}.Release|Win32.ActiveCfg = Release|Win32
+		{BD91A02B-907B-4512-A963-1166D1EBC5C4}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
