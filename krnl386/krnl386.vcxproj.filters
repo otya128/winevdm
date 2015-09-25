@@ -150,7 +150,7 @@
     <ClCompile Include="stub.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="..\wow32\wow_main.c">
+    <ClCompile Include="wow_handle.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

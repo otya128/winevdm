@@ -256,74 +256,6 @@ UINT32 read_dword(offs_t byteaddress)
 #endif
 }
 
-// write accessors
-void write_text_vram_byte(offs_t offset, UINT8 data)
-{
-	// XXX: we need to consider a multi-byte character
-	COORD co;
-	DWORD num;
-	
-	co.X = (offset >> 1) % 80;
-	co.Y = (offset >> 1) / 80;
-	
-	if(offset & 1) {
-		scr_attr[0] = data;
-		WriteConsoleOutputAttribute(hStdout, scr_attr, 1, co, &num);
-	} else {
-		scr_char[0] = data;
-		WriteConsoleOutputCharacter(hStdout, scr_char, 1, co, &num);
-	}
-}
-
-void write_text_vram_word(offs_t offset, UINT16 data)
-{
-	// XXX: we need to consider a multi-byte character
-	if(offset & 1) {
-		// Attr, Char
-		write_text_vram_byte(offset    , (data     ) & 0xff);
-		write_text_vram_byte(offset + 1, (data >> 8) & 0xff);
-	} else {
-		// Char, Attr
-		COORD co;
-		DWORD num;
-		
-		co.X = (offset >> 1) % 80;
-		co.Y = (offset >> 1) / 80;
-		
-		scr_char[0] = (data     ) & 0xff;
-		scr_attr[0] = (data >> 8) & 0xff;
-		
-		WriteConsoleOutputCharacter(hStdout, scr_char, 1, co, &num);
-		WriteConsoleOutputAttribute(hStdout, scr_attr, 1, co, &num);
-	}
-}
-
-void write_text_vram_dword(offs_t offset, UINT32 data)
-{
-	// XXX: we need to consider a multi-byte character
-	if(offset & 1) {
-		// Attr, Char, Attr, Char
-		write_text_vram_byte(offset    , (data      ) & 0x00ff);
-		write_text_vram_word(offset + 1, (data >>  8) & 0xffff);
-		write_text_vram_byte(offset + 3, (data >> 24) & 0x00ff);
-	} else {
-		// Char, Attr, Char, Attr
-		COORD co;
-		DWORD num;
-		
-		co.X = (offset >> 1) % 80;
-		co.Y = (offset >> 1) / 80;
-		
-		scr_char[0] = (data      ) & 0xff;
-		scr_attr[0] = (data >>  8) & 0xff;
-		scr_char[1] = (data >> 16) & 0xff;
-		scr_attr[1] = (data >> 24) & 0xff;
-		
-		WriteConsoleOutputCharacter(hStdout, scr_char, 2, co, &num);
-		WriteConsoleOutputAttribute(hStdout, scr_attr, 2, co, &num);
-	}
-}
-
 void write_byte(offs_t byteaddress, UINT8 data)
 {
 	/*
@@ -499,60 +431,6 @@ MS-DOS virtual machine
 void msdos_syscall(unsigned int a)
 {
 }
-void update_key_buffer_tmp()
-{
-	DWORD dwNumberOfEvents = 0;
-	DWORD dwRead;
-	INPUT_RECORD ir[16];
-
-	if (GetNumberOfConsoleInputEvents(hStdin, &dwNumberOfEvents) && dwNumberOfEvents != 0) {
-		if (ReadConsoleInputA(hStdin, ir, 16, &dwRead)) {
-			for (int i = 0; i < dwRead; i++) {
-				if ((ir[i].EventType & KEY_EVENT) && ir[i].Event.KeyEvent.bKeyDown) {
-					if (ir[i].Event.KeyEvent.uChar.AsciiChar == 0) {
-						// ignore shift, ctrl and alt keys
-						if (ir[i].Event.KeyEvent.wVirtualScanCode != 0x1d &&
-							ir[i].Event.KeyEvent.wVirtualScanCode != 0x2a &&
-							ir[i].Event.KeyEvent.wVirtualScanCode != 0x36 &&
-							ir[i].Event.KeyEvent.wVirtualScanCode != 0x38) {
-							key_buf_char->write(0x00);
-							key_buf_scan->write(ir[i].Event.KeyEvent.dwControlKeyState & ENHANCED_KEY ? 0xe0 : 0x00);
-							key_buf_char->write(0x00);
-							key_buf_scan->write(ir[i].Event.KeyEvent.wVirtualScanCode & 0xff);
-						}
-					}
-					else {
-						key_buf_char->write(ir[i].Event.KeyEvent.uChar.AsciiChar & 0xff);
-						key_buf_scan->write(ir[i].Event.KeyEvent.wVirtualScanCode & 0xff);
-					}
-				}
-			}
-		}
-	}
-}
-
-void update_key_buffer()
-{
-	int prev_count = key_buf_char->count();
-	update_key_buffer_tmp();
-	key_input += key_buf_char->count() - prev_count;
-
-	if (key_buf_char->count() == 0) {
-		Sleep(10);
-	}
-}
-
-int check_key_input()
-{
-	if (key_input == 0) {
-		int prev_count = key_buf_char->count();
-		update_key_buffer_tmp();
-		key_input = key_buf_char->count() - prev_count;
-	}
-	int val = key_input;
-	key_input = 0;
-	return(val);
-}
 
 /* ----------------------------------------------------------------------------
 	PC/AT hardware emulation
@@ -567,14 +445,6 @@ void hardware_init()
 	cpu_step = (REG32(EDX) >> 0) & 0x0f;
 #endif
 	i386_set_a20_line(0);
-	pic_init();
-#ifdef PIT_ALWAYS_RUNNING
-	pit_init();
-#else
-	pit_active = 0;
-#endif
-	cmos_init();
-	kbd_init();
 }
 
 void hardware_finish()
@@ -584,586 +454,16 @@ void hardware_finish()
 #endif
 }
 
-void hardware_run()
-{
-	int ops = 0;
-	
-	while(!m_halted) {
-#ifdef SUPPORT_DISASSEMBLER
-		if(dasm) {
-			char buffer[256];
-#if defined(HAS_I386)
-			UINT64 eip = m_eip;
-#else
-			UINT64 eip = m_pc - SREG_BASE(CS);
-#endif
-			UINT8 *oprom = mem + SREG_BASE(CS) + eip;
-			
-#if defined(HAS_I386)
-			if(m_operand_size) {
-				CPU_DISASSEMBLE_CALL(x86_32);
-			} else
-#endif
-			CPU_DISASSEMBLE_CALL(x86_16);
-			fprintf(stderr, "%04x:%04x\t%s\n", SREG(CS), (unsigned)eip, buffer);
-		}
-#endif
-#if defined(HAS_I386)
-		m_cycles = 1;
-		CPU_EXECUTE_CALL(i386);
-#else
-		CPU_EXECUTE_CALL(CPU_MODEL);
-#endif
-		if(++ops == 16384) {
-			hardware_update();
-			ops = 0;
-		}
-	}
-}
-
-void hardware_update()
-{
-	static UINT32 prev_time = 0;
-	UINT32 cur_time = timeGetTime();
-	
-	if(prev_time != cur_time) {
-		// update pit and raise irq0
-#ifndef PIT_ALWAYS_RUNNING
-		if(pit_active)
-#endif
-		{
-			if(pit_run(0, cur_time)) {
-				pic_req(0, 0, 1);
-			}
-			pit_run(1, cur_time);
-			pit_run(2, cur_time);
-		}
-		// check key input and raise irq1
-		static UINT32 prev_100ms = 0;
-		UINT32 cur_100ms = cur_time / 100;
-		if(prev_100ms != cur_100ms) {
-			if(check_key_input()) {
-				pic_req(0, 1, 1);
-			}
-			prev_100ms = cur_100ms;
-		}
-		prev_time = cur_time;
-	}
-}
-
-// pic
-
-void pic_init()
-{
-	memset(pic, 0, sizeof(pic));
-	pic[0].imr = pic[1].imr = 0xff;
-	
-	// from bochs bios
-	pic_write(0, 0, 0x11);	// icw1 = 11h
-	pic_write(0, 1, 0x08);	// icw2 = 08h
-	pic_write(0, 1, 0x04);	// icw3 = 04h
-	pic_write(0, 1, 0x01);	// icw4 = 01h
-	pic_write(0, 1, 0xb8);	// ocw1 = b8h
-	pic_write(1, 0, 0x11);	// icw1 = 11h
-	pic_write(1, 1, 0x70);	// icw2 = 70h
-	pic_write(1, 1, 0x02);	// icw3 = 02h
-	pic_write(1, 1, 0x01);	// icw4 = 01h
-}
-
-void pic_write(int c, UINT32 addr, UINT8 data)
-{
-	if(addr & 1) {
-		if(pic[c].icw2_r) {
-			// icw2
-			pic[c].icw2 = data;
-			pic[c].icw2_r = 0;
-		} else if(pic[c].icw3_r) {
-			// icw3
-			pic[c].icw3 = data;
-			pic[c].icw3_r = 0;
-		} else if(pic[c].icw4_r) {
-			// icw4
-			pic[c].icw4 = data;
-			pic[c].icw4_r = 0;
-		} else {
-			// ocw1
-			pic[c].imr = data;
-		}
-	} else {
-		if(data & 0x10) {
-			// icw1
-			pic[c].icw1 = data;
-			pic[c].icw2_r = 1;
-			pic[c].icw3_r = (data & 2) ? 0 : 1;
-			pic[c].icw4_r = data & 1;
-			pic[c].irr = 0;
-			pic[c].isr = 0;
-			pic[c].imr = 0;
-			pic[c].prio = 0;
-			if(!(pic[c].icw1 & 1)) {
-				pic[c].icw4 = 0;
-			}
-			pic[c].ocw3 = 0;
-		} else if(data & 8) {
-			// ocw3
-			if(!(data & 2)) {
-				data = (data & ~1) | (pic[c].ocw3 & 1);
-			}
-			if(!(data & 0x40)) {
-				data = (data & ~0x20) | (pic[c].ocw3 & 0x20);
-			}
-			pic[c].ocw3 = data;
-		} else {
-			// ocw2
-			int level = 0;
-			if(data & 0x40) {
-				level = data & 7;
-			} else {
-				if(!pic[c].isr) {
-					return;
-				}
-				level = pic[c].prio;
-				while(!(pic[c].isr & (1 << level))) {
-					level = (level + 1) & 7;
-				}
-			}
-			if(data & 0x80) {
-				pic[c].prio = (level + 1) & 7;
-			}
-			if(data & 0x20) {
-				pic[c].isr &= ~(1 << level);
-			}
-		}
-	}
-	pic_update();
-}
-
-UINT8 pic_read(int c, UINT32 addr)
-{
-	if(addr & 1) {
-		return(pic[c].imr);
-	} else {
-		// polling mode is not supported...
-		//if(pic[c].ocw3 & 4) {
-		//	return ???;
-		//}
-		if(pic[c].ocw3 & 1) {
-			return(pic[c].isr);
-		} else {
-			return(pic[c].irr);
-		}
-	}
-}
-
-void pic_req(int c, int level, int signal)
-{
-	if(signal) {
-		pic[c].irr |= (1 << level);
-	} else {
-		pic[c].irr &= ~(1 << level);
-	}
-	pic_update();
-}
 
 int pic_ack()
 {
-	// ack (INTA=L)
-	pic[pic_req_chip].isr |= pic_req_bit;
-	pic[pic_req_chip].irr &= ~pic_req_bit;
-	if(pic_req_chip > 0) {
-		// update isr and irr of master
-		UINT8 slave = 1 << (pic[pic_req_chip].icw3 & 7);
-		pic[pic_req_chip - 1].isr |= slave;
-		pic[pic_req_chip - 1].irr &= ~slave;
-	}
-	//if(pic[pic_req_chip].icw4 & 1) {
-		// 8086 mode
-		int vector = (pic[pic_req_chip].icw2 & 0xf8) | pic_req_level;
-	//} else {
-	//	// 8080 mode
-	//	UINT16 addr = (UINT16)pic[pic_req_chip].icw2 << 8;
-	//	if(pic[pic_req_chip].icw1 & 4) {
-	//		addr |= (pic[pic_req_chip].icw1 & 0xe0) | (pic_req_level << 2);
-	//	} else {
-	//		addr |= (pic[pic_req_chip].icw1 & 0xc0) | (pic_req_level << 3);
-	//	}
-	//	vector = 0xcd | (addr << 8);
-	//}
-	if(pic[pic_req_chip].icw4 & 2) {
-		// auto eoi
-		pic[pic_req_chip].isr &= ~pic_req_bit;
-	}
-	return(vector);
-}
-
-void pic_update()
-{
-	for(int c = 0; c < 2; c++) {
-		UINT8 irr = pic[c].irr;
-		if(c + 1 < 2) {
-			// this is master
-			if(pic[c + 1].irr & (~pic[c + 1].imr)) {
-				// request from slave
-				irr |= 1 << (pic[c + 1].icw3 & 7);
-			}
-		}
-		irr &= (~pic[c].imr);
-		if(!irr) {
-			break;
-		}
-		if(!(pic[c].ocw3 & 0x20)) {
-			irr |= pic[c].isr;
-		}
-		int level = pic[c].prio;
-		UINT8 bit = 1 << level;
-		while(!(irr & bit)) {
-			level = (level + 1) & 7;
-			bit = 1 << level;
-		}
-		if((c + 1 < 2) && (pic[c].icw3 & bit)) {
-			// check slave
-			continue;
-		}
-		if(pic[c].isr & bit) {
-			break;
-		}
-		// interrupt request
-		pic_req_chip = c;
-		pic_req_level = level;
-		pic_req_bit = bit;
-		i386_set_irq_line(INPUT_LINE_IRQ, HOLD_LINE);
-		return;
-	}
-	i386_set_irq_line(INPUT_LINE_IRQ, CLEAR_LINE);
-}
-
-// pit
-
-#define PIT_FREQ 1193182
-#define PIT_COUNT_VALUE(n) ((pit[n].count_reg == 0) ? 0x10000 : (pit[n].mode == 3 && pit[n].count_reg == 1) ? 0x10001 : pit[n].count_reg)
-
-void pit_init()
-{
-	memset(pit, 0, sizeof(pit));
-	for(int ch = 0; ch < 3; ch++) {
-		pit[ch].count = 0x10000;
-		pit[ch].ctrl_reg = 0x34;
-		pit[ch].mode = 3;
-	}
-	
-	// from bochs bios
-	pit_write(3, 0x34);
-	pit_write(0, 0x00);
-	pit_write(0, 0x00);
-}
-
-void pit_write(int ch, UINT8 val)
-{
-#ifndef PIT_ALWAYS_RUNNING
-	if(!pit_active) {
-		pit_active = 1;
-		pit_init();
-	}
-#endif
-	switch(ch) {
-	case 0:
-	case 1:
-	case 2:
-		// write count register
-		if(!pit[ch].low_write && !pit[ch].high_write) {
-			if(pit[ch].ctrl_reg & 0x10) {
-				pit[ch].low_write = 1;
-			}
-			if(pit[ch].ctrl_reg & 0x20) {
-				pit[ch].high_write = 1;
-			}
-		}
-		if(pit[ch].low_write) {
-			pit[ch].count_reg = val;
-			pit[ch].low_write = 0;
-		} else if(pit[ch].high_write) {
-			if((pit[ch].ctrl_reg & 0x30) == 0x20) {
-				pit[ch].count_reg = val << 8;
-			} else {
-				pit[ch].count_reg |= val << 8;
-			}
-			pit[ch].high_write = 0;
-		}
-		// start count
-		if(!pit[ch].low_write && !pit[ch].high_write) {
-			if(pit[ch].mode == 0 || pit[ch].mode == 4 || pit[ch].prev_time == 0) {
-				pit[ch].count = PIT_COUNT_VALUE(ch);
-				pit[ch].prev_time = timeGetTime();
-				pit[ch].expired_time = pit[ch].prev_time + pit_get_expired_time(ch);
-			}
-		}
-		break;
-	case 3: // ctrl reg
-		if((val & 0xc0) == 0xc0) {
-			// i8254 read-back command
-			for(ch = 0; ch < 3; ch++) {
-				UINT8 bit = 2 << ch;
-				if(!(val & 0x10) && !pit[ch].status_latched) {
-					pit[ch].status = pit[ch].ctrl_reg & 0x3f;
-					pit[ch].status_latched = 1;
-				}
-				if(!(val & 0x20) && !pit[ch].count_latched) {
-					pit_latch_count(ch);
-				}
-			}
-			break;
-		}
-		ch = (val >> 6) & 3;
-		if(val & 0x30) {
-			static int modes[8] = {0, 1, 2, 3, 4, 5, 2, 3};
-			pit[ch].mode = modes[(val >> 1) & 7];
-			pit[ch].count_latched = 0;
-			pit[ch].low_read = pit[ch].high_read = 0;
-			pit[ch].low_write = pit[ch].high_write = 0;
-			pit[ch].ctrl_reg = val;
-			// stop count
-			pit[ch].prev_time = pit[ch].expired_time = 0;
-			pit[ch].count_reg = 0;
-		} else if(!pit[ch].count_latched) {
-			pit_latch_count(ch);
-		}
-		break;
-	}
-}
-
-UINT8 pit_read(int ch)
-{
-#ifndef PIT_ALWAYS_RUNNING
-	if(!pit_active) {
-		pit_active = 1;
-		pit_init();
-	}
-#endif
-	switch(ch) {
-	case 0:
-	case 1:
-	case 2:
-		if(pit[ch].status_latched) {
-			pit[ch].status_latched = 0;
-			return(pit[ch].status);
-		}
-		// if not latched, through current count
-		if(!pit[ch].count_latched) {
-			if(!pit[ch].low_read && !pit[ch].high_read) {
-				pit_latch_count(ch);
-			}
-		}
-		// return latched count
-		if(pit[ch].low_read) {
-			pit[ch].low_read = 0;
-			if(!pit[ch].high_read) {
-				pit[ch].count_latched = 0;
-			}
-			return(pit[ch].latch & 0xff);
-		} else if(pit[ch].high_read) {
-			pit[ch].high_read = 0;
-			pit[ch].count_latched = 0;
-			return((pit[ch].latch >> 8) & 0xff);
-		}
-	}
-	return(0xff);
-}
-
-int pit_run(int ch, UINT32 cur_time)
-{
-	if(pit[ch].expired_time != 0 && cur_time >= pit[ch].expired_time) {
-		pit[ch].count = PIT_COUNT_VALUE(ch);
-		pit[ch].prev_time = pit[ch].expired_time;
-		pit[ch].expired_time = pit[ch].prev_time + pit_get_expired_time(ch);
-		if(cur_time >= pit[ch].expired_time) {
-			pit[ch].prev_time = cur_time;
-			pit[ch].expired_time = pit[ch].prev_time + pit_get_expired_time(ch);
-		}
-		return(1);
-	}
-	return(0);
-}
-
-void pit_latch_count(int ch)
-{
-	UINT32 cur_time = timeGetTime();
-	
-	if(pit[ch].expired_time != 0) {
-		pit_run(ch, cur_time);
-		UINT32 tmp = (pit[ch].count * (pit[ch].expired_time - cur_time)) / (pit[ch].expired_time - pit[ch].prev_time);
-		pit[ch].latch = (tmp != 0) ? (UINT16)tmp : 1;
-	} else {
-		pit[ch].latch = (UINT16)pit[ch].count;
-	}
-	pit[ch].count_latched = 1;
-	if((pit[ch].ctrl_reg & 0x30) == 0x10) {
-		// lower byte
-		pit[ch].low_read = 1;
-		pit[ch].high_read = 0;
-	} else if((pit[ch].ctrl_reg & 0x30) == 0x20) {
-		// upper byte
-		pit[ch].low_read = 0;
-		pit[ch].high_read = 1;
-	} else {
-		// lower -> upper
-		pit[ch].low_read = pit[ch].low_read = 1;
-	}
-}
-
-int pit_get_expired_time(int ch)
-{
-	UINT32 val = (1000 * pit[ch].count) / PIT_FREQ;
-	return((val > 0) ? val : 1);
-}
-
-// cmos
-
-void cmos_init()
-{
-	memset(cmos, 0, sizeof(cmos));
-	cmos_addr = 0;
-	
-	// from DOSBox
-	cmos_write(0x0a, 0x26);
-	cmos_write(0x0b, 0x02);
-	cmos_write(0x0d, 0x80);
-}
-
-void cmos_write(int addr, UINT8 val)
-{
-	cmos[addr & 0x7f] = val;
-}
-
-#define CMOS_GET_TIME() { \
-	UINT32 cur_sec = timeGetTime() / 1000 ; \
-	if(prev_sec != cur_sec) { \
-		GetLocalTime(&time); \
-		prev_sec = cur_sec; \
-	} \
-}
-
-// kbd (a20)
-
-void kbd_init()
-{
-	kbd_data = kbd_command = 0;
-	kbd_status = 0x18;
-}
-
-UINT8 kbd_read_data()
-{
-	kbd_status &= ~1;
-	return(kbd_data);
-}
-
-void kbd_write_data(UINT8 val)
-{
-	switch(kbd_command) {
-	case 0xd1:
-		i386_set_a20_line((val >> 1) & 1);
-		break;
-	}
-	kbd_command = 0;
-	kbd_status &= ~8;
-}
-
-UINT8 kbd_read_status()
-{
-	return(kbd_status);
-}
-
-void kbd_write_command(UINT8 val)
-{
-	switch(val) {
-	case 0xd0:
-		kbd_data = ((m_a20_mask >> 19) & 2) | 1;
-		kbd_status |= 1;
-		break;
-	case 0xdd:
-		i386_set_a20_line(0);
-		break;
-	case 0xdf:
-		i386_set_a20_line(1);
-		break;
-	case 0xf0:
-	case 0xf1:
-	case 0xf2:
-	case 0xf3:
-	case 0xf4:
-	case 0xf5:
-	case 0xf6:
-	case 0xf7:
-	case 0xf8:
-	case 0xf9:
-	case 0xfa:
-	case 0xfb:
-	case 0xfc:
-	case 0xfd:
-	case 0xfe:
-	case 0xff:
-		if(!(val & 1)) {
-			if((cmos[0x0f] & 0x7f) == 5) {
-				// reset pic
-				pic_init();
-				pic[0].irr = pic[1].irr = 0x00;
-				pic[0].imr = pic[1].imr = 0xff;
-			}
-			CPU_RESET_CALL(CPU_MODEL);
-			i386_jmp_far(0x40, 0x67);
-		}
-		i386_set_a20_line((val >> 1) & 1);
-		break;
-	}
-	kbd_command = val;
-	kbd_status |= 8;
-}
-
-// vga
-
-UINT8 vga_read_status()
-{
-	// 60hz
-	static const int period[3] = {16, 17, 17};
-	static int index = 0;
-	UINT32 time = timeGetTime() % period[index];
-	
-	index = (index + 1) % 3;
-	return((time < 4 ? 0x08 : 0) | 0x01);
+	return 0;
 }
 
 // i/o bus
 
 UINT8 read_io_byte(offs_t addr)
 {
-	switch(addr) {
-	case 0x20:
-	case 0x21:
-		return(pic_read(0, addr));
-	case 0x40:
-	case 0x41:
-	case 0x42:
-	case 0x43:
-		return(pit_read(addr & 0x03));
-	case 0x60:
-		return(kbd_read_data());
-	case 0x61:
-		return(system_port);
-	case 0x64:
-		return(kbd_read_status());
-	//case 0x71:
-	//	return(cmos_read(cmos_addr));
-	case 0x92:
-		return((m_a20_mask >> 19) & 2);
-	case 0xa0:
-	case 0xa1:
-		return(pic_read(1, addr));
-	case 0x3ba:
-	case 0x3da:
-		return(vga_read_status());
-	default:
-//		error("inb %4x\n", addr);
-		break;
-	}
 	return(0xff);
 }
 
@@ -1179,49 +479,6 @@ UINT32 read_io_dword(offs_t addr)
 
 void write_io_byte(offs_t addr, UINT8 val)
 {
-	switch(addr) {
-	case 0x20:
-	case 0x21:
-		pic_write(0, addr, val);
-		break;
-	case 0x40:
-	case 0x41:
-	case 0x42:
-	case 0x43:
-		pit_write(addr & 0x03, val);
-		break;
-	case 0x60:
-		kbd_write_data(val);
-		break;
-	case 0x61:
-		if((system_port & 3) != 3 && (val & 3) == 3) {
-			// beep on
-//			MessageBeep(-1);
-		} else if((system_port & 3) == 3 && (val & 3) != 3) {
-			// beep off
-		}
-		system_port = val;
-		break;
-	case 0x64:
-		kbd_write_command(val);
-		break;
-	case 0x70:
-		cmos_addr = val;
-		break;
-	case 0x71:
-		cmos_write(cmos_addr, val);
-		break;
-	case 0x92:
-		i386_set_a20_line((val >> 1) & 1);
-		break;
-	case 0xa0:
-	case 0xa1:
-		pic_write(1, addr, val);
-		break;
-	default:
-//		error("outb %4x,%2x\n", addr, val);
-		break;
-	}
 }
 
 void write_io_word(offs_t addr, UINT16 val)
@@ -1352,6 +609,9 @@ extern "C"
 		context->Ebp = REG16(BP);
 		context->Esi = REG16(SI);
 		context->Edi = REG16(DI);
+		context->Edi = REG16(DI);
+		context->Ebp = REG16(BP);
+		context->Eip = m_eip;
 		context->SegEs = SREG(ES);
 		context->SegCs = SREG(CS);
 		context->SegSs = SREG(SS);
@@ -1368,6 +628,7 @@ extern "C"
 		REG16(BP) = (WORD)context->Ebp;
 		REG16(SI) = (WORD)context->Esi;
 		REG16(DI) = (WORD)context->Edi;
+		REG16(BP) = (WORD)context->Ebp;
 		SREG(ES) = (WORD)context->SegEs;
 		SREG(CS) = (WORD)context->SegCs;
 		SREG(SS) = (WORD)context->SegSs;
@@ -1380,15 +641,15 @@ extern "C"
 		i386_load_segment_descriptor(DS);
 		i386_load_segment_descriptor(FS);
 		i386_load_segment_descriptor(GS);
+		m_eip = context->Eip;
+		i386_jmp_far(context->SegCs, context->Eip);
 	}
 	void __wine_call_int_handler(CONTEXT *context, BYTE intnum);
 	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
 	unsigned char iret[100] = { 0xcf };
 	WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags);
-	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);
-	void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler, void(*from16_reg)(void), LONG (*__wine_call_from_16)(void), int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context))
+	__declspec(dllexport) BOOL init_vm86()
 	{
-		//wine_ldt_copy.base[0] = iret;
 		WORD sel = SELECTOR_AllocBlock(iret, 100, WINE_LDT_FLAGS_DATA);
 		CPU_INIT_CALL(CPU_MODEL);
 		CPU_RESET_CALL(CPU_MODEL);
@@ -1403,11 +664,25 @@ extern "C"
 		m_a20_mask = -1;
 		set_flags(0x20000);//V8086_MODE
 		assert(V8086_MODE);
+		return TRUE;
+	}
+	BOOL initflag;
+	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);
+	void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
+		void(*from16_reg)(void),
+		LONG(*__wine_call_from_16)(void),
+		int(*relay_call_from_16)(void *entry_point,	unsigned char *args16, CONTEXT *context),
+		void(*__wine_call_to_16_ret)(void)
+		)
+	{
+		if (!initflag)
+			initflag = init_vm86();
+		//wine_ldt_copy.base[0] = iret;
 		REG16(AX) = (WORD)context->Eax;
 		REG16(CX) = (WORD)context->Ecx;
 		REG16(DX) = (WORD)context->Edx;
 		REG16(BX) = (WORD)context->Ebx;
-		REG16(SP) = (WORD)context->Esp;
+		REG16(SP) = (WORD)context->Esp - cbArgs;
 		REG16(BP) = (WORD)context->Ebp;
 		REG16(SI) = (WORD)context->Esi;
 		REG16(DI) = (WORD)context->Edi;
@@ -1424,6 +699,12 @@ extern "C"
 		i386_load_segment_descriptor(DS);
 		i386_load_segment_descriptor(FS);
 		i386_load_segment_descriptor(GS);
+		DWORD ret_addr = 0;
+		if (cbArgs >= 2)
+		{
+			unsigned char *stack = (unsigned char*)i386_translate(SS, REG16(SP), 0);
+			ret_addr = *(DWORD*)stack;
+		}
 		dasm = true;
 		while (!m_halted) {
 			bool reg = false;
@@ -1433,6 +714,11 @@ extern "C"
 				save_context(&context);
 				__wine_call_int_handler(&context, 0x21);
 				load_context(&context);
+			}
+			if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
+			{
+				__wine_call_to_16_ret();
+				break;//return VM
 			}
 			if ((void(*)(void))m_eip == from16_reg)
 			{
@@ -1488,9 +774,14 @@ extern "C"
 					PUSH32(/*context.Esp*/osp);
 					save_context(&context);
 					int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
-					REG16(AX) = (WORD)context.Eax;
+					if (!reg)
+					{
+						REG16(AX) = fret & 0xFFFF;
+						REG16(DX) = (fret >> 16) & 0xFFFF;
+					}
+					if (reg) REG16(AX) = (WORD)context.Eax;
 					REG16(CX) = (WORD)context.Ecx;
-					REG16(DX) = (WORD)context.Edx;
+					if (reg) REG16(DX) = (WORD)context.Edx;
 					REG16(BX) = (WORD)context.Ebx;
 					REG16(SP) = (WORD)context.Esp;
 					REG16(BP) = (WORD)context.Ebp;
@@ -1505,11 +796,14 @@ extern "C"
 					SREG(GS) = (WORD)context.SegGs;
 					REG16(SP) = osp + 18;
 					if (!reg) REG16(SP) += 2;
+					REG16(BP) = bp;
 					i386_load_segment_descriptor(ES);
 					i386_load_segment_descriptor(SS);
 					i386_load_segment_descriptor(DS);
 					i386_load_segment_descriptor(FS);
 					i386_load_segment_descriptor(GS);
+					m_eip = context.Eip;
+					i386_jmp_far(context.SegCs, context.Eip);
 				}
 				/*
 				m_eip = POP32();

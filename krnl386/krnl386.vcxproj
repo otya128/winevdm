@@ -59,7 +59,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;$(OutDir)vm86.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;$(OutDir)vm86.lib;$(OutDir)wow32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>krnl386.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -81,7 +81,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\wow32\wow_main.c" />
     <ClCompile Include="atom.c" />
     <ClCompile Include="dma.c" />
     <ClCompile Include="dosaspi.c" />
@@ -127,6 +126,7 @@
     <ClCompile Include="vga.c" />
     <ClCompile Include="vxd.c" />
     <ClCompile Include="wowthunk.c" />
+    <ClCompile Include="wow_handle.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dosexe.h" />

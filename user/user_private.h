@@ -216,4 +216,6 @@ extern PUserRealizePalette UserRealizePalette;
 typedef void (WINAPI *PUserRegisterWowHandlers)(const struct wow_handlers16 *new, struct wow_handlers32 *orig);
 extern PUserRegisterWowHandlers UserRegisterWowHandlers;
 #define strncasecmp _strnicmp
+__declspec(dllimport) void SetWndProc16(WORD hWnd16, DWORD WndProc);
+__declspec(dllimport) DWORD GetWndProc16(WORD hWnd16);
 #endif /* __WINE_USER_PRIVATE_H */

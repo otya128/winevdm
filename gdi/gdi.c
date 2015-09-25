@@ -30,8 +30,12 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(gdi);
 
-#define HGDIOBJ_32(handle16)    ((HGDIOBJ)(ULONG_PTR)(handle16))
-#define HGDIOBJ_16(handle32)    ((HGDIOBJ16)(ULONG_PTR)(handle32))
+//#define HGDIOBJ_32(handle16)    ((HGDIOBJ)(ULONG_PTR)(handle16))
+//#define HGDIOBJ_16(handle32)    ((HGDIOBJ16)(ULONG_PTR)(handle32))
+__declspec(dllimport) HGDIOBJ16 K32HGDIOBJ_16(HGDIOBJ handle);
+__declspec(dllimport) HGDIOBJ K32HGDIOBJ_32(HGDIOBJ16 handle);
+#define HGDIOBJ_32(handle16)    (K32HGDIOBJ_32(handle16))
+#define HGDIOBJ_16(handle32)    (K32HGDIOBJ_16(handle32))
 
 struct saved_visrgn
 {

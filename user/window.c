@@ -41,6 +41,7 @@ struct class_entry
     struct list entry;
     ATOM        atom;
     HINSTANCE16 inst;
+	DWORD wndproc16;
 };
 
 static struct list class_list = LIST_INIT( class_list );
@@ -887,7 +888,8 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
             is_winproc = (wow_handlers32.get_dialog_info( hwnd, FALSE ) != NULL);
     }
     retvalue = GetWindowLongA( hwnd, offset );
-    if (is_winproc) retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
+	if (is_winproc) retvalue = (LONG_PTR)GetWndProc16(hwnd16);//krnl386.exe
+    //if (is_winproc) retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
     return retvalue;
 }
 
@@ -1589,7 +1591,14 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
     return SetWindowPlacement( WIN_Handle32(hwnd), &wpl );
 }
 
-
+#define STR_ATOM_MIN MAXINTATOM
+#define STR_ATOM_MAX 0xFFFF
+#define STR_ATOM_SIZE STR_ATOM_MAX - STR_ATOM_MIN
+struct WNDCLASS16Info
+{
+	DWORD wndproc;
+};
+struct WNDCLASS16Info WNDCLASS16Info[STR_ATOM_SIZE];
 /***********************************************************************
  *		RegisterClassEx (USER.397)
  */
@@ -1616,10 +1625,13 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.lpszClassName = MapSL(wc->lpszClassName);
     wc32.hIconSm       = get_icon_32(wc->hIconSm);
     atom = RegisterClassExA( &wc32 );
+	if (atom)
+		WNDCLASS16Info[atom - STR_ATOM_MIN].wndproc = (DWORD)WINPROC_AllocProc16(wc->lpfnWndProc);
     if ((class = HeapAlloc( GetProcessHeap(), 0, sizeof(*class) )))
     {
         class->atom = atom;
         class->inst = inst;
+		class->wndproc16 = WINPROC_AllocProc16(wc->lpfnWndProc);
         list_add_tail( &class_list, &class->entry );
     }
     return atom;
@@ -1939,7 +1951,13 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         cs.lpszClass = buffer;
         hwnd = create_window16( (CREATESTRUCTW *)&cs, (LPCWSTR)className, HINSTANCE_32(instance), FALSE );
     }
-    return HWND_16( hwnd );
+	HWND16 hWnd16 = HWND_16(hwnd);
+	ATOM classatom = GetClassLongA(hwnd, GCW_ATOM);//WNDPROC16
+	if (classatom)
+	{
+		SetWndProc16(hWnd16, WNDCLASS16Info[classatom - STR_ATOM_MIN].wndproc);
+	}
+	return hWnd16;
 }
 
 

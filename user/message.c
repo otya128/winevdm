@@ -2716,4 +2716,5 @@ void register_wow_handlers(void)
 	wow_handlers32 = wow_handlers322;
 	wow_handlers32.get_win_handle = get_win_handle;
 	wow_handlers32.create_window = create_window;
+	//
 }

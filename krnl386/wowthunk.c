@@ -461,6 +461,9 @@ VOID WINAPI K32WOWDirectedYield16( WORD htask16 )
 }
 
 
+#define WOW64
+HANDLE WINAPI K32WOWHandle16HWND(WORD handle);
+HANDLE WINAPI K32WOWHandle32HWND(WORD handle);
 /***********************************************************************
  *           K32WOWHandle32              (KERNEL32.57)
  */
@@ -479,9 +482,12 @@ HANDLE WINAPI K32WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
     case WOW_TYPE_HBRUSH:
     case WOW_TYPE_HPALETTE:
     case WOW_TYPE_HPEN:
-    case WOW_TYPE_HACCEL:
+	case WOW_TYPE_HACCEL:
+#ifdef WOW64
+		return K32WOWHandle32HWND(handle);
+#else
         return (HANDLE)(ULONG_PTR)handle;
-
+#endif
     case WOW_TYPE_HMETAFILE:
         FIXME( "conversion of metafile handles not supported yet\n" );
         return (HANDLE)(ULONG_PTR)handle;
@@ -498,7 +504,6 @@ HANDLE WINAPI K32WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
         return (HANDLE)(ULONG_PTR)handle;
     }
 }
-
 /***********************************************************************
  *           K32WOWHandle16              (KERNEL32.58)
  */
@@ -519,10 +524,13 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
     case WOW_TYPE_HPEN:
     case WOW_TYPE_HACCEL:
     case WOW_TYPE_FULLHWND:
+#ifdef WOW64
+		return K32WOWHandle16HWND(handle);
+#else
     	if ( HIWORD(handle ) )
         	ERR( "handle %p of type %d has non-zero HIWORD\n", handle, type );
         return LOWORD(handle);
-
+#endif
     case WOW_TYPE_HMETAFILE:
         FIXME( "conversion of metafile handles not supported yet\n" );
         return LOWORD(handle);
@@ -535,7 +543,24 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
         return LOWORD(handle);
     }
 }
-
+__declspec(dllexport) HGDIOBJ16 K32HGDIOBJ_16(HGDIOBJ handle)
+{
+#ifdef WOW64
+	return K32WOWHandle16HWND(handle);
+#else
+	if (HIWORD(handle))
+		ERR("handle %p of type %d has non-zero HIWORD\n", handle, type);
+	return LOWORD(handle);
+#endif
+}
+__declspec(dllexport) HGDIOBJ K32HGDIOBJ_32(HGDIOBJ16 handle)
+{
+#ifdef WOW64
+	return K32WOWHandle32HWND(handle);
+#else
+	return (HANDLE)(ULONG_PTR)handle;
+#endif
+}
 /**********************************************************************
  *           K32WOWCallback16Ex         (KERNEL32.55)
  */

@@ -56,8 +56,10 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;psapi.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)krnl386.lib;odbc32.lib;odbccp32.lib;winmm.lib;psapi.lib;$(OutDir)libwine.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>vm86.def</ModuleDefinitionFile>
+      <DelayLoadDLLs>
+      </DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
