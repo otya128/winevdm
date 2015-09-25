@@ -302,8 +302,8 @@ BOOL DOSMEM_InitDosMemory(void)
 {
 	//FIXME
 	//emulatorgasubeki
-	ERR("NOTIMPL");
-	return TRUE;
+	//ERR("NOTIMPL");
+	//return TRUE;
     static BOOL done;
 	static HANDLE hRunOnce;
 	DWORD old_prot;
@@ -399,9 +399,14 @@ BOOL DOSMEM_Init(void)
 
     if (NtAllocateVirtualMemory( GetCurrentProcess(), &addr, 0, &size,
                                  MEM_RESERVE | MEM_COMMIT, PAGE_NOACCESS ))
-    {
-        ERR( "Cannot allocate DOS memory\n" );
-		//ExitProcess(1);
+	{
+		addr = 0;
+		if (NtAllocateVirtualMemory(GetCurrentProcess(), &addr, 0, &size,
+			MEM_RESERVE | MEM_COMMIT, PAGE_NOACCESS))
+		{
+			ERR("Cannot allocate DOS memory\n");
+			//ExitProcess(1);
+		}
     }
 
     if (addr <= (void *)DOSMEM_64KB)

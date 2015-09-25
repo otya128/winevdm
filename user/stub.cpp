@@ -25,7 +25,7 @@ int ab();
 static int a = ab();
 int ab()
 {
-#define LOAD_FUNC(dll, name) name = (P##name)GetProcAddress(GetModuleHandleA(dll), #name);if(!name) MessageBoxA(NULL, "can't load " dll "!" #name,"", 0)
+#define LOAD_FUNC(dll, name) name = (P##name)GetProcAddress(GetModuleHandleA(dll), #name);//if(!name) MessageBoxA(NULL, "can't load " dll "!" #name,"", 0)
 	DrawCaptionTempA = (PDrawCaptionTempA)GetProcAddress(GetModuleHandleA("USER32.DLL"), "DrawCaptionTempA");
 	 
 	LOAD_FUNC("USER32.DLL", ScrollChildren);

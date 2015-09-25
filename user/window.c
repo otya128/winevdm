@@ -908,8 +908,10 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     if (is_winproc)
     {
         WNDPROC new_proc = WINPROC_AllocProc16( (WNDPROC16)newval );
-        WNDPROC old_proc = (WNDPROC)SetWindowLongPtrA( hwnd, offset, (LONG_PTR)new_proc );
-        return (LONG)WINPROC_GetProc16( old_proc, FALSE );
+		SetWndProc16(hwnd16, new_proc);//krnl386.exe
+        //WNDPROC old_proc = (WNDPROC)SetWindowLongPtrA( hwnd, offset, (LONG_PTR)new_proc );
+        //return (LONG)WINPROC_GetProc16( old_proc, FALSE );
+		return (LONG_PTR)GetWndProc16(hwnd16);
     }
     else return SetWindowLongA( hwnd, offset, newval );
 }

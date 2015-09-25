@@ -561,6 +561,24 @@ __declspec(dllexport) HGDIOBJ K32HGDIOBJ_32(HGDIOBJ16 handle)
 	return (HANDLE)(ULONG_PTR)handle;
 #endif
 }
+__declspec(dllexport) HICON16 K32HICON_16(HICON handle)
+{
+#ifdef WOW64
+	return K32WOWHandle16HWND(handle);
+#else
+	if (HIWORD(handle))
+		ERR("handle %p of type %d has non-zero HIWORD\n", handle, type);
+	return LOWORD(handle);
+#endif
+}
+__declspec(dllexport) HICON K32HICON_32(HICON16 handle)
+{
+#ifdef WOW64
+	return K32WOWHandle32HWND(handle);
+#else
+	return (HANDLE)(ULONG_PTR)handle;
+#endif
+}
 /**********************************************************************
  *           K32WOWCallback16Ex         (KERNEL32.55)
  */

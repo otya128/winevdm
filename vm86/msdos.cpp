@@ -616,6 +616,7 @@ extern "C"
 		context->SegCs = SREG(CS);
 		context->SegSs = SREG(SS);
 		context->SegDs = SREG(DS);
+		context->EFlags = m_eflags | 0x20000;
 		setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
 	}
 	void load_context(CONTEXT *context)
@@ -642,7 +643,8 @@ extern "C"
 		i386_load_segment_descriptor(FS);
 		i386_load_segment_descriptor(GS);
 		m_eip = context->Eip;
-		i386_jmp_far(context->SegCs, context->Eip);
+		i386_jmp_far(SREG(CS), context->Eip);
+		m_eflags = context->EFlags;
 	}
 	void __wine_call_int_handler(CONTEXT *context, BYTE intnum);
 	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
@@ -666,6 +668,7 @@ extern "C"
 		assert(V8086_MODE);
 		return TRUE;
 	}
+	void WINAPI InitTask16(CONTEXT*);
 	BOOL initflag;
 	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);
 	void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
@@ -748,6 +751,8 @@ extern "C"
 				WORD ip2 = *(WORD*)stack;
 				stack += sizeof(WORD);
 				DWORD entry = *(DWORD*)stack;
+				//for debug
+				void *entryf = (void*)entry;
 				stack += sizeof(DWORD);
 				WORD bp = *(WORD*)stack;
 				stack += sizeof(WORD);
@@ -760,8 +765,28 @@ extern "C"
 				m_sreg[CS].selector = cs;
 				i386_load_segment_descriptor(CS);
 				CHANGE_PC(m_eip);
-				if (relay == (UINT)relay_call_from_16)
+				if ((void*)relay != relay_call_from_16)
 				{
+					//SNOOP???
+					stack = stack1;
+					ip = *(DWORD*)stack;
+					stack += sizeof(DWORD);
+					cs = *(DWORD*)stack;//4
+					stack += sizeof(DWORD);
+					relay = *(DWORD*)stack;//8
+					stack += sizeof(DWORD);
+					WORD ax = *(WORD*)stack;//10
+					stack += sizeof(WORD);
+					DWORD eax = *(DWORD*)stack;//14
+					stack += sizeof(DWORD);
+					bp = *(WORD*)stack;//16
+					stack += sizeof(WORD);
+					ip19 = *(WORD*)stack;
+					stack += sizeof(WORD);
+					cs16 = *(WORD*)stack;
+					stack += sizeof(WORD);
+					args = (WORD*)stack;
+
 					CONTEXT context;
 					WORD osp = REG16(SP);
 					PUSH16(SREG(GS));
@@ -773,7 +798,8 @@ extern "C"
 					PUSH32(REG32(EDX));
 					PUSH32(/*context.Esp*/osp);
 					save_context(&context);
-					int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
+					int fret = ((int(WINAPI*)(void *, unsigned char *, CONTEXT *))relay)((void*)entry, (unsigned char*)args, &context);
+					//int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
 					if (!reg)
 					{
 						REG16(AX) = fret & 0xFFFF;
@@ -795,7 +821,8 @@ extern "C"
 					SREG(FS) = (WORD)context.SegFs;
 					SREG(GS) = (WORD)context.SegGs;
 					REG16(SP) = osp + 18;
-					if (!reg) REG16(SP) += 2;
+					if (entryf != InitTask16)//??????????????????????//(!reg)
+						REG16(SP) += 2;
 					REG16(BP) = bp;
 					i386_load_segment_descriptor(ES);
 					i386_load_segment_descriptor(SS);
@@ -803,7 +830,58 @@ extern "C"
 					i386_load_segment_descriptor(FS);
 					i386_load_segment_descriptor(GS);
 					m_eip = context.Eip;
-					i386_jmp_far(context.SegCs, context.Eip);
+					i386_jmp_far(SREG(CS), context.Eip);
+					i386_jmp_far(cs16, ip19);
+					m_eflags = context.EFlags;
+				}
+				if (relay == (UINT)relay_call_from_16)
+				{
+					CONTEXT context;
+					WORD osp = REG16(SP);
+					PUSH16(SREG(GS));
+					PUSH16(SREG(FS));
+					PUSH16(SREG(ES));
+					PUSH16(SREG(DS));
+					PUSH32(REG32(EBP));
+					PUSH32(REG32(ECX));
+					PUSH32(REG32(EDX));
+					PUSH32(/*context.Esp*/osp);
+					save_context(&context);
+					DWORD ooo = (WORD)context.Esp;
+					int fret = ((int(*)(void *, unsigned char *, CONTEXT *))relay)((void*)entry, (unsigned char*)args, &context);
+					//int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
+					if (!reg)
+					{
+						REG16(AX) = fret & 0xFFFF;
+						REG16(DX) = (fret >> 16) & 0xFFFF;
+					}
+					if (reg) REG16(AX) = (WORD)context.Eax;
+					REG16(CX) = (WORD)context.Ecx;
+					if (reg) REG16(DX) = (WORD)context.Edx;
+					REG16(BX) = (WORD)context.Ebx;
+					REG16(SP) = (WORD)context.Esp;
+					REG16(BP) = (WORD)context.Ebp;
+					REG16(SI) = (WORD)context.Esi;
+					REG16(DI) = (WORD)context.Edi;
+					SREG(ES) = (WORD)context.SegEs;
+					SREG(CS) = (WORD)context.SegCs;
+					SREG(SS) = (WORD)context.SegSs;
+					SREG(DS) = (WORD)context.SegDs;//ES, CS, SS, DS
+					//ES, CS, SS, DS, FS, GS
+					SREG(FS) = (WORD)context.SegFs;
+					SREG(GS) = (WORD)context.SegGs;
+					REG16(SP) = osp + 18 + 2;
+					//if (IsInitTask)//??????????????????????//(!reg)
+					//	REG16(SP) += 2;
+					REG16(SP) -= (ooo - context.Esp);
+					REG16(BP) = bp;
+					i386_load_segment_descriptor(ES);
+					i386_load_segment_descriptor(SS);
+					i386_load_segment_descriptor(DS);
+					i386_load_segment_descriptor(FS);
+					i386_load_segment_descriptor(GS);
+					m_eip = context.Eip;
+					i386_jmp_far(SREG(CS), context.Eip);
 				}
 				/*
 				m_eip = POP32();
@@ -879,6 +957,8 @@ extern "C"
 #endif
 				UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 
+				fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
+				fflush(stderr);
 #if defined(HAS_I386)
 				if (m_operand_size) {
 					CPU_DISASSEMBLE_CALL(x86_32);
@@ -886,7 +966,7 @@ extern "C"
 				else
 #endif
 					CPU_DISASSEMBLE_CALL(x86_16);
-				fprintf(stderr, "%04x:%04x\t%s\n", SREG(CS), (unsigned)eip, buffer);
+				fprintf(stderr, "\t%s\n", buffer);
 			}
 #endif
 #if defined(HAS_I386)

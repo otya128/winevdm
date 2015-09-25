@@ -829,8 +829,10 @@ LPVOID DOSVM_AllocDataUMB( DWORD size, WORD *segment, WORD *selector )
  */
 void DOSVM_InitSegments(void)
 {
+	ERR("DOSVM_InitSegments!\n");
+	return;
 	DWORD old_prot;
-    LPSTR ptr;
+	LPSTR ptr;
     int   i;
 
     static const char wrap_code[]={
