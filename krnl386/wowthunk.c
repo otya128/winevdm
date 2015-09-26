@@ -462,7 +462,7 @@ VOID WINAPI K32WOWDirectedYield16( WORD htask16 )
 
 
 #define WOW64
-HANDLE WINAPI K32WOWHandle16HWND(WORD handle);
+WORD WINAPI K32WOWHandle16HWND(HANDLE handle);
 HANDLE WINAPI K32WOWHandle32HWND(WORD handle);
 /***********************************************************************
  *           K32WOWHandle32              (KERNEL32.57)

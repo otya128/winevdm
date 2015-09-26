@@ -295,7 +295,215 @@ static LPCSTR DIALOG_ParseTemplate16( LPCSTR p, DLG_TEMPLATE * result )
     return p;
 }
 
+BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+    return FALSE;
+}
+LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
+void paddingDWORD(DWORD **d)
+{
+	*d = (BYTE*)(((DWORD)*d + 3) & ~((DWORD)3));
+}
+void copy_widestr(LPCSTR name, LPWSTR *templatew)
+{
+	int len = 0;
+	if (strlen(name))
+	{
+		len = MultiByteToWideChar(CP_ACP, NULL, name, -1, *templatew, strlen(name) * 4)
+			* 2;
+	}
+	if (len)
+	{
+		*templatew = (WORD*)((BYTE*)*templatew + len);
+	}
+	else
+	{
+		**templatew = 0;
+		(*templatew)++;
+	}
+}
+/***********************************************************************
+*           DIALOG_CreateControls16
+*
+* Create the control windows for a dialog.
+*/
+static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
+	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATE *dlgItemTemplate32)
+{
+	DLG_CONTROL_INFO info;
+	HWND hwndCtrl, hwndDefButton = 0;
+	INT items = dlgTemplate->nbItems;
+	dlgItemTemplate32 = (BYTE*) (((DWORD)dlgItemTemplate32 + 3) & ~((DWORD)3));
+	WORD *dlgItemTemplatew;
+	TRACE(" BEGIN\n");
+	while (items--)
+	{
+		HINSTANCE16 instance = hInst;
+		SEGPTR segptr;
 
+		paddingDWORD(&dlgItemTemplate32);
+		template = DIALOG_GetControl16(template, &info);
+		//segptr = MapLS(info.data);
+		dlgItemTemplate32->style = info.style | WS_CHILD | WS_VISIBLE;
+		dlgItemTemplate32->dwExtendedStyle = WS_EX_NOPARENTNOTIFY;
+		dlgItemTemplate32->x = info.x;
+		dlgItemTemplate32->y = info.y;
+		dlgItemTemplate32->cx = info.cx;
+		dlgItemTemplate32->cy = info.cy;
+		dlgItemTemplate32->id = info.id;
+		dlgItemTemplatew = (WORD*)(dlgItemTemplate32 + 1);
+		copy_widestr(info.className, &dlgItemTemplatew);
+		copy_widestr(info.windowName, &dlgItemTemplatew);
+		if (info.data)
+		{
+			*dlgItemTemplatew++ = sizeof(WORD) + sizeof(info.data);
+			*((LPCVOID*)dlgItemTemplatew) = info.data;
+			dlgItemTemplatew += 2;
+		}
+		else
+		{
+			*dlgItemTemplatew++ = 0;
+		}
+		dlgItemTemplate32 = dlgItemTemplatew;
+		
+	}
+	TRACE(" END\n");
+	return TRUE;
+}
+static BOOL DIALOG_DumpControls32(HWND hwnd, LPCSTR template,
+	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATE *dlgItemTemplate32)
+{
+	DLG_CONTROL_INFO info;
+	HWND hwndCtrl, hwndDefButton = 0;
+	INT items = dlgTemplate->nbItems;
+	dlgItemTemplate32 = (BYTE*)(((DWORD)dlgItemTemplate32 + 3) & ~((DWORD)3));
+	WORD *dlgItemTemplatew;
+	TRACE(" BEGIN\n");
+	while (items--)
+	{
+		char buf[256];
+		template = DIALOG_GetControl16(template, &info);
+		GetDlgItemTextA(hwnd, info.id, buf, 256);
+		char	pszError[512];
+		//ÅŒã‚ÌƒGƒ‰[”Ô†Žæ“¾
+		DWORD dwError = GetLastError();
+		//•¶Žš—ñ•ÏŠ·
+		FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, dwError, NULL, pszError, sizeof(pszError), NULL);
+		DPRINTF("id 0x%x=%s, err=%s\n", info.id, buf, pszError);
+	}
+	TRACE(" END\n");
+	return TRUE;
+}
+/***********************************************************************
+*           DIALOG_CreateIndirect16
+*
+* Creates a dialog box window
+*
+* modal = TRUE if we are called from a modal dialog box.
+* (it's more compatible to do it here, as under Windows the owner
+* is never disabled if the dialog fails because of an invalid template)
+*/
+static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
+	HWND owner, DLGPROC16 dlgProc, LPARAM param,
+	BOOL modal)
+{
+	//DoDebugDialog(NULL, NULL);
+	HWND hwnd;
+	RECT rect;
+	POINT pos;
+	SIZE size;
+	DLG_TEMPLATE template;
+	DIALOGINFO * dlgInfo;
+	BOOL ownerEnabled = TRUE;
+	DWORD exStyle = 0;
+	DWORD units = GetDialogBaseUnits();
+	HMENU16 hMenu = 0;
+	HFONT hUserFont = 0;
+	UINT flags = 0;
+	UINT xBaseUnit = LOWORD(units);
+	UINT yBaseUnit = HIWORD(units);
+
+	/* Parse dialog template */
+
+	dlgTemplate = DIALOG_ParseTemplate16(dlgTemplate, &template);
+
+	DLG_TEMPLATE *templatedbg = &template;
+	/* Load menu */
+
+	if (template.menuName) hMenu = LoadMenu16(hInst, template.menuName);
+	//FIXME:memory
+	DLGTEMPLATE *template32 = malloc(1024 + template.nbItems * 512);//zatsu
+	template32->style = template.style;
+	template32->dwExtendedStyle = 0;
+	template32->cdit = template.nbItems;
+	template32->x = template.x;
+	template32->y = template.y;
+	template32->cx = template.cx;
+	template32->cy = template.cy;
+	WORD *templatew = (WORD*)(template32 + 1);
+	//Menu
+	*templatew++ = 0;
+	int len;
+	//WNDclass
+	len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+		* 2;
+	if (len)
+	{
+		templatew = (WORD*)((BYTE*)templatew + len);
+	}
+	else
+	{
+		*templatew++ = 0;
+	}
+	//dialog title
+	len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+		* 2;
+	if (len)
+	{
+		templatew = (WORD*)((BYTE*)templatew + len);
+	}
+	else
+	{
+		*templatew++ = 0;
+	}
+	if (template.style & DS_SETFONT)
+	{
+		*templatew++ = template.pointSize;
+		len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+			* 2;
+		if (len)
+		{
+			templatew = (WORD*)((BYTE*)templatew + len);
+		}
+		else
+		{
+			*templatew++ = 0;
+		}
+	}
+	HINSTANCE hInst32 = HINSTANCE_32(hInst);
+	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
+	WNDCLASSEXA wc, wc2;
+	// Get the info for this class.
+	// #32770 is the default class name for dialogs boxes.
+	GetClassInfoExA(NULL, "#32770", &wc);
+	GetClassInfoExA(hInst32, template.className, &wc2);
+	hwnd = CreateDialogIndirectParamA(
+		hInst32,
+		(DLGTEMPLATE*)template32,
+		HWND_32(owner),
+		NULL, param);
+	DIALOG_DumpControls32(hwnd, dlgTemplate, &template, hInst, templatew);
+	free(template32);
+	if (wc2.lpszMenuName) hMenu = LoadMenu16(hInst, wc2.lpszMenuName);
+	BOOL ret = SetMenu(hwnd, HMENU_32(hMenu));
+	ATOM classatom = GetClassLongA(hwnd, GCW_ATOM);//WNDPROC16
+	HWND16 hWnd16 = HWND_16(hwnd);
+	if (classatom)
+	{
+		SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+	}
+	return hwnd;
+}
 /***********************************************************************
  *           DIALOG_CreateIndirect16
  *
@@ -305,7 +513,7 @@ static LPCSTR DIALOG_ParseTemplate16( LPCSTR p, DLG_TEMPLATE * result )
  * (it's more compatible to do it here, as under Windows the owner
  * is never disabled if the dialog fails because of an invalid template)
  */
-static HWND DIALOG_CreateIndirect16( HINSTANCE16 hInst, LPCVOID dlgTemplate,
+static HWND DIALOG_CreateIndirect16Old( HINSTANCE16 hInst, LPCVOID dlgTemplate,
                                      HWND owner, DLGPROC16 dlgProc, LPARAM param,
                                      BOOL modal )
 {
@@ -429,10 +637,17 @@ static HWND DIALOG_CreateIndirect16( HINSTANCE16 hInst, LPCVOID dlgTemplate,
         if (ownerEnabled) flags |= DF_OWNERENABLED;
     }
 
+	DLG_TEMPLATE *templatedbg = &template;
     hwnd = WIN_Handle32( CreateWindowEx16(exStyle, template.className,
                                           template.caption, template.style & ~WS_VISIBLE,
                                           pos.x, pos.y, size.cx, size.cy,
-                                          HWND_16(owner), hMenu, hInst, NULL ));
+										  HWND_16(owner), hMenu, hInst, NULL));
+	HWND16 hWnd16 = HWND_16(hwnd);
+	ATOM classatom = GetClassLongA(hwnd, GCW_ATOM);//WNDPROC16
+	if (classatom)
+	{
+		dlgProc = WNDCLASS16Info[classatom].wndproc;
+	}
     if (!hwnd)
     {
         if (hUserFont) DeleteObject( hUserFont );
@@ -541,6 +756,8 @@ HWND16 WINAPI GetDlgItem16( HWND16 hwndDlg, INT16 id )
  */
 void WINAPI SetDlgItemText16( HWND16 hwnd, INT16 id, SEGPTR lpString )
 {
+	const char *txt = MapSL(lpString);
+	SetDlgItemTextA(HWND_32(hwnd), id, txt);
     SendDlgItemMessage16( hwnd, id, WM_SETTEXT, 0, lpString );
 }
 
@@ -658,7 +875,12 @@ LRESULT WINAPI SendDlgItemMessage16( HWND16 hwnd, INT16 id, UINT16 msg,
  */
 void WINAPI MapDialogRect16( HWND16 hwnd, LPRECT16 rect )
 {
-    RECT rect32;
+	RECT rect32;
+	rect32.left = rect->left;
+	rect32.right = rect->right;
+	rect32.top = rect->top;
+	rect32.bottom = rect->bottom;
+	//ERR("MapDialogRect16\n");
     MapDialogRect( WIN_Handle32(hwnd), &rect32 );
     rect->left   = rect32.left;
     rect->right  = rect32.right;

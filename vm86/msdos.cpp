@@ -708,7 +708,7 @@ extern "C"
 			unsigned char *stack = (unsigned char*)i386_translate(SS, REG16(SP), 0);
 			ret_addr = *(DWORD*)stack;
 		}
-		dasm = true;
+		//dasm = true;
 		while (!m_halted) {
 			bool reg = false;
 			if (m_pc == (UINT)/*ptr!*/iret)
@@ -852,8 +852,10 @@ extern "C"
 					//int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
 					if (!reg)
 					{
-						REG16(AX) = fret & 0xFFFF;
-						REG16(DX) = (fret >> 16) & 0xFFFF;
+						//REG16(AX) = fret & 0xFFFF;
+						//REG16(DX) = (fret >> 16) & 0xFFFF;
+						//shld‚³‚ê‚é
+						REG32(EAX) = fret;
 					}
 					if (reg) REG16(AX) = (WORD)context.Eax;
 					REG16(CX) = (WORD)context.Ecx;

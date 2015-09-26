@@ -1593,14 +1593,21 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
     return SetWindowPlacement( WIN_Handle32(hwnd), &wpl );
 }
 
-#define STR_ATOM_MIN MAXINTATOM
-#define STR_ATOM_MAX 0xFFFF
-#define STR_ATOM_SIZE STR_ATOM_MAX - STR_ATOM_MIN
-struct WNDCLASS16Info
+LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-	DWORD wndproc;
-};
-struct WNDCLASS16Info WNDCLASS16Info[STR_ATOM_SIZE];
+	//return DefWindowProcA(hDlg, Msg, wParam, lParam);
+	//return TRUE;
+	GetDlgItem(hDlg, 0);
+	int err = GetLastError();
+	if (err == ERROR_WINDOW_NOT_DIALOG)
+		return DefWindowProcA(hDlg, Msg, wParam, lParam);
+	SetLastError(ERROR_SUCCESS);
+	WNDCLASSEXA wc;
+	GetClassInfoExA(NULL, "#32770", &wc);
+	return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
+}
+struct WNDCLASS16Info WNDCLASS16Info[65536];
+struct WNDCLASS16Info *WNDCLASS16InfoStringAtom[65536];
 /***********************************************************************
  *		RegisterClassEx (USER.397)
  */
@@ -1616,29 +1623,30 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
 
     wc32.cbSize        = sizeof(wc32);
     wc32.style         = wc->style;
-    wc32.lpfnWndProc   = DefWindowProcA;//WINPROC_AllocProc16( wc->lpfnWndProc );
+    wc32.lpfnWndProc   = DefWndProca;//WINPROC_AllocProc16( wc->lpfnWndProc );
     wc32.cbClsExtra    = wc->cbClsExtra;
-    wc32.cbWndExtra    = wc->cbWndExtra;
+    wc32.cbWndExtra    = wc->cbWndExtra | DLGWINDOWEXTRA ;
     wc32.hInstance     = HINSTANCE_32(inst);
     wc32.hIcon         = get_icon_32(wc->hIcon);
     wc32.hCursor       = get_icon_32( wc->hCursor );
     wc32.hbrBackground = HBRUSH_32(wc->hbrBackground);
     wc32.lpszMenuName  = MapSL(wc->lpszMenuName);
     wc32.lpszClassName = MapSL(wc->lpszClassName);
-    wc32.hIconSm       = get_icon_32(wc->hIconSm);
+	wc32.hIconSm = get_icon_32(wc->hIconSm);
     atom = RegisterClassExA( &wc32 );
 	if (atom)
-		WNDCLASS16Info[atom - STR_ATOM_MIN].wndproc = (DWORD)WINPROC_AllocProc16(wc->lpfnWndProc);
-    if ((class = HeapAlloc( GetProcessHeap(), 0, sizeof(*class) )))
+	{
+		WNDCLASS16Info[atom].wndproc = (DWORD)WINPROC_AllocProc16(wc->lpfnWndProc);
+	}
+	if (atom && (class = HeapAlloc(GetProcessHeap(), 0, sizeof(*class))))
     {
-        class->atom = atom;
+		class->atom = atom;
         class->inst = inst;
-		class->wndproc16 = WINPROC_AllocProc16(wc->lpfnWndProc);
+		class->wndproc16 = WNDCLASS16Info[atom].wndproc;
         list_add_tail( &class_list, &class->entry );
     }
     return atom;
 }
-
 
 /***********************************************************************
  *		GetClassInfoEx (USER.398)
@@ -1957,7 +1965,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
 	ATOM classatom = GetClassLongA(hwnd, GCW_ATOM);//WNDPROC16
 	if (classatom)
 	{
-		SetWndProc16(hWnd16, WNDCLASS16Info[classatom - STR_ATOM_MIN].wndproc);
+		SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
 	}
 	return hWnd16;
 }

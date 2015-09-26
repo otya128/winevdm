@@ -218,4 +218,13 @@ extern PUserRegisterWowHandlers UserRegisterWowHandlers;
 #define strncasecmp _strnicmp
 __declspec(dllimport) void SetWndProc16(WORD hWnd16, DWORD WndProc);
 __declspec(dllimport) DWORD GetWndProc16(WORD hWnd16);
+#define STR_ATOM_MIN MAXINTATOM
+#define STR_ATOM_MAX 0xFFFF
+#define STR_ATOM_SIZE STR_ATOM_MAX - STR_ATOM_MIN
+struct WNDCLASS16Info
+{
+	DWORD wndproc;
+};
+extern struct WNDCLASS16Info WNDCLASS16Info[65536];
+extern struct WNDCLASS16Info *WNDCLASS16InfoStringAtom[65536];
 #endif /* __WINE_USER_PRIVATE_H */

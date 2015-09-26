@@ -33,7 +33,8 @@ WORD get_handle16(HANDLE h, HANDLE_DATA handles[])
 {
 	HANDLE_DATA *hd;
 	int hnd16 = get_handle16_data(h, handles, &hd);
-	return hd->handle32 = h, hnd16;
+	hd->handle32 = h;
+	return hnd16;
 }
 WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o)
 {
@@ -76,12 +77,16 @@ HANDLE WINAPI K32WOWHandle32HWND(WORD handle);
 //handle16 -> wow64 handle32
 HANDLE WINAPI K32WOWHandle32HWND(WORD handle)
 {
-	return get_handle32(handle, handle_hwnd);
+	HANDLE h32 = get_handle32(handle, handle_hwnd);
+	TRACE("handle16 0x%04X->handle32 0x%X\n", handle, h32);
+	return h32;
 }
 //handle16 <- wow64 handle32
 HANDLE WINAPI K32WOWHandle16HWND(HANDLE handle)
 {
-	return get_handle16(handle, handle_hwnd);
+	HANDLE h16 = get_handle16(handle, handle_hwnd);
+	TRACE("handle32 0x%X->handle16 0x%04X\n", handle, h16);
+	return h16;
 }
 __declspec(dllexport) void SetWndProc16(WORD hWnd16, DWORD WndProc)
 {

@@ -739,7 +739,16 @@ BOOL16 WINAPI UnionRect16( LPRECT16 dest, const RECT16 *src1,
  */
 INT16 WINAPI FillRect16( HDC16 hdc, const RECT16 *rect, HBRUSH16 hbrush )
 {
-    HBRUSH prevBrush;
+	/*RECT r32;
+	r32.bottom = rect->bottom;
+	r32.left = rect->left;
+	r32.right = rect->right;
+	r32.top = rect->top;
+	HBRUSH hb = HBRUSH_32(hbrush);
+	HDC hd = HDC_32(hdc);
+	int ret = FillRect(hd, &r32, hb);
+	return ret;*/
+	HBRUSH prevBrush;
 
     /* coordinates are logical so we cannot fast-check 'rect',
      * it will be done later in the PatBlt().

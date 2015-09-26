@@ -1783,6 +1783,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
 
     if (!(winproc = (WNDPROC16)GetWindowLong16( msg->hwnd, GWLP_WNDPROC )))
     {
+		return DefWindowProc16(msg->hwnd, msg->message, msg->wParam, msg->lParam);
         SetLastError( ERROR_INVALID_WINDOW_HANDLE );
         return 0;
     }
@@ -2689,10 +2690,15 @@ HWND create_window(CREATESTRUCTW* cs, LPCWSTR className, HINSTANCE instance, BOO
 }
 __declspec(dllimport) HICON16 K32HICON_16(HICON handle);
 __declspec(dllimport) HICON K32HICON_32(HICON16 handle);
+ULONG_PTR hIconParams[65536];
 //HICON->HICON16??
 ULONG_PTR get_icon_param(HICON hIcon)
 {
-	return K32HICON_16(hIcon);
+	return hIconParams[K32HICON_16(hIcon)];
+}
+ULONG_PTR set_icon_param(HICON hIcon, ULONG_PTR param)
+{
+	return hIconParams[K32HICON_16(hIcon)] = param;
 }
 struct tagDIALOGINFO unknown;
 struct tagDIALOGINFO *get_dialog_info(HWND hWnd, BOOL b)
@@ -2730,6 +2736,7 @@ void register_wow_handlers(void)
 	wow_handlers32.get_win_handle = get_win_handle;
 	wow_handlers32.create_window = create_window;
 	wow_handlers32.get_icon_param = get_icon_param;
+	wow_handlers32.set_icon_param = set_icon_param;
 	wow_handlers32.get_dialog_info = get_dialog_info;
 	//
 }
