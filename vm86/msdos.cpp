@@ -670,8 +670,42 @@ extern "C"
 	}
 	void WINAPI InitTask16(CONTEXT*);
 	BOOL initflag;
-	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);
+	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
+		void(*from16_reg)(void),
+		LONG(*__wine_call_from_16)(void),
+		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
+		void(*__wine_call_to_16_ret)(void)
+		);
+	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
 	void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
+		void(*from16_reg)(void),
+		LONG(*__wine_call_from_16)(void),
+		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
+		void(*__wine_call_to_16_ret)(void)
+		)
+	{
+		if (!initflag)
+			initflag = init_vm86();
+		vm86main(context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret);
+	}	
+	void wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_RECORD handler,
+		void(*from16_reg)(void),
+		LONG(*__wine_call_from_16)(void),
+		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
+		void(*__wine_call_to_16_ret)(void)
+		)
+	{
+		if (!initflag)
+			initflag = init_vm86();
+		CONTEXT context;
+		save_context(&context);
+		//why??
+		context.SegSs = ((size_t)getWOW32Reserved() >> 16) & 0xFFFF;
+		context.Esp = ((size_t)getWOW32Reserved()) & 0xFFFF;
+		vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret);
+		i386_jmp_far(target >> 16, target & 0xFFFF);
+	}
+	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point,	unsigned char *args16, CONTEXT *context),

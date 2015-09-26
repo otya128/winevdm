@@ -42,18 +42,94 @@ BOOL WINAPI WINNLSGetEnableStatus16( HWND16 hwnd )
 {
     return WINNLSGetEnableStatus( HWND_32(hwnd) );
 }
+typedef struct _tagIMEPRO16 {
+	HWND16      hWnd;
+	DATETIME    InstDate;
+	UINT        wVersion;
+	BYTE        szDescription[50];
+	BYTE        szName[80];
+	BYTE        szOptions[30];
+} IMEPRO16, *PIMEPRO16, NEAR *NPIMEPRO16, FAR *LPIMEPRO16;
+void IMEPRO16ToIMEPRO(IMEPRO16 *imepro, IMEPROA *imepro32)
+{
+	imepro32->hWnd = HWND_32(imepro->hWnd);
+	memcpy(((HWND*)imepro32) + 1, ((HWND16*)imepro) + 1, sizeof(IMEPROA) - sizeof(HWND));
+}
+void IMEPROToIMEPRO16(IMEPROA *imepro32, IMEPRO16 *imepro)
+{
+	imepro->hWnd = HWND_16(imepro32->hWnd);
+	memcpy(((HWND16*)imepro) + 1, ((HWND*)imepro32) + 1, sizeof(IMEPRO16) - sizeof(HWND16));
+}
+BOOL16  WINAPI IMPQueryIME16(IN OUT LPIMEPRO16 lpIMEPro)
+{
+	IMEPROA imepro32;
+	IMEPRO16ToIMEPRO(lpIMEPro, &imepro32);
+	BOOL ret = IMPQueryIMEA(&imepro32);
+	IMEPROToIMEPRO16(&imepro32, lpIMEPro);
+	return ret;
+}
+BOOL WINAPI IMPGetIME16(IN HWND16 hWnd, OUT LPIMEPRO lpIMEPro)
+{
+	IMEPROA imepro32;
+	BOOL ret = IMPGetIME16(HWND_32(hWnd), &imepro32);
+	IMEPROToIMEPRO16(&imepro32, lpIMEPro);
+	return ret;
+}
+BOOL  WINAPI IMPSetIME16(IN HWND16 hWnd, IN LPIMEPROA lpIMEPro)
+{
+	IMEPROA imepro32;
+	IMEPRO16ToIMEPRO(lpIMEPro, &imepro32);
+	return IMPSetIME16(HWND_32(hWnd), &imepro32);
+}
+#include "wine/debug.h"
+WINE_DEFAULT_DEBUG_CHANNEL(nls);
+BOOL WINAPI IMPModifyIME16(LPSTR lpStr, IN LPIMEPRO lpIMEPro)
+{
+	ERR("NOTIMPL:IMPModifyIME16(\"%s\", 0x%p)\n", lpStr, lpIMEPro);
+}
+WORD WINAPI IMPGetDefaultIME16(LPIMEPRO lpIMEPro)
+{
+	ERR("NOTIMPL:IMPGetDefaultIME16(0x%p)\n", lpIMEPro);
+	return 0;
+}
+WORD WINAPI IMPSetDefaultIME16(LPIMEPRO lpIMEPro)
+{
+	ERR("NOTIMPL:IMPSetDefaultIME16(0x%p)\n", lpIMEPro);
+	return 0;
+}
+BOOL WINAPI WINNLSSendString16(HWND16 hWnd, WORD word, LPVOID lpVoid)
+{
+	ERR("NOTIMPL:WINNLSSendString16(0x%p, %d, %p)\n", HWND_32(hWnd), word, lpVoid);
+	return 0;
+}
+BOOL WINAPI WINNLSPostAppMessage16(HWND16 hWnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam)
+{
+	ERR("NOTIMPL:WINNLSPostAppMessage16(0x%p, %d, %d, %d)\n", HWND_32(hWnd), msg, wParam, lParam);
+	return 0;
+}
+LRESULT WINAPI WINNLSSendAppMessage16(HWND16 hWnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam)
+{
+	ERR("NOTIMPL:WINNLSSendAppMessage16(0x%p, %d, %d, %d)\n", HWND_32(hWnd), msg, wParam, lParam);
+	return 0;
+}
+BOOL WINAPI WINNLSSendControl16(WORD arg1, WORD arg2)
+{
+	ERR("NOTIMPL:WINNLSSendControl16(%d, %d)\n", arg1, arg2);
+	return 0;
+}
+
 
 ///////////////
 #include <stdio.h>
 void __wine_spec_init_ctor()
 {
-	fprintf(stderr, "NOTIMPL:__wine_spec_init_ctor()\n");
+	ERR("NOTIMPL:__wine_spec_init_ctor()\n");
 }
 void __wine_spec_unimplemented_stub(const char *module, const char *function)
 {
-	fprintf(stderr, "NOTIMPL:__wine_spec_unimplemented_stub(%s, %s)\n", module, function);
+	ERR("NOTIMPL:__wine_spec_unimplemented_stub(%s, %s)\n", module, function);
 }
 void __wine_spec_dll_entry()
 {
-	fprintf(stderr, "NOTIMPL:__wine_spec_dll_entry(?)\n");
+	ERR("NOTIMPL:__wine_spec_dll_entry(?)\n");
 }

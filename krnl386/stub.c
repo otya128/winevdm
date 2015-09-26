@@ -136,13 +136,15 @@ void CALL32_CBClientEx_Ret(void)
 	DPRINTF("NOTIMPL:CALL32_CBClientEx_Ret()");
 }
 
+void __wine_call_to_16_ret(void);
 /* symbols exported from relay16.s */
 DWORD WINAPI wine_call_to_16(FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
 	DPRINTF("NOTIMPL:wine_call_to_16(%p, %u, %p)", target, cbArgs, handler);
+	wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret);
+
 	return 0;
 }
-void __wine_call_to_16_ret(void);
  void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);
 void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
@@ -216,7 +218,7 @@ void __wine_spec_unimplemented_stub(const char *module, const char *function)
 	DPRINTF("NOTIMPL:__wine_spec_unimplemented_stub(%s, %s)\n", module, function);
 }
 WINE_DEFAULT_DEBUG_CHANNEL(stub);
-BOOL IsDBCSLeadByte16_(BYTE TestChar)
+BOOL16 WINAPI IsDBCSLeadByte16(BYTE TestChar)
 {
 	TRACE("IsDBCSLeadByte16_(%c)", TestChar);
 	return IsDBCSLeadByte(TestChar);
