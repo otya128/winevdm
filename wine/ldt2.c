@@ -30,10 +30,15 @@ static void(*unlock_ldt)(void) = nop;
  * Convert a segment:offset pair to a linear pointer.
  * Note: we don't lock the LDT since this has to be fast.
  */
+char nanikore[1024];
 void *wine_ldt_get_ptr(unsigned short sel, unsigned long offset)
 {
 	int index;
 
+	if (sel == 0x40)
+	{
+		return nanikore;
+	}
 	if (is_gdt_sel(sel))  /* GDT selector */
 		return (void *)offset;
 	if ((index = (sel >> 3)) < LDT_FIRST_ENTRY)  /* system selector */
@@ -71,7 +76,11 @@ int wine_ldt_set_entry(unsigned short sel, const LDT_ENTRY *entry)
 void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry)
 {
 	int index = sel >> 3;
-
+	if (sel == 0x40)
+	{
+		*entry = null_entry;
+		wine_ldt_set_base(entry, wine_ldt_copy.base[index] = nanikore);
+	}
 	if (is_gdt_sel(sel))
 	{
 		*entry = null_entry;

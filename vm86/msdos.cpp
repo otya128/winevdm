@@ -217,6 +217,8 @@ void *read_ptr(offs_t byteaddress)
 UINT8 read_byte(offs_t byteaddress)
 {
 #if defined(HAS_I386)
+	if (byteaddress < 256)
+		return 0;
 	if(byteaddress < MAX_MEM) {
 		return mem[byteaddress];
 //	} else if((byteaddress & 0xfffffff0) == 0xfffffff0) {
