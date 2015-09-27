@@ -6,6 +6,11 @@ winevdmの移植版
 + VC++
 + gas
 
+# winevdm
+```bat
+winevdm.exe [--app-name app.exe] command line
+```
+今の所DOS実行ファイルは扱えない(DOSエミュレータは他に存在するためそれを使った方が確実)
 # convspec
 convert wine spec file
 winebuildから必要な部分を取り出しVC++で動かせるようにし、関数名の扱いなどを変え出力されたassemblyをVC++で扱えるようにした
