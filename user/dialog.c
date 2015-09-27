@@ -369,7 +369,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		{
 		case WM_PAINT:
 		case WM_COMMAND:
-			if (DispatchMessage16(&msg16) | 1)
+			if (DispatchMessage16(&msg16) | 1&&0)
 			{
 				return TRUE;
 			}
@@ -402,6 +402,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		free(cs);
 	}
 		break;
+		/*
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case IDCANCEL:
@@ -415,6 +416,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 	case WM_CLOSE:
 		DestroyWindow(hDlg);
 		return TRUE;
+		*/
 	}
 
 	return FALSE;

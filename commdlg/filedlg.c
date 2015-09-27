@@ -32,6 +32,25 @@ WINE_DEFAULT_DEBUG_CHANNEL(commdlg);
 
 static UINT_PTR CALLBACK dummy_hook( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp )
 {
+	/*
+	switch (msg){
+	case WM_CTLCOLORDLG://ダイアログの背景色
+		return (LRESULT)GetStockObject(BLACK_BRUSH);
+		break; case WM_CTLCOLORSTATIC://static Radio Check　の背景色
+			//lpに各コントロールのハンドルが入ってきます。
+			//lpを見て各々のコントロールの色を変えられます
+			//SetBkMode(((HDC)wp), TRANSPARENT);
+			//SetTextColor(((HDC)wp), RGB(200, 0, 0));//文字の色
+			return (LRESULT)GetStockObject(BLACK_BRUSH);
+			break;
+		case WM_CTLCOLOREDIT://Edit の背景色
+			//lpに各コントロールのハンドルが入ってきます。
+			//lpを見て各々のコントロールの色を変えられます
+			//SetBkMode(((HDC)wp), TRANSPARENT);
+			//SetTextColor(((HDC)wp), RGB(200, 0, 0));//文字の色
+			return (LRESULT)GetStockObject(BLACK_BRUSH);
+			break;
+	}*/
     return FALSE;
 }
 
@@ -85,7 +104,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.nMaxFileTitle     = lpofn->nMaxFileTitle;
     ofn32.lpstrInitialDir   = MapSL( lpofn->lpstrInitialDir );
     ofn32.lpstrTitle        = MapSL( lpofn->lpstrTitle );
-    ofn32.Flags             = (lpofn->Flags & ~OFN_ENABLETEMPLATE) ;//| OFN_ENABLEHOOK;
+    ofn32.Flags             = (lpofn->Flags & ~OFN_ENABLETEMPLATE) | OFN_ENABLEHOOK;
     ofn32.nFileOffset       = lpofn->nFileOffset;
     ofn32.nFileExtension    = lpofn->nFileExtension;
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
