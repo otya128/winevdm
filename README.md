@@ -8,6 +8,11 @@ winevdmの移植版
 
 # convspec
 convert wine spec file
+winebuildから必要な部分を取り出しVC++で動かせるようにし、関数名の扱いなどを変え出力されたassemblyをVC++で扱えるようにした
+```bat
+convspec .specfile modulename > asm
+convspec .specfile -DEF > def
+```
 # gdi
 GDI.EXE
 # krnl386
