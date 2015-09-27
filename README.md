@@ -9,6 +9,8 @@ winevdmの移植版
 # winevdm
 ```bat
 winevdm.exe [--app-name app.exe] command line
+
+winevdm.exe CALC.EXE
 ```
 今の所DOS実行ファイルは扱えない(DOSエミュレータは他に存在するためそれを使った方が確実)
 # convspec
@@ -17,6 +19,10 @@ winebuildから必要な部分を取り出しVC++で動かせるようにし、�
 ```bat
 convspec .specfile modulename > asm
 convspec .specfile -DEF > def
+
+convspec commdlg.dll16.spec COMMDLG > commdlg.dll16.asm
+convspec commdlg.dll16.spec -DEF > commdlg.def
+as --32 -o commdlg.dll16.obj commdlg.dll16.asm
 ```
 # gdi
 GDI.EXE
