@@ -648,16 +648,23 @@ extern "C"
 	}
 	void __wine_call_int_handler(CONTEXT *context, BYTE intnum);
 	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
-	unsigned char iret[100] = { 0xcf };
+	unsigned char table[256 * 4 + 2] = { 0xcf };
+	unsigned char iret[256] = { 0xcf };
 	WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags);
 	__declspec(dllexport) BOOL init_vm86()
 	{
-		WORD sel = SELECTOR_AllocBlock(iret, 100, WINE_LDT_FLAGS_DATA);
+		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_DATA);
 		CPU_INIT_CALL(CPU_MODEL);
 		CPU_RESET_CALL(CPU_MODEL);
-		m_idtr.base = (UINT32)iret;
-		*(WORD*)&iret[0x86] = sel;
-		*(WORD*)&iret[0x84] = 0;
+		m_idtr.base = (UINT32)table;
+		memset(iret, 0xcf, 256);
+		for (int i = 0; i < 256; i++)
+		{
+			*(WORD*)&table[i * 4 + 2] = sel;
+			*(WORD*)&table[i * 4] = i;
+			*(WORD*)&table[i * 4 + 2] = sel;
+			*(WORD*)&table[i * 4] = i;
+		}
 #if defined(HAS_I386)
 		cpu_type = (REG32(EDX) >> 8) & 0x0f;
 		cpu_step = (REG32(EDX) >> 0) & 0x0f;
@@ -674,25 +681,28 @@ extern "C"
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
-		void(*__wine_call_to_16_ret)(void)
+		void(*__wine_call_to_16_ret)(void),
+		bool dasm
 		);
 	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
 	void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
-		void(*__wine_call_to_16_ret)(void)
+		void(*__wine_call_to_16_ret)(void),
+		bool dasm
 		)
 	{
 		if (!initflag)
 			initflag = init_vm86();
-		vm86main(context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret);
+		vm86main(context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm);
 	}	
-	void wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_RECORD handler,
+	DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_RECORD handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
-		void(*__wine_call_to_16_ret)(void)
+		void(*__wine_call_to_16_ret)(void),
+		bool dasm
 		)
 	{
 		if (!initflag)
@@ -702,14 +712,17 @@ extern "C"
 		//why??
 		context.SegSs = ((size_t)getWOW32Reserved() >> 16) & 0xFFFF;
 		context.Esp = ((size_t)getWOW32Reserved()) & 0xFFFF;
-		vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret);
-		i386_jmp_far(target >> 16, target & 0xFFFF);
+		context.SegCs = target >> 16;
+		context.Eip = target & 0xFFFF;//i386_jmp_far(target >> 16, target & 0xFFFF);
+		vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm);
+		return context.Eax | context.Edx << 16;
 	}
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point,	unsigned char *args16, CONTEXT *context),
-		void(*__wine_call_to_16_ret)(void)
+		void(*__wine_call_to_16_ret)(void),
+		bool dasm
 		)
 	{
 		if (!initflag)
@@ -745,11 +758,11 @@ extern "C"
 		//dasm = true;
 		while (!m_halted) {
 			bool reg = false;
-			if (m_pc == (UINT)/*ptr!*/iret)
+			if (m_pc >= (UINT)/*ptr!*/iret && m_pc <= (UINT)/*ptr!*/iret + 255)
 			{
 				CONTEXT context;
 				save_context(&context);
-				__wine_call_int_handler(&context, 0x21);
+				__wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
 				load_context(&context);
 			}
 			if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)

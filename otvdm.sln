@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "keyboard", "keyboard\keyboa
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "winnls", "winnls\winnls.vcxproj", "{F234FA09-76BC-4154-8420-737CD7FA4EF7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "commdlg", "commdlg\commdlg.vcxproj", "{8914D84A-84BD-4F85-99AC-723F8AEABAEB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -106,6 +108,12 @@ Global
 		{F234FA09-76BC-4154-8420-737CD7FA4EF7}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
 		{F234FA09-76BC-4154-8420-737CD7FA4EF7}.Release|Win32.ActiveCfg = Release|Win32
 		{F234FA09-76BC-4154-8420-737CD7FA4EF7}.Release|Win32.Build.0 = Release|Win32
+		{8914D84A-84BD-4F85-99AC-723F8AEABAEB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8914D84A-84BD-4F85-99AC-723F8AEABAEB}.Debug|Win32.Build.0 = Debug|Win32
+		{8914D84A-84BD-4F85-99AC-723F8AEABAEB}.Debug-USER.EXE|Win32.ActiveCfg = Debug|Win32
+		{8914D84A-84BD-4F85-99AC-723F8AEABAEB}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
+		{8914D84A-84BD-4F85-99AC-723F8AEABAEB}.Release|Win32.ActiveCfg = Release|Win32
+		{8914D84A-84BD-4F85-99AC-723F8AEABAEB}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

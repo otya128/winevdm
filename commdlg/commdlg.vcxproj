@@ -11,9 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{0EBCFB5B-3092-4E06-A007-CA50B1DA3298}</ProjectGuid>
+    <ProjectGuid>{8914D84A-84BD-4F85-99AC-723F8AEABAEB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>gdi</RootNamespace>
+    <RootNamespace>commdlg</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -41,7 +41,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetExt>.exe16</TargetExt>
+    <TargetExt>.dll16</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -52,14 +52,14 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;GDI_EXPORTS;_X86_;__WINESRC__;__i386__;USE_COMPILER_EXCEPTIONS;HAVE_STRNCASECMP;HAVE__STRNICMP;_WINTERNL_;NtCurrentTeb=NtCurrentTeb__;inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;COMMDLG_EXPORTS;_X86_;__WINESRC__;__i386__;USE_COMPILER_EXCEPTIONS;HAVE_STRNCASECMP;HAVE__STRNICMP;_WINTERNL_;NtCurrentTeb=NtCurrentTeb__;inline=__inline;DECLSPEC_HIDDEN=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../wine</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)wow32.lib;$(OutDir)krnl386.lib;$(OutDir)user.lib;$(OutDir)libwine.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>gdi.def</ModuleDefinitionFile>
+      <AdditionalDependencies>$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>commdlg.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -70,32 +70,31 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;GDI_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;COMMDLG_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <ModuleDefinitionFile>gdi.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="bidi.c" />
-    <ClCompile Include="env.c" />
-    <ClCompile Include="gdi.c" />
-    <ClCompile Include="metafile.c" />
-    <ClCompile Include="printdrv.c" />
+    <ClCompile Include="colordlg.c" />
+    <ClCompile Include="filedlg.c" />
+    <ClCompile Include="finddlg.c" />
+    <ClCompile Include="fontdlg.c" />
+    <ClCompile Include="printdlg.c" />
   </ItemGroup>
   <ItemGroup>
-    <Object Include="gdi.exe16.obj" />
+    <ClInclude Include="cdlg16.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\MinGW\msys\1.0\home\naru\wine-git\dlls\commdlg.dll16\commdlg.dll16.spec" />
-    <None Include="gdi.def" />
+    <None Include="commdlg.def" />
+    <None Include="commdlg.dll16.spec" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="C:\MinGW\msys\1.0\home\naru\wine-git\dlls\commdlg.dll16\cdlg16.h" />
+    <Object Include="commdlg.dll16.obj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

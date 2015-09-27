@@ -135,13 +135,13 @@ void CALL32_CBClientEx_Ret(void)
 {
 	DPRINTF("NOTIMPL:CALL32_CBClientEx_Ret()");
 }
-
+WINE_DECLARE_DEBUG_CHANNEL(disasm);
 void __wine_call_to_16_ret(void);
 /* symbols exported from relay16.s */
 DWORD WINAPI wine_call_to_16(FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
 	DPRINTF("NOTIMPL:wine_call_to_16(%p, %u, %p)", target, cbArgs, handler);
-	wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret);
+	return wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, TRACE_ON(disasm));
 
 	return 0;
 }
@@ -152,7 +152,7 @@ void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HAND
 	//why??
 	context->SegSs = SELECTOROF(getWOW32Reserved());
 	context->Esp = OFFSETOF(getWOW32Reserved());
-	wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret);
+	wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, TRACE_ON(disasm));
 }
 /*
 int call_entry_point(void *func, int nb_args, const DWORD *args)

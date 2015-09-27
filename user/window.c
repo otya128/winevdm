@@ -1596,10 +1596,6 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
 LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-	if (Msg == WM_LBUTTONDOWN)
-	{
-		Msg = WM_LBUTTONDOWN;
-	}
 	//return DefWindowProcA(hDlg, Msg, wParam, lParam);
 	//return TRUE;
 	/*
@@ -1611,7 +1607,7 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 	*/ LONG exstyle = GetWindowLong(hDlg, GWL_EXSTYLE);
 
 //	if (exstyle & WS_EX_DLGMODALFRAME)
-//	if (GetWindowLongPtrA(hDlg, DWLP_DLGPROC))
+	if (GetWindowLongPtrA(hDlg, DWLP_DLGPROC))
 	{
 		WNDCLASSEXA wc;
 		GetClassInfoExA(NULL, "#32770", &wc);

@@ -648,6 +648,7 @@ DWORD WINAPI RegEnumKey16( HKEY hkey, DWORD index, LPSTR name, DWORD name_len )
 /*************************************************************************
  *           SHELL_Execute16 [Internal]
  */
+/*
 static UINT_PTR SHELL_Execute16(const WCHAR *lpCmd, WCHAR *env, BOOL shWait,
 			    const SHELLEXECUTEINFOW *psei, LPSHELLEXECUTEINFOW psei_out)
 {
@@ -658,6 +659,14 @@ static UINT_PTR SHELL_Execute16(const WCHAR *lpCmd, WCHAR *env, BOOL shWait,
     psei_out->hInstApp = HINSTANCE_32(ret);
     return ret;
 }
+*/
+//??????????????
+static UINT_PTR SHELL_Execute16(const CHAR *lpCmd, int nShowCmd, const CHAR *lpDir)
+{
+	UINT ret;
+	ret = WinExec16(lpCmd, nShowCmd);
+	return ret;
+}
 
 /*************************************************************************
  *                              ShellExecute            [SHELL.20]
@@ -666,8 +675,20 @@ HINSTANCE16 WINAPI ShellExecute16( HWND16 hWnd, LPCSTR lpOperation,
                                    LPCSTR lpFile, LPCSTR lpParameters,
                                    LPCSTR lpDirectory, INT16 iShowCmd )
 {
-    return HINSTANCE_16( WOWShellExecute( HWND_32(hWnd), lpOperation, lpFile, lpParameters,
-                                          lpDirectory, iShowCmd, SHELL_Execute16 ));
+	HINSTANCE rret = ShellExecuteA(HWND_32(hWnd), lpOperation, lpFile, lpParameters,
+		lpDirectory, iShowCmd);
+	if (GetLastError() == 0x000000d8)
+	{
+		return HINSTANCE_16(WOWShellExecute(HWND_32(hWnd), lpOperation, lpFile, lpParameters,
+			lpDirectory, iShowCmd, SHELL_Execute16));
+	}
+	else
+	{
+		if (rret >= 32)
+			return HINSTANCE_16(rret);
+		return (HINSTANCE16)rret;
+	}
+    //
 }
 
 

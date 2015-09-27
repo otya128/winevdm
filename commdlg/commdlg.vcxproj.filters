@@ -15,36 +15,38 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gdi.c">
+    <ClCompile Include="colordlg.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="metafile.c">
+    <ClCompile Include="filedlg.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="printdrv.c">
+    <ClCompile Include="finddlg.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="bidi.c">
+    <ClCompile Include="fontdlg.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="env.c">
+    <ClCompile Include="printdlg.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Object Include="gdi.exe16.obj">
+    <ClInclude Include="cdlg16.h">
       <Filter>ソース ファイル</Filter>
-    </Object>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="gdi.def">
+    <None Include="commdlg.def">
       <Filter>ソース ファイル</Filter>
     </None>
-    <None Include="C:\MinGW\msys\1.0\home\naru\wine-git\dlls\commdlg.dll16\commdlg.dll16.spec" />
+    <None Include="commdlg.dll16.spec">
+      <Filter>ソース ファイル</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="C:\MinGW\msys\1.0\home\naru\wine-git\dlls\commdlg.dll16\cdlg16.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
+    <Object Include="commdlg.dll16.obj">
+      <Filter>ソース ファイル</Filter>
+    </Object>
   </ItemGroup>
 </Project>
