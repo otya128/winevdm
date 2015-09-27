@@ -1593,18 +1593,31 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
     return SetWindowPlacement( WIN_Handle32(hwnd), &wpl );
 }
 
+LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
+	if (Msg == WM_LBUTTONDOWN)
+	{
+		Msg = WM_LBUTTONDOWN;
+	}
 	//return DefWindowProcA(hDlg, Msg, wParam, lParam);
 	//return TRUE;
+	/*
 	GetDlgItem(hDlg, 0);
 	int err = GetLastError();
 	if (err == ERROR_WINDOW_NOT_DIALOG)
-		return DefWindowProcA(hDlg, Msg, wParam, lParam);
+	return DefWindowProcA(hDlg, Msg, wParam, lParam);
 	SetLastError(ERROR_SUCCESS);
-	WNDCLASSEXA wc;
-	GetClassInfoExA(NULL, "#32770", &wc);
-	return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
+	*/ LONG exstyle = GetWindowLong(hDlg, GWL_EXSTYLE);
+
+//	if (exstyle & WS_EX_DLGMODALFRAME)
+//	if (GetWindowLongPtrA(hDlg, DWLP_DLGPROC))
+	{
+		WNDCLASSEXA wc;
+		GetClassInfoExA(NULL, "#32770", &wc);
+		return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
+	}
+	return DefWindowProcA(hDlg, Msg, wParam, lParam);
 }
 struct WNDCLASS16Info WNDCLASS16Info[65536];
 struct WNDCLASS16Info *WNDCLASS16InfoStringAtom[65536];

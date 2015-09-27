@@ -42,6 +42,9 @@ BOOL WINAPI WINNLSGetEnableStatus16( HWND16 hwnd )
 {
     return WINNLSGetEnableStatus( HWND_32(hwnd) );
 }
+#include "ime.h"
+#include "wine/debug.h"
+WINE_DEFAULT_DEBUG_CHANNEL(nls);
 typedef struct _tagIMEPRO16 {
 	HWND16      hWnd;
 	DATETIME    InstDate;
@@ -65,6 +68,7 @@ BOOL16  WINAPI IMPQueryIME16(IN OUT LPIMEPRO16 lpIMEPro)
 	IMEPROA imepro32;
 	IMEPRO16ToIMEPRO(lpIMEPro, &imepro32);
 	BOOL ret = IMPQueryIMEA(&imepro32);
+	TRACE("IMPQueryIME16(0x%p) ret{0x%p, \"%s\", \"%s\", \"%s\", %d}\n", lpIMEPro, imepro32.hWnd, imepro32.szDescription, imepro32.szName, imepro32.szOptions, imepro32.wVersion);
 	IMEPROToIMEPRO16(&imepro32, lpIMEPro);
 	return ret;
 }
@@ -81,8 +85,6 @@ BOOL  WINAPI IMPSetIME16(IN HWND16 hWnd, IN LPIMEPROA lpIMEPro)
 	IMEPRO16ToIMEPRO(lpIMEPro, &imepro32);
 	return IMPSetIME16(HWND_32(hWnd), &imepro32);
 }
-#include "wine/debug.h"
-WINE_DEFAULT_DEBUG_CHANNEL(nls);
 BOOL WINAPI IMPModifyIME16(LPSTR lpStr, IN LPIMEPRO lpIMEPro)
 {
 	ERR("NOTIMPL:IMPModifyIME16(\"%s\", 0x%p)\n", lpStr, lpIMEPro);

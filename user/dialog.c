@@ -294,10 +294,130 @@ static LPCSTR DIALOG_ParseTemplate16( LPCSTR p, DLG_TEMPLATE * result )
     }
     return p;
 }
-
+LRESULT get_message_callback(HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
+	LRESULT *result, void *arg);
+LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	HWND16 hWnd16 = HWND_16(hDlg);
+	WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
+	switch (Msg)
+	{
+	case WM_INITDIALOG:
+		{
+			CREATESTRUCTA* cs = (CREATESTRUCTA*)lParam;
+			LPARAM *params = cs->lpCreateParams;
+			HMENU hMenu;
+			if (cs->hMenu)
+			{
+				BOOL ret = SetMenu(hDlg, HMENU_32(cs->hMenu));
+			}
+			ATOM classatom = GetClassLongA(hDlg, GCW_ATOM);//WNDPROC16
+			HWND16 hWnd16 = HWND_16(hDlg);
+			if (classatom)
+			{
+				if (params[1])
+				{
+					SetWndProc16(hWnd16, params[1]);
+				}
+				else
+				{
+					SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+				}
+			}
+			cs->lpCreateParams = params[0];
+			free(cs);
+		}
+		break;
+	}
+	if (wndproc16)
+	{
+		MSG msg;
+		msg.hwnd = hDlg;
+		msg.message = Msg;
+		msg.wParam = wParam;
+		msg.lParam = lParam;
+		MSG16 msg16;
+		LRESULT unused;
+		WINPROC_CallProc32ATo16(get_message_callback, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+			&unused, &msg16);
+		switch (msg.message)
+		{
+		default:
+		case WM_PAINT:
+		case WM_COMMAND:
+			return DispatchMessage16(&msg16),1;
+		}
+	}
+	return 0;//DefWindowProcA(hDlg, Msg, wParam, lParam);
+}
 BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-    return FALSE;
+	HWND16 hWnd16 = HWND_16(hDlg);
+	WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
+	if (wndproc16)
+	{
+		MSG msg;
+		msg.hwnd = hDlg;
+		msg.message = Msg;
+		msg.wParam = wParam;
+		msg.lParam = lParam;
+		MSG16 msg16;
+		LRESULT unused;
+		WINPROC_CallProc32ATo16(get_message_callback, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+			&unused, &msg16);
+		switch (msg.message)
+		{
+		case WM_PAINT:
+		case WM_COMMAND:
+			if (DispatchMessage16(&msg16) | 1)
+			{
+				return TRUE;
+			}
+		}
+	}
+	switch (Msg) {
+	case WM_INITDIALOG:
+	{
+		CREATESTRUCTA* cs = (CREATESTRUCTA*)lParam;
+		LPARAM *params = cs->lpCreateParams;
+		HMENU hMenu;
+		if (cs->hMenu)
+		{
+			BOOL ret = SetMenu(hDlg, HMENU_32(cs->hMenu));
+		}
+		ATOM classatom = GetClassLongA(hDlg, GCW_ATOM);//WNDPROC16
+		HWND16 hWnd16 = HWND_16(hDlg);
+		if (classatom)
+		{
+			if (params[1])
+			{
+				SetWndProc16(hWnd16, params[1]);
+			}
+			else
+			{
+				SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+			}
+		}
+		cs->lpCreateParams = params[0];
+		free(cs);
+	}
+		break;
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+		case IDCANCEL:
+			EndDialog(hDlg, IDCANCEL);
+			return TRUE;
+		case IDOK:
+			EndDialog(hDlg, IDOK);
+			return TRUE;
+		}
+		return FALSE;
+	case WM_CLOSE:
+		DestroyWindow(hDlg);
+		return TRUE;
+	}
+
+	return FALSE;
 }
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 void paddingDWORD(DWORD **d)
@@ -321,6 +441,27 @@ void copy_widestr(LPCSTR name, LPWSTR *templatew)
 		**templatew = 0;
 		(*templatew)++;
 	}
+}
+#define DCLASS "_____DIALOGCLASS_____"
+static BOOL init_dialog_class(HINSTANCE hInst)
+{/*
+	static BOOL init = 0;
+	static ATOM catom;
+	if (init) return catom;*/
+	WNDCLASSEXA wc;
+	if (GetClassInfoExA(hInst, DCLASS, &wc))
+	{
+		return 1;
+	}
+	// Get the info for this class.
+	// #32770 is the default class name for dialogs boxes.
+	GetClassInfoExA(hInst, "#32770", &wc);
+	wc.cbSize = sizeof(wc);
+	wc.lpfnWndProc = DefWndProca;
+	wc.lpszClassName = DCLASS;
+	if (RegisterClassExA(&wc))
+		return TRUE;//init = TRUE;
+	return 0;
 }
 /***********************************************************************
 *           DIALOG_CreateControls16
@@ -444,16 +585,40 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	//Menu
 	*templatew++ = 0;
 	int len;
-	//WNDclass
-	len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
-		* 2;
-	if (len)
+	HINSTANCE hInst32 = HINSTANCE_32(hInst);
+	init_dialog_class(hInst32);
+	BOOL hasclass = TRUE;
+	if (template.className == DIALOG_CLASS_ATOM)
 	{
-		templatew = (WORD*)((BYTE*)templatew + len);
+		hasclass = FALSE;
+		TRACE("\n");
+		template.className = DCLASS;//"#32770";
+		//*templatew++ = 0;
+		//WNDclass
+		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+			* 2;
+		if (len)
+		{
+			templatew = (WORD*)((BYTE*)templatew + len);
+		}
+		else
+		{
+			*templatew++ = 0;
+		}
 	}
 	else
 	{
-		*templatew++ = 0;
+		//WNDclass
+		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+			* 2;
+		if (len)
+		{
+			templatew = (WORD*)((BYTE*)templatew + len);
+		}
+		else
+		{
+			*templatew++ = 0;
+		}
 	}
 	//dialog title
 	len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, strlen(template.className) * 4)
@@ -480,27 +645,61 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 			*templatew++ = 0;
 		}
 	}
-	HINSTANCE hInst32 = HINSTANCE_32(hInst);
 	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
-	WNDCLASSEXA wc, wc2;
+	WNDCLASSEXA wc, wc2 = { 0 };
 	// Get the info for this class.
 	// #32770 is the default class name for dialogs boxes.
 	GetClassInfoExA(NULL, "#32770", &wc);
 	GetClassInfoExA(hInst32, template.className, &wc2);
+	if (!wc2.lpszClassName)
+		GetClassInfoExA(GetModuleHandle(NULL), template.className, &wc2);
+	//template32->cdit = 1;
+	void *paramd = malloc(sizeof(param) * 2 + sizeof(CREATESTRUCTA));
+	CREATESTRUCTA *paramcs = (CREATESTRUCTA*)paramd;
+	paramcs->hMenu = LoadMenu16(hInst, wc2.lpszMenuName);
+	paramd = (LPBYTE)paramd + sizeof(CREATESTRUCTA);
+	paramcs->lpCreateParams = paramd;
+	*(LPARAM*)paramd = param;
+	if (dlgProc)
+	{
+		*((LPARAM*)paramd + 1) = dlgProc;
+	}
+	else
+	{
+		*((LPARAM*)paramd + 1) = 0;
+	}
+	paramd = (LPBYTE)paramd - sizeof(CREATESTRUCTA);
+	if (modal)
+	{
+		INT_PTR ret = DialogBoxIndirectParamA(
+			hInst32,
+			(DLGTEMPLATE*)template32,
+			owner,
+			hasclass ? DlgProc : DlgProc, paramd);
+		return ret;
+	}
+	else
 	hwnd = CreateDialogIndirectParamA(
 		hInst32,
 		(DLGTEMPLATE*)template32,
-		HWND_32(owner),
-		NULL, param);
+		owner,
+		hasclass ? DlgProc : DlgProc, paramd);
 	DIALOG_DumpControls32(hwnd, dlgTemplate, &template, hInst, templatew);
 	free(template32);
-	if (wc2.lpszMenuName) hMenu = LoadMenu16(hInst, wc2.lpszMenuName);
-	BOOL ret = SetMenu(hwnd, HMENU_32(hMenu));
+	//if (wc2.lpszMenuName) hMenu = LoadMenu16(hInst, wc2.lpszMenuName);
+	//BOOL ret = SetMenu(hwnd, HMENU_32(hMenu));
 	ATOM classatom = GetClassLongA(hwnd, GCW_ATOM);//WNDPROC16
 	HWND16 hWnd16 = HWND_16(hwnd);
 	if (classatom)
 	{
-		SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+		if (dlgProc)
+		{
+			SetWndProc16(hWnd16, dlgProc);
+		}
+		else
+		{
+			SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+		}
 	}
 	return hwnd;
 }
@@ -767,6 +966,7 @@ void WINAPI SetDlgItemText16( HWND16 hwnd, INT16 id, SEGPTR lpString )
  */
 INT16 WINAPI GetDlgItemText16( HWND16 hwnd, INT16 id, SEGPTR str, UINT16 len )
 {
+	return GetDlgItemTextA(HWND_32(hwnd), id, MapSL(str), len);
     return SendDlgItemMessage16( hwnd, id, WM_GETTEXT, len, str );
 }
 

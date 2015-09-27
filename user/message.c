@@ -61,7 +61,7 @@ static LRESULT post_thread_message_callback( HWND hwnd, UINT msg, WPARAM wp, LPA
     return PostThreadMessageA( tid, msg, wp, lp );
 }
 
-static LRESULT get_message_callback( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
+/*static */LRESULT get_message_callback( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
                                      LRESULT *result, void *arg )
 {
     MSG16 *msg16 = arg;
@@ -1773,6 +1773,10 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
     WNDPROC16 winproc;
     LRESULT retval;
 
+	if (msg->message == WM_LBUTTONDOWN)
+	{
+		retval=0;// = WM_LBUTTONDOWN;
+	}
       /* Process timer messages */
     if ((msg->message == WM_TIMER) || (msg->message == WM_SYSTIMER))
     {
@@ -1787,10 +1791,34 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
         SetLastError( ERROR_INVALID_WINDOW_HANDLE );
         return 0;
     }
-    TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx\n", msg->hwnd, msg->message, msg->wParam, msg->lParam );
+	TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx\n", msg->hwnd, msg->message, msg->wParam, msg->lParam);
     retval = CallWindowProc16( winproc, msg->hwnd, msg->message, msg->wParam, msg->lParam );
     TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx returned %08lx\n",
-                    msg->hwnd, msg->message, msg->wParam, msg->lParam, retval );
+		msg->hwnd, msg->message, msg->wParam, msg->lParam, retval);
+	void *a = (GetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC));
+	if (a)// && !retval)
+	{
+		//SetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC, 0);
+		return retval;
+		MSG msg32;
+
+		msg32.hwnd = WIN_Handle32(msg->hwnd);
+		msg32.message = msg->message;
+		if (msg32.message == WM_LBUTTONDOWN)
+		{
+			msg32.message = WM_LBUTTONDOWN;
+		}
+		msg32.wParam = msg->wParam;
+		msg32.lParam = msg->lParam;
+		msg32.time = msg->time;
+		msg32.pt.x = msg->pt.x;
+		msg32.pt.y = msg->pt.y;
+		return DispatchMessageA(&msg);
+		/*
+		LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
+		return DefWndProca(msg->hwnd, msg->message, msg->wParam, msg->lParam);
+		*///SetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC, 0);
+	}
     return retval;
 }
 
@@ -1842,7 +1870,9 @@ BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, MSG16 *msg16 )
 
     if ((hwndDlg32 != msg.hwnd) && !IsChild( hwndDlg32, msg.hwnd )) return FALSE;
     TranslateMessage16( msg16 );
-    DispatchMessage16( msg16 );
+	//????
+	if (DispatchMessage16(msg16) == FALSE)
+		DefDlgProc16(hwndDlg, msg16->message, msg16->wParam, msg16->lParam);
     return TRUE;
 }
 
@@ -2706,6 +2736,104 @@ struct tagDIALOGINFO *get_dialog_info(HWND hWnd, BOOL b)
 	ERR("NOTIMPL:get_dialog_info(hWnd=%d\n, BOOL=%d)\n", hWnd, b);
 	return &unknown;
 }
+INT dialog_box_loop(HWND hWnd, HWND owner)
+{
+	EnableWindow(owner, FALSE);
+	ShowWindow(hWnd, SW_SHOW);
+	DWORD wpco = GetWndProc16(HWND_16(hWnd));
+	if (wpco)
+	{
+		MSG msg32;
+		MSG16 msg;
+		HWND16 hWnd16 = HWND_16(hWnd);
+		while (TRUE)
+		{
+			if (!IsWindow(hWnd)) break;
+			//PeekMessageA(&msg32, NULL, 0, 0, PM_NOREMOVE);
+			//GetMessage16(&msg, NULL, 0, 0);
+			//GetMessageA(&msg32, NULL, 0, 0);
+			MSG32_16 msg16;
+			{
+				LRESULT unused;
+
+				if (USER16_AlertableWait)
+					MsgWaitForMultipleObjectsEx(0, NULL, INFINITE, 0, MWMO_ALERTABLE);
+				GetMessageA(&msg32, NULL, 0, 0);
+				msg16.msg.time = msg32.time;
+				msg16.msg.pt.x = (INT16)msg32.pt.x;
+				msg16.msg.pt.y = (INT16)msg32.pt.y;
+				//if (wHaveParamHigh) msg16.wParamHigh = HIWORD(msg.wParam);
+				WINPROC_CallProc32ATo16(get_message_callback, msg32.hwnd, msg32.message, msg32.wParam, msg32.lParam,
+					&unused, &msg16.msg);
+
+				TRACE("message %04x, hwnd %p, filter(%04x - %04x)\n",
+					msg16.msg.message, NULL, 0, 0);
+				if(!GetWndProc16(HWND_16(msg32.hwnd)))
+				{
+					TranslateMessage(&msg32);
+					DispatchMessageA(&msg32);
+					continue;
+				}
+
+				//return msg16->msg.message != WM_QUIT;
+			}
+			if (msg32.hwnd == hWnd)
+			{
+				TranslateMessage16(&msg16.msg);
+				if (!DispatchMessage16(&msg16.msg))
+				{
+					TranslateMessage(&msg32);
+					DispatchMessageA(&msg32);
+				}
+				if (!IsWindow(hWnd)) break;
+				continue;
+			}
+			TranslateMessage16(&msg16.msg);
+			DispatchMessage16(&msg16.msg);
+			continue;
+			TranslateMessage(&msg32);
+			DispatchMessageA(&msg32);
+			continue;
+			if (hWnd16 == msg.hwnd)
+			{
+				TranslateMessage(&msg32);
+				DispatchMessageA(&msg32);
+				//DefDlgProcA(msg32.hwnd, msg32.message, msg32.wParam, msg32.lParam);
+				//DefDlgProc16(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+			}
+			else
+			{
+				TranslateMessage16(&msg);
+				DispatchMessage16(&msg);
+			}
+			/*
+			if (!IsDialogMessage16(hWnd16, &msg))
+			{
+				TranslateMessage16(&msg);
+				DispatchMessage16(&msg);
+			}*/
+
+		}
+	}
+	else
+	{
+		MSG msg;
+		while (TRUE)
+		{
+			MSG m2;
+			if (!IsWindow(hWnd)) break;
+			GetMessageA(&msg, NULL, 0, 0);
+			m2 = msg;
+			TranslateMessage(&msg);
+			DispatchMessageA(&msg);
+		}
+	}
+
+	/* メインウインドウを有効にしてモーダル解除 */
+	EnableWindow(owner, TRUE);
+	BringWindowToTop(owner);
+
+}
 void register_wow_handlers(void)
 {
 	for (int i = 0; i < 65536; i++)
@@ -2738,5 +2866,6 @@ void register_wow_handlers(void)
 	wow_handlers32.get_icon_param = get_icon_param;
 	wow_handlers32.set_icon_param = set_icon_param;
 	wow_handlers32.get_dialog_info = get_dialog_info;
+	wow_handlers32.dialog_box_loop = dialog_box_loop;
 	//
 }

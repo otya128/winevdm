@@ -1012,6 +1012,7 @@ extern "C"
 			CPU_EXECUTE_CALL(CPU_MODEL);
 #endif
 		}
+		save_context(context);
 	}
 	void *wine_ldt_get_ptr(unsigned short sel, unsigned long offset);
 	void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry);

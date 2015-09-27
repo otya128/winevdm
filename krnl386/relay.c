@@ -302,6 +302,11 @@ static const CALLFROM16 *get_entry_point( STACK16FRAME *frame, LPSTR module, LPS
 extern int call_entry_point(void *func, int nb_args, const int *args)
 {
 	//ERR("call_entry_point(%p, %d, %p)", func, nb_args, args);
+	size_t oldESP;
+	__asm
+	{
+		mov oldESP, ESP
+	}
 	int a;
 	for (int i = nb_args - 1; i >= 0; i--)
 	{
@@ -316,6 +321,7 @@ extern int call_entry_point(void *func, int nb_args, const int *args)
 	{
 		call func
 		mov ret, eax
+		mov ESP, oldESP
 	}
 	
 	//((int(WINAPI*)(void))func)();

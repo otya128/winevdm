@@ -74,6 +74,7 @@ static UINT	uMsgShellActivate = 0;
 
 static HICON convert_icon_to_32( HICON16 icon16 )
 {
+	if (!icon16) return 0;
     CURSORICONINFO *info = GlobalLock16( icon16 );
     void *and_bits = info + 1;
     void *xor_bits = (BYTE *)and_bits + info->nHeight * 2 * ((info->nWidth + 15) / 16);
@@ -85,6 +86,7 @@ static HICON convert_icon_to_32( HICON16 icon16 )
 
 static HICON16 convert_icon_to_16( HINSTANCE16 inst, HICON icon )
 {
+	if (!icon) return 0;
     static HICON16 (WINAPI *pCreateIcon16)(HINSTANCE16,INT16,INT16,BYTE,BYTE,LPCVOID,LPCVOID);
     ICONINFO info;
     BITMAP bm;
