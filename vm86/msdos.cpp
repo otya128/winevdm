@@ -749,7 +749,10 @@ extern "C"
 		i386_load_segment_descriptor(DS);
 		i386_load_segment_descriptor(FS);
 		i386_load_segment_descriptor(GS);
+		m_IOP1 = 1;
+		m_IOP2 = 1;
 		DWORD ret_addr = 0;
+		//IOPL = 3;
 		if (cbArgs >= 2)
 		{
 			unsigned char *stack = (unsigned char*)i386_translate(SS, REG16(SP), 0);

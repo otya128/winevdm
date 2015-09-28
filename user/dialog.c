@@ -350,6 +350,54 @@ LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam
 	}
 	return 0;//DefWindowProcA(hDlg, Msg, wParam, lParam);
 }
+BOOL CALLBACK DlgProcDef(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (Msg) {
+	case WM_INITDIALOG:
+	{
+		CREATESTRUCTA* cs = (CREATESTRUCTA*)lParam;
+		LPARAM *params = cs->lpCreateParams;
+		HMENU hMenu;
+		if (cs->hMenu)
+		{
+			BOOL ret = SetMenu(hDlg, HMENU_32(cs->hMenu));
+		}
+		ATOM classatom = GetClassLongA(hDlg, GCW_ATOM);//WNDPROC16
+		HWND16 hWnd16 = HWND_16(hDlg);
+		if (classatom)
+		{
+			if (params[1])
+			{
+				SetWndProc16(hWnd16, params[1]);
+			}
+			else
+			{
+				SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+			}
+		}
+		cs->lpCreateParams = params[0];
+		free(cs);
+	}
+	break;
+	
+	case WM_COMMAND:
+	switch (LOWORD(wParam)) {
+	case IDCANCEL:
+	EndDialog(hDlg, IDCANCEL);
+	return TRUE;
+	case IDOK:
+	EndDialog(hDlg, IDOK);
+	return TRUE;
+	}
+	return FALSE;
+	case WM_CLOSE:
+	DestroyWindow(hDlg);
+	return TRUE;
+	
+	}
+
+	return FALSE;
+}
 BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	HWND16 hWnd16 = HWND_16(hDlg);
@@ -496,6 +544,12 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		dlgItemTemplate32->id = info.id;
 		dlgItemTemplatew = (WORD*)(dlgItemTemplate32 + 1);
 		copy_widestr(info.className, &dlgItemTemplatew);
+		if (!HIWORD(info.windowName))
+		{
+			char buffer[512];
+			if(LoadString16(hInst, LOWORD(info.windowName), buffer, sizeof(buffer)))
+				info.windowName = buffer;
+		}
 		copy_widestr(info.windowName, &dlgItemTemplatew);
 		if (info.data)
 		{
@@ -677,7 +731,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 			hInst32,
 			(DLGTEMPLATE*)template32,
 			owner,
-			hasclass ? DlgProc : DlgProc, paramd);
+			hasclass ? DlgProc : DlgProcDef, paramd);
 		return ret;
 	}
 	else
@@ -685,7 +739,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		hInst32,
 		(DLGTEMPLATE*)template32,
 		owner,
-		hasclass ? DlgProc : DlgProc, paramd);
+		hasclass ? DlgProc : DlgProcDef, paramd);
 	DIALOG_DumpControls32(hwnd, dlgTemplate, &template, hInst, templatew);
 	free(template32);
 	//if (wc2.lpszMenuName) hMenu = LoadMenu16(hInst, wc2.lpszMenuName);

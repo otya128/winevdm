@@ -21,7 +21,7 @@ handle16 <-> wow64 handle32
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(thunk);
-
+#define HANDLE_RESERVED 32
 typedef struct
 {
 	HANDLE handle32;
@@ -31,6 +31,10 @@ HANDLE_DATA handle_hwnd[65536];
 WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o);
 WORD get_handle16(HANDLE h, HANDLE_DATA handles[])
 {
+	if (h < HANDLE_RESERVED)
+	{
+		return h;
+	}
 	HANDLE_DATA *hd;
 	int hnd16 = get_handle16_data(h, handles, &hd);
 	hd->handle32 = h;
@@ -39,13 +43,13 @@ WORD get_handle16(HANDLE h, HANDLE_DATA handles[])
 WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o)
 {
 	//?
-	if (!h)
+	if (h < HANDLE_RESERVED)
 	{
-		*o = &handles[0];
-		return 0;
+		*o = &handles[(size_t)h];
+		return h;
 	}
 	WORD fhandle = 0;
-	for (WORD i = 10; i; i++)
+	for (WORD i = HANDLE_RESERVED; i; i++)
 	{
 		if (!handles[i].handle32 && !fhandle)
 		{
@@ -66,10 +70,20 @@ WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o)
 }
 HANDLE get_handle32_data(WORD h, HANDLE_DATA handles[], HANDLE_DATA **o)
 {
+	if (h < HANDLE_RESERVED)
+	{
+		*o = &handles[(size_t)h];
+		(*o)->handle32 = h;
+		return;
+	}
 	*o = &handles[h];
 }
 HANDLE get_handle32(WORD h, HANDLE_DATA handles[])
 {
+	if (h < HANDLE_RESERVED)
+	{
+		return h;
+	}
 	return handles[h].handle32;
 }
 HANDLE WINAPI K32WOWHandle16HWND(WORD handle);

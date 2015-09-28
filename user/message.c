@@ -1780,10 +1780,12 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
       /* Process timer messages */
     if ((msg->message == WM_TIMER) || (msg->message == WM_SYSTIMER))
     {
-        if (msg->lParam)
+		ERR("WM_TIMER!\n");
+        /*if (msg->lParam)
             return CallWindowProc16( (WNDPROC16)msg->lParam, msg->hwnd,
                                      msg->message, msg->wParam, GetTickCount() );
-    }
+    */
+	}
 
     if (!(winproc = (WNDPROC16)GetWindowLong16( msg->hwnd, GWLP_WNDPROC )))
     {
