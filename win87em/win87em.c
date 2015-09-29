@@ -34,6 +34,14 @@ void __wine_spec_dll_entry()
 {
 	DPRINTF("NOTIMPL:__wine_spec_dll_entry(?)\n");
 }
+//VM86.DLL
+__declspec(dllimport) void fldcw(WORD cw);
+__declspec(dllimport) void wait();
+__declspec(dllimport) void fninit();
+__declspec(dllimport) void fstcw(WORD *ea);
+__declspec(dllimport) void frndint();
+__declspec(dllimport) void fclex();
+#define USE_VM86_DLL 1
 struct Win87EmInfoStruct
 {
     unsigned short Version;
@@ -72,17 +80,23 @@ static WORD Inthandler02hVar = 1;
 static void WIN87_ClearCtrlWord( CONTEXT *context )
 {
     context->Eax &= ~0xffff;  /* set AX to 0 */
-#ifdef __i386__
 	if (Installed)
-#ifndef _MSC_VER
-	__asm__("fclex");
-#else
-	__asm
 	{
-		fclex
+#if USE_VM86_DLL
+		fclex();
+#else/*USE_VM86_DLL*/
+#ifdef __i386__
+#ifndef _MSC_VER
+		__asm__("fclex");
+#else
+		__asm
+		{
+			fclex
+		}
+#endif
+#endif
+#endif/*USE_VM86_DLL*/
 	}
-#endif
-#endif
     StatusWord_3 = StatusWord_2 = 0;
 }
 
@@ -91,7 +105,11 @@ static void WIN87_SetCtrlWord( CONTEXT *context )
     CtrlWord_1 = LOWORD(context->Eax);
     context->Eax &= ~0x00c3;
     if (Installed) {
-        CtrlWord_Internal = LOWORD(context->Eax);
+		CtrlWord_Internal = LOWORD(context->Eax);
+#if USE_VM86_DLL
+		wait();
+		fldcw(CtrlWord_Internal);
+#else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
         __asm__("wait;fldcw %0" : : "m" (CtrlWord_Internal));
@@ -102,6 +120,7 @@ static void WIN87_SetCtrlWord( CONTEXT *context )
 			fldcw CtrlWord_Internal
 		}
 #endif
+#endif/*USE_VM86_DLL*/
 #endif
     }
     CtrlWord_2 = LOWORD(context->Eax);
@@ -109,6 +128,13 @@ static void WIN87_SetCtrlWord( CONTEXT *context )
 
 static void WIN87_Init( CONTEXT *context )
 {
+#if USE_VM86_DLL
+	if (Installed)
+	{
+		fninit();
+		fninit();
+	}
+#else/*USE_VM86_DLL*/
 #ifdef __i386__
 	if (Installed)
 	{
@@ -119,11 +145,12 @@ static void WIN87_Init( CONTEXT *context )
 		__asm
 		{
 			fninit
-				fninit
+			fninit
 		}
 #endif
 	}
 #endif
+#endif/*USE_VM86_DLL*/
     StackBottom = StackTop;
     context->Eax = (context->Eax & ~0xffff) | 0x1332;
     WIN87_SetCtrlWord(context);
@@ -187,6 +214,16 @@ void WINAPI _fpMath( CONTEXT *context )
             /* I don't know much about asm() programming. This could be
              * wrong.
              */
+#if USE_VM86_DLL
+			fstcw(&save);
+			wait();
+			fstcw(&mask);
+			wait();
+			mask |= 0xC00;
+			fstcw(&mask);
+			wait();
+			frndint();
+#else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
 			__asm__ __volatile__("fstcw %0;wait" : "=m" (save) : : "memory");
@@ -208,6 +245,7 @@ void WINAPI _fpMath( CONTEXT *context )
 			}
 #endif
 #endif
+#endif/*USE_VM86_DLL*/
         }
         break;
 
@@ -229,7 +267,11 @@ void WINAPI _fpMath( CONTEXT *context )
 
     case 8: /* restore internal status words from emulator status word */
         context->Eax &= ~0xffff;  /* set AX to 0 */
-        if (Installed) {
+		if (Installed) {
+#if USE_VM86_DLL
+			fstcw(&StatusWord_1);
+			wait();
+#else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
 			__asm__("fstsw %0;wait" : "=m" (StatusWord_1));
@@ -241,6 +283,7 @@ void WINAPI _fpMath( CONTEXT *context )
 			}
 #endif
 #endif
+#endif/*USE_VM86_DLL*/
             context->Eax |= StatusWord_1 & 0x3f;
         }
         context->Eax = (context->Eax | StatusWord_2) & ~0xe000;

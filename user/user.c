@@ -2106,13 +2106,14 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 
     if (!hinst || (flags & LR_LOADFROMFILE))
 	{
+		/*
 		if (name == IDI_APPLICATION)
 		{
 			if (type == IMAGE_BITMAP)
 				return HBITMAP_16(LoadIconA(NULL, IDI_APPLICATION));
 			else
 				return get_icon_16(LoadIconA(NULL, IDI_APPLICATION));
-		}/*
+		}*//*
 		if (type == IMAGE_BITMAP)
 			return HBITMAP_16(LoadIconA(NULL, name));
 		else

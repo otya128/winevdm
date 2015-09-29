@@ -4415,6 +4415,57 @@ void x87_fldcw(UINT8 modrm)
 	CYCLES(4);
 }
 
+extern "C"
+{
+	__declspec(dllexport) void fldcw(WORD cw)
+	{
+		x87_write_cw(cw);
+
+		x87_check_exceptions();
+	}
+	__declspec(dllexport) void wait()
+	{
+		/*
+		static void I386OP(wait)()              // Opcode 0x9B
+		{
+		// TODO
+		}
+		*/
+	}
+	__declspec(dllexport) void fninit()
+	{
+		x87_reset();
+	}
+	__declspec(dllexport) void fstcw(WORD *ea)
+	{
+		*ea = m_x87_cw;
+		//WRITE16(ea, m_x87_cw);
+	}
+	__declspec(dllexport) void frndint()
+	{
+		floatx80 value;
+
+		if (X87_IS_ST_EMPTY(0))
+		{
+			x87_set_stack_underflow();
+			value = fx80_inan;
+		}
+		else
+		{
+			m_x87_sw &= ~X87_SW_C1;
+
+			value = floatx80_round_to_int(ST(0));
+		}
+
+		if (x87_check_exceptions())
+			x87_write_stack(0, value, TRUE);
+	}
+	__declspec(dllexport) void fclex()
+	{
+		m_x87_sw &= ~0x80ff;
+	}
+}
+
 void x87_fstcw(UINT8 modrm)
 {
 	UINT32 ea = GetEA(modrm, 1);
