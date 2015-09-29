@@ -369,10 +369,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		{
 		case WM_PAINT:
 		case WM_COMMAND:
-			if (DispatchMessage16(&msg16) | 1&&0)
-			{
-				return TRUE;
-			}
+			DispatchMessage16(&msg16);
 		}
 	}
 	switch (Msg) {
@@ -418,7 +415,6 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		if (!hWnd16)
 		DestroyWindow(hDlg);
 		return TRUE;
-		
 	}
 
 	return FALSE;

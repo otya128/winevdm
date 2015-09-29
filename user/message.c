@@ -1788,10 +1788,17 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
 	}
 
     if (!(winproc = (WNDPROC16)GetWindowLong16( msg->hwnd, GWLP_WNDPROC )))
-    {
-		return DefWindowProc16(msg->hwnd, msg->message, msg->wParam, msg->lParam);
-        SetLastError( ERROR_INVALID_WINDOW_HANDLE );
-        return 0;
+	{
+		LRESULT result;
+		WNDPROC wndproc32 = GetWindowLong(HWND_32(msg->hwnd), GWLP_WNDPROC);
+		if (!wndproc32)
+		{
+			SetLastError(ERROR_INVALID_WINDOW_HANDLE);
+			return 0;
+		}
+		WINPROC_CallProc16To32A(call_window_proc_callback, msg->hwnd, msg->message, msg->wParam, msg->lParam, &result,
+			wndproc32);
+		return result;
     }
 	TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx\n", msg->hwnd, msg->message, msg->wParam, msg->lParam);
     retval = CallWindowProc16( winproc, msg->hwnd, msg->message, msg->wParam, msg->lParam );
