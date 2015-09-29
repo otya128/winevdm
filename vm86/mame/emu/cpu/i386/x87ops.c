@@ -305,6 +305,7 @@ int x87_check_exceptions()
 		float_exception_flags &= ~float_flag_inexact;
 	}
 
+#if !defined(HAS_I386) && !defined(HAS_I286) && !defined(HAS_I186) && !defined(HAS_I86)
 	if ((m_x87_sw & ~m_x87_cw) & 0x3f)
 	{
 		// m_device->execute().set_input_line(INPUT_LINE_FERR, RAISE_LINE);
@@ -316,6 +317,7 @@ int x87_check_exceptions()
 		}
 		return 0;
 	}
+#endif
 
 	return 1;
 }
