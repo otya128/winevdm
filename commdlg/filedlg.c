@@ -53,6 +53,15 @@ BOOL16 CALLBACK FileSaveDlgProc16(HWND16 hWnd16, UINT16 wMsg, WPARAM16 wParam, L
     return FALSE;
 }
 
+DWORD get_ofn_flag(DWORD flag)
+{
+	//LFN
+	if (TRUE)
+	{
+		return flag | OFN_NOLONGNAMES;
+	}
+	return flag;
+}
 /***********************************************************************
  *           GetOpenFileName   (COMMDLG.1)
  *
@@ -85,7 +94,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.nMaxFileTitle     = lpofn->nMaxFileTitle;
     ofn32.lpstrInitialDir   = MapSL( lpofn->lpstrInitialDir );
     ofn32.lpstrTitle        = MapSL( lpofn->lpstrTitle );
-    ofn32.Flags             = (lpofn->Flags & ~OFN_ENABLETEMPLATE) | OFN_ENABLEHOOK;
+	ofn32.Flags             = get_ofn_flag((lpofn->Flags & ~OFN_ENABLETEMPLATE) | OFN_ENABLEHOOK);
     ofn32.nFileOffset       = lpofn->nFileOffset;
     ofn32.nFileExtension    = lpofn->nFileExtension;
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
@@ -138,7 +147,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.nMaxFileTitle     = lpofn->nMaxFileTitle;
     ofn32.lpstrInitialDir   = MapSL( lpofn->lpstrInitialDir );
     ofn32.lpstrTitle        = MapSL( lpofn->lpstrTitle );
-    ofn32.Flags             = (lpofn->Flags & ~OFN_ENABLETEMPLATE) | OFN_ENABLEHOOK;
+    ofn32.Flags             = get_ofn_flag((lpofn->Flags & ~OFN_ENABLETEMPLATE) | OFN_ENABLEHOOK);
     ofn32.nFileOffset       = lpofn->nFileOffset;
     ofn32.nFileExtension    = lpofn->nFileExtension;
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
