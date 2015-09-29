@@ -655,7 +655,9 @@ extern "C"
 	{
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_DATA);
 		CPU_INIT_CALL(CPU_MODEL);
+		//enable x87
 		build_x87_opcode_table();
+		build_opcode_table(OP_I386 | OP_FPU);
 		CPU_RESET_CALL(CPU_MODEL);
 		m_idtr.base = (UINT32)table;
 		memset(iret, 0xcf, 256);
@@ -1010,10 +1012,6 @@ extern "C"
 #endif
 				UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 
-				if (*oprom == 0xd9)
-				{
-					fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
-				}
 				fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
 				fflush(stderr);
 #if defined(HAS_I386)

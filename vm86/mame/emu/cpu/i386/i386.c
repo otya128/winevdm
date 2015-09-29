@@ -3010,7 +3010,7 @@ CPU_INIT( i386 )
 {
 	i386_common_init(32);
 
-	build_opcode_table(OP_I386 | OP_FPU);
+	build_opcode_table(OP_I386);
 	m_cycle_table_rm = cycle_table_rm[CPU_CYCLES_I386];
 	m_cycle_table_pm = cycle_table_pm[CPU_CYCLES_I386];
 }
