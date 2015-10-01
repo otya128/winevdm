@@ -1593,9 +1593,20 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
     return SetWindowPlacement( WIN_Handle32(hwnd), &wpl );
 }
 
+void InitWndProc16(HWND hWnd, HWND16 hWnd16);
+LRESULT get_message_callback(HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
+	LRESULT *result, void *arg); 
+LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
+	LRESULT *result, void *arg);
 LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
+	HWND16 hWnd16 = HWND_16(hDlg);
+	if (!GetWndProc16(hWnd16))
+	{
+		InitWndProc16(hDlg, hWnd16);
+	}
+	//if ()
 	//return DefWindowProcA(hDlg, Msg, wParam, lParam);
 	//return TRUE;
 	/*
@@ -1612,6 +1623,27 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		WNDCLASSEXA wc;
 		GetClassInfoExA(NULL, "#32770", &wc);
 		return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
+	}
+	WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
+	if (wndproc16)
+	{
+		switch (Msg)
+		{
+		case WM_CREATE:
+		case WM_GETMINMAXINFO:
+		{
+			MSG msg;
+			msg.hwnd = hDlg;
+			msg.message = Msg;
+			msg.wParam = wParam;
+			msg.lParam = lParam;
+			MSG16 msg16;
+			LRESULT unused;
+			WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+				&unused, wndproc16/*&msg16*/);
+			return unused;//DispatchMessage16(&msg16);
+		}
+		}
 	}
 	return DefWindowProcA(hDlg, Msg, wParam, lParam);
 }
@@ -1972,12 +2004,16 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         hwnd = create_window16( (CREATESTRUCTW *)&cs, (LPCWSTR)className, HINSTANCE_32(instance), FALSE );
     }
 	HWND16 hWnd16 = HWND_16(hwnd);
-	ATOM classatom = GetClassLongA(hwnd, GCW_ATOM);//WNDPROC16
-	if (classatom)
+	InitWndProc16(hwnd, hWnd16);
+	return hWnd16;
+}
+void InitWndProc16(HWND hWnd, HWND16 hWnd16)
+{
+	ATOM classatom = GetClassLongA(hWnd, GCW_ATOM);//WNDPROC16
+	if (classatom && !GetWndProc16(hWnd16))
 	{
 		SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
 	}
-	return hWnd16;
 }
 
 

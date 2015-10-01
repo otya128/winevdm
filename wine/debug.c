@@ -317,7 +317,10 @@ static const char *default_dbgstr_an( const char *str, int n )
         case '\t': *dst++ = '\\'; *dst++ = 't'; break;
         case '"':  *dst++ = '\\'; *dst++ = '"'; break;
         case '\\': *dst++ = '\\'; *dst++ = '\\'; break;
-        default:
+		default:
+			*dst++ = c;
+			break;//for multibyte char
+			/*
             if (c >= ' ' && c <= 126)
                 *dst++ = c;
             else
@@ -326,7 +329,7 @@ static const char *default_dbgstr_an( const char *str, int n )
                 *dst++ = 'x';
                 *dst++ = hex[(c >> 4) & 0x0f];
                 *dst++ = hex[c & 0x0f];
-            }
+            }*/
         }
     }
     *dst++ = '"';

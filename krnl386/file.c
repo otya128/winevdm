@@ -43,6 +43,64 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(file);
 
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
+
+//SYSTEM DIR
+//%WINDIR%->
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
+{
+	char buf[MAX_PATH];
+	if (!PathCanonicalizeA(buf, path))
+	{
+		return path;
+	}
+	//\SYSTEM32
+	const char *windir = getenv("windir");
+	if (strlen(windir) + 10 >= MAX_PATH)
+	{
+		return path;
+	}
+	char bufwdir[MAX_PATH];
+	strcpy(bufwdir, windir);
+	if (PathCommonPrefixA(buf, bufwdir, NULL) < strlen(bufwdir))//if (strncmp(buf, windir, strlen(windir)))
+	{
+		return path;
+	}
+	if (!PathAppendA(bufwdir, "system32"))
+	{
+		return path;
+	}
+	//system32->system
+	if (PathCommonPrefixA(buf, bufwdir, NULL) >= strlen(bufwdir))//if (strncmp(buf, windir, strlen(windir)))
+	{
+		memcpy(buf + strlen(bufwdir) - 2, buf + strlen(bufwdir), strlen(buf) - strlen(bufwdir) + 1);
+	}
+	//.\windir\ 
+	char dirbuf[MAX_PATH], *dir = dirbuf;
+	GetModuleFileNameA(NULL, dir, MAX_PATH);
+	char *file = PathFindFileNameA(dir);
+	if (file != dir) *file = '\0';
+	if (!PathAppendA(dir, "WINDIR"))
+		return path;
+		//FIXME:dir//wine_get_server_dir();
+//	size_t len = strlen(dir);
+//	if (len >= max_len) return path;
+//	strcpy(to, dir);
+	if (!PathAppendA(dir, buf + strlen(windir)))
+		return path;
+	if (strlen(dir) >= max_len)
+		return path;
+	file = PathFindFileNameA(dir);
+	char f = *file;
+	*file = '\0';
+	GetShortPathNameA(dir, to, max_len);
+	*file = f;
+	PathCombineA(to, to, file);
+//	strcpy(to, dir);
+	return to;
+}
+
 #define DOS_TABLE_SIZE 256
 
 static HANDLE dos_handles[DOS_TABLE_SIZE];
@@ -255,6 +313,8 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
     if (mode & OF_PARSE)
     {
         OpenFile( name, ofs, mode );
+		CHAR buf[OFS_MAXPATHNAME];
+		RedirectSystemDir(ofs->szPathName, ofs->szPathName, OFS_MAXPATHNAME);
         return 0;
     }
 
@@ -374,6 +434,8 @@ HFILE16 WINAPI _lclose16( HFILE16 hFile )
  */
 HFILE16 WINAPI _lcreat16( LPCSTR path, INT16 attr )
 {
+	CHAR buf[MAX_PATH];
+	path = RedirectSystemDir(path, buf, MAX_PATH);
     return Win32HandleToDosFileHandle( (HANDLE)_lcreat( path, attr ) );
 }
 
@@ -396,6 +458,8 @@ LONG WINAPI _llseek16( HFILE16 hFile, LONG lOffset, INT16 nOrigin )
  */
 HFILE16 WINAPI _lopen16( LPCSTR path, INT16 mode )
 {
+	CHAR buf[MAX_PATH];
+	path = RedirectSystemDir(path, buf, MAX_PATH);
     return Win32HandleToDosFileHandle( (HANDLE)_lopen( path, mode ) );
 }
 

@@ -614,6 +614,7 @@ FARPROC16 DOSVM_GetPMHandler16( BYTE intnum )
     }
     if (!DOSVM_Vectors16[intnum])
     {
+		if (!DOSVM_dpmi_segments) return NULL;
         proc = (FARPROC16)MAKESEGPTR( DOSVM_dpmi_segments->int16_sel,
                                                 DOSVM_STUB_PM16 * intnum );
         DOSVM_Vectors16[intnum] = proc;

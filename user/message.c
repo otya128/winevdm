@@ -225,7 +225,7 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
 }
 
 /* call a 16-bit window procedure */
-static LRESULT call_window_proc16( HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
+/*static*/ LRESULT call_window_proc16( HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
                                    LRESULT *result, void *arg )
 {
     WNDPROC16 func = arg;
@@ -631,6 +631,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 
             MDICREATESTRUCT16to32A( cs16, &cs );
             ret = callback( hwnd32, msg, wParam, (LPARAM)&cs, result, arg );
+			*result = HWND_16(*result);
             MDICREATESTRUCT32Ato16( &cs, cs16 );
         }
         break;
@@ -1487,7 +1488,12 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
         /* first the WH_CALLWNDPROC hook */
         call_WH_CALLWNDPROC_hook( hwnd16, msg, wparam, lparam );
 
-        if (!(winproc = (WNDPROC16)GetWindowLong16( hwnd16, GWLP_WNDPROC ))) return 0;
+		if (!(winproc = (WNDPROC16)GetWindowLong16(hwnd16, GWLP_WNDPROC)))
+		{
+			WINPROC_CallProc16To32A(send_message_callback, hwnd16, msg, wparam, lparam, &result, NULL);
+			return result;
+			//return call_native_wndproc(hwnd16, msg, wparam, lparam);
+		}
 
         TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx\n", hwnd16, msg, wparam, lparam );
         result = CallWindowProc16( winproc, hwnd16, msg, wparam, lparam );
@@ -1765,6 +1771,18 @@ BOOL16 WINAPI TranslateMessage16( const MSG16 *msg )
 }
 
 
+LRESULT call_native_wndproc(HWND16 hWnd16, UINT16 msg, WPARAM16 wParam, LPARAM lParam)
+{
+	LRESULT result;
+	WNDPROC wndproc32 = GetWindowLong(HWND_32(hWnd16), GWLP_WNDPROC);
+	if (!wndproc32)
+	{
+		SetLastError(ERROR_INVALID_WINDOW_HANDLE);
+		return 0;
+	}
+	WINPROC_CallProc16To32A(call_window_proc_callback, hWnd16, msg, wParam, lParam, &result, wndproc32);
+	return result;
+}
 /***********************************************************************
  *		DispatchMessage (USER.114)
  */
@@ -2725,7 +2743,10 @@ HWND get_win_handle(HWND hWnd16)
 }
 HWND create_window(CREATESTRUCTW* cs, LPCWSTR className, HINSTANCE instance, BOOL unicode)
 {
-	return CreateWindowExA(cs->dwExStyle, className, cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance = 0, cs->lpCreateParams);
+	if (!strncasecmp(className, "MDICLIENT", strlen(className)))
+		cs->lpCreateParams = MapSL(cs->lpCreateParams);
+	HWND hWnd = CreateWindowExA(cs->dwExStyle, className, cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance = 0, cs->lpCreateParams);
+	return hWnd;
 }
 __declspec(dllimport) HICON16 K32HICON_16(HICON handle);
 __declspec(dllimport) HICON K32HICON_32(HICON16 handle);

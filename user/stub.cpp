@@ -8,8 +8,13 @@ extern "C"
 #include <stdarg.h>
 #include "wine/debug.h"
 #include "user_private.h"
+	WINE_DEFAULT_DEBUG_CHANNEL(stub);
 	PDrawCaptionTempA DrawCaptionTempA = 0;
 	PScrollChildren ScrollChildren;
+	void WINAPI CalcChildScrollImpl(HWND hWnd, INT n)
+	{
+		FIXME("CalcChildScrollImpl(%p, %d)\n", hWnd, n);
+	}
 	PCalcChildScroll CalcChildScroll;
 	PSetInternalWindowPos SetInternalWindowPos;
 	PSetSystemMenu SetSystemMenu;
@@ -26,10 +31,11 @@ static int a = ab();
 int ab()
 {
 #define LOAD_FUNC(dll, name) name = (P##name)GetProcAddress(GetModuleHandleA(dll), #name);//if(!name) MessageBoxA(NULL, "can't load " dll "!" #name,"", 0)
+#define LOAD_FUNC_FUNC(dll, name, defaultfunc) LOAD_FUNC(dll, name); if(!name) name = defaultfunc;
 	DrawCaptionTempA = (PDrawCaptionTempA)GetProcAddress(GetModuleHandleA("USER32.DLL"), "DrawCaptionTempA");
 	 
 	LOAD_FUNC("USER32.DLL", ScrollChildren);
-	LOAD_FUNC("USER32.DLL", CalcChildScroll);
+	LOAD_FUNC_FUNC("USER32.DLL", CalcChildScroll, CalcChildScrollImpl);
 	LOAD_FUNC("USER32.DLL", SetInternalWindowPos);
 	LOAD_FUNC("USER32.DLL", SetSystemMenu);
 	LOAD_FUNC("USER32.DLL", KillSystemTimer);
@@ -53,7 +59,6 @@ extern "C"
 	{
 		DPRINTF("NOTIMPL:__wine_spec_dll_entry(?)\n");
 	}
-	WINE_DEFAULT_DEBUG_CHANNEL(stub);
 	/***********************************************************************
 	*		SignalProc32 (USER.391)
 	*		UserSignalProc (USER32.@)

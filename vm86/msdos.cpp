@@ -616,7 +616,7 @@ extern "C"
 		context->SegCs = SREG(CS);
 		context->SegSs = SREG(SS);
 		context->SegDs = SREG(DS);
-		context->EFlags = m_eflags | 0x20000;
+		//context->EFlags = m_eflags | 0x20000;
 		setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
 	}
 	void load_context(CONTEXT *context)
@@ -644,7 +644,7 @@ extern "C"
 		i386_load_segment_descriptor(GS);
 		m_eip = context->Eip;
 		i386_jmp_far(SREG(CS), context->Eip);
-		m_eflags = context->EFlags;
+		//m_eflags = context->EFlags;
 	}
 	void __wine_call_int_handler(CONTEXT *context, BYTE intnum);
 	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
@@ -1020,7 +1020,7 @@ extern "C"
 				}
 				else
 #endif
-					CPU_DISASSEMBLE_CALL(x86_16);
+					i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
 				fprintf(stderr, "\t%s\n", buffer);
 			}
 #endif

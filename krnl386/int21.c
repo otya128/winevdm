@@ -2007,6 +2007,7 @@ static void INT21_ExtendedCountryInformation( CONTEXT *context )
 }
 
 
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 /***********************************************************************
  *           INT21_FileAttributes
  *
@@ -2022,6 +2023,8 @@ static BOOL INT21_FileAttributes( CONTEXT *context,
     char *fileA = CTX_SEG_OFF_TO_LIN(context, 
                                      context->SegDs, 
                                      context->Edx);
+	CHAR filebuf[MAX_PATH];
+	fileA = RedirectSystemDir(fileA, filebuf, MAX_PATH);
     HANDLE   handle;
     BOOL     status;
     FILETIME filetime;
