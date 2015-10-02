@@ -616,7 +616,7 @@ extern "C"
 		context->SegCs = SREG(CS);
 		context->SegSs = SREG(SS);
 		context->SegDs = SREG(DS);
-		//context->EFlags = m_eflags | 0x20000;
+		context->EFlags = m_eflags & ~0x20000;
 		setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
 	}
 	void load_context(CONTEXT *context)
@@ -644,7 +644,7 @@ extern "C"
 		i386_load_segment_descriptor(GS);
 		m_eip = context->Eip;
 		i386_jmp_far(SREG(CS), context->Eip);
-		//m_eflags = context->EFlags;
+		set_flags(context->EFlags);
 	}
 	void __wine_call_int_handler(CONTEXT *context, BYTE intnum);
 	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
@@ -754,6 +754,7 @@ extern "C"
 		i386_load_segment_descriptor(GS);
 		m_IOP1 = 1;
 		m_IOP2 = 1;
+		m_eflags |= 0x3000;
 		DWORD ret_addr = 0;
 		//IOPL = 3;
 		if (cbArgs >= 2)
@@ -930,6 +931,7 @@ extern "C"
 					//	REG16(SP) += 2;
 					REG16(SP) -= (ooo - context.Esp);
 					REG16(BP) = bp;
+					set_flags(context.EFlags);
 					i386_load_segment_descriptor(ES);
 					i386_load_segment_descriptor(SS);
 					i386_load_segment_descriptor(DS);
