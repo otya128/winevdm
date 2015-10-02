@@ -2098,6 +2098,14 @@ DWORD WINAPI GetMenuContextHelpId16( HMENU16 hMenu )
 /***********************************************************************
  *		LoadImage (USER.389)
  */
+//OBM_OLD_CLOSE
+//OBM_OLD_DNARROW
+//OBM_OLD_LFARROW
+//OBM_OLD_REDUCE
+//OBM_OLD_RESTORE
+//OBM_OLD_RGARROW
+//OBM_OLD_UPARROW
+//OBM_OLD_ZOOM
 HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 cx, INT16 cy, UINT16 flags)
 {
     HGLOBAL16 handle;
@@ -2106,22 +2114,55 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 
     if (!hinst || (flags & LR_LOADFROMFILE))
 	{
-		/*
-		if (name == IDI_APPLICATION)
+		//OEMRESOURCE
+		WORD n = (WORD)name;
+		HANDLE h = LoadImageA(0, n, type, cx, cy, flags);
+		if (!h)
 		{
-			if (type == IMAGE_BITMAP)
-				return HBITMAP_16(LoadIconA(NULL, IDI_APPLICATION));
-			else
-				return get_icon_16(LoadIconA(NULL, IDI_APPLICATION));
-		}*//*
-		if (type == IMAGE_BITMAP)
-			return HBITMAP_16(LoadIconA(NULL, name));
-		else
-			return get_icon_16(LoadIconA(NULL, name));*/
+			//OBM_OLD_XXXX->OBM_XXXX
+			switch (n)
+			{
+			case OBM_OLD_CLOSE:
+				n = OBM_CLOSE;
+				break;
+			case OBM_OLD_DNARROW:
+				n = OBM_DNARROW;
+				break;
+			case OBM_OLD_LFARROW:
+				n = OBM_LFARROW;
+				break;
+			case OBM_OLD_REDUCE:
+				n = OBM_REDUCE;
+				break;
+			case OBM_OLD_RESTORE:
+				n = OBM_RESTORE;
+				break;
+			case OBM_OLD_RGARROW:
+				n = OBM_RGARROW;
+				break;
+			case OBM_OLD_UPARROW:
+				n = OBM_UPARROW;
+				break;
+			case OBM_OLD_ZOOM:
+				n = OBM_ZOOM;
+				break;
+			default:
+				return 0;
+			}
+			h = LoadImageA(0, n, type, cx, cy, flags);
+		}
+		//OBM_OLD_CLOSE
+		//OBM_OLD_DNARROW
+		//OBM_OLD_LFARROW
+		//OBM_OLD_REDUCE
+		//OBM_OLD_RESTORE
+		//OBM_OLD_RGARROW
+		//OBM_OLD_UPARROW
+		//OBM_OLD_ZOOM
         if (type == IMAGE_BITMAP)
-            return HBITMAP_16( LoadImageA( 0, name, type, cx, cy, flags ));
+			return HBITMAP_16(h);
         else
-            return get_icon_16( LoadImageA( 0, name, type, cx, cy, flags ));
+			return get_icon_16(h);
     }
 
     hinst = GetExePtr( hinst );
