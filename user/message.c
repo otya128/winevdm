@@ -526,11 +526,12 @@ static void MDICREATESTRUCT32Ato16( const MDICREATESTRUCTA* from, MDICREATESTRUC
 
 static void MDICREATESTRUCT16to32A( const MDICREATESTRUCT16* from, MDICREATESTRUCTA *to )
 {
-    to->hOwner = HINSTANCE_32(from->hOwner);
-    to->x      = from->x;
-    to->y      = from->y;
-    to->cx     = from->cx;
-    to->cy     = from->cy;
+	to->hOwner = HINSTANCE_32(from->hOwner);
+
+	to->x      = (to->x == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)to->x;
+	to->y      = (to->y == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)to->y;
+	to->cx     = (from->cx == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)from->cx;
+	to->cy     = (from->cy == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)from->cy;
     to->style  = from->style;
     to->lParam = from->lParam;
     to->szTitle = MapSL(from->szTitle);
