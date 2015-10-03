@@ -597,6 +597,7 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
 
     /* We now have a valid NE header */
 
+	if (ne_header->ne_exetyp)//WINDOWS 1.x
     /* check to be able to fall back to loading OS/2 programs as DOS
      * FIXME: should this check be reversed in order to be less strict?
      * (only fail for OS/2 ne_exetyp 0x01 here?) */

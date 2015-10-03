@@ -1629,7 +1629,11 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (Msg)
 		{
+		case WM_PAINT:
+			goto GETMINMAXINFO;
 		case WM_CREATE:
+			goto GETMINMAXINFO;
+		GETMINMAXINFO:
 		case WM_GETMINMAXINFO:
 		{
 			MSG msg;

@@ -2950,7 +2950,7 @@ HWND create_window(CREATESTRUCTW* cs, LPCWSTR className, HINSTANCE instance, BOO
 {
 	if (!strncasecmp(className, "MDICLIENT", strlen(className)))
 		cs->lpCreateParams = MapSL(cs->lpCreateParams);
-	HWND hWnd = CreateWindowExA(cs->dwExStyle, className, cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance = 0, cs->lpCreateParams);
+	HWND hWnd = CreateWindowExA(cs->dwExStyle, className, cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance, cs->lpCreateParams);
 	return hWnd;
 }
 __declspec(dllimport) HICON16 K32HICON_16(HICON handle);

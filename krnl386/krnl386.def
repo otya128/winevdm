@@ -183,3 +183,4 @@ EXPORTS
   __wine_load_dos_exe @178
   __wine_vxd_open @179 PRIVATE
   __wine_vxd_get_proc @180 PRIVATE
+  IsWinOldApTask @181

@@ -2095,6 +2095,20 @@ DWORD WINAPI GetMenuContextHelpId16( HMENU16 hMenu )
 }
 
 
+struct WIN1XBITMAP
+{
+	LONG unknown1;
+	WORD width;
+	WORD height;
+	//WORD unknown2[2];
+	WORD ByteWidth;     /* Width of bitmap in bytes */
+	BYTE Planes;        /* Number of color planes */
+	BYTE BitsPerPixel;  /* Number of bits per pixel */
+	WORD unknown3[2];
+	//monochrome
+	//
+	BYTE bits;//1byte 8 pixels
+};
 /***********************************************************************
  *		LoadImage (USER.389)
  */
@@ -2198,6 +2212,33 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
         if (!(ptr = LockResource16( handle ))) goto done;
         size = SizeofResource16( hinst, hRsrc );
 
+		//
+		BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst);
+		if (!IsWinOldApTask(hinst))
+		{
+			//old old bitmap
+			struct WIN1XBITMAP *win1xbitmap = ptr;
+			BITMAP winbitmap;
+			//winbitmap.bmType = win1xbitmap->unknown1;
+			winbitmap.bmWidth = win1xbitmap->width;
+			winbitmap.bmHeight = win1xbitmap->height;
+			winbitmap.bmWidthBytes = win1xbitmap->ByteWidth;
+			winbitmap.bmPlanes = win1xbitmap->Planes;
+			winbitmap.bmBitsPixel = win1xbitmap->BitsPerPixel;
+			winbitmap.bmBits = &win1xbitmap->bits;
+			
+			HBITMAP ret = CreateBitmapIndirect(&winbitmap);
+			if(!ret)
+				ret = CreateBitmap(
+				win1xbitmap->width,         // ピクセル単位のビットマップの幅
+				win1xbitmap->height,        // ピクセル単位のビットマップの高さ
+				win1xbitmap->Planes,       // カラープレーンの数
+				win1xbitmap->BitsPerPixel,   // 色を識別するビット数
+				&win1xbitmap->bits// 色データからなる配列
+				);
+			return HBITMAP_16(ret);
+		}
+		//
         header.bfType = 0x4d42; /* 'BM' */
         header.bfReserved1 = 0;
         header.bfReserved2 = 0;
