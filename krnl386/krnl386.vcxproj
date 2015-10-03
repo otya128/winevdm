@@ -59,7 +59,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;$(OutDir)vm86.lib;$(OutDir)wow32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;$(OutDir)vm86.lib;$(OutDir)wow32.lib;$(OutDir)user.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>krnl386.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>

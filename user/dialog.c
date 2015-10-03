@@ -350,6 +350,8 @@ LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam
 	}
 	return 0;//DefWindowProcA(hDlg, Msg, wParam, lParam);
 }
+LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
+	LRESULT *result, void *arg);
 BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	HWND16 hWnd16 = HWND_16(hDlg);
@@ -363,13 +365,13 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		msg.lParam = lParam;
 		MSG16 msg16;
 		LRESULT unused;
-		WINPROC_CallProc32ATo16(get_message_callback, msg.hwnd, msg.message, msg.wParam, msg.lParam,
-			&unused, &msg16);
 		switch (msg.message)
 		{
+		case WM_DRAWITEM:
 		case WM_PAINT:
 		case WM_COMMAND:
-			DispatchMessage16(&msg16);
+			WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+				&unused, wndproc16);
 		}
 	}
 	switch (Msg) {
@@ -396,6 +398,12 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		cs->lpCreateParams = params[0];
+		wndproc16 = GetWndProc16(hWnd16);
+		if (wndproc16)
+		{
+			LRESULT unused;
+			call_window_proc16(hWnd16, WM_INITDIALOG, HWND_16(wParam), cs->lpCreateParams, &unused, wndproc16);
+		}
 		free(cs);
 	}
 		break;
@@ -486,7 +494,7 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		template = DIALOG_GetControl16(template, &info);
 		//segptr = MapLS(info.data);
 		dlgItemTemplate32->style = info.style | WS_CHILD | WS_VISIBLE;
-		dlgItemTemplate32->dwExtendedStyle = WS_EX_NOPARENTNOTIFY;
+		dlgItemTemplate32->dwExtendedStyle = 0;// WS_EX_NOPARENTNOTIFY;
 		dlgItemTemplate32->x = info.x;
 		dlgItemTemplate32->y = info.y;
 		dlgItemTemplate32->cx = info.cx;

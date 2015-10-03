@@ -247,6 +247,29 @@ BOOL16 WINAPI ShellAbout16( HWND16 hWnd, LPCSTR szApp, LPCSTR szOtherStuff, HICO
     return ret;
 }
 
+
+__declspec(dllexport) HICON NE_ExtractIcon(LPCSTR lpszExeFileName,
+	HICON * RetPtr,
+	INT nIconIndex,
+	UINT nIcons,
+	UINT cxDesired,
+	UINT cyDesired,
+	UINT *pIconId,
+	UINT flags);
+inline UINT PrivateExtractIconsNE(
+	LPCSTR lpwstrFile,
+	int nIndex,
+	int sizeX,
+	int sizeY,
+	HICON * phicon, /* [out] pointer to array of nIcons HICON handles */
+	UINT* pIconId,  /* [out] pointer to array of nIcons icon identifiers or NULL */
+	UINT nIcons,    /* [in] number of icons to retrieve */
+	UINT flags)    /* [in] LR_* flags used by LoadImage */
+{
+	HICON ret;
+	return (ret = PrivateExtractIconsA(lpwstrFile, nIndex, sizeX, sizeY, phicon, pIconId, nIcons, flags))
+		? ret : NE_ExtractIcon(lpwstrFile, phicon, nIndex, nIcons, sizeX, sizeY, pIconId, flags);
+}
 /*************************************************************************
  *			InternalExtractIcon		[SHELL.39]
  *
@@ -269,7 +292,7 @@ HGLOBAL16 WINAPI InternalExtractIcon16(HINSTANCE16 hInstance,
 
 	if (nIconIndex == (UINT16)-1)  /* get number of icons */
 	{
-	  RetPtr[0] = PrivateExtractIconsA(lpszExeFileName, 0, 0, 0, NULL, NULL, 0, LR_DEFAULTCOLOR);
+	  RetPtr[0] = PrivateExtractIconsNE(lpszExeFileName, 0, 0, 0, NULL, NULL, 0, LR_DEFAULTCOLOR);
 	}
 	else
 	{
@@ -277,7 +300,7 @@ HGLOBAL16 WINAPI InternalExtractIcon16(HINSTANCE16 hInstance,
 	  HICON *icons;
 
 	  icons = HeapAlloc(GetProcessHeap(), 0, n * sizeof(*icons));
-	  ret = PrivateExtractIconsA(lpszExeFileName, nIconIndex,
+	  ret = PrivateExtractIconsNE(lpszExeFileName, nIconIndex,
 	                             GetSystemMetrics(SM_CXICON),
 	                             GetSystemMetrics(SM_CYICON),
 	                             icons, NULL, n, LR_DEFAULTCOLOR);
@@ -297,12 +320,47 @@ HGLOBAL16 WINAPI InternalExtractIcon16(HINSTANCE16 hInstance,
 }
 
 /*************************************************************************
+* ExtractIconW                [SHELL32.@]
+*/
+HICON WINAPI ExtractIconNE(HINSTANCE hInstance, LPCSTR lpszFile, UINT nIconIndex)
+{
+	HICON  hIcon = NULL;
+	UINT ret;
+	UINT cx = GetSystemMetrics(SM_CXICON), cy = GetSystemMetrics(SM_CYICON);
+
+	TRACE("%p %s %d\n", hInstance, debugstr_w(lpszFile), nIconIndex);
+
+	if (nIconIndex == (UINT)-1)
+	{
+		ret = PrivateExtractIconsNE(lpszFile, 0, cx, cy, NULL, NULL, 0, LR_DEFAULTCOLOR);
+		if (ret != (UINT)-1 && ret)
+			return (HICON)(UINT_PTR)ret;
+		return NULL;
+	}
+	else
+		ret = PrivateExtractIconsNE(lpszFile, nIconIndex, cx, cy, &hIcon, NULL, 1, LR_DEFAULTCOLOR);
+
+	if (ret == (UINT)-1)
+		return (HICON)1;
+	else if (ret > 0 && hIcon)
+		return hIcon;
+
+	return NULL;
+}
+/*************************************************************************
  *             ExtractIcon   (SHELL.34)
  */
 HICON16 WINAPI ExtractIcon16( HINSTANCE16 hInstance, LPCSTR lpszExeFileName,
 	UINT16 nIconIndex )
 {   TRACE("\n");
-    return convert_icon_to_16( hInstance, ExtractIconA(NULL, lpszExeFileName, nIconIndex) );
+	//return convert_icon_to_16( hInstance, NE_ExtractIcon(lpszExeFileName, nIconIndex, 0, 0, 0));
+if (nIconIndex == 0xFFFF)
+{
+	//icon count
+	return ExtractIconNE(NULL, lpszExeFileName, -1);
+	return ExtractIconA(NULL, lpszExeFileName, -1);
+}
+    return convert_icon_to_16( hInstance, ExtractIconNE(NULL, lpszExeFileName, nIconIndex) );
 }
 
 /*************************************************************************
@@ -338,6 +396,30 @@ UINT16 WINAPI ExtractIconEx16(
 }
 
 /*************************************************************************
+*				ExtractAssociatedIconW (SHELL32.@)
+*
+* Return icon for given file (either from file itself or from associated
+* executable) and patch parameters if needed.
+*/
+HICON WINAPI ExtractAssociatedIconNE(HINSTANCE hInst, LPSTR lpIconPath, LPWORD lpiIcon)
+{
+	HICON hIcon = NULL;
+	WORD wDummyIcon = 0;
+
+	TRACE("%p %s %p\n", hInst, debugstr_a(lpIconPath), lpiIcon);
+
+	if (lpiIcon == NULL)
+		lpiIcon = &wDummyIcon;
+
+	hIcon = ExtractIcon16(hInst, lpIconPath, *lpiIcon);
+
+	if (hIcon < (HICON)2)
+	{
+		return ExtractAssociatedIconA(hInst, lpIconPath, lpiIcon);
+	}
+	return hIcon;
+}
+/*************************************************************************
  *				ExtractAssociatedIcon	[SHELL.36]
  *
  * Return icon for given file (either from file itself or from associated
@@ -345,7 +427,7 @@ UINT16 WINAPI ExtractIconEx16(
  */
 HICON16 WINAPI ExtractAssociatedIcon16(HINSTANCE16 hInst, LPSTR lpIconPath, LPWORD lpiIcon)
 {
-    return convert_icon_to_16( hInst, ExtractAssociatedIconA(NULL, lpIconPath, lpiIcon) );
+    return convert_icon_to_16( hInst, ExtractAssociatedIconNE(NULL, lpIconPath, lpiIcon) );
 }
 
 /*************************************************************************

@@ -905,7 +905,7 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     if (offset == DWLP_DLGPROC)
         is_winproc = (wow_handlers32.get_dialog_info( hwnd, FALSE ) != NULL);
 
-    if (is_winproc)
+	if (is_winproc)
     {
         WNDPROC new_proc = WINPROC_AllocProc16( (WNDPROC16)newval );
 		SetWndProc16(hwnd16, new_proc);//krnl386.exe

@@ -528,8 +528,8 @@ static void MDICREATESTRUCT16to32A( const MDICREATESTRUCT16* from, MDICREATESTRU
 {
 	to->hOwner = HINSTANCE_32(from->hOwner);
 
-	to->x      = (to->x == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)to->x;
-	to->y      = (to->y == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)to->y;
+	to->x      = (from->x == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)from->x;
+	to->y      = (from->y == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)from->y;
 	to->cx     = (from->cx == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)from->cx;
 	to->cy     = (from->cy == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)from->cy;
     to->style  = from->style;
@@ -596,6 +596,203 @@ static int find_sub_menu( HMENU *hmenu, HMENU16 target )
     return -1;
 }
 
+BOOL isListBox(HWND hWnd)
+{
+	static WNDPROC lpfnListBoxWndProc1 = 0;
+	static WNDPROC lpfnListBoxWndProc2 = 0;
+	if (!lpfnListBoxWndProc1)
+	{
+		WNDCLASSA wc;
+		GetClassInfoA(NULL, "LISTBOX", &wc);
+		lpfnListBoxWndProc1 = wc.lpfnWndProc;
+	}
+	if (!lpfnListBoxWndProc2)
+	{
+		HWND hWnd = CreateWindowExA(0, "LISTBOX", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
+		if (hWnd)
+		{
+			lpfnListBoxWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			DestroyWindow(hWnd);
+		}
+	}
+	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+	return hWnd ? (lpfnWndProc == lpfnListBoxWndProc1 || lpfnWndProc == lpfnListBoxWndProc2) : FALSE;
+}
+BOOL isEdit(HWND hWnd)
+{
+	static WNDPROC lpfnWndProc1 = 0;
+	static WNDPROC lpfnWndProc2 = 0;
+	if (!lpfnWndProc1)
+	{
+		WNDCLASSA wc;
+		GetClassInfoA(NULL, "EDIT", &wc);
+		lpfnWndProc1 = wc.lpfnWndProc;
+	}
+	if (!lpfnWndProc2)
+	{
+		HWND hWnd = CreateWindowExA(0, "EDIT", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
+		if (hWnd)
+		{
+			lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			DestroyWindow(hWnd);
+		}
+	}
+	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+
+/***********************************************************************
+*           listbox_proc16
+*/
+static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+	, LRESULT *result, void *arg, BOOL *f)
+{
+	static const UINT msg16_offset = LB_ADDSTRING16 - LB_ADDSTRING;
+	LRESULT ret;
+
+	*f = TRUE;
+	switch (msg)
+	{
+	case WM_SIZE:
+		if (is_old_app(hwnd))
+		{
+			DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
+			int height, remaining, item_height;
+			RECT rect;
+
+			/* give a margin for error to old 16 bits programs - if we need
+			less than the height of the nonclient area, round to the
+			*next* number of items */
+
+			if (!(style & LBS_NOINTEGRALHEIGHT) && !(style & LBS_OWNERDRAWVARIABLE))
+			{
+				GetClientRect(hwnd, &rect);
+				height = rect.bottom - rect.top;
+				item_height = wow_handlers32.listbox_proc(hwnd, LB_GETITEMHEIGHT, 0, 0, FALSE);
+				remaining = item_height ? (height % item_height) : 0;
+				if ((height > item_height) && remaining)
+				{
+					GetWindowRect(hwnd, &rect);
+					if ((item_height - remaining) <= rect.bottom - rect.top - height)
+						remaining = remaining - item_height;
+					TRACE("[%p]: changing height %d -> %d\n", hwnd, height, height - remaining);
+					SetWindowPos(hwnd, 0, 0, 0, rect.right - rect.left,
+						rect.bottom - rect.top - remaining,
+						SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+					*result = 0;
+					return 0;
+				}
+			}
+		}
+		ret = callback(hwnd, msg, wParam, lParam, result, arg);
+		break;
+//		return wow_handlers32.listbox_proc(hwnd, msg, wParam, lParam, unicode);
+
+	case LB_RESETCONTENT16:
+	case LB_DELETESTRING16:
+	case LB_GETITEMDATA16:
+	case LB_SETITEMDATA16:
+	case LB_GETCOUNT16:
+	case LB_GETTEXTLEN16:
+	case LB_GETCURSEL16:
+	case LB_GETTOPINDEX16:
+	case LB_GETITEMHEIGHT16:
+	case LB_SETCARETINDEX16:
+	case LB_GETCARETINDEX16:
+	case LB_SETTOPINDEX16:
+	case LB_SETCOLUMNWIDTH16:
+	case LB_GETSELCOUNT16:
+	case LB_SELITEMRANGE16:
+	case LB_SELITEMRANGEEX16:
+	case LB_GETHORIZONTALEXTENT16:
+	case LB_SETHORIZONTALEXTENT16:
+	case LB_GETANCHORINDEX16:
+	case LB_CARETON16:
+	case LB_CARETOFF16:
+		msg -= msg16_offset;
+		break;
+	case LB_GETSEL16:
+	case LB_SETSEL16:
+	case LB_SETCURSEL16:
+	case LB_SETANCHORINDEX16:
+		wParam = (INT)(INT16)wParam;
+		msg -= msg16_offset;
+		break;
+	case LB_INSERTSTRING16:
+	case LB_FINDSTRING16:
+	case LB_FINDSTRINGEXACT16:
+	case LB_SELECTSTRING16:
+		wParam = (INT)(INT16)wParam;
+		/* fall through */
+	case LB_ADDSTRING16:
+	case LB_ADDFILE16:
+	{
+		DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
+		if ((style & LBS_HASSTRINGS) || !(style & (LBS_OWNERDRAWFIXED | LBS_OWNERDRAWVARIABLE)))
+			lParam = (LPARAM)MapSL(lParam);
+		msg -= msg16_offset;
+		break;
+	}
+	case LB_GETTEXT16:
+		lParam = (LPARAM)MapSL(lParam);
+		msg -= msg16_offset;
+		break;
+	case LB_SETITEMHEIGHT16:
+		lParam = LOWORD(lParam);
+		msg -= msg16_offset;
+		break;
+	case LB_GETITEMRECT16:
+	{
+		RECT rect;
+		RECT16 *r16 = MapSL(lParam);
+		ret = callback(hwnd, LB_GETITEMRECT, (INT16)wParam, (LPARAM)&rect, result, arg);
+//		ret = wow_handlers32.listbox_proc(hwnd, LB_GETITEMRECT, (INT16)wParam, (LPARAM)&rect, FALSE);
+		r16->left = rect.left;
+		r16->top = rect.top;
+		r16->right = rect.right;
+		r16->bottom = rect.bottom;
+		return ret;
+	}
+	case LB_GETSELITEMS16:
+	{
+		INT16 *array16 = MapSL(lParam);
+		INT i, count = (INT16)wParam, *array;
+		if (!(array = HeapAlloc(GetProcessHeap(), 0, wParam * sizeof(*array)))) return LB_ERRSPACE;
+		ret = callback(hwnd, LB_GETSELITEMS, count, (LPARAM)array, result, arg);
+		//ret = wow_handlers32.listbox_proc(hwnd, LB_GETSELITEMS, count, (LPARAM)array, FALSE);
+		for (i = 0; i < ret; i++) array16[i] = array[i];
+		HeapFree(GetProcessHeap(), 0, array);
+		return ret;
+	}
+	case LB_DIR16:
+		/* according to Win16 docs, DDL_DRIVES should make DDL_EXCLUSIVE
+		* be set automatically (this is different in Win32) */
+		if (wParam & DDL_DRIVES) wParam |= DDL_EXCLUSIVE;
+		lParam = (LPARAM)MapSL(lParam);
+		msg -= msg16_offset;
+		break;
+	case LB_SETTABSTOPS16:
+	{
+		INT i, count, *tabs = NULL;
+		INT16 *tabs16 = MapSL(lParam);
+
+		if ((count = (INT16)wParam) > 0)
+		{
+			if (!(tabs = HeapAlloc(GetProcessHeap(), 0, wParam * sizeof(*tabs)))) return LB_ERRSPACE;
+			for (i = 0; i < count; i++) tabs[i] = tabs16[i] << 1; /* FIXME */
+		}
+		ret = callback(hwnd, LB_SETTABSTOPS, count, (LPARAM)tabs, result, arg);
+		//ret = wow_handlers32.listbox_proc(hwnd, LB_SETTABSTOPS, count, (LPARAM)tabs, FALSE);
+		HeapFree(GetProcessHeap(), 0, tabs);
+		return ret;
+	}
+	default:
+		*f = FALSE;
+		return 0;
+	}
+	ret = callback(hwnd, msg, wParam, lParam, result, arg);
+	return ret;//wow_handlers32.listbox_proc(hwnd, msg, wParam, lParam, FALSE);
+}
 /**********************************************************************
  *	     WINPROC_CallProc16To32A
  */
@@ -605,6 +802,13 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     LRESULT ret = 0;
     HWND hwnd32 = WIN_Handle32( hwnd );
 
+	if (isListBox(hwnd32))
+	{
+		BOOL f;
+		ret = listbox_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
+		if (f)
+			return ret;
+	}
     switch(msg)
     {
     case WM_NCCREATE:

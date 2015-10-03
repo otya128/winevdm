@@ -5,3 +5,4 @@ LIBRARY user.exe16
 EXPORTS
   _wine_spec_dos_header @1 DATA;=.L__wine_spec_dos_header @1 DATA PRIVATE
   CreateIcon16 @2
+  CreateIconFromResourceEx16
