@@ -125,7 +125,7 @@ HANDLE WINAPI ConvertToGlobalHandle(HANDLE hSrc)
 {
 	static PConvertToGlobalHandle func = 0;
 	if (!func)
-		func = GetProcAddress(GetModuleHandle("kernel32.dll"), "ConvertToGlobalHandle");
+		func = GetProcAddress(GetModuleHandleA("kernel32.dll"), "ConvertToGlobalHandle");
 	if (!func)
 	{
 		DPRINTF("can't load kernel32!VerifyConsoleIoHandle\n");
