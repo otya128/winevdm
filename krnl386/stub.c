@@ -17,9 +17,19 @@
 #include "wine/debug.h"
 #include "wine/exception.h"
 
-int DPMI_PendingEventCheck = 0;
-int DPMI_PendingEventCheck_Cleanup = 0;
-int DPMI_PendingEventCheck_Return = 0;
+WINE_DEFAULT_DEBUG_CHANNEL(stub);
+void DPMI_PendingEventCheck(void)
+{
+	FIXME("DPMI_PendingEventCheck\n");
+}
+void DPMI_PendingEventCheck_Cleanup(void)
+{
+	FIXME("DPMI_PendingEventCheck_Cleanup\n");
+}
+void DPMI_PendingEventCheck_Return(void)
+{
+	FIXME("DPMI_PendingEventCheck_Return\n");
+}
 //int31.c
 typedef struct tagRMCB {
 	DWORD address;
@@ -140,7 +150,7 @@ void __wine_call_to_16_ret(void);
 /* symbols exported from relay16.s */
 DWORD WINAPI wine_call_to_16(FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
-	DPRINTF("NOTIMPL:wine_call_to_16(%p, %u, %p)", target, cbArgs, handler);
+	//DPRINTF("NOTIMPL:wine_call_to_16(%p, %u, %p)", target, cbArgs, handler);
 	return wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, TRACE_ON(disasm));
 
 	return 0;
@@ -148,7 +158,7 @@ DWORD WINAPI wine_call_to_16(FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER 
  void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);
 void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
-	DPRINTF("NOTIMPL:wine_call_to_16_regs(%p, %u, %p)", context, cbArgs, handler);
+	//DPRINTF("NOTIMPL:wine_call_to_16_regs(%p, %u, %p)", context, cbArgs, handler);
 	//why??
 	context->SegSs = SELECTOROF(getWOW32Reserved());
 	context->Esp = OFFSETOF(getWOW32Reserved());
@@ -182,18 +192,18 @@ void QT_ThunkPrime(void)
 }*/
 LONG __wine_call_from_16(void)
 {
-	DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
+	//DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
 	return 0;
 }
 void __wine_call_from_16_regs(void)
 {
-	DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
+	//DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
 }
 BYTE __wine_call16_start[1];
 BYTE __wine_call16_end[1];
 void __wine_call_to_16_ret(void)
 {
-	DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
+	//DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
 }
 DWORD CALL32_CBClient(FARPROC proc, LPWORD args, WORD *stackLin, DWORD *esi)
 {
@@ -217,7 +227,6 @@ void __wine_spec_unimplemented_stub(const char *module, const char *function)
 {
 	DPRINTF("NOTIMPL:__wine_spec_unimplemented_stub(%s, %s)\n", module, function);
 }
-WINE_DEFAULT_DEBUG_CHANNEL(stub);
 BOOL16 WINAPI IsDBCSLeadByte16(BYTE TestChar)
 {
 	TRACE("IsDBCSLeadByte16_(%c)", TestChar);

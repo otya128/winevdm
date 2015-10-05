@@ -819,7 +819,7 @@ extern "C"
 				m_sreg[CS].selector = cs;
 				i386_load_segment_descriptor(CS);
 				CHANGE_PC(m_eip);
-				if ((void*)relay != relay_call_from_16)
+				if ((void*)relay != relay_call_from_16&&0)
 				{
 					//SNOOP???
 					stack = stack1;
@@ -888,7 +888,7 @@ extern "C"
 					i386_jmp_far(cs16, ip19);
 					m_eflags = context.EFlags;
 				}
-				if (relay == (UINT)relay_call_from_16)
+				if (relay == (UINT)relay_call_from_16||1)
 				{
 					CONTEXT context;
 					WORD osp = REG16(SP);
@@ -902,7 +902,13 @@ extern "C"
 					PUSH32(/*context.Esp*/osp);
 					save_context(&context);
 					DWORD ooo = (WORD)context.Esp;
-					int fret = ((int(*)(void *, unsigned char *, CONTEXT *))relay)((void*)entry, (unsigned char*)args, &context);
+					int fret;
+					if (relay != (UINT)relay_call_from_16)
+					{
+						fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
+					}
+					else
+					fret = ((int(*)(void *, unsigned char *, CONTEXT *))relay)((void*)entry, (unsigned char*)args, &context);
 					//int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
 					if (!reg)
 					{
@@ -983,7 +989,7 @@ extern "C"
 			}
 			if (is_32bit_segment(CS))
 			{
-				if (m_VM)
+				if (dasm && m_VM)
 				{
 					printf("==ENTER 32BIT CODE==\n");
 				}
@@ -995,7 +1001,7 @@ extern "C"
 			}
 			else
 			{
-				if (!m_VM)
+				if (dasm && !m_VM)
 				{
 					printf("==ENTER 16BIT CODE==\n");
 				}

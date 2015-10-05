@@ -13,10 +13,11 @@
 #include "winbase.h"
 #include "wine/library.h"
 #include "wine/debug.h"
+WINE_DEFAULT_DEBUG_CHANNEL(ldt);
 static inline int is_gdt_sel(unsigned short sel) { return !(sel & 4); }
 static const LDT_ENTRY null_entry;  /* all-zeros, used to clear LDT entries */
 struct __wine_ldt_copy wine_ldt_copy;
-LDT_ENTRY memory[65536 >> 3/** 16*/];/* empty function for default locks */
+/* empty function for default locks */
 static void nop(void) { }
 
 static void(*lock_ldt)(void) = nop;
@@ -64,8 +65,7 @@ int wine_ldt_set_entry(unsigned short sel, const LDT_ENTRY *entry)
 			(entry->HighWord.Bits.Default_Big ? WINE_LDT_FLAGS_32BIT : 0) |
 			(wine_ldt_copy.flags[index] & WINE_LDT_FLAGS_ALLOCATED));
 	}
-	DPRINTF("NOTIMPL:wine_ldt_set_entry(0x%04X, %p)\n", sel, entry);
-	memory[sel >> 3] = *entry;
+	TRACE("wine_ldt_set_entry(0x%04X, %p)\n", sel, entry);
 	return 0;
 }
 /***********************************************************************
@@ -95,7 +95,7 @@ void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry)
 	}
 	else *entry = null_entry;
 	unlock_ldt();
-	//DPRINTF("NOTIMPL:wine_ldt_get_entry(0x%04X, %p)\n", sel, entry);
+	TRACE("wine_ldt_get_entry(0x%04X, %p)\n", sel, entry);
 	return;
 }
 /***********************************************************************
@@ -112,7 +112,7 @@ unsigned short wine_ldt_alloc_entries(int count)
 
 	if (count <= 0)
 	{
-		DPRINTF("NOTIMPL:wine_ldt_alloc_entries(%d) = %d\n", count, 0);
+		TRACE("wine_ldt_alloc_entries(%d) = %d\n", count, 0);
 		return 0;
 	}
 	lock_ldt();
@@ -131,9 +131,9 @@ unsigned short wine_ldt_alloc_entries(int count)
 		}
 	}
 	unlock_ldt();
-	DPRINTF("NOTIMPL:wine_ldt_alloc_entries(%d) = %d\n", count, 0);
+	TRACE("wine_ldt_alloc_entries(%d) = %d\n", count, 0);
 	return 0;
-	DPRINTF("NOTIMPL:wine_ldt_alloc_entries(%d) = %d\n", count, sel);
+	TRACE("wine_ldt_alloc_entries(%d) = %d\n", count, sel);
 	count *= 0x10000;
 	unsigned short e = sel;
 	sel += (count + 16) / 16;
@@ -178,7 +178,7 @@ unsigned short wine_ldt_realloc_entries(unsigned short sel, int oldcount, int ne
 		wine_ldt_free_entries(sel + (newcount << 3), newcount - oldcount);
 	}
 	return sel;
-	DPRINTF("NOTIMPL:wine_ldt_realloc_entries(0x%04X,%d,%d)\n", sel, oldcount, newcount);
+	TRACE("wine_ldt_realloc_entries(0x%04X,%d,%d)\n", sel, oldcount, newcount);
 	return 0;
 }
 /***********************************************************************
@@ -218,7 +218,7 @@ void wine_ldt_free_entries(unsigned short sel, int count)
 		wine_ldt_copy.flags[index] = 0;
 	}
 	unlock_ldt();
-	DPRINTF("NOTIMPL:wine_ldt_free_entries(0x%04X,%d)\n", sel, count);
+	TRACE("wine_ldt_free_entries(0x%04X,%d)\n", sel, count);
 }
 /***********************************************************************
 *           wine_ldt_is_system
@@ -228,7 +228,7 @@ void wine_ldt_free_entries(unsigned short sel, int count)
 int wine_ldt_is_system(unsigned short sel)
 {
 	return is_gdt_sel(sel) || ((sel >> 3) < LDT_FIRST_ENTRY);
-	DPRINTF("NOTIMPL:wine_ldt_is_system(%04X)\n", sel);
+	TRACE("wine_ldt_is_system(%04X)\n", sel);
 	return 0;
 }
 
