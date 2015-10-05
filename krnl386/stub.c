@@ -113,7 +113,7 @@ BOOL    WINAPI VerifyConsoleIoHandle(HANDLE h)
 {
 	static PVerifyConsoleIoHandle func = 0;
 	if (!func)
-		func = GetProcAddress(GetModuleHandle("kernel32.dll"), "VerifyConsoleIoHandle");
+		func = GetProcAddress(GetModuleHandleA("kernel32.dll"), "VerifyConsoleIoHandle");
 	if (!func)
 	{
 		DPRINTF("can't load kernel32!VerifyConsoleIoHandle\n");
