@@ -45,11 +45,16 @@ WINE_DEFAULT_DEBUG_CHANNEL(file);
 
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
-
+#ifdef ENABLEREDIRECTSYSTEMDIR
+BOOL EnableRedirectSystemDir = TRUE;
+#else
+BOOL EnableRedirectSystemDir = FALSE;
+#endif
 //SYSTEM DIR
 //%WINDIR%->
 LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
 {
+	if (!EnableRedirectSystemDir) return path;
 	char buf[MAX_PATH];
 	if (!PathCanonicalizeA(buf, path))
 	{
