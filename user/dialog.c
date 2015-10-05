@@ -367,6 +367,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		LRESULT unused;
 		switch (msg.message)
 		{
+		case WM_CLOSE:
 		case WM_DRAWITEM:
 		case WM_PAINT:
 		case WM_COMMAND:
@@ -409,7 +410,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		break;
 		
 	case WM_COMMAND:
-		if (!hWnd16)
+		if (!wndproc16)
 		switch (LOWORD(wParam)) {
 		case IDCANCEL:
 			EndDialog(hDlg, IDCANCEL);
@@ -420,7 +421,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		}
 		return FALSE;
 	case WM_CLOSE:
-		if (!hWnd16)
+		if (!wndproc16)
 		DestroyWindow(hDlg);
 		return TRUE;
 	}
@@ -698,7 +699,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		(DLGTEMPLATE*)template32,
 		owner,
 		hasclass ? DlgProc : DlgProc, paramd);
-	DIALOG_DumpControls32(hwnd, dlgTemplate, &template, hInst, templatew);
+	//DIALOG_DumpControls32(hwnd, dlgTemplate, &template, hInst, templatew);
 	free(template32);
 	//if (wc2.lpszMenuName) hMenu = LoadMenu16(hInst, wc2.lpszMenuName);
 	//BOOL ret = SetMenu(hwnd, HMENU_32(hMenu));
