@@ -775,6 +775,9 @@
 /* Define to 1 if you have the `setproctitle' function. */
 /* #undef HAVE_SETPROCTITLE */
 
+/* Define to 1 if you have the `setprogname' function. */
+/* #undef HAVE_SETPROGNAME */
+
 /* Define to 1 if you have the `setrlimit' function. */
 #define HAVE_SETRLIMIT 1
 
