@@ -33,6 +33,12 @@
 /* Define to 1 if you have the `asctime_r' function. */
 #define HAVE_ASCTIME_R 1
 
+/* Define to 1 if you have the `asinh' function. */
+/* #undef HAVE_ASINH */
+
+/* Define to 1 if you have the `asinhf' function. */
+/* #undef HAVE_ASINHF */
+
 /* Define to 1 if you have the <asm/types.h> header file. */
 #define HAVE_ASM_TYPES_H 1
 
