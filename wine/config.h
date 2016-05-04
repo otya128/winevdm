@@ -199,9 +199,6 @@
 /* Define to 1 if you have the `getattrlist' function. */
 /* #undef HAVE_GETATTRLIST */
 
-/* Define to 1 if you have the `getdirentries' function. */
-/* #undef HAVE_GETDIRENTRIES */
-
 /* Define to 1 if you have the `getnameinfo' function. */
 #define HAVE_GETNAMEINFO 1
 
