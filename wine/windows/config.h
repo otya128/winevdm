@@ -1120,6 +1120,9 @@
 /* Define to 1 if you have the <sys/sysctl.h> header file. */
 /* #undef HAVE_SYS_SYSCTL_H */
 
+/* Define to 1 if you have the <sys/sysinfo.h> header file. */
+/* #undef HAVE_SYS_SYSINFO_H */
+
 /* Define to 1 if you have the <sys/thr.h> header file. */
 /* #undef HAVE_SYS_THR_H */
 
