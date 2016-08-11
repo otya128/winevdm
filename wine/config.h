@@ -1009,6 +1009,9 @@
 /* Define to 1 if you have the <syscall.h> header file. */
 /* #undef HAVE_SYSCALL_H */
 
+/* Define to 1 if you have the `sysinfo' function. */
+/* #undef HAVE_SYSINFO */
+
 /* Define to 1 if you have the <sys/asoundlib.h> header file. */
 /* #undef HAVE_SYS_ASOUNDLIB_H */
 
