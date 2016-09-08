@@ -379,6 +379,9 @@
 /* Define to 1 if you have the <libproc.h> header file. */
 /* #undef HAVE_LIBPROC_H */
 
+/* Define to 1 if you have the <libudev.h> header file. */
+/* #undef HAVE_LIBUDEV_H */
+
 /* Define to 1 if you have the <libunwind.h> header file. */
 /* #undef HAVE_LIBUNWIND_H */
 
@@ -1200,6 +1203,9 @@
 
 /* Define to 1 if you have the `truncf' function. */
 #define HAVE_TRUNCF 1
+
+/* Define to 1 if you have the `udev' library (-ludev). */
+/* #undef HAVE_UDEV */
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
