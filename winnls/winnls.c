@@ -119,6 +119,11 @@ BOOL WINAPI WINNLSSendControl16(WORD arg1, WORD arg2)
 	ERR("NOTIMPL:WINNLSSendControl16(%d, %d)\n", arg1, arg2);
 	return 0;
 }
+LRESULT WINAPI SendIMEMessage16(WORD a1, WORD a2, WORD a3)
+{
+    ERR("NOTIMPL:SendIMEMessage(%d, %d, %d)\n", a1, a2, a3);
+    return 0;
+}
 
 
 ///////////////
