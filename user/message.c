@@ -3009,17 +3009,23 @@ void InitHook()
 {
     isStatic(NULL);//判定の無限ループが起こるので先に実行する
     SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
-    HWND hwnd = CreateWindow(
-        TEXT("STATIC"), NULL,
-        WS_CAPTION | SS_ICON,
-        100, 100, 200, 200, NULL, NULL,
-        NULL, NULL
-    );
-
-    ShowWindow(hwnd, SW_SHOW);
-
 }
-
+void InitNewThreadHook()
+{
+    SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
+}
+BOOL WINAPI DllMain(
+    HINSTANCE hinstDLL,
+    DWORD fdwReason,
+    LPVOID lpvReserved
+)
+{
+    if (fdwReason == DLL_THREAD_ATTACH)
+    {
+        InitNewThreadHook();
+    }
+    return TRUE;
+}
 BOOL16 WINAPI WaitMessage16()
 {
 	return WaitMessage();
