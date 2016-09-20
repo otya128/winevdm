@@ -1,0 +1,6 @@
+; File generated automatically from ..\sound\sound.drv16.spec; do not edit!
+
+LIBRARY ..\sound\sound.drv16.spec
+
+EXPORTS
+  _wine_spec_dos_header=_wine_spec_dos_header @1 DATA
