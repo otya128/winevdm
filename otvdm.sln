@@ -57,6 +57,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "convertwinefile", "convertw
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wing", "wing\wing.vcxproj", "{90402A90-8D53-4843-BF11-7AE93361ED13}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mmsystem", "mmsystem\mmsystem.vcxproj", "{249FBAE5-EC5D-4988-87AC-A4371D827BA4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -298,6 +300,19 @@ Global
 		{90402A90-8D53-4843-BF11-7AE93361ED13}.Release|Win32.ActiveCfg = Release|Win32
 		{90402A90-8D53-4843-BF11-7AE93361ED13}.Release|Win32.Build.0 = Release|Win32
 		{90402A90-8D53-4843-BF11-7AE93361ED13}.Release|x64.ActiveCfg = Release|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Debug|Win32.Build.0 = Debug|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Debug|x64.ActiveCfg = Debug|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Debug-USER.EXE|Win32.ActiveCfg = Debug|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Debug-USER.EXE|x64.ActiveCfg = Release|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Debug-USER.EXE|x64.Build.0 = Release|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.GenLibFileRelease|Win32.ActiveCfg = GenLibFileRelease|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.GenLibFileRelease|Win32.Build.0 = GenLibFileRelease|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.GenLibFileRelease|x64.ActiveCfg = GenLibFileRelease|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Release|Win32.ActiveCfg = Release|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Release|Win32.Build.0 = Release|Win32
+		{249FBAE5-EC5D-4988-87AC-A4371D827BA4}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
