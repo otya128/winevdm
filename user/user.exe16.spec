@@ -108,7 +108,7 @@
 109 pascal -ret16 PeekMessage(ptr word word word word) PeekMessage16
 110 pascal -ret16 PostMessage(word word word long) PostMessage16
 111 pascal   SendMessage(word word word long) SendMessage16
-112 pascal -ret16 WaitMessage() WaitMessage
+112 pascal -ret16 WaitMessage() WaitMessage16
 113 pascal -ret16 TranslateMessage(ptr) TranslateMessage16
 114 pascal   DispatchMessage(ptr) DispatchMessage16
 115 pascal -ret16 ReplyMessage(long) ReplyMessage16

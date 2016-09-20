@@ -112,6 +112,7 @@ typedef struct
 #define MAX_WINPROCS16 1024
 
 static WNDPROC16 winproc16_array[MAX_WINPROCS16];
+static BOOL winproc16_native[MAX_WINPROCS16];
 static unsigned int winproc16_used;
 
 static WINPROC_THUNK *thunk_array;
@@ -179,6 +180,16 @@ static WNDPROC16 alloc_win16_thunk( WNDPROC handle )
     return (WNDPROC16)MAKESEGPTR( thunk_selector, index * sizeof(WINPROC_THUNK) );
 }
 
+WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
+{
+    WNDPROC ret = WINPROC_AllocProc16(func);
+    winproc16_native[winproc_to_index(ret)] = TRUE;
+    return ret;
+}
+BOOL WINPROC_IsNativeProc(WNDPROC16 func)
+{
+    return winproc16_native[winproc_to_index(func)];
+}
 /**********************************************************************
  *	     WINPROC_AllocProc16
  */
@@ -1164,6 +1175,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         if (IsIconic(hwnd) && GetClassLongPtrW(hwnd, GCLP_HICON)) msg = WM_ICONERASEBKGND;
         ret = callback(hwnd32, msg, HDC_32(wParam), lParam, result, arg);
         break;
+    case WM_SETFONT:
+        ret = callback(hwnd32, msg, HFONT_32(wParam), lParam, result, arg);
+        break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1491,6 +1505,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         if (IsIconic( hwnd ) && GetClassLongPtrW( hwnd, GCLP_HICON )) msg = WM_ICONERASEBKGND;
         ret = callback( HWND_16(hwnd), msg, HDC_16(wParam), lParam, result, arg );
         break;
+    case WM_SETFONT:
+        ret = callback(HWND_16(hwnd), msg, HFONT_16(wParam), lParam, result, arg);
+        break;
     case WM_DDE_INITIATE:
     case WM_DDE_TERMINATE:
     case WM_DDE_UNADVISE:
@@ -1750,7 +1767,7 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
         /* first the WH_CALLWNDPROC hook */
         call_WH_CALLWNDPROC_hook( hwnd16, msg, wparam, lparam );
 
-		if (!(winproc = (WNDPROC16)GetWindowLong16(hwnd16, GWLP_WNDPROC)))
+		if (!(winproc = (WNDPROC16)GetWndProc16(hwnd16)))
 		{
 			WINPROC_CallProc16To32A(send_message_callback, hwnd16, msg, wparam, lparam, &result, NULL);
 			return result;
@@ -1805,6 +1822,11 @@ LRESULT WINAPI CallWindowProc16( WNDPROC16 func, HWND16 hwnd, UINT16 msg,
 
     if (!func) return 0;
 
+    if (WINPROC_IsNativeProc(func))
+    {
+        WINPROC_CallProc16To32A(call_window_proc_callback, hwnd, msg, wParam, lParam, &result, (void*)winproc16_array[index - MAX_WINPROCS32]);
+        return result;
+    }
     if (index == -1 || index >= MAX_WINPROCS32)
         call_window_proc16( hwnd, msg, wParam, lParam, &result, func );
     else
@@ -1980,7 +2002,8 @@ LRESULT WINAPI DefWindowProc16( HWND16 hwnd16, UINT16 msg, WPARAM16 wParam, LPAR
     case WM_ERASEBKGND:
         if (IsIconic(hwnd) && GetClassLongPtrW(hwnd, GCLP_HICON)) msg = WM_ICONERASEBKGND;
         return DefWindowProcA(hwnd, msg, HDC_32(wParam), lParam);
-        break;
+    case WM_SETFONT:
+        return DefWindowProcA(hwnd, msg, HFONT_32(wParam), lParam);
     default:
         return DefWindowProcA( hwnd, msg, wParam, lParam );
     }
@@ -2102,7 +2125,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
     */
 	}
 
-    if (!(winproc = (WNDPROC16)GetWindowLong16( msg->hwnd, GWLP_WNDPROC )))
+    if (!(winproc = (WNDPROC16)GetWndProc16( msg->hwnd )))
 	{
 		LRESULT result;
 		WNDPROC wndproc32 = GetWindowLong(HWND_32(msg->hwnd), GWLP_WNDPROC);

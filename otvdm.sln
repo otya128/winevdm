@@ -63,6 +63,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sound", "sound\sound.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mouse", "mouse\mouse.vcxproj", "{F1DEC3F9-706B-410D-91D5-0381BB9BA22A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wifeman", "wifeman\wifeman.vcxproj", "{B76406F9-E89B-4791-ACDE-CD23813F764B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -343,6 +345,19 @@ Global
 		{F1DEC3F9-706B-410D-91D5-0381BB9BA22A}.Release|Win32.ActiveCfg = Release|Win32
 		{F1DEC3F9-706B-410D-91D5-0381BB9BA22A}.Release|Win32.Build.0 = Release|Win32
 		{F1DEC3F9-706B-410D-91D5-0381BB9BA22A}.Release|x64.ActiveCfg = Release|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Debug|Win32.Build.0 = Debug|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Debug|x64.ActiveCfg = Debug|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Debug-USER.EXE|Win32.ActiveCfg = Debug|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Debug-USER.EXE|x64.ActiveCfg = Release|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Debug-USER.EXE|x64.Build.0 = Release|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.GenLibFileRelease|Win32.ActiveCfg = GenLibFileRelease|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.GenLibFileRelease|Win32.Build.0 = GenLibFileRelease|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.GenLibFileRelease|x64.ActiveCfg = GenLibFileRelease|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Release|Win32.ActiveCfg = Release|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Release|Win32.Build.0 = Release|Win32
+		{B76406F9-E89B-4791-ACDE-CD23813F764B}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

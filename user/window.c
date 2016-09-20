@@ -842,12 +842,21 @@ LONG WINAPI SetClassLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     }
 }
 
-
+WORD hwndwordbuf[65536][16];
 /**************************************************************************
  *              GetWindowWord   (USER.133)
  */
 WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
 {
+    if (offset >= 0)
+    {
+        if (offset >= 16)
+        {
+            MESSAGE("GetWindowWord16:(hwnd)0x%p, (offset)%d >= 16\n", hwnd, offset);
+            return GetWindowWord(WIN_Handle32(hwnd), offset);
+        }
+        return hwndwordbuf[hwnd][offset];
+    }
     return GetWindowWord( WIN_Handle32(hwnd), offset );
 }
 
@@ -857,6 +866,16 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
  */
 WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
 {
+    if (offset >= 0)
+    {
+        if (offset >= 16)
+        {
+            MESSAGE("SetWindowWord16:(hwnd)0x%p, (offset)%d >= 16, %d(newval)\n", hwnd, offset, newval);
+            return SetWindowWord(WIN_Handle32(hwnd), offset, newval);
+        }
+        hwndwordbuf[hwnd][offset] = newval;
+        return SetWindowWord(WIN_Handle32(hwnd), offset, newval);
+    }
     return SetWindowWord( WIN_Handle32(hwnd), offset, newval );
 }
 
@@ -894,9 +913,17 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
         else if (offset == DWLP_DLGPROC)
             is_winproc = (wow_handlers32.get_dialog_info( hwnd, FALSE ) != NULL);
     }
-    retvalue = GetWindowLongA( hwnd, offset );
-	if (is_winproc) retvalue = (LONG_PTR)GetWndProc16(hwnd16);//krnl386.exe
+    if (is_winproc)
+    {
+        retvalue = (LONG_PTR)GetWndProc16(hwnd16);
+        if (retvalue)
+            return retvalue;
+        retvalue = GetWindowLongA(hwnd, offset);
+        retvalue = WINPROC_AllocNativeProc(retvalue);
+        return retvalue;
+    }//krnl386.exe
     //if (is_winproc) retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
+    retvalue = GetWindowLongA(hwnd, offset);
     return retvalue;
 }
 
