@@ -1,0 +1,4 @@
+MODULE    = wifeman.dll16
+
+EXTRADLLFLAGS = -m16
+
