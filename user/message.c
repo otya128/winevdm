@@ -1160,6 +1160,10 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 	case WM_NCPAINT:
 		ret = callback(hwnd32, msg, HRGN_32(wParam), lParam, result, arg);
 		break;
+    case WM_ERASEBKGND:
+        if (IsIconic(hwnd) && GetClassLongPtrW(hwnd, GCLP_HICON)) msg = WM_ICONERASEBKGND;
+        ret = callback(hwnd32, msg, HDC_32(wParam), lParam, result, arg);
+        break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1485,7 +1489,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 		break;
     case WM_ERASEBKGND:
         if (IsIconic( hwnd ) && GetClassLongPtrW( hwnd, GCLP_HICON )) msg = WM_ICONERASEBKGND;
-        ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
+        ret = callback( HWND_16(hwnd), msg, HDC_16(wParam), lParam, result, arg );
         break;
     case WM_DDE_INITIATE:
     case WM_DDE_TERMINATE:
@@ -1973,6 +1977,10 @@ LRESULT WINAPI DefWindowProc16( HWND16 hwnd16, UINT16 msg, WPARAM16 wParam, LPAR
 		return DefWindowProcA(hwnd, msg, HRGN_32(wParam), lParam);
 	case WM_NCACTIVATE:
 		return DefWindowProcA(hwnd, msg, wParam, HWND_32(lParam));
+    case WM_ERASEBKGND:
+        if (IsIconic(hwnd) && GetClassLongPtrW(hwnd, GCLP_HICON)) msg = WM_ICONERASEBKGND;
+        return DefWindowProcA(hwnd, msg, HDC_32(wParam), lParam);
+        break;
     default:
         return DefWindowProcA( hwnd, msg, wParam, lParam );
     }
