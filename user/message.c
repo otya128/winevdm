@@ -640,6 +640,50 @@ BOOL isEdit(HWND hWnd)
 	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
+BOOL isScrollBar(HWND hWnd)
+{
+	static WNDPROC lpfnWndProc1 = 0;
+	static WNDPROC lpfnWndProc2 = 0;
+	if (!lpfnWndProc1)
+	{
+		WNDCLASSA wc;
+		GetClassInfoA(NULL, "SCROLLBAR ", &wc);
+		lpfnWndProc1 = wc.lpfnWndProc;
+	}
+	if (!lpfnWndProc2)
+	{
+		HWND hWnd = CreateWindowExA(0, "SCROLLBAR ", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
+		if (hWnd)
+		{
+			lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			DestroyWindow(hWnd);
+		}
+	}
+	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL isStatic(HWND hWnd)
+{
+	static WNDPROC lpfnWndProc1 = 0;
+	static WNDPROC lpfnWndProc2 = 0;
+	if (!lpfnWndProc1)
+	{
+		WNDCLASSA wc;
+		GetClassInfoA(NULL, "STATIC", &wc);
+		lpfnWndProc1 = wc.lpfnWndProc;
+	}
+	if (!lpfnWndProc2)
+	{
+		HWND hWnd = CreateWindowExA(0, "STATIC", "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), 0);
+		if (hWnd)
+		{
+			lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			DestroyWindow(hWnd);
+		}
+	}
+	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
 
 /***********************************************************************
 *           listbox_proc16
@@ -1113,6 +1157,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_SIZECLIPBOARD:
         FIXME_(msg)( "message %04x needs translation\n", msg );
         break;
+	case WM_NCPAINT:
+		ret = callback(hwnd32, msg, HRGN_32(wParam), lParam, result, arg);
+		break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1430,6 +1477,12 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         else
             ret = callback( HWND_16(hwnd), WM_PAINT, wParam, lParam, result, arg );
         break;
+	case WM_NCPAINT:
+		ret = callback(HWND_16(hwnd), WM_NCPAINT, HRGN_16(wParam), lParam, result, arg);
+		break;
+	case WM_NCACTIVATE:
+		ret = callback(HWND_16(hwnd), WM_NCACTIVATE, wParam, HWND_16(lParam), result, arg);
+		break;
     case WM_ERASEBKGND:
         if (IsIconic( hwnd ) && GetClassLongPtrW( hwnd, GCLP_HICON )) msg = WM_ICONERASEBKGND;
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
@@ -1845,21 +1898,48 @@ LRESULT WINAPI DefWindowProc16( HWND16 hwnd16, UINT16 msg, WPARAM16 wParam, LPAR
         }
     case WM_NCCALCSIZE:
         {
-            RECT16 *rect16 = MapSL(lParam);
-            RECT rect32;
+		if (wParam)
+		{
+			NCCALCSIZE_PARAMS16 *nc16 = MapSL(lParam);
+			NCCALCSIZE_PARAMS nc;
+			WINDOWPOS winpos;
 
-            rect32.left    = rect16->left;
-            rect32.top     = rect16->top;
-            rect32.right   = rect16->right;
-            rect32.bottom  = rect16->bottom;
+			RECT16to32(&nc16->rgrc[0], &nc.rgrc[0]);
+			if (wParam)
+			{
+				RECT16to32(&nc16->rgrc[1], &nc.rgrc[1]);
+				RECT16to32(&nc16->rgrc[2], &nc.rgrc[2]);
+				WINDOWPOS16to32(MapSL(nc16->lppos), &winpos);
+				nc.lppos = &winpos;
+			}
+			result = DefWindowProcA(hwnd, msg, wParam, (LPARAM)&nc);
+			RECT32to16(&nc.rgrc[0], &nc16->rgrc[0]);
+			if (wParam)
+			{
+				RECT32to16(&nc.rgrc[1], &nc16->rgrc[1]);
+				RECT32to16(&nc.rgrc[2], &nc16->rgrc[2]);
+				WINDOWPOS32to16(&winpos, MapSL(nc16->lppos));
+			}
+			return result;
+		}
+		else
+		{
+			RECT16 *rect16 = MapSL(lParam);
+			RECT rect32;
 
-            result = DefWindowProcA( hwnd, msg, wParam, (LPARAM)&rect32 );
+			rect32.left = rect16->left;
+			rect32.top = rect16->top;
+			rect32.right = rect16->right;
+			rect32.bottom = rect16->bottom;
 
-            rect16->left   = rect32.left;
-            rect16->top    = rect32.top;
-            rect16->right  = rect32.right;
-            rect16->bottom = rect32.bottom;
-            return result;
+			result = DefWindowProcA(hwnd, msg, wParam, (LPARAM)&rect32);
+
+			rect16->left = rect32.left;
+			rect16->top = rect32.top;
+			rect16->right = rect32.right;
+			rect16->bottom = rect32.bottom;
+			return result;
+		}
         }
     case WM_WINDOWPOSCHANGING:
     case WM_WINDOWPOSCHANGED:
@@ -1889,6 +1969,10 @@ LRESULT WINAPI DefWindowProc16( HWND16 hwnd16, UINT16 msg, WPARAM16 wParam, LPAR
     case WM_GETTEXT:
     case WM_SETTEXT:
         return DefWindowProcA( hwnd, msg, wParam, (LPARAM)MapSL(lParam) );
+	case WM_NCPAINT:
+		return DefWindowProcA(hwnd, msg, HRGN_32(wParam), lParam);
+	case WM_NCACTIVATE:
+		return DefWindowProcA(hwnd, msg, wParam, HWND_32(lParam));
     default:
         return DefWindowProcA( hwnd, msg, wParam, lParam );
     }
@@ -2890,8 +2974,56 @@ static LRESULT static_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
         return wow_handlers32.static_proc( hwnd, msg, wParam, lParam, unicode );
     }
 }
+LRESULT CALLBACK static_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    return static_proc16(hwnd, msg, wParam, lParam, FALSE);
+}
+LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
+{
+    if (code < 0)
+        return CallNextHookEx(NULL, code, wParam, lParam);
+    if (code == HC_ACTION) {
+        if (wParam == NULL) {
+            CWPSTRUCT *pcwp = (CWPSTRUCT *)lParam;
+            if (isStatic(pcwp->hwnd))
+            {
+                SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, static_wndproc16);
+            }
+        }
+    }
 
+    return CallNextHookEx(NULL, code, wParam, lParam);
+}
+LRESULT wow_static_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
+{
+    static WNDPROC proc = NULL;
+    if (!proc)
+    {
+        WNDCLASSA wc;
+        GetClassInfoA(NULL, "STATIC", &wc);
+        proc = wc.lpfnWndProc;
+    }
+    return proc(a, b, c, d);
+}
+void InitHook()
+{
+    isStatic(NULL);//判定の無限ループが起こるので先に実行する
+    SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
+    HWND hwnd = CreateWindow(
+        TEXT("STATIC"), NULL,
+        WS_CAPTION | SS_ICON,
+        100, 100, 200, 200, NULL, NULL,
+        NULL, NULL
+    );
 
+    ShowWindow(hwnd, SW_SHOW);
+
+}
+
+BOOL16 WINAPI WaitMessage16()
+{
+	return WaitMessage();
+}
 /***********************************************************************
  *           wait_message16
  */
@@ -3102,5 +3234,8 @@ void register_wow_handlers(void)
 	wow_handlers32.set_icon_param = set_icon_param;
 	wow_handlers32.get_dialog_info = get_dialog_info;
 	wow_handlers32.dialog_box_loop = dialog_box_loop;
+
+    wow_handlers32.static_proc = wow_static_proc_wrapper;
+    InitHook();
 	//
 }

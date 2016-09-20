@@ -369,7 +369,7 @@ INT16 WINAPI GetWindowTextLength16( HWND16 hwnd )
  */
 HDC16 WINAPI BeginPaint16( HWND16 hwnd, LPPAINTSTRUCT16 lps )
 {
-    PAINTSTRUCT ps;
+	PAINTSTRUCT ps = { 0 };
 
     BeginPaint( WIN_Handle32(hwnd), &ps );
     lps->hdc            = HDC_16(ps.hdc);
@@ -389,9 +389,16 @@ HDC16 WINAPI BeginPaint16( HWND16 hwnd, LPPAINTSTRUCT16 lps )
  */
 BOOL16 WINAPI EndPaint16( HWND16 hwnd, const PAINTSTRUCT16* lps )
 {
-    PAINTSTRUCT ps;
+    PAINTSTRUCT ps = { 0 };
 
     ps.hdc = HDC_32(lps->hdc);
+	ps.fErase = lps->fErase;
+	ps.rcPaint.top = lps->rcPaint.top;
+	ps.rcPaint.left = lps->rcPaint.left;
+	ps.rcPaint.right = lps->rcPaint.right;
+	ps.rcPaint.bottom = lps->rcPaint.bottom;
+	ps.fRestore = lps->fRestore;
+	ps.fIncUpdate = lps->fIncUpdate;
     return EndPaint( WIN_Handle32(hwnd), &ps );
 }
 
@@ -1625,30 +1632,19 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
 	}
 	WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
-	if (wndproc16)
-	{
-		switch (Msg)
-		{
-		case WM_PAINT:
-			goto GETMINMAXINFO;
-		case WM_CREATE:
-			goto GETMINMAXINFO;
-		GETMINMAXINFO:
-		case WM_GETMINMAXINFO:
-		{
-			MSG msg;
-			msg.hwnd = hDlg;
-			msg.message = Msg;
-			msg.wParam = wParam;
-			msg.lParam = lParam;
-			MSG16 msg16;
-			LRESULT unused;
-			WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
-				&unused, wndproc16/*&msg16*/);
-			return unused;//DispatchMessage16(&msg16);
-		}
-		}
-	}
+    if (wndproc16)
+    {
+        MSG msg;
+        msg.hwnd = hDlg;
+        msg.message = Msg;
+        msg.wParam = wParam;
+        msg.lParam = lParam;
+        MSG16 msg16;
+        LRESULT unused;
+        WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+            &unused, wndproc16/*&msg16*/);
+        return unused;//DispatchMessage16(&msg16);
+    }
 	return DefWindowProcA(hDlg, Msg, wParam, lParam);
 }
 struct WNDCLASS16Info WNDCLASS16Info[65536];
@@ -1849,11 +1845,13 @@ LRESULT WINAPI DefFrameProc16( HWND16 hwnd, HWND16 hwndMDIClient,
         lParam = (LPARAM)MapSL(lParam);
         /* fall through */
     case WM_COMMAND:
-    case WM_NCACTIVATE:
     case WM_SETFOCUS:
     case WM_SIZE:
         return DefFrameProcA( WIN_Handle32(hwnd), WIN_Handle32(hwndMDIClient),
                               message, wParam, lParam );
+	case WM_NCACTIVATE:
+		return DefFrameProcA(WIN_Handle32(hwnd), WIN_Handle32(hwndMDIClient),
+			message, wParam, HRGN_32(lParam));
 
     case WM_NEXTMENU:
         {
