@@ -2214,7 +2214,7 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 
 		//
 		BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst);
-		if (!IsWinOldApTask(hinst))
+		if (IsWinOldApTask(hinst))
 		{
 			//old old bitmap
 			struct WIN1XBITMAP *win1xbitmap = ptr;
