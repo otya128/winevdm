@@ -857,13 +857,13 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     LRESULT ret = 0;
     HWND hwnd32 = WIN_Handle32( hwnd );
 
-	if (isListBox(hwnd32))
+	/*if (isListBox(hwnd32))
 	{
 		BOOL f;
 		ret = listbox_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
 		if (f)
 			return ret;
-	}
+	}*/
     switch(msg)
     {
     case WM_NCCREATE:
@@ -3009,6 +3009,10 @@ LRESULT CALLBACK static_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 {
     return static_proc16(hwnd, msg, wParam, lParam, FALSE);
 }
+LRESULT CALLBACK listbox_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    return listbox_proc16(hwnd, msg, wParam, lParam, FALSE);
+}
 LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
 {
     if (code < 0)
@@ -3019,6 +3023,10 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
             if (isStatic(pcwp->hwnd))
             {
                 SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, static_wndproc16);
+            }
+            if (isListBox(pcwp->hwnd))
+            {
+                SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, listbox_wndproc16);
             }
         }
     }
@@ -3036,9 +3044,21 @@ LRESULT wow_static_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
     }
     return proc(a, b, c, d);
 }
+LRESULT wow_listbox_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
+{
+    static WNDPROC proc = NULL;
+    if (!proc)
+    {
+        WNDCLASSA wc;
+        GetClassInfoA(NULL, "LISTBOX", &wc);
+        proc = wc.lpfnWndProc;
+    }
+    return proc(a, b, c, d);
+}
 void InitHook()
 {
     isStatic(NULL);//判定の無限ループが起こるので先に実行する
+    isListBox(NULL);//判定の無限ループが起こるので先に実行する
     SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
 }
 void InitNewThreadHook()
@@ -3273,6 +3293,7 @@ void register_wow_handlers(void)
 	wow_handlers32.dialog_box_loop = dialog_box_loop;
 
     wow_handlers32.static_proc = wow_static_proc_wrapper;
+    wow_handlers32.listbox_proc = wow_listbox_proc_wrapper;
     InitHook();
 	//
 }
