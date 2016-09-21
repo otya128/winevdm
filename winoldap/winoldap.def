@@ -1,0 +1,6 @@
+; File generated automatically from ../winoldap\winoldap.mod16.spec; do not edit!
+
+LIBRARY ../winoldap\winoldap.mod16.spec
+
+EXPORTS
+  _wine_spec_dos_header=_wine_spec_dos_header @1 DATA 
