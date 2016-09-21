@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="olesvr.c" />
+    <ClCompile Include="stub.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="olesvr.def" />
