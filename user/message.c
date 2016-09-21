@@ -885,13 +885,13 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     LRESULT ret = 0;
     HWND hwnd32 = WIN_Handle32( hwnd );
 
-	/*if (isListBox(hwnd32))
+	if (isListBox(hwnd32))
 	{
 		BOOL f;
 		ret = listbox_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
 		if (f)
 			return ret;
-	}*/
+	}
     switch(msg)
     {
     case WM_NCCREATE:
@@ -2046,11 +2046,23 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
       /* Process timer messages */
     if ((msg->message == WM_TIMER) || (msg->message == WM_SYSTIMER))
     {
-		ERR("WM_TIMER!\n");
-        /*if (msg->lParam)
-            return CallWindowProc16( (WNDPROC16)msg->lParam, msg->hwnd,
-                                     msg->message, msg->wParam, GetTickCount() );
-    */
+        if (msg->lParam)
+        {
+            if ((msg->lParam & 0xFFFF0000) != 0xFFFF0000)
+            {
+                MSG msg32;
+
+                msg32.hwnd = WIN_Handle32(msg->hwnd);
+                msg32.wParam = msg->wParam;
+                msg32.lParam = msg->lParam;
+                msg32.time = msg->time;
+                msg32.pt.x = msg->pt.x;
+                msg32.pt.y = msg->pt.y;
+                return DispatchMessageA(&msg);
+            }
+            return CallWindowProc16((WNDPROC16)msg->lParam, msg->hwnd,
+                msg->message, msg->wParam, GetTickCount());
+        }
 	}
 
     if (!(winproc = (WNDPROC16)GetWndProc16( msg->hwnd )))
@@ -2958,7 +2970,7 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
             }
             if (isListBox(pcwp->hwnd))
             {
-                SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, listbox_wndproc16);
+                //SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, listbox_wndproc16);
             }
             if (isButton(pcwp->hwnd))
             {
