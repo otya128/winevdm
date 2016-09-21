@@ -806,6 +806,7 @@ static BOOL INT21_GetCurrentDirectory( CONTEXT *context, BOOL islong )
  */
 static BOOL INT21_SetCurrentDirectory( CONTEXT *context )
 {
+    WCHAR dirW1[MAX_PATH];
     WCHAR dirW[MAX_PATH];
     WCHAR env_var[4];
     DWORD attr;
@@ -815,8 +816,8 @@ static BOOL INT21_SetCurrentDirectory( CONTEXT *context )
 
     TRACE( "SET CURRENT DIRECTORY %s\n", dirA );
 
-    MultiByteToWideChar(CP_OEMCP, 0, dirA, -1, dirW, MAX_PATH);
-    if (!GetFullPathNameW( dirW, MAX_PATH, dirW, NULL )) return FALSE;
+    MultiByteToWideChar(CP_OEMCP, 0, dirA, -1, dirW1, MAX_PATH);
+    if (!GetFullPathNameW( dirW1, MAX_PATH, dirW, NULL )) return FALSE;
 
     attr = GetFileAttributesW( dirW );
     if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY))
