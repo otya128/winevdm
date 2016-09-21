@@ -673,6 +673,23 @@ BOOL isScrollBar(HWND hWnd)
 	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
+WNDPROC get_classinfo_wndproc(const char *class)
+{
+    WNDCLASSA wc;
+    GetClassInfoA(NULL, "STATIC", &wc);
+    return wc.lpfnWndProc;
+}
+WNDPROC get_window_wndproc(const char *class)
+{
+    WNDPROC lpfnWndProc2 = NULL;
+    HWND hWnd = CreateWindowExA(0, "STATIC", "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), 0);
+    if (hWnd)
+    {
+        lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+        DestroyWindow(hWnd);
+    }
+    return lpfnWndProc2;
+}
 BOOL isStatic(HWND hWnd)
 {
 	static WNDPROC lpfnWndProc1 = 0;
@@ -694,6 +711,17 @@ BOOL isStatic(HWND hWnd)
 	}
 	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL isButton(HWND hWnd)
+{
+    static WNDPROC lpfnWndProc1 = 0;
+    static WNDPROC lpfnWndProc2 = 0;
+    if (!lpfnWndProc1)
+        lpfnWndProc1 = get_classinfo_wndproc("BUTTON");
+    if (!lpfnWndProc2)
+        lpfnWndProc2 = get_window_wndproc("BUTTON");
+    WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
 
 /***********************************************************************
@@ -2913,6 +2941,10 @@ LRESULT CALLBACK listbox_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 {
     return listbox_proc16(hwnd, msg, wParam, lParam, FALSE);
 }
+LRESULT CALLBACK button_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    return button_proc16(hwnd, msg, wParam, lParam, FALSE);
+}
 LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
 {
     if (code < 0)
@@ -2928,6 +2960,10 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
             {
                 SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, listbox_wndproc16);
             }
+            if (isButton(pcwp->hwnd))
+            {
+                SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, button_wndproc16);
+            }
         }
     }
 
@@ -2938,27 +2974,33 @@ LRESULT wow_static_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
     static WNDPROC proc = NULL;
     if (!proc)
     {
-        WNDCLASSA wc;
-        GetClassInfoA(NULL, "STATIC", &wc);
-        proc = wc.lpfnWndProc;
+        proc = get_classinfo_wndproc("STATIC");
     }
-    return proc(a, b, c, d);
+    return CallWindowProcA(proc, a, b, c, d);
 }
 LRESULT wow_listbox_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
 {
     static WNDPROC proc = NULL;
     if (!proc)
     {
-        WNDCLASSA wc;
-        GetClassInfoA(NULL, "LISTBOX", &wc);
-        proc = wc.lpfnWndProc;
+        proc = get_classinfo_wndproc("LISTBOX");
     }
-    return proc(a, b, c, d);
+    return CallWindowProcA(proc, a, b, c, d);
+}
+LRESULT wow_button_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
+{
+    static WNDPROC proc = NULL;
+    if (!proc)
+    {
+        proc = get_classinfo_wndproc("BUTTON");
+    }
+    return CallWindowProcA(proc, a, b, c, d);
 }
 void InitHook()
 {
     isStatic(NULL);//判定の無限ループが起こるので先に実行する
     isListBox(NULL);//判定の無限ループが起こるので先に実行する
+    isButton(NULL);//判定の無限ループが起こるので先に実行する
     SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
 }
 void InitNewThreadHook()
@@ -3194,6 +3236,7 @@ void register_wow_handlers(void)
 
     wow_handlers32.static_proc = wow_static_proc_wrapper;
     wow_handlers32.listbox_proc = wow_listbox_proc_wrapper;
+    wow_handlers32.button_proc = wow_button_proc_wrapper;
     InitHook();
 	//
 }
