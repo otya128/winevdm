@@ -775,6 +775,12 @@ extern "C"
 					save_context(&context);
 					__wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
 					load_context(&context);
+                    WORD a = POP16();
+                    WORD b = POP16();
+                    WORD c = POP16();
+                    PUSH16((WORD)context.EFlags);
+                    PUSH16(b);
+                    PUSH16(a);
 				}
 				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
 				{
