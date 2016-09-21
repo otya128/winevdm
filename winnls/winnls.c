@@ -124,7 +124,40 @@ LRESULT WINAPI SendIMEMessage16(WORD a1, WORD a2, WORD a3)
     ERR("NOTIMPL:SendIMEMessage16(%d, %d, %d)\n", a1, a2, a3);
     return 0;
 }
-
+typedef struct tagIMESTRUCT16 {
+    UINT16   fnc;        // function code
+    WPARAM16 wParam;     // word parameter
+    UINT16   wCount;     // word counter
+    UINT16   dchSource;  // offset to Source from top of memory object
+    UINT16   dchDest;    // offset to Desrination from top of memory object
+    LPARAM   lParam1;
+    LPARAM   lParam2;
+    LPARAM   lParam3;
+} IMESTRUCT16, *PIMESTRUCT16, NEAR *NPIMESTRUCT16, FAR *LPIMESTRUCT16;
+LRESULT WINAPI SendIMEMessageEx16(
+    _In_ HWND16   hwnd,
+    _In_ LPARAM lParam
+)
+{
+    HWND hwnd32 = HWND_32(hwnd);
+    HGLOBAL16 hglobal = lParam;
+    LPIMESTRUCT16 lpime = (LPIMESTRUCT16)(GlobalLock16(hglobal));
+    HGLOBAL hglobal32 = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE, sizeof(IMESTRUCT));
+    LPIMESTRUCT lpime32 = (LPIMESTRUCT)(GlobalLock(hglobal32));
+    lpime32->fnc = lpime->fnc;
+    lpime32->wParam = lpime->wParam;
+    lpime32->wCount = lpime->wCount;
+    lpime32->dchSource = lpime->dchSource;
+    lpime32->dchDest = lpime->dchDest;
+    lpime32->lParam1 = lpime->lParam1;
+    lpime32->lParam2 = lpime->lParam2;
+    lpime32->lParam3 = lpime->lParam3;
+    SendIMEMessageExA(hwnd32, (LPARAM)hglobal32);
+    GlobalUnlock(hglobal32);
+    GlobalUnlock16(hglobal);
+    GlobalFree(hglobal32);
+    return 0;
+}
 
 ///////////////
 #include <stdio.h>

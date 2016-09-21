@@ -4,7 +4,7 @@
 4   stub ENUMGETFONTTYPE
 5   stub ENUMFACENOTTT
 6   pascal -ret16 SendIMEMessage(word word word) SendIMEMessage16
-7   stub SENDIMEMESSAGEEX
+7   pascal SendIMEMessageEx(word long) SendIMEMessageEx16
 9   stub SENDIMEMESSAGEINTERNAL
 10  stub WINNLSSETKEYBOARDHOOK
 11  stub WINNLSSETIMEHANDLE
