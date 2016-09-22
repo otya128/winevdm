@@ -857,6 +857,15 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
         }
         return hwndwordbuf[hwnd][offset];
     }
+    switch (offset)
+    {
+    case GWL_HINSTANCE:
+        return HINSTANCE_16(GetWindowLongA(WIN_Handle32(hwnd), offset));
+    case GWL_HWNDPARENT:
+        return HWND_16(GetWindowLongA(WIN_Handle32(hwnd), offset));
+    default:
+        break;
+    }
     return GetWindowWord( WIN_Handle32(hwnd), offset );
 }
 
@@ -875,6 +884,15 @@ WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
         }
         hwndwordbuf[hwnd][offset] = newval;
         return SetWindowWord(WIN_Handle32(hwnd), offset, newval);
+    }
+    switch (offset)
+    {
+    case GWL_HINSTANCE:
+        return (SetWindowLongA(WIN_Handle32(hwnd), offset, HINSTANCE_32(newval)));
+    case GWL_HWNDPARENT:
+        return (SetWindowLongA(WIN_Handle32(hwnd), offset, HWND_32(newval)));
+    default:
+        break;
     }
     return SetWindowWord( WIN_Handle32(hwnd), offset, newval );
 }
