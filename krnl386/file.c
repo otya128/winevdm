@@ -603,6 +603,28 @@ UINT16 WINAPI GetPrivateProfileInt16( LPCSTR section, LPCSTR entry,
 }
 
 
+void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output)
+{
+    if (PathIsFileSpecA(filename))
+    {
+        //const char *windir = getenv("WINDIR16");//"WINDOWS";
+        /*if (!windir)
+        {
+            strcpy(output, filename);
+            return;
+        }*/
+        GetModuleFileNameA(GetModuleHandleA("krnl386.exe16"), output, MAX_PATH);
+        PathRemoveFileSpecA(output);
+        PathCombineA(output, output, "WINDOWS");
+        PathCombineA(output, output, filename);
+        //PathCombineA(output, output, windir);
+        //PathCombineA(output, windir, filename);
+    }
+    else
+    {
+        strcpy(output, filename);
+    }
+}
 /***********************************************************************
  *           GetPrivateProfileString   (KERNEL.128)
  */
@@ -610,6 +632,9 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
                                         LPCSTR def_val, LPSTR buffer,
                                         UINT16 len, LPCSTR filename )
 {
+    char filenamebuf[MAX_PATH];
+    RedirectPrivateProfileStringWindowsDir(filename, filenamebuf);
+    filename = filenamebuf;
     if (!section)
     {
         if (buffer && len) buffer[0] = 0;
@@ -684,6 +709,9 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
 BOOL16 WINAPI WritePrivateProfileString16( LPCSTR section, LPCSTR entry,
                                            LPCSTR string, LPCSTR filename )
 {
+    char filenamebuf[MAX_PATH];
+    RedirectPrivateProfileStringWindowsDir(filename, &filenamebuf);
+    filename = filenamebuf;
     return WritePrivateProfileStringA(section,entry,string,filename);
 }
 
