@@ -271,7 +271,7 @@ static void logfont_16_to_W( const LOGFONT16 *font16, LPLOGFONTW font32 )
     font32->lfCharSet = font16->lfCharSet;
     font32->lfOutPrecision = font16->lfOutPrecision;
     font32->lfClipPrecision = font16->lfClipPrecision;
-    font32->lfQuality = font16->lfQuality;
+    font32->lfQuality = font16->lfQuality | NONANTIALIASED_QUALITY;
     font32->lfPitchAndFamily = font16->lfPitchAndFamily;
     MultiByteToWideChar( CP_ACP, 0, font16->lfFaceName, -1, font32->lfFaceName, LF_FACESIZE );
     font32->lfFaceName[LF_FACESIZE-1] = 0;
@@ -1213,7 +1213,7 @@ HFONT16 WINAPI CreateFont16(INT16 height, INT16 width, INT16 esc, INT16 orient,
                             LPCSTR name )
 {
     return HFONT_16( CreateFontA( height, width, esc, orient, weight, italic, underline,
-                                  strikeout, charset, outpres, clippres, quality, pitch, name ));
+                                  strikeout, charset, outpres, clippres, quality | NONANTIALIASED_QUALITY, pitch, name ));
 }
 
 /***********************************************************************
@@ -2268,7 +2268,9 @@ DWORD WINAPI GetFontData16( HDC16 hdc, DWORD table, DWORD offset, LPVOID buffer,
  */
 BOOL16 WINAPI GetRasterizerCaps16( LPRASTERIZER_STATUS lprs, UINT16 cbNumBytes )
 {
-    return GetRasterizerCaps( lprs, cbNumBytes );
+    //return GetRasterizerCaps( lprs, cbNumBytes );
+    lprs->wFlags = TT_AVAILABLE | TT_ENABLED;
+    return TRUE;
 }
 
 
