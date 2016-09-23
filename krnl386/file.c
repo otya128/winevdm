@@ -50,6 +50,7 @@ BOOL EnableRedirectSystemDir = TRUE;
 #else
 BOOL EnableRedirectSystemDir = FALSE;
 #endif
+const char *GetRedirectWindowsDir();
 //SYSTEM DIR
 //%WINDIR%->
 LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
@@ -86,7 +87,7 @@ LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
 	GetModuleFileNameA(NULL, dir, MAX_PATH);
 	char *file = PathFindFileNameA(dir);
 	if (file != dir) *file = '\0';
-	if (!PathAppendA(dir, "WINDIR"))
+	if (!PathAppendA(dir, GetRedirectWindowsDir()))
 		return path;
 		//FIXME:dir//wine_get_server_dir();
 //	size_t len = strlen(dir);
@@ -603,6 +604,15 @@ UINT16 WINAPI GetPrivateProfileInt16( LPCSTR section, LPCSTR entry,
 }
 
 
+char windowsPath[MAX_PATH];
+const char *GetRedirectWindowsDir()
+{
+    GetModuleFileNameA(GetModuleHandleA("krnl386.exe16"), windowsPath, MAX_PATH);
+    PathRemoveFileSpecA(windowsPath);
+    PathCombineA(windowsPath, windowsPath, "WINDOWS");
+    return windowsPath;
+}
+
 void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output)
 {
     if (PathIsFileSpecA(filename))
@@ -613,10 +623,7 @@ void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output)
             strcpy(output, filename);
             return;
         }*/
-        GetModuleFileNameA(GetModuleHandleA("krnl386.exe16"), output, MAX_PATH);
-        PathRemoveFileSpecA(output);
-        PathCombineA(output, output, "WINDOWS");
-        PathCombineA(output, output, filename);
+        PathCombineA(output, GetRedirectWindowsDir(), filename);
         //PathCombineA(output, output, windir);
         //PathCombineA(output, windir, filename);
     }
