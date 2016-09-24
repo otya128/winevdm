@@ -1,4 +1,4 @@
-/* File generated automatically from ..\wifeman\wifeman.dll16.spec; do not edit! */
+/* File generated automatically from wifeman.dll16.spec; do not edit! */
 /* This file can be copied, modified and distributed without restriction. */
 
 
@@ -67,7 +67,7 @@ ___wine_spec_nt_header:
 	.globl ___wine_spec_file_name
 ___wine_spec_file_name:
 .L__wine_spec_file_name:
-	.string "..\wifeman\wifeman.dll16.spec"
+	.string "wifeman.dll16.spec"
 
 	.section .init,"ax"
 	call ___wine_spec_init_ctor
@@ -518,6 +518,14 @@ _wine_spec_dos_header:
 
 	.align 2
 .L__wine_spec_code_segment:
+.L__wine_spec_callfrom16_p_long_w:
+	pushl $.L__wine_spec_call16_p_w
+	lcall $0,$0
+	shld $16,%eax,%edx
+	orl %eax,%eax
+	lretw $2
+	.short 0x86c7
+	.long 0x00000001,0x00000000
 .L__wine_spec_callfrom16_c_long_:
 	pushl $.L__wine_spec_call16_c_
 	lcall $0,$0
@@ -781,8 +789,8 @@ _wine_spec_dos_header:
 	callw .L__wine_spec_callfrom16_c_long_
 .L__wine_WIFEMAN_66:
 	pushw %bp
-	pushl $___wine_stub_MISCGETEUDCLEADBYTERANGE
-	callw .L__wine_spec_callfrom16_c_long_
+	pushl $_MiscGetEUDCLeadByteRange16@4
+	callw .L__wine_spec_callfrom16_p_long_w
 .L__wine_WIFEMAN_67:
 	pushw %bp
 	pushl $___wine_stub_MISCVALIDATEQUICKSEARCHTABLE
@@ -888,6 +896,18 @@ _wine_spec_dos_header:
 	movl %esp,%ebp
 	subl $12,%esp
 	movl 12(%ebp),%ecx
+	call *8(%ebp)
+	leave
+	ret
+	.align 4
+	.def .L__wine_spec_call16_p_w; .scl 2; .type 32; .endef
+.L__wine_spec_call16_p_w:
+	pushl %ebp
+	movl %esp,%ebp
+	subl $4,%esp
+	movl 12(%ebp),%ecx
+	movzwl 0(%ecx),%eax
+	pushl %eax
 	call *8(%ebp)
 	leave
 	ret
@@ -1907,22 +1927,6 @@ ___wine_stub_MISCSTRETCHMONOFONTIMAGE:
 	movl $.L__wine_spec_file_name,(%esp)
 	call ___wine_spec_unimplemented_stub
 	.align 4
-	.def ___wine_stub_MISCGETEUDCLEADBYTERANGE; .scl 2; .type 32; .endef
-___wine_stub_MISCGETEUDCLEADBYTERANGE:
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
-	subl $12,%esp
-	movl $.L__wine_stub_MISCGETEUDCLEADBYTERANGE_string,4(%esp)
-	movl $.L__wine_spec_file_name,(%esp)
-	call ___wine_spec_unimplemented_stub
-	.align 4
 	.def ___wine_stub_MISCVALIDATEQUICKSEARCHTABLE; .scl 2; .type 32; .endef
 ___wine_stub_MISCVALIDATEQUICKSEARCHTABLE:
  	nop
@@ -2401,8 +2405,6 @@ ___wine_stub_FIRSTINIT:
 	.string "FCMGETCHARWIDTH"
 .L__wine_stub_MISCSTRETCHMONOFONTIMAGE_string:
 	.string "MISCSTRETCHMONOFONTIMAGE"
-.L__wine_stub_MISCGETEUDCLEADBYTERANGE_string:
-	.string "MISCGETEUDCLEADBYTERANGE"
 .L__wine_stub_MISCVALIDATEQUICKSEARCHTABLE_string:
 	.string "MISCVALIDATEQUICKSEARCHTABLE"
 .L__wine_stub_MISCUNVALIDATEQUICKSEARCHTABLE_string:
@@ -2469,15 +2471,15 @@ ___wine_stub_FIRSTINIT:
 	.long .L__wine_spec_main_module
 
 .L__wine_spec_exp_name_ptrs:
-	.long .L__wine_spec_exp_names+30-.L__wine_spec_rva_base
-	.long .L__wine_spec_exp_names+53-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+19-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+42-.L__wine_spec_rva_base
 
 .L__wine_spec_exp_ordinals:
 	.short 0
 	.short 1
 
 .L__wine_spec_exp_names:
-	.string "..\wifeman\wifeman.dll16.spec"
+	.string "wifeman.dll16.spec"
 	.string "__wine_spec_dos_header"
 	.string "__wine_spec_main_module"
 	.align 4
