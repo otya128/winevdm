@@ -772,15 +772,28 @@ extern "C"
 				if (m_pc >= (UINT)/*ptr!*/iret && m_pc <= (UINT)/*ptr!*/iret + 255)
 				{
 					CONTEXT context;
+                    WORD ip = POP16();
+                    WORD cs = POP16();
+                    PUSH16(cs);
+                    PUSH16(ip);
 					save_context(&context);
+                    DWORD cs2 = context.SegCs;
+                    DWORD eip2 = context.Eip;
+                    context.Eip = ip;
+                    context.SegCs = cs;
+                    //wine int handler ‚ÍCS:IP‚ð‚¢‚¶‚éê‡‚ª‚ ‚é
 					__wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
+                    WORD ip3 = context.Eip;
+                    WORD cs3 = context.SegCs;
+                    context.SegCs = cs2;
+                    context.Eip = eip2;
 					load_context(&context);
                     WORD a = POP16();
                     WORD b = POP16();
                     WORD c = POP16();
                     PUSH16((WORD)context.EFlags);
-                    PUSH16(b);
-                    PUSH16(a);
+                    PUSH16(cs3);
+                    PUSH16(ip3);
 				}
 				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
 				{
@@ -1061,8 +1074,8 @@ extern "C"
 		PEXCEPTION_RECORD rec = ep->ExceptionRecord;
 		if (rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
 			return EXCEPTION_CONTINUE_SEARCH;
-		char buffer[256], buffer2[256];
-		if (1) {
+        char buffer[256] = {}, buffer2[256] = {};
+		if (!1) {
 #if defined(HAS_I386)
 			UINT64 eip = m_eip;
 #else
