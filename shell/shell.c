@@ -401,7 +401,7 @@ UINT16 WINAPI ExtractIconEx16(
 * Return icon for given file (either from file itself or from associated
 * executable) and patch parameters if needed.
 */
-HICON WINAPI ExtractAssociatedIconNE(HINSTANCE hInst, LPSTR lpIconPath, LPWORD lpiIcon)
+HICON16 WINAPI ExtractAssociatedIconNE(HINSTANCE hInst, LPSTR lpIconPath, LPWORD lpiIcon)
 {
 	HICON hIcon = NULL;
 	WORD wDummyIcon = 0;
@@ -415,7 +415,7 @@ HICON WINAPI ExtractAssociatedIconNE(HINSTANCE hInst, LPSTR lpIconPath, LPWORD l
 
 	if (hIcon < (HICON)2)
 	{
-		return ExtractAssociatedIconA(hInst, lpIconPath, lpiIcon);
+		return convert_icon_to_16(hInst, ExtractAssociatedIconA(hInst, lpIconPath, lpiIcon));
 	}
 	return hIcon;
 }
@@ -427,7 +427,7 @@ HICON WINAPI ExtractAssociatedIconNE(HINSTANCE hInst, LPSTR lpIconPath, LPWORD l
  */
 HICON16 WINAPI ExtractAssociatedIcon16(HINSTANCE16 hInst, LPSTR lpIconPath, LPWORD lpiIcon)
 {
-    return convert_icon_to_16( hInst, ExtractAssociatedIconNE(NULL, lpIconPath, lpiIcon) );
+    return ExtractAssociatedIconNE(NULL, lpIconPath, lpiIcon);
 }
 
 /*************************************************************************
