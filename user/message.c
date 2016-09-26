@@ -233,6 +233,9 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
 
     if ((ULONG_PTR)winproc >> 16 != WINPROC_HANDLE) return (WNDPROC16)winproc;
     return alloc_win16_thunk( winproc );
+}DWORD TEST(WNDPROC16 func)
+{
+    return winproc16_array[winproc_to_index(func) - MAX_WINPROCS32];
 }
 
 /* call a 16-bit window procedure */
@@ -1206,6 +1209,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_SETFONT:
         ret = callback(hwnd32, msg, HFONT_32(wParam), lParam, result, arg);
         break;
+    case WM_MOUSEACTIVATE:
+        ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
+        break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1769,6 +1775,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CAPTURECHANGED:
     case WM_STYLECHANGING:
     case WM_STYLECHANGED:
+        break;
+    case WM_MOUSEACTIVATE:
+        ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
         break;
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
