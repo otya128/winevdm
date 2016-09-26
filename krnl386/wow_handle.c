@@ -26,6 +26,7 @@ typedef struct
 {
 	HANDLE handle32;
 	DWORD wndproc;
+    HINSTANCE16 hInst16;
 } HANDLE_DATA;
 HANDLE_DATA handle_hwnd[65536];
 WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o);
@@ -84,7 +85,7 @@ HANDLE get_handle32(WORD h, HANDLE_DATA handles[])
 	{
 		return h;
 	}
-	return handles[h].handle32;
+	return handles[h].handle32 ? handles[h].handle32 : h;
 }
 HANDLE WINAPI K32WOWHandle16HWND(WORD handle);
 HANDLE WINAPI K32WOWHandle32HWND(WORD handle);
@@ -102,6 +103,27 @@ HANDLE WINAPI K32WOWHandle16HWND(HANDLE handle)
 	TRACE("handle32 0x%X->handle16 0x%04X\n", handle, h16);
 	return h16;
 }
+__declspec(dllexport) void SetWindowHInst16(WORD hWnd16, HINSTANCE16 hinst16)
+{
+    HANDLE_DATA *dat;
+    if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
+    {
+        ERR("Invalid Window Handle SetWindowHInst16(0x%04X);", hWnd16);
+        return;
+    }
+    dat->hInst16 = hinst16;
+}
+__declspec(dllexport) HINSTANCE16 GetWindowHInst16(WORD hWnd16)
+{
+    HANDLE_DATA *dat;
+    if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
+    {
+        ERR("Invalid Window Handle GetWindowHInst16(0x%04X);", hWnd16);
+        return 0;
+    }
+    return dat->hInst16;
+}
+
 __declspec(dllexport) void SetWndProc16(WORD hWnd16, DWORD WndProc)
 {
 	HANDLE_DATA *dat;

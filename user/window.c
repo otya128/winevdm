@@ -762,6 +762,8 @@ WORD WINAPI GetClassWord16( HWND16 hwnd, INT16 offset )
 
     switch (offset)
     {
+    case GCL_CBWNDEXTRA:
+        return (WORD)GetClassLongA(WIN_Handle32(hwnd), offset);
     case GCLP_HCURSOR:
     case GCLP_HICON:
     case GCLP_HICONSM:
@@ -801,7 +803,10 @@ LONG WINAPI GetClassLong16( HWND16 hwnd16, INT16 offset )
     switch( offset )
     {
     case GCLP_WNDPROC:
-        return (LONG_PTR)WINPROC_GetProc16( (WNDPROC)ret, FALSE );
+    {
+        ATOM atom = GetClassWord(WIN_Handle32(hwnd16), GCW_ATOM);
+        return WNDCLASS16Info[atom].wndproc ? WNDCLASS16Info[atom].wndproc : WINPROC_AllocNativeProc(ret);//(LONG_PTR)WINPROC_GetProc16((WNDPROC)ret, FALSE);
+    }
     case GCLP_MENUNAME:
         return MapLS( (void *)ret );  /* leak */
     case GCLP_HCURSOR:
@@ -842,7 +847,11 @@ LONG WINAPI SetClassLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     }
 }
 
-WORD hwndwordbuf[65536][16];
+BYTE *hwndwordbuf[65536];
+//__declspec(dllexport)
+void SetWindowHInst16(WORD hWnd16, HINSTANCE16 hinst16);
+//__declspec(dllexport) 
+HINSTANCE16 GetWindowHInst16(WORD hWnd16);
 /**************************************************************************
  *              GetWindowWord   (USER.133)
  */
@@ -850,17 +859,30 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
 {
     if (offset >= 0)
     {
-        if (offset >= 16)
+        size_t siz = GetClassLongA(WIN_Handle32(hwnd), GCL_CBWNDEXTRA);
+        if (siz + sizeof(WORD) < offset)
         {
-            MESSAGE("GetWindowWord16:(hwnd)0x%p, (offset)%d >= 16\n", hwnd, offset);
-            return GetWindowWord(WIN_Handle32(hwnd), offset);
+            return 0;
         }
-        return hwndwordbuf[hwnd][offset];
+        if (!hwndwordbuf[hwnd])
+        {
+            //TODO:leak
+            hwndwordbuf[hwnd] = calloc(siz, sizeof(BYTE));
+        }
+        return *(WORD*)(hwndwordbuf[hwnd] + offset);
     }
     switch (offset)
     {
     case GWL_HINSTANCE:
-        return HINSTANCE_16(GetWindowLongA(WIN_Handle32(hwnd), offset));
+    {
+        HINSTANCE16 h16 = GetWindowHInst16(hwnd);
+        if (h16)
+        {
+            return h16;
+        }
+        HINSTANCE h = HINSTANCE_32(GetWindowLongPtrW(WIN_Handle32(hwnd), offset));
+        return h ? HINSTANCE_16(h) : hwnd;
+    }
     case GWL_HWNDPARENT:
         return HWND_16(GetWindowLongA(WIN_Handle32(hwnd), offset));
     default:
@@ -877,13 +899,19 @@ WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
 {
     if (offset >= 0)
     {
-        if (offset >= 16)
+        size_t siz = GetClassLongA(WIN_Handle32(hwnd), GCL_CBWNDEXTRA);
+        if (siz + sizeof(WORD) < offset)
         {
-            MESSAGE("SetWindowWord16:(hwnd)0x%p, (offset)%d >= 16, %d(newval)\n", hwnd, offset, newval);
-            return SetWindowWord(WIN_Handle32(hwnd), offset, newval);
+            return 0;
         }
-        hwndwordbuf[hwnd][offset] = newval;
-        return SetWindowWord(WIN_Handle32(hwnd), offset, newval);
+        if (!hwndwordbuf[hwnd])
+        {
+            //TODO:leak
+            hwndwordbuf[hwnd] = calloc(siz, sizeof(BYTE));
+        }
+        WORD old = *(WORD*)(hwndwordbuf[hwnd] + offset);
+        *(WORD*)(hwndwordbuf[hwnd] + offset) = newval;
+        return old;
     }
     switch (offset)
     {
@@ -935,7 +963,7 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
     {
         retvalue = (LONG_PTR)GetWndProc16(hwnd16);
         if (retvalue)
-            return retvalue;
+            return TEST(retvalue);
         retvalue = GetWindowLongA(hwnd, offset);
         retvalue = WINPROC_AllocNativeProc(retvalue);
         return retvalue;
@@ -943,12 +971,17 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
     //if (is_winproc) retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
     if (offset >= 0)
     {
-        if (offset >= 15)
+        size_t siz = GetClassLongA(hwnd, GCL_CBWNDEXTRA);
+        if (siz + sizeof(LONG) < offset)
         {
-            MESSAGE("GetWindowLong16:(hwnd)0x%p, (offset)%d >= 15\n", hwnd, offset);
-            return GetWindowLongA(WIN_Handle32(hwnd), offset);
+            return 0;
         }
-        return (hwndwordbuf[hwnd16][offset + 1] << 16) | hwndwordbuf[hwnd16][offset];
+        if (!hwndwordbuf[hwnd16])
+        {
+            //TODO:leak
+            hwndwordbuf[hwnd16] = calloc(siz, sizeof(BYTE));
+        }
+        return *(LONG*)(hwndwordbuf[hwnd16] + offset);
     }
     retvalue = GetWindowLongA(hwnd, offset);
     return retvalue;
@@ -976,16 +1009,21 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     }
     if (offset >= 0)
     {
-        if (offset >= 15)
+        size_t siz = GetClassLongA(hwnd, GCL_CBWNDEXTRA);
+        if (siz + sizeof(LONG) < offset)
         {
-            MESSAGE("SetWindowLong16:(hwnd)0x%p, (offset)%d >= 15, %d(newval)\n", hwnd, offset, newval);
-            return SetWindowLongA(WIN_Handle32(hwnd), offset, newval);
+            return 0;
         }
-        hwndwordbuf[hwnd16][offset] = newval & 0xFFFF;
-        hwndwordbuf[hwnd16][offset + 1] = newval >> 16;
-        return SetWindowLongA(WIN_Handle32(hwnd), offset, newval);
+        if (!hwndwordbuf[hwnd16])
+        {
+            //TODO:leak
+            hwndwordbuf[hwnd16] = calloc(siz, sizeof(BYTE));
+        }
+        LONG old = *(LONG*)(hwndwordbuf[hwnd16] + offset);
+        *(LONG*)(hwndwordbuf[hwnd16] + offset) = newval;
+        return old;
     }
-    else return SetWindowLongA( hwnd, offset, newval );
+    /*else*/ return SetWindowLongA( hwnd, offset, newval );
 }
 
 
@@ -1731,7 +1769,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.style         = wc->style;
     wc32.lpfnWndProc   = DefWndProca;//WINPROC_AllocProc16( wc->lpfnWndProc );
     wc32.cbClsExtra    = wc->cbClsExtra;
-    wc32.cbWndExtra    = wc->cbWndExtra | DLGWINDOWEXTRA ;
+    wc32.cbWndExtra    = wc->cbWndExtra | DLGWINDOWEXTRA;
     wc32.hInstance     = HINSTANCE_32(inst);
     wc32.hIcon         = get_icon_32(wc->hIcon);
     wc32.hCursor       = get_icon_32( wc->hCursor );
@@ -1776,7 +1814,7 @@ BOOL16 WINAPI GetClassInfoEx16( HINSTANCE16 hInst16, SEGPTR name, WNDCLASSEX16 *
     if (ret)
     {
 		ERR("lpfnWndProc\n");
-        wc->lpfnWndProc   = 0;//WINPROC_GetProc16( wc32.lpfnWndProc, FALSE );
+        wc->lpfnWndProc = WNDCLASS16Info[ret].wndproc ? WNDCLASS16Info[ret].wndproc : WINPROC_AllocNativeProc(wc32.lpfnWndProc);//WINPROC_GetProc16( wc32.lpfnWndProc, FALSE );
         wc->style         = wc32.style;
         wc->cbClsExtra    = wc32.cbClsExtra;
         wc->cbWndExtra    = wc32.cbWndExtra;
@@ -2072,6 +2110,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     }
 	HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
+    SetWindowHInst16(hWnd16, instance);
 	return hWnd16;
 }
 void InitWndProc16(HWND hWnd, HWND16 hWnd16)
