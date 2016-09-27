@@ -53,7 +53,7 @@ BOOL EnableRedirectSystemDir = FALSE;
 const char *GetRedirectWindowsDir();
 //SYSTEM DIR
 //%WINDIR%->
-LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
+__declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
 {
 	if (!EnableRedirectSystemDir) return path;
 	char buf[MAX_PATH];

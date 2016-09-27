@@ -1146,6 +1146,7 @@ static HINSTANCE16 NE_CreateThread( NE_MODULE *pModule, WORD cmdShow, LPCSTR cmd
 }
 
 
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 /**********************************************************************
  *          LoadModule      (KERNEL.45)
  */
@@ -1160,6 +1161,8 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
 
     if (name == NULL) return 0;
 
+    char buf[MAX_PATH];
+    name = RedirectSystemDir(name, buf, MAX_PATH);
     TRACE("name %s, paramBlock %p\n", name, paramBlock);
 
     /* Load module */
