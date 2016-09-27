@@ -1,6 +1,6 @@
 ; File generated automatically from lzexpand.dll16.spec; do not edit!
 
-LIBRARY lzexpand.dll16.spec
+LIBRARY lzexpand.dll16
 
 EXPORTS
   _wine_spec_dos_header;=.L__wine_spec_dos_header @1 DATA PRIVATE

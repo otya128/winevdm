@@ -1,0 +1,6 @@
+; File generated automatically from ..\ddeml\ddeml.dll16.spec; do not edit!
+
+LIBRARY ddeml.dll16
+
+EXPORTS
+  _wine_spec_dos_header @1 DATA
