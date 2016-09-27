@@ -290,8 +290,9 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
         }
         if (size)
         {
-            memcpy( &args.u, MapSL(lParam), size );
-            lParam = PtrToUlong(getWOW32Reserved()) - size;
+            size = 0;
+            //memcpy( &args.u, MapSL(lParam), size );
+            //lParam = PtrToUlong(getWOW32Reserved()) - size;
         }
     }
 
@@ -822,6 +823,8 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 	case LB_GETTEXT16:
 		lParam = (LPARAM)MapSL(lParam);
 		msg -= msg16_offset;
+        ret = callback(hwnd, msg, wParam, lParam, result, arg);
+        return *result;
 		break;
 	case LB_SETITEMHEIGHT16:
 		lParam = LOWORD(lParam);
@@ -937,7 +940,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         {
             BOOL maximized = FALSE;
             ret = callback( hwnd32, msg, wParam, (LPARAM)&maximized, result, arg );
-            *result = MAKELRESULT( LOWORD(*result), maximized );
+            *result = MAKELRESULT( LOWORD(HWND_16(*result)), maximized );
         }
         break;
     case WM_MDISETMENU:
@@ -1212,6 +1215,10 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_MOUSEACTIVATE:
         ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
         break;
+    case WM_SETFOCUS:
+    case WM_SETCURSOR:
+        ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
+        break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1283,7 +1290,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_MDIACTIVATE:
         if (GetWindowLongW( hwnd, GWL_EXSTYLE ) & WS_EX_MDICHILD)
             ret = callback( HWND_16(hwnd), msg, ((HWND)lParam == hwnd),
-                            MAKELPARAM( LOWORD(lParam), LOWORD(wParam) ), result, arg );
+                            MAKELPARAM( HWND_16(lParam), HWND_16(wParam) ), result, arg );
         else
             ret = callback( HWND_16(hwnd), msg, HWND_16( wParam ), 0, result, arg );
         break;
@@ -1777,6 +1784,10 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_STYLECHANGED:
         break;
     case WM_MOUSEACTIVATE:
+        ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
+        break;
+    case WM_SETFOCUS:
+    case WM_SETCURSOR:
         ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
         break;
     default:

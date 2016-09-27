@@ -1980,9 +1980,11 @@ LRESULT WINAPI DefMDIChildProc16( HWND16 hwnd, UINT16 message,
     case WM_SETTEXT:
         return DefMDIChildProcA( WIN_Handle32(hwnd), message, wParam, (LPARAM)MapSL(lParam) );
 
+    case WM_SETFOCUS:
+        return DefMDIChildProcW(WIN_Handle32(hwnd), message, HWND_32(wParam), lParam);
+
     case WM_MENUCHAR:
     case WM_CLOSE:
-    case WM_SETFOCUS:
     case WM_CHILDACTIVATE:
     case WM_SYSCOMMAND:
     case WM_SETVISIBLE:
