@@ -1483,12 +1483,12 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CHARTOITEM:
     case WM_COMMAND:
     case WM_VKEYTOITEM:
-        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( (HWND16)lParam, HIWORD(wParam) ),
+        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( HWND_16(lParam), HIWORD(wParam) ),
                         result, arg );
         break;
     case WM_HSCROLL:
     case WM_VSCROLL:
-        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( HIWORD(wParam), (HWND16)lParam ),
+        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( HIWORD(wParam), HWND_16(lParam) ),
                         result, arg );
         break;
     case WM_CTLCOLORMSGBOX:
@@ -1499,7 +1499,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
         ret = callback( HWND_16(hwnd), WM_CTLCOLOR, wParam,
-                        MAKELPARAM( (HWND16)lParam, msg - WM_CTLCOLORMSGBOX ), result, arg );
+                        MAKELPARAM( HWND_16(lParam), msg - WM_CTLCOLORMSGBOX ), result, arg );
         break;
     case WM_MENUSELECT:
         if(HIWORD(wParam) & MF_POPUP)
@@ -1523,7 +1523,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_PARENTNOTIFY:
         if ((LOWORD(wParam) == WM_CREATE) || (LOWORD(wParam) == WM_DESTROY))
             ret = callback( HWND_16(hwnd), msg, wParam,
-                            MAKELPARAM( (HWND16)lParam, HIWORD(wParam) ), result, arg );
+                            MAKELPARAM( HWND_16(lParam), HIWORD(wParam) ), result, arg );
         else
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
