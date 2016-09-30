@@ -1975,6 +1975,7 @@ LRESULT WINAPI DefDlgProc16( HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lP
 BOOL16 WINAPI PeekMessage16( MSG16 *msg, HWND16 hwnd,
                              UINT16 first, UINT16 last, UINT16 flags )
 {
+    WOWYield16();
     return PeekMessage32_16( (MSG32_16 *)msg, hwnd, first, last, flags, FALSE );
 }
 
@@ -1991,6 +1992,7 @@ BOOL16 WINAPI GetMessage32_16( MSG32_16 *msg16, HWND16 hwnd16, UINT16 first,
 
     if(USER16_AlertableWait)
         MsgWaitForMultipleObjectsEx( 0, NULL, INFINITE, 0, MWMO_ALERTABLE );
+    WOWYield16();
     GetMessageA( &msg, hwnd, first, last );
     msg16->msg.time    = msg.time;
     msg16->msg.pt.x    = (INT16)msg.pt.x;
