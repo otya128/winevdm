@@ -69,11 +69,11 @@ BOOL16 WINAPI ChooseFont16(LPCHOOSEFONT16 lpChFont)
     if (!lpChFont) return FALSE;
     font16 = MapSL(lpChFont->lpLogFont);
 
-    cf32.lStructSize = sizeof(CHOOSEFONTW);
+    cf32.lStructSize = sizeof(CHOOSEFONTA);
     cf32.hwndOwner = HWND_32(lpChFont->hwndOwner);
     cf32.hDC = HDC_32(lpChFont->hDC);
     cf32.iPointSize = lpChFont->iPointSize;
-    cf32.Flags = lpChFont->Flags & ~(CF_ENABLETEMPLATEHANDLE | CF_ENABLETEMPLATE);
+    cf32.Flags = lpChFont->Flags & ~(CF_ENABLETEMPLATEHANDLE | CF_ENABLETEMPLATE | CF_ENABLEHOOK);
     cf32.rgbColors = lpChFont->rgbColors;
     cf32.lCustData = lpChFont->lCustData;
     cf32.lpfnHook = NULL;
