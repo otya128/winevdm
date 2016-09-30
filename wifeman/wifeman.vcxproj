@@ -138,6 +138,7 @@ wifeman.def
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="stub.c" />
+    <ClCompile Include="wifeman.c" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="wifeman.dll16.obj" />
