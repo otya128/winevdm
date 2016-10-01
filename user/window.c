@@ -836,7 +836,7 @@ LONG WINAPI SetClassLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     case GCLP_WNDPROC:
         {
             WNDPROC new_proc = WINPROC_AllocProc16( (WNDPROC16)newval );
-            WNDPROC old_proc = (WNDPROC)SetClassLongA( WIN_Handle32(hwnd16), offset, (LONG_PTR)new_proc );
+            //WNDPROC old_proc = (WNDPROC)SetClassLongA( WIN_Handle32(hwnd16), offset, (LONG_PTR)new_proc );
             ATOM atom = GetClassWord(WIN_Handle32(hwnd16), GCW_ATOM);
             WNDPROC old = WNDCLASS16Info[atom].wndproc;
             WNDCLASS16Info[atom].wndproc = new_proc;
