@@ -298,7 +298,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             cbtcw16.hwndInsertAfter = HWND_16( cbtcw32->hwndInsertAfter );
 
             lp = MapLS( &cbtcw16 );
-            ret = call_hook_16( WH_CBT, code, wp, lp );
+            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
             UnMapLS( cs16.lpszName );
             UnMapLS( cs16.lpszClass );
 
@@ -317,7 +317,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             cas16.hWndActive = HWND_16( cas32->hWndActive );
 
             lp = MapLS( &cas16 );
-            ret = call_hook_16( WH_CBT, code, wp, lp );
+            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
             UnMapLS( lp );
             break;
         }
@@ -347,7 +347,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             rect16.right  = rect32->right;
             rect16.bottom = rect32->bottom;
             lp = MapLS( &rect16 );
-            ret = call_hook_16( WH_CBT, code, wp, lp );
+            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
             UnMapLS( lp );
             break;
         }
