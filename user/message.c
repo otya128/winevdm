@@ -180,8 +180,11 @@ static WNDPROC16 alloc_win16_thunk( WNDPROC handle )
     return (WNDPROC16)MAKESEGPTR( thunk_selector, index * sizeof(WINPROC_THUNK) );
 }
 
+LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
 {
+    if (func == DefWndProca)
+        func = DefWindowProcA;
     WNDPROC ret = WINPROC_AllocProc16(func);
     winproc16_native[winproc_to_index(ret)] = TRUE;
     return ret;
@@ -1105,9 +1108,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         break;
     case WM_CTLCOLOR:
         if (HIWORD(lParam) <= CTLCOLOR_STATIC)
-            ret = callback( hwnd32, WM_CTLCOLORMSGBOX + HIWORD(lParam),
+            ret = HBRUSH_16(callback( hwnd32, WM_CTLCOLORMSGBOX + HIWORD(lParam),
                             (WPARAM)HDC_32(wParam), (LPARAM)WIN_Handle32( LOWORD(lParam) ),
-                            result, arg );
+                            result, arg ));
         break;
     case WM_GETTEXT:
     case WM_SETTEXT:
@@ -1227,6 +1230,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 }
 
 
+void InitWndProc16(HWND hWnd, HWND16 hWnd16);
 /**********************************************************************
  *	     WINPROC_CallProc32ATo16
  *
@@ -1242,6 +1246,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_NCCREATE:
     case WM_CREATE:
         {
+            InitWndProc16(hwnd, HWND_16(hwnd));
             CREATESTRUCTA *cs32 = (CREATESTRUCTA *)lParam;
             CREATESTRUCT16 cs;
             MDICREATESTRUCT16 mdi_cs16;
