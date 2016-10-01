@@ -837,7 +837,10 @@ LONG WINAPI SetClassLong16( HWND16 hwnd16, INT16 offset, LONG newval )
         {
             WNDPROC new_proc = WINPROC_AllocProc16( (WNDPROC16)newval );
             WNDPROC old_proc = (WNDPROC)SetClassLongA( WIN_Handle32(hwnd16), offset, (LONG_PTR)new_proc );
-            return (LONG)WINPROC_GetProc16( old_proc, FALSE );
+            ATOM atom = GetClassWord(WIN_Handle32(hwnd16), GCW_ATOM);
+            WNDPROC old = WNDCLASS16Info[atom].wndproc;
+            WNDCLASS16Info[atom].wndproc = new_proc;
+            return old;//(LONG)WINPROC_GetProc16(old_proc, FALSE);
         }
     case GCLP_MENUNAME:
         newval = (LONG)MapSL( newval );
@@ -1001,11 +1004,12 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
 
 	if (is_winproc)
     {
+        DWORD old = ((LONG_PTR)GetWindowLong16(hwnd16, offset));
         WNDPROC new_proc = WINPROC_AllocProc16( (WNDPROC16)newval );
 		SetWndProc16(hwnd16, new_proc);//krnl386.exe
         //WNDPROC old_proc = (WNDPROC)SetWindowLongPtrA( hwnd, offset, (LONG_PTR)new_proc );
         //return (LONG)WINPROC_GetProc16( old_proc, FALSE );
-		return (LONG_PTR)GetWndProc16(hwnd16);
+		return old;
     }
     if (offset >= 0)
     {
