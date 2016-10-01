@@ -350,7 +350,39 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
             UnMapLS( lp );
             break;
-        }
+    }
+    case HCBT_MINMAX:
+    {
+        ret = call_hook_16(WH_CBT, code, HWND_16(wp), lp);
+        break;
+    }
+    case HCBT_QS:
+    {
+        ret = call_hook_16(WH_CBT, code, wp, lp);
+        break;
+    }
+    case HCBT_DESTROYWND:
+    {
+        ret = call_hook_16(WH_CBT, code, HWND_16(wp), lp);
+        break;
+    }
+    case HCBT_KEYSKIPPED:
+    {
+        ret = call_hook_16(WH_CBT, code, wp, lp);
+        break;
+    }
+    case HCBT_SYSCOMMAND:
+    {
+        ret = call_hook_16(WH_CBT, code, wp, lp);
+        break;
+    }
+    case HCBT_SETFOCUS:
+    {
+        ret = call_hook_16(WH_CBT, code, HWND_16(wp), HWND_16(lp));
+        break;
+    }
+    default:
+        ERR("unknown wndproc hook code:%04X, wParam=%p, lParam=%p\n", code, wp, lp);
     }
     return ret;
 }
