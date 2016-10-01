@@ -683,13 +683,13 @@ BOOL isScrollBar(HWND hWnd)
 WNDPROC get_classinfo_wndproc(const char *class)
 {
     WNDCLASSA wc;
-    GetClassInfoA(NULL, "STATIC", &wc);
+    GetClassInfoA(NULL, class, &wc);
     return wc.lpfnWndProc;
 }
 WNDPROC get_window_wndproc(const char *class)
 {
     WNDPROC lpfnWndProc2 = NULL;
-    HWND hWnd = CreateWindowExA(0, "STATIC", "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), 0);
+    HWND hWnd = CreateWindowExA(0, class, "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), 0);
     if (hWnd)
     {
         lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
@@ -2984,6 +2984,30 @@ LRESULT CALLBACK button_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
 {
     return button_proc16(hwnd, msg, wParam, lParam, FALSE);
 }
+LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    return edit_proc16(hwnd, msg, wParam, lParam, FALSE);
+}
+LRESULT CALLBACK CBTHook(
+    int nCode,      // フックコード
+    WPARAM wParam,  // フックコードに依存
+    LPARAM lParam   // フックコードに依存
+)
+{
+    if (nCode < 0)
+    {
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+    }
+    if (nCode == HCBT_CREATEWND)
+    {
+        HWND hWnd = (HWND)wParam;
+        if (isEdit(hWnd))
+        {
+            SetWindowLongPtrA(hWnd, GWLP_WNDPROC, edit_wndproc16);
+        }
+    }
+    return FALSE;
+}
 LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
 {
     if (code < 0)
@@ -3035,16 +3059,28 @@ LRESULT wow_button_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
     }
     return CallWindowProcA(proc, a, b, c, d);
 }
+LRESULT wow_edit_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
+{
+    static WNDPROC proc = NULL;
+    if (!proc)
+    {
+        proc = get_classinfo_wndproc("EDIT");
+    }
+    return CallWindowProcA(proc, a, b, c, d);
+}
 void InitHook()
 {
     isStatic(NULL);//判定の無限ループが起こるので先に実行する
     isListBox(NULL);//判定の無限ループが起こるので先に実行する
     isButton(NULL);//判定の無限ループが起こるので先に実行する
+    isEdit(NULL);//判定の無限ループが起こるので先に実行する
     SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
+    SetWindowsHookExA(WH_CBT, CBTHook, GetModuleHandle(NULL), GetCurrentThreadId());
 }
 void InitNewThreadHook()
 {
     SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
+    SetWindowsHookExA(WH_CBT, CBTHook, GetModuleHandle(NULL), GetCurrentThreadId());
 }
 BOOL WINAPI DllMain(
     HINSTANCE hinstDLL,
@@ -3276,6 +3312,7 @@ void register_wow_handlers(void)
     wow_handlers32.static_proc = wow_static_proc_wrapper;
     wow_handlers32.listbox_proc = wow_listbox_proc_wrapper;
     wow_handlers32.button_proc = wow_button_proc_wrapper;
+    wow_handlers32.edit_proc = wow_edit_proc_wrapper;
     InitHook();
 	//
 }

@@ -590,7 +590,7 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
                 cs32.lpszClass      = MapSL( cs16->lpszClass );
                 cs32.dwExStyle      = cs16->dwExStyle;
 
-                ret = CallNextHookEx( hhook, code, wparam, (LPARAM)&cbtcw32 );
+                ret = CallNextHookEx( hhook, code, HWND_32(wparam), (LPARAM)&cbtcw32 );
                 cbtcw16->hwndInsertAfter = HWND_16( cbtcw32.hwndInsertAfter );
                 break;
             }
@@ -600,7 +600,7 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
                 CBTACTIVATESTRUCT cas32;
                 cas32.fMouse = cas16->fMouse;
                 cas32.hWndActive = WIN_Handle32(cas16->hWndActive);
-                ret = CallNextHookEx( hhook, code, wparam, (LPARAM)&cas32 );
+                ret = CallNextHookEx( hhook, code, HWND_32(wparam), (LPARAM)&cas32 );
                 break;
             }
         case HCBT_CLICKSKIPPED:
@@ -627,7 +627,7 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
                 rect32.top    = rect16->top;
                 rect32.right  = rect16->right;
                 rect32.bottom = rect16->bottom;
-                ret = CallNextHookEx( hhook, code, wparam, (LPARAM)&rect32 );
+                ret = CallNextHookEx( hhook, code, HWND_32(wparam), (LPARAM)&rect32 );
                 break;
             }
         }
