@@ -1732,12 +1732,20 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 	*/ LONG exstyle = GetWindowLong(hDlg, GWL_EXSTYLE);
 
 //	if (exstyle & WS_EX_DLGMODALFRAME)
-	if (GetWindowLongPtrA(hDlg, DWLP_DLGPROC))
+    char cbuf[512];
+    GetClassNameA(hDlg, cbuf, sizeof(cbuf));
+	if (!stricmp(cbuf, "_____DIALOGCLASS_____")) //GetWindowLongPtrA(hDlg, DWLP_DLGPROC))
 	{
 		WNDCLASSEXA wc;
 		GetClassInfoExA(NULL, "#32770", &wc);
 		return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
 	}
+    if (Msg == WM_INITDIALOG)
+    {
+        WNDCLASSEXA wc;
+        GetClassInfoExA(NULL, "#32770", &wc);
+        return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
+    }
 	WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
     if (wndproc16)
     {

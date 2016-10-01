@@ -29,6 +29,7 @@
 #include "wine/winuser16.h"
 #include "user_private.h"
 #include "wine/debug.h"
+#include <Uxtheme.h>
 
 WINE_DEFAULT_DEBUG_CHANNEL(dialog);
 
@@ -356,6 +357,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	HWND16 hWnd16 = HWND_16(hDlg);
 	WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
+    LRESULT ret;
 	if (wndproc16)
 	{
 		MSG msg;
@@ -364,15 +366,16 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		msg.wParam = wParam;
 		msg.lParam = lParam;
 		MSG16 msg16;
-		LRESULT unused;
 		switch (msg.message)
 		{
-		case WM_CLOSE:
-		case WM_DRAWITEM:
-		case WM_PAINT:
-		case WM_COMMAND:
+        case WM_INITDIALOG:
+            break;
+        default:
 			WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
-				&unused, wndproc16);
+				&ret, wndproc16);
+            if (ret)
+                return ret;
+            break;
 		}
 	}
 	switch (Msg) {
@@ -406,11 +409,10 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 			call_window_proc16(hWnd16, WM_INITDIALOG, HWND_16(wParam), cs->lpCreateParams, &unused, wndproc16);
 		}
 		free(cs);
+        ret = 1;
 	}
 		break;
-		
 	case WM_COMMAND:
-		if (!wndproc16)
 		switch (LOWORD(wParam)) {
 		case IDCANCEL:
 			EndDialog(hDlg, IDCANCEL);
@@ -421,12 +423,11 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		}
 		return FALSE;
 	case WM_CLOSE:
-		if (!wndproc16)
-		DestroyWindow(hDlg);
+		EndDialog(hDlg, IDCANCEL);
 		return TRUE;
 	}
 
-	return FALSE;
+	return ret;
 }
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 void paddingDWORD(DWORD **d)
@@ -550,6 +551,8 @@ static BOOL DIALOG_DumpControls32(HWND hwnd, LPCSTR template,
 	TRACE(" END\n");
 	return TRUE;
 }
+
+#include <stdio.h>
 /***********************************************************************
 *           DIALOG_CreateIndirect16
 *
@@ -699,6 +702,9 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		(DLGTEMPLATE*)template32,
 		owner,
 		hasclass ? DlgProc : DlgProc, paramd);
+	//SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
+	//SetWindowTheme(hwnd, "", "");
+    //SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	//DIALOG_DumpControls32(hwnd, dlgTemplate, &template, hInst, templatew);
 	free(template32);
 	//if (wc2.lpszMenuName) hMenu = LoadMenu16(hInst, wc2.lpszMenuName);
@@ -1095,7 +1101,6 @@ void WINAPI MapDialogRect16( HWND16 hwnd, LPRECT16 rect )
 	rect32.right = rect->right;
 	rect32.top = rect->top;
 	rect32.bottom = rect->bottom;
-	//ERR("MapDialogRect16\n");
     MapDialogRect( WIN_Handle32(hwnd), &rect32 );
     rect->left   = rect32.left;
     rect->right  = rect32.right;
@@ -1257,4 +1262,9 @@ BOOL16 WINAPI DlgDirSelectComboBoxEx16( HWND16 hwnd, LPSTR str, INT16 len,
                                         INT16 id )
 {
     return DlgDirSelectComboBoxExA( WIN_Handle32(hwnd), str, len, id );
+}
+
+LONG WINAPI GetDialogBaseUnits16(VOID)
+{
+    return GetDialogBaseUnits();
 }
