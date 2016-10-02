@@ -17,6 +17,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(ldt);
 static inline int is_gdt_sel(unsigned short sel) { return !(sel & 4); }
 static const LDT_ENTRY null_entry;  /* all-zeros, used to clear LDT entries */
 struct __wine_ldt_copy wine_ldt_copy;
+LDT_ENTRY wine_ldt[8192];
 /* empty function for default locks */
 static void nop(void) { }
 
@@ -59,12 +60,14 @@ int wine_ldt_set_entry(unsigned short sel, const LDT_ENTRY *entry)
 	if (index < LDT_FIRST_ENTRY) return 0;  /* cannot modify reserved entries */
 	if (ret >= 0)
 	{
+        wine_ldt[index] = *entry;
 		wine_ldt_copy.base[index] = wine_ldt_get_base(entry);
 		wine_ldt_copy.limit[index] = wine_ldt_get_limit(entry);
 		wine_ldt_copy.flags[index] = (entry->HighWord.Bits.Type |
 			(entry->HighWord.Bits.Default_Big ? WINE_LDT_FLAGS_32BIT : 0) |
 			(wine_ldt_copy.flags[index] & WINE_LDT_FLAGS_ALLOCATED));
 	}
+
 	TRACE("wine_ldt_set_entry(0x%04X, %p)\n", sel, entry);
 	return 0;
 }
@@ -194,6 +197,7 @@ static int internal_set_entry(unsigned short sel, const LDT_ENTRY *entry)
 
 	if (ret >= 0)
 	{
+        wine_ldt[index] = *entry;
 		wine_ldt_copy.base[index] = wine_ldt_get_base(entry);
 		wine_ldt_copy.limit[index] = wine_ldt_get_limit(entry);
 		wine_ldt_copy.flags[index] = (entry->HighWord.Bits.Type |

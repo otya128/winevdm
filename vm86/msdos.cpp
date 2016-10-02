@@ -503,12 +503,14 @@ extern "C"
 	unsigned short wine_ldt_alloc_entries(int count);
 	int wine_ldt_set_entry(unsigned short sel, const LDT_ENTRY *entry);
 	void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry);
-	//_declspec(dllimport) struct __wine_ldt_copy
-	//{
-	//	void         *base[8192];  /* base address or 0 if entry is free   */
-	//	unsigned long limit[8192]; /* limit in bytes or 0 if entry is free */
-	//	unsigned char flags[8192]; /* flags (defined below) */
-	//} wine_ldt_copy;
+    struct __wine_ldt_copy
+    {
+        void         *base[8192];  /* base address or 0 if entry is free   */
+        unsigned long limit[8192]; /* limit in bytes or 0 if entry is free */
+        unsigned char flags[8192]; /* flags (defined below) */
+    };
+	_declspec(dllimport) struct __wine_ldt_copy wine_ldt_copy;
+    _declspec(dllimport) LDT_ENTRY wine_ldt[8192];
 #define WINE_LDT_FLAGS_DATA      0x13  /* Data segment */
 	/* helper functions to manipulate the LDT_ENTRY structure */
 	static inline void wine_ldt_set_base(LDT_ENTRY *ent, const void *base)
@@ -661,6 +663,19 @@ extern "C"
 		build_opcode_table(OP_I386 | OP_FPU);
 		CPU_RESET_CALL(CPU_MODEL);
 		m_idtr.base = (UINT32)table;
+        m_ldtr.limit = 8192;
+        m_ldtr.base = (UINT32)&wine_ldt;
+        m_gdtr.limit = 8192;
+        m_gdtr.base = (UINT32)&wine_ldt;
+        m_CPL = 3;
+        wine_ldt[4].HighWord.Bits.Type = 0x18;
+        wine_ldt[4].HighWord.Bits.Pres = 1;
+        wine_ldt[4].HighWord.Bits.Sys = 1;
+        wine_ldt[4].LimitLow = 0xFFFF;
+        wine_ldt[4].HighWord.Bits.LimitHi = 0xF;
+        wine_ldt[4].HighWord.Bits.Default_Big = 1;
+        wine_ldt[4].HighWord.Bits.Granularity = 1;
+        wine_ldt[4].HighWord.Bits.Dpl = m_CPL;
 		memset(iret, 0xcf, 256);
 		for (int i = 0; i < 256; i++)
 		{
@@ -675,10 +690,15 @@ extern "C"
 #endif
 		//m_amask = -1;
 		m_a20_mask = -1;
-		set_flags(0x20000);//V8086_MODE
-		assert(V8086_MODE);
+		//set_flags(0x20000);//V8086_MODE
+		//assert(V8086_MODE);
+        m_cr[0] |= 1;//PROTECTED MODE
 		return TRUE;
 	}
+    DWORD mergeReg(DWORD a1, DWORD a2)
+    {
+        return a1 == a2 ? a1 : a2;
+    }
 	void WINAPI InitTask16(CONTEXT*);
 	BOOL initflag;
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
@@ -722,7 +742,7 @@ extern "C"
 		return context.Eax | context.Edx << 16;
 	}
 	UINT old_eip = 0;
-	LONG catch_exception(_EXCEPTION_POINTERS *ep);
+	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE er);
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
@@ -731,7 +751,8 @@ extern "C"
 		bool dasm
 		)
 	{
-		__try {
+		__try
+        {
 			if (!initflag)
 				initflag = init_vm86();
 			//wine_ldt_copy.base[0] = iret;
@@ -766,6 +787,7 @@ extern "C"
 				unsigned char *stack = (unsigned char*)i386_translate(SS, REG16(SP), 0);
 				ret_addr = *(DWORD*)stack;
 			}
+            bool isVM86mode = false;
 			//dasm = true;
 			while (!m_halted) {
 				bool reg = false;
@@ -913,6 +935,28 @@ extern "C"
 					}
 					if (relay == (UINT)relay_call_from_16 || 1)
 					{
+#include <pshpack1.h>
+                        /* 16-bit stack layout after __wine_call_from_16() */
+                        typedef struct _STACK16FRAME
+                        {
+                            struct STACK32FRAME *frame32;        /* 00 32-bit frame from last CallTo16() */
+                            DWORD         edx;            /* 04 saved registers */
+                            DWORD         ecx;            /* 08 */
+                            DWORD         ebp;            /* 0c */
+                            WORD          ds;             /* 10 */
+                            WORD          es;             /* 12 */
+                            WORD          fs;             /* 14 */
+                            WORD          gs;             /* 16 */
+                            DWORD         callfrom_ip;    /* 18 callfrom tail IP */
+                            DWORD         module_cs;      /* 1c module code segment */
+                            DWORD         relay;          /* 20 relay function address */
+                            WORD          entry_ip;       /* 22 entry point IP */
+                            DWORD         entry_point;    /* 26 API entry point to call, reused as mutex count */
+                            WORD          bp;             /* 2a 16-bit stack frame chain */
+                            WORD          ip;             /* 2c return address */
+                            WORD          cs;             /* 2e */
+                        } STACK16FRAME;
+#include <poppack.h>
 						CONTEXT context;
 						WORD osp = REG16(SP);
 						PUSH16(SREG(GS));
@@ -924,6 +968,7 @@ extern "C"
 						PUSH32(REG32(EDX));
 						PUSH32(/*context.Esp*/osp);
 						save_context(&context);
+                        STACK16FRAME *oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
 						DWORD ooo = (WORD)context.Esp;
 						int fret;
 						if (relay != (UINT)relay_call_from_16)
@@ -940,18 +985,21 @@ extern "C"
 							//shld‚³‚ê‚é
 							REG32(EAX) = fret;
 						}
+                        oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
 						if (reg) REG16(AX) = (WORD)context.Eax;
-						REG16(CX) = (WORD)context.Ecx;
+						REG16(CX) = reg ? (WORD)context.Ecx : (WORD)oa->ecx;
 						if (reg) REG16(DX) = (WORD)context.Edx;
+                        else
+                            REG16(DX) = (WORD)oa->edx;
 						REG16(BX) = (WORD)context.Ebx;
 						REG16(SP) = (WORD)context.Esp;
 						REG16(BP) = (WORD)context.Ebp;
 						REG16(SI) = (WORD)context.Esi;
 						REG16(DI) = (WORD)context.Edi;
-						SREG(ES) = (WORD)context.SegEs;
+                        SREG(ES) = reg ? (WORD)context.SegEs : (WORD)oa->es;
 						SREG(CS) = (WORD)context.SegCs;
 						SREG(SS) = (WORD)context.SegSs;
-						SREG(DS) = (WORD)context.SegDs;//ES, CS, SS, DS
+						SREG(DS) = reg ? (WORD)context.SegDs : (WORD)oa->ds;//ES, CS, SS, DS
 						//ES, CS, SS, DS, FS, GS
 						SREG(FS) = (WORD)context.SegFs;
 						SREG(GS) = (WORD)context.SegGs;
@@ -1014,7 +1062,7 @@ extern "C"
 				{
 					if (dasm && m_VM)
 					{
-						printf("==ENTER 32BIT CODE==\n");
+						//printf("==ENTER 32BIT CODE==\n");
 					}
 					m_VM = 0;
 					m_eflags &= ~0x20000;
@@ -1026,11 +1074,14 @@ extern "C"
 				{
 					if (dasm && !m_VM)
 					{
-						printf("==ENTER 16BIT CODE==\n");
+						//printf("==ENTER 16BIT CODE==\n");
 					}
-					m_VM = 1;
-					m_eflags |= 0x20000;
-					m_sreg[CS].d = 0;
+                    if (isVM86mode)
+                    {
+                        m_VM = 1;
+                        m_eflags |= 0x20000;
+                    }
+                    m_sreg[CS].d = 0;
 					m_operand_size = 0;
 				}
 #ifdef SUPPORT_DISASSEMBLER
@@ -1064,16 +1115,18 @@ extern "C"
 			}
 			save_context(context);
 		}
-		__except (catch_exception(GetExceptionInformation()))
+		__except (catch_exception(GetExceptionInformation(), (PEXCEPTION_ROUTINE)handler))
 		{
-
 		}
 	}
-	LONG catch_exception(_EXCEPTION_POINTERS *ep)
+	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE winehandler)
 	{
 		PEXCEPTION_RECORD rec = ep->ExceptionRecord;
 		if (rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
 			return EXCEPTION_CONTINUE_SEARCH;
+        CONTEXT context;
+        save_context(&context);
+        //return winehandler(ep->ExceptionRecord, NULL, &context, NULL);
         char buffer[256] = {}, buffer2[256] = {};
 		if (!1) {
 #if defined(HAS_I386)
@@ -1125,6 +1178,10 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, buffer2, buffer);
 					context.SegCs = SREG(CS);
 					context.SegSs = SREG(SS);
 					context.SegDs = SREG(DS);*/
+        fprintf(stderr, "%s", buf);
+#ifdef _DEBUG
+        _getch();
+#endif
 		MessageBoxA(NULL, buf, "SEGV", MB_ICONERROR);
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
