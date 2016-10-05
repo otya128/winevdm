@@ -922,6 +922,7 @@ static const char *get_heap_name( WORD ds )
     return "local";
 }
 
+SEGPTR WINAPI K32WOWGlobalLock16(HGLOBAL16 handle);
 /***********************************************************************
  *           LOCAL_GetBlock
  * The segment may get moved around in this function, so all callers
@@ -936,9 +937,18 @@ static HLOCAL16 LOCAL_GetBlock( HANDLE16 ds, WORD size, WORD flags )
 
     if (!(pInfo = LOCAL_GetHeap( ds )))
     {
-        ERR("Local heap not found\n");
-	LOCAL_PrintHeap(ds);
-	return 0;
+        DWORD addr = K32WOWGlobalLock16(ds);
+        if (addr)
+        {
+            LocalInit16(ds, addr & 0xFFFF, (addr & 0xFFFF) + GlobalSize16(ds));
+            GlobalUnlock16(ds);
+        }
+        else
+        {
+            ERR("Local heap not found\n");
+            LOCAL_PrintHeap(ds);
+            return 0;
+        }
     }
 
     size += ARENA_HEADER_SIZE;
