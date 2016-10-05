@@ -512,6 +512,7 @@ extern "C"
 	_declspec(dllimport) struct __wine_ldt_copy wine_ldt_copy;
     _declspec(dllimport) LDT_ENTRY wine_ldt[8192];
 #define WINE_LDT_FLAGS_DATA      0x13  /* Data segment */
+#define WINE_LDT_FLAGS_CODE      0x1b  /* Code segment */
 	/* helper functions to manipulate the LDT_ENTRY structure */
 	static inline void wine_ldt_set_base(LDT_ENTRY *ent, const void *base)
 	{
@@ -651,12 +652,12 @@ extern "C"
 	}
 	void __wine_call_int_handler(CONTEXT *context, BYTE intnum);
 	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
-	unsigned char table[256 * 4 + 2] = { 0xcf };
+	unsigned char table[256 * 4 + 2 + 0x8 * 256] = { 0xcf };
 	unsigned char iret[256] = { 0xcf };
 	WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags);
 	__declspec(dllexport) BOOL init_vm86()
 	{
-		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_DATA);
+		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
 		CPU_INIT_CALL(CPU_MODEL);
 		//enable x87
 		build_x87_opcode_table();
@@ -684,6 +685,15 @@ extern "C"
 			*(WORD*)&table[i * 4 + 2] = sel;
 			*(WORD*)&table[i * 4] = i;
 		}
+        //PROTECTED MODE
+        for (int i = 0; i < 256; i++)
+        {
+            *(WORD*)&table[i * 8] = i;
+            *(WORD*)&table[i * 8 + 2] = sel;
+            *(BYTE*)&table[i * 8 + 4] = 0x00;
+            *(BYTE*)&table[i * 8 + 5] = 0x66 | 0x80;
+            *(WORD*)&table[i * 8 + 6] = 0;
+        }
 #if defined(HAS_I386)
 		cpu_type = (REG32(EDX) >> 8) & 0x0f;
 		cpu_step = (REG32(EDX) >> 0) & 0x0f;
