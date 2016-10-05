@@ -357,7 +357,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	HWND16 hWnd16 = HWND_16(hDlg);
 	WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
-    LRESULT ret;
+    LRESULT ret = 0;
 	if (wndproc16)
 	{
 		MSG msg;
