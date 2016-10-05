@@ -181,10 +181,14 @@ static WNDPROC16 alloc_win16_thunk( WNDPROC handle )
 }
 
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK DefEditProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
 {
     if (func == DefWndProca)
         func = DefWindowProcA;
+    if (func == DefEditProc)
+        func = edit_wndproc16;
     WNDPROC ret = WINPROC_AllocProc16(func);
     winproc16_native[winproc_to_index(ret)] = TRUE;
     return ret;
@@ -1624,8 +1628,14 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case BM_SETSTYLE:
         ret = callback( HWND_16(hwnd), msg + BM_GETCHECK16 - BM_GETCHECK, wParam, lParam, result, arg );
         break;
-    case EM_GETSEL:
     case EM_GETRECT:
+    {
+        lParam = MapLS(lParam);
+        ret = callback(HWND_16(hwnd), msg + EM_GETSEL16 - EM_GETSEL, wParam, lParam, result, arg);
+        UnMapLS(lParam);
+    }
+    break;
+    case EM_GETSEL:
     case EM_SETRECT:
     case EM_SETRECTNP:
     case EM_SCROLL:
@@ -2443,7 +2453,7 @@ static LRESULT combo_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, 
 static void edit_lock_buffer( HWND hwnd )
 {
     STACK16FRAME* stack16 = MapSL(PtrToUlong(getWOW32Reserved()));
-    HLOCAL16 hloc16 = GetWindowWord( hwnd, GWW_HANDLE16 );
+    HLOCAL16 hloc16 = GetWindowWord16( HWND_16(hwnd), GWW_HANDLE16 );
     HANDLE16 oldDS;
     HLOCAL hloc32;
     UINT size;
@@ -2452,7 +2462,7 @@ static void edit_lock_buffer( HWND hwnd )
     if (!(hloc32 = (HLOCAL)wow_handlers32.edit_proc( hwnd, EM_GETHANDLE, 0, 0, FALSE ))) return;
 
     oldDS = stack16->ds;
-    stack16->ds = GetWindowLongPtrW( hwnd, GWLP_HINSTANCE );
+    stack16->ds = GetWindowWord16( HWND_16(hwnd), GWLP_HINSTANCE );
     size = LocalSize16(hloc16);
     if (LocalReAlloc( hloc32, size, LMEM_MOVEABLE ))
     {
@@ -2469,7 +2479,7 @@ static void edit_lock_buffer( HWND hwnd )
 static void edit_unlock_buffer( HWND hwnd )
 {
     STACK16FRAME* stack16 = MapSL(PtrToUlong(getWOW32Reserved()));
-    HLOCAL16 hloc16 = GetWindowWord( hwnd, GWW_HANDLE16 );
+    HLOCAL16 hloc16 = GetWindowWord16( HWND_16(hwnd), GWW_HANDLE16 );
     HANDLE16 oldDS;
     HLOCAL hloc32;
     UINT size;
@@ -2479,7 +2489,7 @@ static void edit_unlock_buffer( HWND hwnd )
     size = LocalSize( hloc32 );
 
     oldDS = stack16->ds;
-    stack16->ds = GetWindowLongPtrW( hwnd, GWLP_HINSTANCE );
+    stack16->ds = GetWindowWord16( HWND_16(hwnd), GWLP_HINSTANCE );
     if (LocalReAlloc16( hloc16, size, LMEM_MOVEABLE ))
     {
         char *text = LocalLock( hloc32 );
@@ -2498,7 +2508,7 @@ static HLOCAL16 edit_get_handle( HWND hwnd )
     HLOCAL hloc;
     STACK16FRAME* stack16;
     HANDLE16 oldDS;
-    HLOCAL16 hloc16 = GetWindowWord( hwnd, GWW_HANDLE16 );
+    HLOCAL16 hloc16 = GetWindowWord16( HWND_16(hwnd), GWW_HANDLE16 );
 
     if (hloc16) return hloc16;
 
@@ -2507,7 +2517,7 @@ static HLOCAL16 edit_get_handle( HWND hwnd )
 
     stack16 = MapSL(PtrToUlong(getWOW32Reserved()));
     oldDS = stack16->ds;
-    stack16->ds = GetWindowLongPtrW( hwnd, GWLP_HINSTANCE );
+    stack16->ds = GetWindowWord16( HWND_16(hwnd), GWLP_HINSTANCE );
 
     if (!LocalHeapSize16())
     {
@@ -2534,7 +2544,7 @@ static HLOCAL16 edit_get_handle( HWND hwnd )
     memcpy( textA, LocalLock( hloc ), alloc_size );
     LocalUnlock( hloc );
     LocalUnlock16( hloc16 );
-    SetWindowWord( hwnd, GWW_HANDLE16, hloc16 );
+    SetWindowWord16( HWND_16(hwnd), GWW_HANDLE16, hloc16 );
 
 done:
     stack16->ds = oldDS;
@@ -2544,7 +2554,7 @@ done:
 static void edit_set_handle( HWND hwnd, HLOCAL16 hloc16 )
 {
     STACK16FRAME* stack16 = MapSL(PtrToUlong(getWOW32Reserved()));
-    HINSTANCE16 hInstance = GetWindowLongPtrW( hwnd, GWLP_HINSTANCE );
+    HINSTANCE16 hInstance = GetWindowWord16(HWND_16(hwnd), GWLP_HINSTANCE );
     HANDLE16 oldDS = stack16->ds;
     HLOCAL hloc32;
     INT count;
@@ -2561,7 +2571,7 @@ static void edit_set_handle( HWND hwnd, HLOCAL16 hloc16 )
         memcpy( LocalLock(hloc32), text, count );
         LocalUnlock(hloc32);
         LocalUnlock16(hloc16);
-        SetWindowWord( hwnd, GWW_HANDLE16, hloc16 );
+        SetWindowWord16( HWND_16(hwnd), GWW_HANDLE16, hloc16 );
     }
     stack16->ds = oldDS;
 
@@ -2570,17 +2580,17 @@ static void edit_set_handle( HWND hwnd, HLOCAL16 hloc16 )
 
 static void edit_destroy_handle( HWND hwnd )
 {
-    HLOCAL16 hloc16 = GetWindowWord( hwnd, GWW_HANDLE16 );
+    HLOCAL16 hloc16 = GetWindowWord16( HWND_16(hwnd), GWW_HANDLE16 );
     if (hloc16)
     {
         STACK16FRAME* stack16 = MapSL(PtrToUlong(getWOW32Reserved()));
         HANDLE16 oldDS = stack16->ds;
 
-        stack16->ds = GetWindowLongPtrW( hwnd, GWLP_HINSTANCE );
+        stack16->ds = GetWindowWord16( HWND_16(hwnd), GWLP_HINSTANCE );
         while (LocalUnlock16(hloc16)) ;
         LocalFree16(hloc16);
         stack16->ds = oldDS;
-        SetWindowWord( hwnd, GWW_HANDLE16, 0 );
+        SetWindowWord16( HWND_16(hwnd), GWW_HANDLE16, 0 );
     }
 }
 
@@ -2592,7 +2602,7 @@ static LRESULT edit_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
     static const UINT msg16_offset = EM_GETSEL16 - EM_GETSEL;
     LRESULT result = 0;
 
-    edit_lock_buffer( hwnd );
+    //edit_lock_buffer( hwnd );
     switch (msg)
     {
     case EM_SCROLL16:
@@ -2651,6 +2661,11 @@ static LRESULT edit_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
         {
             RECT rect;
             RECT16 *r16 = MapSL(lParam);
+            if (SELECTOROF(r16) == 0x0000)
+            {
+                ERR("EM_GETRECT16:Invalid pointer(%02X:%02X)\n", SELECTOROF(lParam), OFFSETOF(lParam));
+                return 0;
+            }
             wow_handlers32.edit_proc( hwnd, msg - msg16_offset, wParam, (LPARAM)&rect, FALSE );
             r16->left   = rect.left;
             r16->top    = rect.top;
@@ -2716,7 +2731,7 @@ static LRESULT edit_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, B
         result = wow_handlers32.edit_proc( hwnd, msg, wParam, lParam, unicode );
         break;
     }
-    edit_unlock_buffer( hwnd );
+    //edit_unlock_buffer( hwnd );
     return result;
 }
 

@@ -919,7 +919,12 @@ WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
     switch (offset)
     {
     case GWL_HINSTANCE:
-        return (SetWindowLongA(WIN_Handle32(hwnd), offset, HINSTANCE_32(newval)));
+    {
+        HINSTANCE16 old = (HINSTANCE16)GetWindowWord16(hwnd, offset);
+        SetWindowHInst16(hwnd, newval);
+        (SetWindowLongA(WIN_Handle32(hwnd), offset, HINSTANCE_32(newval)));
+        return old;
+    }
     case GWL_HWNDPARENT:
         return (SetWindowLongA(WIN_Handle32(hwnd), offset, HWND_32(newval)));
     default:
@@ -991,6 +996,44 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
 }
 
 
+void InitWndProc16(HWND hWnd, HWND16 hWnd16);
+LRESULT get_message_callback(HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
+    LRESULT *result, void *arg);
+LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
+    LRESULT *result, void *arg);
+LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
+
+LRESULT CALLBACK DefWndProcTemplate(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROC def)
+{
+    HWND16 hWnd16 = HWND_16(hDlg);
+    if (!GetWndProc16(hWnd16))
+    {
+        InitWndProc16(hDlg, hWnd16);
+    }
+    WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
+    if (wndproc16)
+    {
+        MSG msg;
+        msg.hwnd = hDlg;
+        msg.message = Msg;
+        msg.wParam = wParam;
+        msg.lParam = lParam;
+        MSG16 msg16;
+        LRESULT unused;
+        WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+            &unused, wndproc16);
+        return unused;
+    }
+    return CallWindowProcA(def, hDlg, Msg, wParam, lParam);
+}
+WNDPROC get_classinfo_wndproc(const char *class);
+BOOL isEdit(HWND hWnd);
+LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK DefEditProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+    return DefWndProcTemplate(hWnd, Msg, wParam, lParam, edit_wndproc16);
+}
 /**********************************************************************
  *		SetWindowLong (USER.136)
  */
@@ -1004,11 +1047,23 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
 
 	if (is_winproc)
     {
+        BOOL isDefWndProca = GetWindowLongA(hwnd, offset) == DefWndProca;
         DWORD old = ((LONG_PTR)GetWindowLong16(hwnd16, offset));
         WNDPROC new_proc = WINPROC_AllocProc16( (WNDPROC16)newval );
 		SetWndProc16(hwnd16, new_proc);//krnl386.exe
         //WNDPROC old_proc = (WNDPROC)SetWindowLongPtrA( hwnd, offset, (LONG_PTR)new_proc );
         //return (LONG)WINPROC_GetProc16( old_proc, FALSE );
+        if (!isDefWndProca)
+        {
+            if (isEdit(hwnd) || GetWindowLongA(hwnd, offset) == edit_wndproc16)
+            {
+                SetWindowLongA(hwnd, offset, DefEditProc);
+            }
+            else
+            {
+                //SetWindowLongA(hwnd, offset, DefWndProca);
+            }
+        }
 		return old;
     }
     if (offset >= 0)
@@ -1707,12 +1762,6 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
     return SetWindowPlacement( WIN_Handle32(hwnd), &wpl );
 }
 
-void InitWndProc16(HWND hWnd, HWND16 hWnd16);
-LRESULT get_message_callback(HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
-	LRESULT *result, void *arg); 
-LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
-	LRESULT *result, void *arg);
-LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	HWND16 hWnd16 = HWND_16(hDlg);
