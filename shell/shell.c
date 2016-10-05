@@ -328,7 +328,7 @@ HICON WINAPI ExtractIconNE(HINSTANCE hInstance, LPCSTR lpszFile, UINT nIconIndex
 	UINT ret;
 	UINT cx = GetSystemMetrics(SM_CXICON), cy = GetSystemMetrics(SM_CYICON);
 
-	TRACE("%p %s %d\n", hInstance, debugstr_w(lpszFile), nIconIndex);
+	TRACE("%p %s %d\n", hInstance, debugstr_a(lpszFile), nIconIndex);
 
 	if (nIconIndex == (UINT)-1)
 	{
@@ -347,6 +347,7 @@ HICON WINAPI ExtractIconNE(HINSTANCE hInstance, LPCSTR lpszFile, UINT nIconIndex
 
 	return NULL;
 }
+__declspec(dllimport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 /*************************************************************************
  *             ExtractIcon   (SHELL.34)
  */
@@ -354,6 +355,8 @@ HICON16 WINAPI ExtractIcon16( HINSTANCE16 hInstance, LPCSTR lpszExeFileName,
 	UINT16 nIconIndex )
 {   TRACE("\n");
 	//return convert_icon_to_16( hInstance, NE_ExtractIcon(lpszExeFileName, nIconIndex, 0, 0, 0));
+    char buf[MAX_PATH];
+    lpszExeFileName = RedirectSystemDir(lpszExeFileName, buf, MAX_PATH);
 if (nIconIndex == 0xFFFF)
 {
 	//icon count
