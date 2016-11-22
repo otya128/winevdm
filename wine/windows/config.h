@@ -565,6 +565,12 @@
 /* Define to 1 if you have the <ncurses.h> header file. */
 #define HAVE_NCURSES_H 1
 
+/* Define to 1 if you have the `nearbyint' function. */
+/* #undef HAVE_NEARBYINT */
+
+/* Define to 1 if you have the `nearbyintf' function. */
+/* #undef HAVE_NEARBYINTF */
+
 /* Define to 1 if you have the <netdb.h> header file. */
 #define HAVE_NETDB_H 1
 
