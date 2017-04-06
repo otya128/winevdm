@@ -1413,6 +1413,9 @@
 /* Define to the soname of the libGL library. */
 /* #undef SONAME_LIBGL */
 
+/* Define to the soname of the libGLU library. */
+/* #undef SONAME_LIBGLU */
+
 /* Define to the soname of the libgnutls library. */
 #define SONAME_LIBGNUTLS "	cyggnutls-28.dll"
 
