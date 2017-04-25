@@ -202,6 +202,9 @@
 /* Define to 1 if you have the `getattrlist' function. */
 /* #undef HAVE_GETATTRLIST */
 
+/* Define to 1 if you have the `getauxval' function. */
+/* #undef HAVE_GETAUXVAL */
+
 /* Define to 1 if you have the `getnameinfo' function. */
 #define HAVE_GETNAMEINFO 1
 
@@ -1035,6 +1038,9 @@
 
 /* Define to 1 if you have the <sys/attr.h> header file. */
 /* #undef HAVE_SYS_ATTR_H */
+
+/* Define to 1 if you have the <sys/auxv.h> header file. */
+/* #undef HAVE_SYS_AUXV_H */
 
 /* Define to 1 if you have the <sys/cdio.h> header file. */
 /* #undef HAVE_SYS_CDIO_H */
