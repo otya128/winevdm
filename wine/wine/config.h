@@ -1252,6 +1252,9 @@
 /* Define to 1 if you have the <X11/extensions/xf86vmproto.h> header file. */
 /* #undef HAVE_X11_EXTENSIONS_XF86VMPROTO_H */
 
+/* Define to 1 if you have the <X11/extensions/Xfixes.h> header file. */
+/* #undef HAVE_X11_EXTENSIONS_XFIXES_H */
+
 /* Define to 1 if you have the <X11/extensions/Xinerama.h> header file. */
 /* #undef HAVE_X11_EXTENSIONS_XINERAMA_H */
 
@@ -1472,6 +1475,9 @@
 
 /* Define to the soname of the libXext library. */
 /* #undef SONAME_LIBXEXT */
+
+/* Define to the soname of the libXfixes library. */
+/* #undef SONAME_LIBXFIXES */
 
 /* Define to the soname of the libXi library. */
 /* #undef SONAME_LIBXI */
