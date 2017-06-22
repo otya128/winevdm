@@ -118,6 +118,9 @@
 /* Define to 1 if you have the `dlopen' function. */
 //#define HAVE_DLOPEN 1
 
+/* Define to 1 if you have the <EGL/egl.h> header file. */
+/* #undef HAVE_EGL_EGL_H */
+
 /* Define to 1 if you have the <elf.h> header file. */
 //#define HAVE_ELF_H 1
 
@@ -1416,6 +1419,9 @@
 /* Define to the soname of the libdbus-1 library. */
 #define SONAME_LIBDBUS_1 "	cygdbus-1-3.dll"
 
+/* Define to the soname of the libEGL library. */
+/* #undef SONAME_LIBEGL */
+
 /* Define to the soname of the libfontconfig library. */
 #define SONAME_LIBFONTCONFIG "	cygfontconfig-1.dll"
 
@@ -1424,6 +1430,9 @@
 
 /* Define to the soname of the libGL library. */
 /* #undef SONAME_LIBGL */
+
+/* Define to the soname of the libGLESv2 library. */
+/* #undef SONAME_LIBGLESV2 */
 
 /* Define to the soname of the libGLU library. */
 /* #undef SONAME_LIBGLU */
