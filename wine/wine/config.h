@@ -11,6 +11,12 @@
 /* Define to the file extension for executables. */
 #define EXEEXT ".exe"
 
+/* Define to 1 if you have the `acosh' function. */
+/* #undef HAVE_ACOSH */
+
+/* Define to 1 if you have the `acoshf' function. */
+/* #undef HAVE_ACOSHF */
+
 /* Define to 1 if you have the <alias.h> header file. */
 /* #undef HAVE_ALIAS_H */
 
