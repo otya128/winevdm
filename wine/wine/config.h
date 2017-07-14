@@ -157,6 +157,12 @@
 /* Define to 1 if you have the `exp2f' function. */
 #define HAVE_EXP2F 1
 
+/* Define to 1 if you have the `expm1' function. */
+/* #undef HAVE_EXPM1 */
+
+/* Define to 1 if you have the `expm1f' function. */
+/* #undef HAVE_EXPM1F */
+
 /* Define to 1 if you have the `fallocate' function. */
 /* #undef HAVE_FALLOCATE */
 
