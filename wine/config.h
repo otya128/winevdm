@@ -523,6 +523,12 @@
 /* Define to 1 if you have the `llroundf' function. */
 #define HAVE_LLROUNDF 1
 
+/* Define to 1 if you have the `log1p' function. */
+/* #undef HAVE_LOG1P */
+
+/* Define to 1 if you have the `log1pf' function. */
+/* #undef HAVE_LOG1PF */
+
 /* Define to 1 if you have the `log2' function. */
 #define HAVE_LOG2 1
 
