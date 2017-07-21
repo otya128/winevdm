@@ -3883,6 +3883,7 @@ static unsigned INT21_FindHelper(LPCWSTR fullPath, unsigned drive, unsigned coun
         path[0] = drive + 'A';
         entry->cAlternateFileName[0] = '\0';
         if (!GetVolumeInformationA(path, entry->cAlternateFileName, 13, NULL, NULL, NULL, NULL, 0)) return 0;
+        if (!entry->cAlternateFileName[0]) return 0;
         RtlSecondsSince1970ToTime( 0, (LARGE_INTEGER *)&entry->ftCreationTime );
         RtlSecondsSince1970ToTime( 0, (LARGE_INTEGER *)&entry->ftLastAccessTime );
         RtlSecondsSince1970ToTime( 0, (LARGE_INTEGER *)&entry->ftLastWriteTime );
