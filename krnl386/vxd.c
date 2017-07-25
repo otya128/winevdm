@@ -288,10 +288,11 @@ done:
  *		VxDCall7 (KERNEL32.8)
  *		VxDCall8 (KERNEL32.9)
  */
-void WINAPI DECLSPEC_HIDDEN __regs_VxDCall( DWORD service, CONTEXT *context )
+void WINAPI DECLSPEC_HIDDEN __regs_VxDCall( CONTEXT *context )
 {
     unsigned int i;
     VxDCallProc proc = NULL;
+    DWORD service = stack32_pop( context );
 
     RtlEnterCriticalSection( &vxd_section );
     for (i = 0; i < NB_VXD_SERVICES; i++)
@@ -320,7 +321,7 @@ DEFINE_REGS_ENTRYPOINT(aa2, 2);
 DEFINE_REGS_ENTRYPOINT(aa3, 3);
 DEFINE_REGS_ENTRYPOINT(aa4, 4);
 DEFINE_REGS_ENTRYPOINT(aa5, 5);
-DEFINE_REGS_ENTRYPOINT(VxDCall, 1);
+DEFINE_REGS_ENTRYPOINT( VxDCall, 0 )
 
 
 /***********************************************************************
