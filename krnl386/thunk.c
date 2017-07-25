@@ -148,10 +148,10 @@ SEGPTR CALL32_CBClientEx_RetAddr = 0;
 
 extern int call_entry_point( void *func, int nb_args, const DWORD *args );
 extern void __wine_call_from_16_thunk(void);
-DEFINE_REGS_ENTRYPOINT(FT_Prolog, 0)
-DEFINE_REGS_ENTRYPOINT(FT_PrologPrime, 0)
-DEFINE_REGS_ENTRYPOINT(QT_Thunk, 0)
-DEFINE_REGS_ENTRYPOINT(QT_ThunkPrime, 0)
+DEFINE_REGS_ENTRYPOINT( FT_Prolog )
+DEFINE_REGS_ENTRYPOINT( FT_PrologPrime )
+DEFINE_REGS_ENTRYPOINT( QT_Thunk )
+DEFINE_REGS_ENTRYPOINT( QT_ThunkPrime )
 
 /***********************************************************************
  *                                                                     *
@@ -591,7 +591,7 @@ void WINAPI __regs_FT_Thunk( CONTEXT *context )
     /* Copy modified buffers back to 32-bit stack */
     memcpy( oldstack, newstack, argsize );
 }
-DEFINE_REGS_ENTRYPOINT( FT_Thunk, 0 )
+DEFINE_REGS_ENTRYPOINT( FT_Thunk )
 
 /***********************************************************************
  *		FT_Exit0 (KERNEL32.@)
@@ -742,7 +742,7 @@ void WINAPI __regs_Common32ThkLS( CONTEXT *context )
     /* Clean up caller's stack frame */
     context->Esp += LOBYTE(context16.Ebx);
 }
-DEFINE_REGS_ENTRYPOINT( Common32ThkLS, 0 )
+DEFINE_REGS_ENTRYPOINT( Common32ThkLS )
 
 /***********************************************************************
  *		OT_32ThkLSF	(KERNEL32.40)
@@ -797,7 +797,7 @@ void WINAPI __regs_OT_32ThkLSF( CONTEXT *context )
     context->Esp +=   LOWORD(context16.Esp) -
                         ( OFFSETOF(getWOW32Reserved()) - argsize );
 }
-DEFINE_REGS_ENTRYPOINT( OT_32ThkLSF, 0 )
+DEFINE_REGS_ENTRYPOINT( OT_32ThkLSF )
 
 /***********************************************************************
  *		ThunkInitLSF		(KERNEL32.41)
@@ -1031,7 +1031,7 @@ void WINAPI __regs_W32S_BackTo32( CONTEXT *context )
     context->Eax = call_entry_point( proc, 10, stack + 1 );
     context->Eip = stack32_pop(context);
 }
-DEFINE_REGS_ENTRYPOINT( W32S_BackTo32, 0 )
+DEFINE_REGS_ENTRYPOINT( W32S_BackTo32 )
 
 /**********************************************************************
  *			AllocSLCallback		(KERNEL32.@)
@@ -1146,7 +1146,7 @@ void WINAPI __regs_AllocMappedBuffer(
         context->Edi = (DWORD)(buffer + 2);
     }
 }
-DEFINE_REGS_ENTRYPOINT( AllocMappedBuffer, 0 )
+DEFINE_REGS_ENTRYPOINT( AllocMappedBuffer )
 
 /**********************************************************************
  * 		FreeMappedBuffer	(KERNEL32.39)
@@ -1169,7 +1169,7 @@ void WINAPI __regs_FreeMappedBuffer(
         GlobalFree((HGLOBAL)buffer[0]);
     }
 }
-DEFINE_REGS_ENTRYPOINT( FreeMappedBuffer, 0 )
+DEFINE_REGS_ENTRYPOINT( FreeMappedBuffer )
 
 /**********************************************************************
  * 		GetTEBSelectorFS	(KERNEL.475)
@@ -1275,7 +1275,7 @@ void WINAPI __regs_K32Thk1632Prolog( CONTEXT *context )
        been called.  Thus we re-use it to hold the Win16Lock count */
    ReleaseThunkLock(&CURRENT_STACK16->entry_point);
 }
-DEFINE_REGS_ENTRYPOINT( K32Thk1632Prolog, 0 )
+DEFINE_REGS_ENTRYPOINT( K32Thk1632Prolog )
 
 /***********************************************************************
  *           K32Thk1632Epilog			(KERNEL32.@)
@@ -1310,7 +1310,7 @@ void WINAPI __regs_K32Thk1632Epilog( CONTEXT *context )
             context->Ebp, context->Esp, getWOW32Reserved());
    }
 }
-DEFINE_REGS_ENTRYPOINT( K32Thk1632Epilog, 0 )
+DEFINE_REGS_ENTRYPOINT( K32Thk1632Epilog )
 
 /*********************************************************************
  *                   PK16FNF [KERNEL32.91]

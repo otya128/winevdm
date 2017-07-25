@@ -750,26 +750,27 @@ static inline DWORD stack32_pop( CONTEXT *context )
     return ret;
 }
 
-//#define DEFINE_REGS_ENTRYPOINT( name, args ) \
-//    __ASM_GLOBAL_FUNC( name, \
-//                       ".byte 0x68\n\t"  /* pushl $__regs_func */       \
-//                       ".long " __ASM_NAME("__regs_") #name "-.-11\n\t" \
-//                       ".byte 0x6a," #args "\n\t" /* pushl $args */     \
-//                       "call " __ASM_NAME("__wine_call_from_regs") "\n\t" \
-//                       "ret $(4*" #args ")" )/* fake ret to make copy protections happy */
+//#define DEFINE_REGS_ENTRYPOINT(name) \
+//    __ASM_STDCALL_FUNC( name, 0,                                        \
+//                        "pushl %ebp\n\t"                                \
+//                        __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")       \
+//                        __ASM_CFI(".cfi_rel_offset %ebp,0\n\t")         \
+//                        "movl %esp,%ebp\n\t"                            \
+//                        __ASM_CFI(".cfi_def_cfa_register %ebp\n\t")     \
+//                        "leal -(0x2cc+4)(%esp),%esp\n\t"  /* sizeof(CONTEXT) + space for %eax */ \
+//                        "movl %eax,-4(%ebp)\n\t"                        \
+//                        "pushl %esp\n\t"             /* context */      \
+//                        "call " __ASM_NAME("RtlCaptureContext") __ASM_STDCALL(4) "\n\t" \
+//                        "movl -4(%ebp),%eax\n\t"                        \
+//                        "movl %eax,0xb0(%esp)\n\t"   /* context->Eax */ \
+//                        "pushl %esp\n\t"             /* context */      \
+//                        "call " __ASM_NAME("__regs_") #name __ASM_STDCALL(4) "\n\t" \
+//                        "pushl %esp\n\t"             /* context */      \
+//                        "pushl $-2\n\t"   /* GetCurrentThread() */      \
+//                        "call " __ASM_NAME("NtSetContextThread") __ASM_STDCALL(8) "\n\t" \
+//                        "ret" ) /* fake ret to make copy protections happy */
 #undef DEFINE_REGS_ENTRYPOINT
-#define DEFINE_REGS_ENTRYPOINT_ARG(name, ...) void __stdcall name(__VA_ARGS__){ERR("notimpl:DEFINE_REGS_ENTRYPOINT(" #name ")\n");}
-#define DEFINE_REGS_ENTRYPOINT_0(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1)
-#define DEFINE_REGS_ENTRYPOINT_1(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2)
-#define DEFINE_REGS_ENTRYPOINT_2(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3)
-#define DEFINE_REGS_ENTRYPOINT_3(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4)
-#define DEFINE_REGS_ENTRYPOINT_4(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5)
-#define DEFINE_REGS_ENTRYPOINT_5(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5, int a6)
-#define DEFINE_REGS_ENTRYPOINT_6(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5, int a6, int a7)
-#define DEFINE_REGS_ENTRYPOINT_7(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
-#define DEFINE_REGS_ENTRYPOINT_8(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9)
-#define DEFINE_REGS_ENTRYPOINT_JOIN(base, count) base ## count
-#define DEFINE_REGS_ENTRYPOINT(name, args) DEFINE_REGS_ENTRYPOINT_JOIN(DEFINE_REGS_ENTRYPOINT_, args) (name)
+#define DEFINE_REGS_ENTRYPOINT(name) void __stdcall name(){ERR("notimpl:DEFINE_REGS_ENTRYPOINT(" #name ")\n");}
 //void __stdcall name(__declspec(align(0)) struct {__declspec(align(0)) char reg;__declspec(align(0))char a[args];} a){ERR("notimpl:DEFINE_REGS_ENTRYPOINT(" #name ")\n");}
 #define __ms_va_list va_list
 #define __ms_va_start va_start

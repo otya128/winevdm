@@ -321,7 +321,7 @@ DEFINE_REGS_ENTRYPOINT(aa2, 2);
 DEFINE_REGS_ENTRYPOINT(aa3, 3);
 DEFINE_REGS_ENTRYPOINT(aa4, 4);
 DEFINE_REGS_ENTRYPOINT(aa5, 5);
-DEFINE_REGS_ENTRYPOINT( VxDCall, 0 )
+DEFINE_REGS_ENTRYPOINT( VxDCall )
 
 
 /***********************************************************************
