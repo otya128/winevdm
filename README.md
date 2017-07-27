@@ -1,4 +1,6 @@
-# winevdm
+# winevdm on windows(64bit)
+<img src="screenshot.PNG">
+
 winevdm on windows(64bit)
 16bit用Windowsのプログラムを動かすプログラム
 winevdmの移植版
