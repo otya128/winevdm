@@ -133,9 +133,10 @@ static void MZ_CreatePSP( LPVOID lpPSP, WORD env, WORD par )
   /* FIXME: more PSP stuff */
 }
 
+extern char *DOSMEM_dosmem;
 static void MZ_FillPSP( LPVOID lpPSP, LPCSTR cmdtail, int length )
 {
-    PDB16 *psp = lpPSP;
+    PDB16 *psp = (PDB16*)((size_t)lpPSP + DOSMEM_dosmem);
 
     if(length > 127) 
     {
@@ -199,9 +200,10 @@ static BOOL MZ_InitMemory(void)
 {
     /* initialize the memory */
     TRACE("Initializing DOS memory structures\n");
-    DOSMEM_MapDosLayout();
-    DOSDEV_InstallDOSDevices();
-    MSCDEX_InstallCDROM();
+    ERR("MZ_InitMemory()\n");
+    //DOSMEM_MapDosLayout();
+    //DOSDEV_InstallDOSDevices();
+    //MSCDEX_InstallCDROM();
 
     return TRUE;
 }

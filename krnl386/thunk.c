@@ -2401,14 +2401,22 @@ DWORD WINAPI LoadLibraryEx32W16( LPCSTR lpszLibFile, DWORD hFile, DWORD dwFlags 
     {
         if (OpenFile16( lpszLibFile, &ofs, OF_EXIST ) != HFILE_ERROR16)
             lpszLibFile = ofs.szPathName;
+        else
+        {
+            return 0;
+        }
     }
     else
     {
-        char buffer[MAX_PATH+4];
-        strcpy( buffer, lpszLibFile );
-        strcat( buffer, ".dll" );
-        if (OpenFile16( buffer, &ofs, OF_EXIST ) != HFILE_ERROR16)
+        char buffer[MAX_PATH + 4];
+        strcpy(buffer, lpszLibFile);
+        strcat(buffer, ".dll");
+        if (OpenFile16(buffer, &ofs, OF_EXIST) != HFILE_ERROR16)
             lpszLibFile = ofs.szPathName;
+        else
+        {
+            return 0;
+        }
     }
 
     ReleaseThunkLock( &mutex_count );

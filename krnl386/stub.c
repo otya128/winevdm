@@ -217,6 +217,7 @@ DWORD CALL32_CBClientEx(FARPROC proc, LPWORD args, WORD *stackLin, DWORD *esi, I
 }
 void __wine_enter_vm86(CONTEXT *context)
 {
+    wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, TRACE_ON(disasm));
 	DPRINTF("NOTIMPL:__wine_enter_vm86(%p)\n", context);
 }
 void __wine_spec_init_ctor()

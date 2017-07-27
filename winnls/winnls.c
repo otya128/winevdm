@@ -21,9 +21,12 @@
 #include "windef.h"
 #include "winbase.h"
 #include "winnls32.h"
+#include <imm.h>
 #include "wownt32.h"
 #include "wine/winuser16.h"
 
+WINE_DEFAULT_DEBUG_CHANNEL(winnls);
+WINE_DECLARE_DEBUG_CHANNEL(winnls);
 //BOOL WINAPI WINNLS32EnableIME(HWND hWnd, BOOL fEnable);
 //BOOL WINAPI WINNLS32GetEnableStatus(HWND hWnd);
 
@@ -119,10 +122,24 @@ BOOL WINAPI WINNLSSendControl16(WORD arg1, WORD arg2)
 	ERR("NOTIMPL:WINNLSSendControl16(%d, %d)\n", arg1, arg2);
 	return 0;
 }
-LRESULT WINAPI SendIMEMessage16(WORD a1, WORD a2, WORD a3)
+typedef struct tagIMEMESSAGE16 {
+    WORD unknown1;
+    WORD unknown2;
+    WORD unknown3;
+    WORD unknown4;
+    WORD unknown5;
+    WORD unknown6;
+    WORD unknown7;
+    WORD unknown8;
+} IMEMESSAGE16, FAR *LPIMEMESSAGE16;
+LRESULT WINAPI SendIMEMessageEx16(
+    _In_ HWND16   hwnd,
+    _In_ LPARAM lParam
+);
+LRESULT WINAPI SendIMEMessage16(HWND16 a1, WPARAM16 a2, WPARAM16 a3)
 {
-    ERR("NOTIMPL:SendIMEMessage16(%d, %d, %d)\n", a1, a2, a3);
-    return 0;
+    ERR("NOTIMPL:SendIMEMessage16(%04X, %04X, %04X)\n", a1, a2, a3);
+    return SendIMEMessageEx16(a1, a2 << 16 | a3);
 }
 typedef struct tagIMESTRUCT16 {
     UINT16   fnc;        // function code
@@ -152,11 +169,71 @@ LRESULT WINAPI SendIMEMessageEx16(
     lpime32->lParam1 = lpime->lParam1;
     lpime32->lParam2 = lpime->lParam2;
     lpime32->lParam3 = lpime->lParam3;
-    SendIMEMessageExA(hwnd32, (LPARAM)hglobal32);
+    const char *a = GlobalLock16(lpime->lParam1);
+    const char *b = GlobalLock16(lpime->lParam2);
+    GlobalUnlock16(lpime->lParam1);
+    GlobalUnlock16(lpime->lParam2);
+    switch (lpime->fnc)
+    {
+    case IME_SETCONVERSIONWINDOW:
+    {
+        switch (lpime->wParam)
+        {
+        case MCW_WINDOW:
+        {
+            TRACE("MCW_WINDOW(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            COMPOSITIONFORM c = { 0 };
+            c.dwStyle = CFS_FORCE_POSITION;
+            c.ptCurrentPos.x = (lpime->lParam1 >> 16) & ~0x800;
+            c.ptCurrentPos.y = (short)lpime->lParam1;
+            HIMC hi = ImmGetContext(hwnd32);
+            BOOL a = ImmSetCompositionWindow(hi, &c);
+            ImmReleaseContext(hwnd32, hi);
+            return;
+        }
+            break;
+        case MCW_DEFAULT:
+            TRACE("MCW_DEFAULT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            break;
+        case MCW_RECT:
+            TRACE("MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            break;
+        case MCW_SCREEN:
+            TRACE("MCW_SCREEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            break;
+        case MCW_VERTICAL:
+            TRACE("MCW_VERTICAL(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            break;
+        case MCW_HIDDEN:
+            TRACE("MCW_HIDDEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            break;
+        case MCW_WINDOW | MCW_RECT:
+            TRACE("MCW_WINDOW | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            break;
+        case MCW_SCREEN | MCW_RECT:
+            TRACE("MCW_SCREEN | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            break;
+        default:
+            break;
+        }
+    }
+        break;
+    default:
+        break;
+    }
+    LRESULT ret = SendIMEMessageExA(hwnd32, (LPARAM)hglobal32);
+    lpime->fnc = lpime32->fnc;
+    lpime->wParam = lpime32->wParam;
+    lpime->wCount = lpime32->wCount;
+    lpime->dchSource = lpime32->dchSource;
+    lpime->dchDest = lpime32->dchDest;
+    lpime->lParam1 = lpime32->lParam1;
+    lpime->lParam2 = lpime32->lParam2;
+    lpime->lParam3 = lpime32->lParam3;
     GlobalUnlock(hglobal32);
     GlobalUnlock16(hglobal);
     GlobalFree(hglobal32);
-    return 0;
+    return ret;
 }
 
 ///////////////

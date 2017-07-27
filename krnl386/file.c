@@ -257,19 +257,24 @@ static char *get_search_path(void)
         if (!(p = strrchr( module, '\\' ))) p = module;
         *p = 0;
     }
+    char windir[MAX_PATH];
+    char windir2[MAX_PATH];
+    char *windir3;
+    GetWindowsDirectoryA(windir, MAX_PATH);
+    windir3 = RedirectSystemDir(windir, windir2, MAX_PATH);
 
     len = (2 +                                              /* search order: first current dir */
            GetSystemDirectory16( NULL, 0 ) + 1 +            /* then system dir */
-           GetWindowsDirectoryA( NULL, 0 ) + 1 +            /* then windows dir */
+           strlen(windir3) + 1 +            /* then windows dir */
            strlen( module ) + 1 +                           /* then module path */
-           GetEnvironmentVariableA( "PATH", NULL, 0 ) + 1); /* then look in PATH */
+           GetEnvironmentVariableA( "PATH16", NULL, 0 ) + 1); /* then look in PATH */
     if (!(ret = HeapAlloc( GetProcessHeap(), 0, len ))) return NULL;
     strcpy( ret, ".;" );
     p = ret + 2;
     GetSystemDirectory16( p, ret + len - p );
     p += strlen( p );
     *p++ = ';';
-    GetWindowsDirectoryA( p, ret + len - p );
+    strcpy(p, windir3);//GetWindowsDirectoryA( p, ret + len - p );
     p += strlen( p );
     *p++ = ';';
     if (module[0])
@@ -278,7 +283,7 @@ static char *get_search_path(void)
         p += strlen( p );
         *p++ = ';';
     }
-    GetEnvironmentVariableA( "PATH", p, ret + len - p );
+    GetEnvironmentVariableA( "PATH16", p, ret + len - p );
     return ret;
 }
 
@@ -324,6 +329,8 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
         return 0;
     }
 
+    CHAR buf[OFS_MAXPATHNAME];
+    name = RedirectSystemDir(name, buf, OFS_MAXPATHNAME);
     if (mode & OF_CREATE)
     {
         handle = (HANDLE)OpenFile( name, ofs, mode );
@@ -533,10 +540,10 @@ LONG WINAPI _hwrite16( HFILE16 hFile, LPCSTR buffer, LONG count )
  */
 UINT WINAPI GetTempDrive( BYTE ignored )
 {
-    WCHAR buffer[8];
+    WCHAR buffer[MAX_PATH];
     BYTE ret;
 
-    if (GetTempPathW( 8, buffer )) ret = (BYTE)toupperW(buffer[0]);
+    if (GetTempPathW(MAX_PATH, buffer )) ret = (BYTE)toupperW(buffer[0]);
     else ret = 'C';
     return MAKELONG( ret | (':' << 8), 1 );
 }
@@ -610,6 +617,7 @@ const char *GetRedirectWindowsDir()
     GetModuleFileNameA(GetModuleHandleA("krnl386.exe16"), windowsPath, MAX_PATH);
     PathRemoveFileSpecA(windowsPath);
     PathCombineA(windowsPath, windowsPath, "WINDOWS");
+    GetShortPathNameA(windowsPath, windowsPath, sizeof(windowsPath));
     return windowsPath;
 }
 
@@ -728,7 +736,13 @@ BOOL16 WINAPI WritePrivateProfileString16( LPCSTR section, LPCSTR entry,
  */
 UINT16 WINAPI GetWindowsDirectory16( LPSTR path, UINT16 count )
 {
-    return GetWindowsDirectoryA( path, count );
+    const char *w = GetRedirectWindowsDir();
+    UINT16 len = strlen(w);
+    if (len + 1 > count)
+        return strlen(w) + 1;
+    strcpy(path, w);
+    return len;
+    //return GetWindowsDirectoryA( path, count );
 }
 
 

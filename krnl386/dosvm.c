@@ -310,7 +310,8 @@ void DOSVM_QueueEvent( INT irq, INT priority, DOSRELAY relay, LPVOID data)
       TRACE("new event queued, signalling (time=%d)\n", GetTickCount());
       
       /* Alert VM86 thread about the new event. */
-      kill(dosvm_pid,SIGUSR2);
+      ERR("kill(%d, %d)\n", dosvm_pid, 12);
+      //kill(dosvm_pid,SIGUSR2);
 
       /* Wake up DOSVM_Wait so that it can serve pending events. */
       SetEvent(event_notifier);
@@ -496,7 +497,8 @@ DWORD DOSVM_Loop( HANDLE hThread )
   DWORD waitret;
 
   objs[count++] = hThread;
-  if (GetConsoleMode( GetStdHandle(STD_INPUT_HANDLE), NULL ))
+  DWORD ununsed;
+  if (GetConsoleMode( GetStdHandle(STD_INPUT_HANDLE), &ununsed))
       objs[count++] = GetStdHandle(STD_INPUT_HANDLE);
 
   for(;;) {

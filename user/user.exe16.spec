@@ -240,7 +240,7 @@
 240 pascal -ret16 DialogBoxIndirectParam(word word word segptr long) DialogBoxIndirectParam16
 241 pascal -ret16 CreateDialogParam(word str word segptr long) CreateDialogParam16
 242 pascal -ret16 CreateDialogIndirectParam(word ptr word segptr long) CreateDialogIndirectParam16
-243 pascal   GetDialogBaseUnits() GetDialogBaseUnits
+243 pascal   GetDialogBaseUnits() GetDialogBaseUnits16
 244 pascal -ret16 EqualRect(ptr ptr) EqualRect16
 245 pascal -ret16 EnableCommNotification(s_word word s_word s_word) EnableCommNotification16
 246 pascal -ret16 ExitWindowsExec(str str) ExitWindowsExec16

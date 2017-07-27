@@ -504,13 +504,28 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		dlgItemTemplate32->id = info.id;
 		dlgItemTemplatew = (WORD*)(dlgItemTemplate32 + 1);
 		copy_widestr(info.className, &dlgItemTemplatew);
-		if (!HIWORD(info.windowName))
-		{
-			char buffer[512];
-			if(LoadString16(hInst, LOWORD(info.windowName), buffer, sizeof(buffer)))
-				info.windowName = buffer;
-		}
-		copy_widestr(info.windowName, &dlgItemTemplatew);
+        if (!HIWORD(info.windowName))
+        {
+            char buffer[512];
+            if (((dlgItemTemplate32->style & 0xF) == SS_ICON || (dlgItemTemplate32->style & 0xF) == SS_BITMAP) && stricmp(info.className, "STATIC") == 0)
+            {
+                sprintf(buffer, "#%d", (int)info.windowName);
+                copy_widestr(buffer, &dlgItemTemplatew);
+                //LoadImage16
+            }
+            else
+            {
+                if (LoadString16(hInst, LOWORD(info.windowName), buffer, sizeof(buffer)))
+                    info.windowName = buffer;
+                else
+                    info.windowName = "dialog error: invalid window name";
+                copy_widestr(info.windowName, &dlgItemTemplatew);
+            }
+        }
+        else
+        {
+            copy_widestr(info.windowName, &dlgItemTemplatew);
+        }
 		if (info.data)
 		{
 			*dlgItemTemplatew++ = sizeof(WORD) + sizeof(info.data);

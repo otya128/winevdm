@@ -1844,7 +1844,8 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
     }
     else  /* map to 32-bit unicode for inter-thread/process message */
     {
-        WINPROC_CallProc16To32A( send_message_callback, hwnd16, msg, wparam, lparam, &result, NULL );
+        ERR("SendMessage(HWND_BROADCAST,)\n");
+        WINPROC_CallProc16To32A( post_message_callback, hwnd16, msg, wparam, lparam, &result, NULL );
     }
     return result;
 }
@@ -2943,7 +2944,6 @@ static LRESULT scrollbar_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     return wow_handlers32.scrollbar_proc( hwnd, msg, wParam, lParam, FALSE );
 }
 
-
 /***********************************************************************
  *           static_proc16
  */
@@ -2951,32 +2951,33 @@ static LRESULT static_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
 {
     switch (msg)
     {
-    case WM_NCCREATE:
+    case WM_CREATE://WM_NCCREATE:
     {
         CREATESTRUCTA *cs = (CREATESTRUCTA *)lParam;
-        LRESULT ret = wow_handlers32.static_proc( hwnd, msg, wParam, lParam, unicode );
-
-        if (!ret) return 0;
-        if (((ULONG_PTR)cs->hInstance >> 16)) return ret;  /* 32-bit instance, nothing to do */
+        if (((ULONG_PTR)cs->hInstance >> 16)) break;  /* 32-bit instance, nothing to do */
         switch (cs->style & SS_TYPEMASK)
         {
         case SS_ICON:
             {
+                LRESULT ret = wow_handlers32.static_proc(hwnd, msg, wParam, lParam, unicode);
+                SetWindowTextA(hwnd, "");
                 HICON16 icon = LoadIcon16( HINSTANCE_16(cs->hInstance), cs->lpszName );
                 if (!icon) icon = LoadCursor16( HINSTANCE_16(cs->hInstance), cs->lpszName );
                 if (icon) wow_handlers32.static_proc( hwnd, STM_SETIMAGE, IMAGE_ICON,
                                                       (LPARAM)get_icon_32(icon), FALSE );
-                break;
+                return ret;
             }
         case SS_BITMAP:
             {
+                LRESULT ret = wow_handlers32.static_proc(hwnd, msg, wParam, lParam, unicode);
+                SetWindowTextA(hwnd, "");
                 HBITMAP16 bitmap = LoadBitmap16( HINSTANCE_16(cs->hInstance), cs->lpszName );
                 if (bitmap) wow_handlers32.static_proc( hwnd, STM_SETIMAGE, IMAGE_BITMAP,
                                                         (LPARAM)HBITMAP_32(bitmap), FALSE );
-                break;
+                return ret;
             }
         }
-        return ret;
+        break;
     }
     case STM_SETICON16:
         wParam = (WPARAM)get_icon_32( (HICON16)wParam );
@@ -2984,8 +2985,9 @@ static LRESULT static_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
     case STM_GETICON16:
         return get_icon_16( (HICON)wow_handlers32.static_proc( hwnd, STM_GETICON, wParam, lParam, FALSE ));
     default:
-        return wow_handlers32.static_proc( hwnd, msg, wParam, lParam, unicode );
+        break;
     }
+    return wow_handlers32.static_proc(hwnd, msg, wParam, lParam, unicode);
 }
 LRESULT CALLBACK static_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {

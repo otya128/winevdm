@@ -4145,7 +4145,7 @@ _wine_spec_dos_header:
 	callw .L__wine_spec_callfrom16_p_long_wwwl
 .L__wine_USER_112:
 	pushw %bp
-	pushl $_WaitMessage@0
+	pushl $_WaitMessage16@0
 	callw .L__wine_spec_callfrom16_p_word_
 .L__wine_USER_113:
 	pushw %bp
@@ -4669,7 +4669,7 @@ _wine_spec_dos_header:
 	callw .L__wine_spec_callfrom16_p_word_wpwll
 .L__wine_USER_243:
 	pushw %bp
-	pushl $_GetDialogBaseUnits@0
+	pushl $_GetDialogBaseUnits16@0
 	callw .L__wine_spec_callfrom16_p_long_
 .L__wine_USER_244:
 	pushw %bp

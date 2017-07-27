@@ -113,7 +113,7 @@ static MCB* DOSMEM_root_block;
  */
 
 /* DOS memory base (linear in process address space) */
-static char *DOSMEM_dosmem;
+/*static*/ char *DOSMEM_dosmem;
 static char *DOSMEM_sysmem;
 /* number of bytes protected from _dosmem. 0 when DOS memory is initialized, 
  * 64k otherwise to trap NULL pointers deref */

@@ -742,8 +742,10 @@ extern "C"
 		if (!initflag)
 			initflag = init_vm86();
 		CONTEXT context;
+        PVOID oldstack = getWOW32Reserved();
 		save_context(&context);
 		//why??
+        setWOW32Reserved(oldstack);
 		context.SegSs = ((size_t)getWOW32Reserved() >> 16) & 0xFFFF;
 		context.Esp = ((size_t)getWOW32Reserved()) & 0xFFFF;
 		context.SegCs = target >> 16;
@@ -1129,6 +1131,37 @@ extern "C"
 		{
 		}
 	}
+
+#include <imagehlp.h>
+
+#pragma comment(lib, "imagehlp.lib")
+
+    void printStack(void)
+    {
+        unsigned int   i;
+        void         * stack[100];
+        unsigned short frames;
+        SYMBOL_INFO  * symbol;
+        HANDLE         process;
+
+        process = GetCurrentProcess();
+
+        SymInitialize(process, NULL, TRUE);
+
+        frames = CaptureStackBackTrace(0, 100, stack, NULL);
+        symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+        symbol->MaxNameLen = 255;
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+        for (i = 0; i < frames; i++)
+        {
+            SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
+
+            printf("%i: %s - 0x%0X\n", frames - i - 1, symbol->Name, symbol->Address);
+        }
+
+        free(symbol);
+    }
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE winehandler)
 	{
 		PEXCEPTION_RECORD rec = ep->ExceptionRecord;
@@ -1174,6 +1207,7 @@ IP:%p, address:%p\n\
 m_VM ? 16 : 32,
 REG16(AX), REG16(CX), REG16(DX), REG16(BX), REG16(SP), REG16(BP), REG16(SI), REG16(DI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, buffer2, buffer);
+        printStack();
 		/*
 		
 					context.Eax = REG16(AX);

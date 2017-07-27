@@ -107,6 +107,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vdmwrapperexe", "vdmwrapper
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ddeml", "ddeml\ddeml.vcxproj", "{D4EED8A5-2B15-4299-9F65-D56383AC7848}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "toolhelp", "toolhelp\toolhelp.vcxproj", "{96925A3C-9DD9-418E-A772-A112FFE93DC2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ver", "ver\ver.vcxproj", "{7C04956D-FEBE-410F-ABB1-945695CDDFE5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -497,6 +501,32 @@ Global
 		{D4EED8A5-2B15-4299-9F65-D56383AC7848}.Release|Win32.ActiveCfg = Release|Win32
 		{D4EED8A5-2B15-4299-9F65-D56383AC7848}.Release|Win32.Build.0 = Release|Win32
 		{D4EED8A5-2B15-4299-9F65-D56383AC7848}.Release|x64.ActiveCfg = Release|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Debug|Win32.Build.0 = Debug|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Debug|x64.ActiveCfg = Debug|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Debug-USER.EXE|Win32.ActiveCfg = Debug|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Debug-USER.EXE|x64.ActiveCfg = Release|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Debug-USER.EXE|x64.Build.0 = Release|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.GenLibFileRelease|Win32.ActiveCfg = GenLibFileRelease|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.GenLibFileRelease|Win32.Build.0 = GenLibFileRelease|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.GenLibFileRelease|x64.ActiveCfg = GenLibFileRelease|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Release|Win32.ActiveCfg = Release|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Release|Win32.Build.0 = Release|Win32
+		{96925A3C-9DD9-418E-A772-A112FFE93DC2}.Release|x64.ActiveCfg = Release|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Debug|Win32.Build.0 = Debug|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Debug|x64.ActiveCfg = Debug|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Debug-USER.EXE|Win32.ActiveCfg = Debug|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Debug-USER.EXE|x64.ActiveCfg = Release|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Debug-USER.EXE|x64.Build.0 = Release|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.GenLibFileRelease|Win32.ActiveCfg = GenLibFileRelease|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.GenLibFileRelease|Win32.Build.0 = GenLibFileRelease|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.GenLibFileRelease|x64.ActiveCfg = GenLibFileRelease|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Release|Win32.ActiveCfg = Release|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Release|Win32.Build.0 = Release|Win32
+		{7C04956D-FEBE-410F-ABB1-945695CDDFE5}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
