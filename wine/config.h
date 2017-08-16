@@ -268,8 +268,8 @@
 /* Define to 1 if you have the `getuid' function. */
 //#define HAVE_GETUID 1
 
-/* Define to 1 if you have the `gnutls_hash' function. */
-/* #undef HAVE_GNUTLS_HASH */
+/* Define to 1 if you have the `gnutls_cipher_init' function. */
+/* #undef HAVE_GNUTLS_CIPHER_INIT */
 
 /* Define if we have the libgphoto2 development environment */
 /* #undef HAVE_GPHOTO2 */
