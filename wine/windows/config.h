@@ -712,9 +712,6 @@
 /* Define to 1 if you have the <png.h> header file. */
 #define HAVE_PNG_H 1
 
-/* Define to 1 if libpng has the png_set_expand_gray_1_2_4_to_8 function. */
-#define HAVE_PNG_SET_EXPAND_GRAY_1_2_4_TO_8 1
-
 /* Define to 1 if you have the `poll' function. */
 #define HAVE_POLL 1
 
