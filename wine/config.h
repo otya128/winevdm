@@ -343,6 +343,9 @@
 /* Define to 1 if you have the `kqueue' function. */
 /* #undef HAVE_KQUEUE */
 
+/* Define to 1 if you have the <krb5/krb5.h> header file. */
+/* #undef HAVE_KRB5_KRB5_H */
+
 /* Define to 1 if you have the <kstat.h> header file. */
 /* #undef HAVE_KSTAT_H */
 
@@ -1475,6 +1478,9 @@
 
 /* Define to the soname of the libjpeg library. */
 #define SONAME_LIBJPEG "	cygjpeg-8.dll"
+
+/* Define to the soname of the libkrb5 library. */
+/* #undef SONAME_LIBKRB5 */
 
 /* Define to the soname of the libncurses library. */
 #define SONAME_LIBNCURSES "	cygncursesw-10.dll"
