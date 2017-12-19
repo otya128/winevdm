@@ -165,7 +165,7 @@ static void i386_load_segment_descriptor(int segment )
 	{
 		m_sreg[segment].base = m_sreg[segment].selector << 4;
 		//
-		load_segment_descriptor_wine(segment);
+		//load_segment_descriptor_wine(segment);
 		//
 		m_sreg[segment].d = 0;
 		m_sreg[segment].valid = true;

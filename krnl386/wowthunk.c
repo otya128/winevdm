@@ -282,9 +282,9 @@ static DWORD call16_handler( EXCEPTION_RECORD *record, EXCEPTION_REGISTRATION_RE
  *
  * Handler for exceptions occurring in vm86 code.
  */
-/*
-static DWORD vm86_handler( EXCEPTION_RECORD *record, EXCEPTION_REGISTRATION_RECORD *frame,
-                           CONTEXT *context, EXCEPTION_REGISTRATION_RECORD **pdispatcher )
+static EXCEPTION_DISPOSITION
+NTAPI vm86_handler(struct _EXCEPTION_RECORD *record, PVOID frame,
+    struct _CONTEXT *context, PVOID pdispatcher )
 {
     if (record->ExceptionFlags & (EH_UNWINDING | EH_EXIT_UNWIND))
         return ExceptionContinueSearch;
@@ -297,8 +297,8 @@ static DWORD vm86_handler( EXCEPTION_RECORD *record, EXCEPTION_REGISTRATION_RECO
 
     return ExceptionContinueSearch;
 }
-*/
-static EXCEPTION_DISPOSITION NTAPI vm86_handler(struct _EXCEPTION_RECORD **ExceptionRecord,
+
+/*static EXCEPTION_DISPOSITION NTAPI vm86_handler(struct _EXCEPTION_RECORD **ExceptionRecord,
 	PVOID EstablisherFrame,
 struct _CONTEXT **ContextRecord,
 	PVOID DispatcherContext)
@@ -314,7 +314,7 @@ struct _CONTEXT **ContextRecord,
 
 	return ExceptionContinueSearch;
 
-}
+}*/
 
 
 

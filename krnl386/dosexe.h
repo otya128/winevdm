@@ -95,7 +95,7 @@ extern struct DPMI_segments *DOSVM_dpmi_segments;
 
 #define ADD_LOWORD(dw,val)  ((dw) = ((dw) & 0xffff0000) | LOWORD((DWORD)(dw)+(val)))
 
-#define PTR_REAL_TO_LIN(seg,off) ((void*)(((unsigned int)(seg) << 4) + LOWORD(off)))
+#define PTR_REAL_TO_LIN(seg,off) ((void*)(((unsigned int)(seg) << 4) + LOWORD(off) + (size_t)DOSMEM_dosmem))
 
 /* NOTE: Interrupts might get called from four modes: real mode, 16-bit,
  *       32-bit segmented (DPMI32) and 32-bit linear (via DeviceIoControl).
@@ -467,5 +467,10 @@ extern BYTE SB_ioport_in( WORD port );
 
 /* timer.c */
 extern void WINAPI DOSVM_Int08Handler(CONTEXT*);
+
+char *DOSMEM_dosmem;
+
+extern void *dosvm_vm86_teb_info;
+
 
 #endif /* __WINE_DOSEXE_H */

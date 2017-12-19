@@ -136,7 +136,7 @@ static void MZ_CreatePSP( LPVOID lpPSP, WORD env, WORD par )
 extern char *DOSMEM_dosmem;
 static void MZ_FillPSP( LPVOID lpPSP, LPCSTR cmdtail, int length )
 {
-    PDB16 *psp = (PDB16*)((size_t)lpPSP + DOSMEM_dosmem);
+    PDB16 *psp = (PDB16*)lpPSP;
 
     if(length > 127) 
     {
@@ -200,10 +200,9 @@ static BOOL MZ_InitMemory(void)
 {
     /* initialize the memory */
     TRACE("Initializing DOS memory structures\n");
-    ERR("MZ_InitMemory()\n");
-    //DOSMEM_MapDosLayout();
-    //DOSDEV_InstallDOSDevices();
-    //MSCDEX_InstallCDROM();
+    DOSMEM_MapDosLayout();
+    DOSDEV_InstallDOSDevices();
+    MSCDEX_InstallCDROM();
 
     return TRUE;
 }
@@ -623,7 +622,7 @@ void MZ_RunInThread( PAPCFUNC proc, ULONG_PTR arg )
   } else
     proc(arg);
 }
-
+void *dosvm_vm86_teb_info;
 static DWORD WINAPI MZ_DOSVM( LPVOID lpExtra )
 {
   CONTEXT context;
@@ -640,6 +639,7 @@ static DWORD WINAPI MZ_DOSVM( LPVOID lpExtra )
   context.SegEs  = DOSVM_psp;
   context.EFlags = V86_FLAG | VIF_MASK;
   DOSVM_SetTimer(0x10000);
+  dosvm_vm86_teb_info = get_vm86_teb_info();
   ret = DOSVM_Enter( &context );
   if (ret == -1) ret = GetLastError();
   dosvm_pid = 0;
@@ -703,7 +703,7 @@ void MZ_Exit( CONTEXT *context, BOOL cs_psp, WORD retval )
   if (DOSVM_psp) {
     WORD psp_seg = cs_psp ? context->SegCs : DOSVM_psp;
     LPBYTE psp_start = (LPBYTE)((DWORD)psp_seg << 4);
-    PDB16 *psp = (PDB16 *)psp_start;
+    PDB16 *psp = (PDB16 *)(psp_start + (size_t)DOSMEM_dosmem);
     WORD parpsp = psp->parentPSP; /* check for parent DOS process */
     if (parpsp) {
       /* retrieve parent's return address */

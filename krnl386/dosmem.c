@@ -666,8 +666,9 @@ BOOL DOSMEM_MapDosLayout(void)
     {
         if (DOSMEM_dosmem || !VirtualProtect( NULL, DOSMEM_SIZE, PAGE_EXECUTE_READWRITE, &old_prot ))
         {
-            ERR( "Need full access to the first megabyte for DOS mode\n" );
-            ExitProcess(1);
+            //ERR( "Need full access to the first megabyte for DOS mode\n" );
+            //ExitProcess(1);
+            WARN( "Need full access to the first megabyte for DOS mode\n" );
         }
         /* copy the BIOS and ISR area down */
         memcpy( DOSMEM_dosmem, DOSMEM_sysmem, 0x400 + 0x100 );

@@ -310,7 +310,11 @@ void DOSVM_QueueEvent( INT irq, INT priority, DOSRELAY relay, LPVOID data)
       TRACE("new event queued, signalling (time=%d)\n", GetTickCount());
       
       /* Alert VM86 thread about the new event. */
-      ERR("kill(%d, %d)\n", dosvm_pid, 12);
+      //ERR("kill(%d, %d)\n", dosvm_pid, 12);
+      //see dlls/ntdll/signal_i386.c
+      //get vm's thread teb
+      ((WINE_VM86_TEB_INFO*)dosvm_vm86_teb_info)->vm86_pending |= VIP_MASK;
+      //=> VM thread
       //kill(dosvm_pid,SIGUSR2);
 
       /* Wake up DOSVM_Wait so that it can serve pending events. */
@@ -557,11 +561,13 @@ static LONG WINAPI exception_handler(EXCEPTION_POINTERS *eptr)
 {
   EXCEPTION_RECORD *rec = eptr->ExceptionRecord;
   CONTEXT *context = eptr->ContextRecord;
+
   int arg = rec->ExceptionInformation[0];
   BOOL ret;
-
+  context = *(CONTEXT**)(&rec->ExceptionInformation[1]);
   switch(rec->ExceptionCode) {
   case EXCEPTION_VM86_INTx:
+    FIXME("EXCEPTION_VM86_INTx\n");
     TRACE_(relay)("Call DOS int 0x%02x ret=%04x:%04x\n"
                   " eax=%08x ebx=%08x ecx=%08x edx=%08x esi=%08x edi=%08x\n"
                   " ebp=%08x esp=%08x ds=%04x es=%04x fs=%04x gs=%04x flags=%08x\n",
@@ -587,11 +593,13 @@ static LONG WINAPI exception_handler(EXCEPTION_POINTERS *eptr)
     return EXCEPTION_CONTINUE_EXECUTION;
   
   case EXCEPTION_SINGLE_STEP:
-    ret = DOSVM_EmulateInterruptRM( context, 1 );
+      FIXME("EXCEPTION_SINGLE_STEP\n");
+      ret = DOSVM_EmulateInterruptRM( context, 1 );
     return ret ? EXCEPTION_CONTINUE_EXECUTION : EXCEPTION_EXECUTE_HANDLER;
   
   case EXCEPTION_BREAKPOINT:
-    ret = DOSVM_EmulateInterruptRM( context, 3 );
+      FIXME("EXCEPTION_BREAKPOINT\n");
+      ret = DOSVM_EmulateInterruptRM( context, 3 );
     return ret ? EXCEPTION_CONTINUE_EXECUTION : EXCEPTION_EXECUTE_HANDLER;
   
   }
@@ -856,8 +864,8 @@ LPVOID DOSVM_AllocDataUMB( DWORD size, WORD *segment, WORD *selector )
  */
 void DOSVM_InitSegments(void)
 {
-	ERR("DOSVM_InitSegments!\n");
-	return;
+	//ERR("DOSVM_InitSegments!\n");
+	//return;
 	DWORD old_prot;
 	LPSTR ptr;
     int   i;

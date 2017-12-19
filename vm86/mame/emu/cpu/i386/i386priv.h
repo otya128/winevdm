@@ -576,9 +576,9 @@ INLINE UINT32 i386_translate(int segment, UINT32 ip, int rwn)
 			FAULT_THROW(FAULT_GP, 0);
 	}
 	//
-	return get_segment_descriptor_wine(segment) + ip;
+	//return get_segment_descriptor_wine(segment) + ip;
 	//
-	//return m_sreg[segment].base + ip;
+	return m_sreg[segment].base + ip;
 }
 
 #define VTLB_FLAG_DIRTY 0x100

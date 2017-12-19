@@ -728,7 +728,7 @@ static HANDLE VGA_AlphaConsole(void)
 
 static char*VGA_AlphaBuffer(void)
 {
-    return (char *)0xb8000;
+    return (char *)0xb8000 + (size_t)DOSMEM_dosmem;
 }
 
 /*** GRAPHICS MODE ***/

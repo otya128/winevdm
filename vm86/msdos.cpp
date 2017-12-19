@@ -498,23 +498,25 @@ void write_io_dword(offs_t addr, UINT32 val)
 BOOL is_32bit_segment(int sreg);
 extern "C"
 {
-	__declspec(dllimport) PVOID getWOW32Reserved();
-	__declspec(dllimport) PVOID setWOW32Reserved(PVOID w);
-	unsigned short wine_ldt_alloc_entries(int count);
-	int wine_ldt_set_entry(unsigned short sel, const LDT_ENTRY *entry);
-	void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry);
-    struct __wine_ldt_copy
-    {
-        void         *base[8192];  /* base address or 0 if entry is free   */
-        unsigned long limit[8192]; /* limit in bytes or 0 if entry is free */
-        unsigned char flags[8192]; /* flags (defined below) */
-    };
-	_declspec(dllimport) struct __wine_ldt_copy wine_ldt_copy;
+    //kenel16_private.h
+#include "../krnl386/kernel16_private.h"
+//	__declspec(dllimport) PVOID getWOW32Reserved();
+//	__declspec(dllimport) PVOID setWOW32Reserved(PVOID w);
+//	unsigned short wine_ldt_alloc_entries(int count);
+//	int wine_ldt_set_entry(unsigned short sel, const LDT_ENTRY *entry);
+//	void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry);
+//    struct __wine_ldt_copy
+//    {
+//        void         *base[8192];  /* base address or 0 if entry is free   */
+//        unsigned long limit[8192]; /* limit in bytes or 0 if entry is free */
+//        unsigned char flags[8192]; /* flags (defined below) */
+//    };
+//	_declspec(dllimport) struct __wine_ldt_copy wine_ldt_copy;
     _declspec(dllimport) LDT_ENTRY wine_ldt[8192];
-#define WINE_LDT_FLAGS_DATA      0x13  /* Data segment */
-#define WINE_LDT_FLAGS_CODE      0x1b  /* Code segment */
+//#define WINE_LDT_FLAGS_DATA      0x13  /* Data segment */
+//#define WINE_LDT_FLAGS_CODE      0x1b  /* Code segment */
 	/* helper functions to manipulate the LDT_ENTRY structure */
-	static inline void wine_ldt_set_base(LDT_ENTRY *ent, const void *base)
+	/*static inline void wine_ldt_set_base(LDT_ENTRY *ent, const void *base)
 	{
 		ent->BaseLow = (WORD)(ULONG_PTR)base;
 		ent->HighWord.Bits.BaseMid = (BYTE)((ULONG_PTR)base >> 16);
@@ -538,7 +540,7 @@ extern "C"
 		if (ent->HighWord.Bits.Granularity) limit = (limit << 12) | 0xfff;
 		return limit;
 	}
-#define WINE_LDT_FLAGS_32BIT     0x40  /* Segment is 32-bit (code or stack) */
+#define WINE_LDT_FLAGS_32BIT     0x40  /* Segment is 32-bit (code or stack) *//*
 	static inline void wine_ldt_set_flags(LDT_ENTRY *ent, unsigned char flags)
 	{
 		ent->HighWord.Bits.Dpl = 3;
@@ -558,7 +560,7 @@ extern "C"
 	{
 		const DWORD *dw = (const DWORD *)ent;
 		return (dw[0] | dw[1]) == 0;
-	}
+	}*/
 	/***********************************************************************
 	*           SELECTOR_SetEntries
 	*
@@ -620,7 +622,7 @@ extern "C"
 		context->SegDs = SREG(DS);
 		context->SegFs = SREG(FS);
 		context->SegGs = SREG(GS);
-		context->EFlags = m_eflags & ~0x20000;
+        context->EFlags = m_eflags;// &~0x20000;
 		setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
 	}
 	void load_context(CONTEXT *context)
@@ -655,7 +657,7 @@ extern "C"
 	unsigned char table[256 * 4 + 2 + 0x8 * 256] = { 0xcf };
 	unsigned char iret[256] = { 0xcf };
 	WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags);
-	__declspec(dllexport) BOOL init_vm86()
+	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
 		CPU_INIT_CALL(CPU_MODEL);
@@ -663,11 +665,12 @@ extern "C"
 		build_x87_opcode_table();
 		build_opcode_table(OP_I386 | OP_FPU);
 		CPU_RESET_CALL(CPU_MODEL);
-		m_idtr.base = (UINT32)table;
+        UINT8 *base = 0;//mem;
+		m_idtr.base = (UINT32)(table - base);
         m_ldtr.limit = 8192;
-        m_ldtr.base = (UINT32)&wine_ldt;
+        m_ldtr.base = (UINT32)((UINT8*)&wine_ldt - base);
         m_gdtr.limit = 8192;
-        m_gdtr.base = (UINT32)&wine_ldt;
+        m_gdtr.base = (UINT32)((UINT8*)&wine_ldt - base);
         m_CPL = 3;
         wine_ldt[4].HighWord.Bits.Type = 0x18;
         wine_ldt[4].HighWord.Bits.Pres = 1;
@@ -700,10 +703,16 @@ extern "C"
 #endif
 		//m_amask = -1;
 		m_a20_mask = -1;
-		//set_flags(0x20000);//V8086_MODE
-		//assert(V8086_MODE);
-        m_cr[0] |= 1;//PROTECTED MODE
-		return TRUE;
+        if (is_vm86)
+        {
+            m_cr[0] |= 1;//PROTECTED MODE
+            set_flags(0x20000);//V8086_MODE
+           //assert(V8086_MODE);
+        }
+        else
+        {
+            m_cr[0] |= 1;//PROTECTED MODE
+        }return TRUE;
 	}
     DWORD mergeReg(DWORD a1, DWORD a2)
     {
@@ -724,11 +733,14 @@ extern "C"
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
 		void(*__wine_call_to_16_ret)(void),
-		bool dasm
+		bool dasm,
+        bool vm86,
+        void *memory_base
 		)
 	{
+        mem = vm86 ? (UINT8*)memory_base : NULL;
 		if (!initflag)
-			initflag = init_vm86();
+			initflag = init_vm86(vm86);
 		vm86main(context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm);
 	}	
 	DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_RECORD handler,
@@ -736,11 +748,14 @@ extern "C"
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
 		void(*__wine_call_to_16_ret)(void),
-		bool dasm
+		bool dasm,
+        bool vm86,
+        void *memory_base
 		)
 	{
+        mem = vm86 ? (UINT8*)memory_base : NULL;
 		if (!initflag)
-			initflag = init_vm86();
+			initflag = init_vm86(vm86);
 		CONTEXT context;
         PVOID oldstack = getWOW32Reserved();
 		save_context(&context);
@@ -766,7 +781,7 @@ extern "C"
 		__try
         {
 			if (!initflag)
-				initflag = init_vm86();
+				initflag = init_vm86(false);
 			//wine_ldt_copy.base[0] = iret;
 			REG16(AX) = (WORD)context->Eax;
 			REG16(CX) = (WORD)context->Ecx;
@@ -789,6 +804,7 @@ extern "C"
 			i386_load_segment_descriptor(DS);
 			i386_load_segment_descriptor(FS);
 			i386_load_segment_descriptor(GS);
+            set_flags(context->EFlags);
 			m_IOP1 = 1;
 			m_IOP2 = 1;
 			m_eflags |= 0x3000;
@@ -802,6 +818,69 @@ extern "C"
             bool isVM86mode = false;
 			//dasm = true;
 			while (!m_halted) {
+                //merge_vm86_pending_flags
+                if (get_vm86_teb_info()->vm86_pending & 0x100000)//VIP flag
+                {
+                    if (!V8086_MODE)
+                    {
+
+                    }
+                    else
+                    {
+                        //dlls/ntdll/signal_i386.c merge_vm86_pending_flags
+                        BOOL check_pending = TRUE;
+                        /*
+                        * In order to prevent a race when SIGUSR2 occurs while
+                        * we are returning from exception handler, pending events
+                        * will be rechecked after each raised exception.
+                        */
+                        while (check_pending && get_vm86_teb_info()->vm86_pending)
+                        {
+                            check_pending = FALSE;
+
+                            //x86_thread_data()->vm86_ptr = NULL;
+
+                            /*
+                            * If VIF is set, throw exception.
+                            * Note that SIGUSR2 may turn VIF flag off so
+                            * VIF check must occur only when TEB.vm86_ptr is NULL.
+                            */
+                            if (1||m_VIF)
+                            {
+                                CONTEXT vcontext = {};
+                                save_context(&vcontext);
+
+                                EXCEPTION_RECORD reca, *rec = &reca;
+                                rec->ExceptionCode = 0x80000111;
+                                rec->ExceptionFlags = 0;
+                                rec->ExceptionRecord = NULL;
+                                rec->NumberParameters = 0;
+                                rec->ExceptionAddress = (LPVOID)vcontext.Eip;
+
+                                vcontext.EFlags &= ~0x100000;
+                                get_vm86_teb_info()->vm86_pending = 0;
+                                //dosvm.c exception_handler
+                                CONTEXT *ppcontext = &vcontext;
+                                ULONG exception_args[1 + sizeof(CONTEXT*) / sizeof(ULONG)] = {};
+                                *(CONTEXT**)(&exception_args[1]) = ppcontext;
+                                RaiseException(0x80000111, 0, sizeof(exception_args) / sizeof(ULONG), (ULONG_PTR*)exception_args);
+                                //NTSTATUS a = NtRaiseException(rec, &vcontext, TRUE);
+
+                                load_context(&vcontext);
+                                check_pending = TRUE;
+                            }
+
+                            //x86_thread_data()->vm86_ptr = vm86;
+                        }
+
+                        /*
+                        * Merge VIP flags in a signal safe way. This requires
+                        * that the following operation compiles into atomic
+                        * instruction.
+                        */
+                        set_flags(get_flags() | get_vm86_teb_info()->vm86_pending);
+                    }
+                }
 				bool reg = false;
 				if (m_pc >= (UINT)/*ptr!*/iret && m_pc <= (UINT)/*ptr!*/iret + 255)
 				{
@@ -1118,6 +1197,44 @@ extern "C"
 					fprintf(stderr, "\t%s,ES:%04X\n", buffer,SREG(ES));
 				}
 #endif
+                if (V8086_MODE)
+                {
+                    UINT8 *op = mem + SREG_BASE(CS) + m_eip;
+                    UINT8 vec;
+                    if (*op == 0xCD)//INT imm8
+                    {
+
+                        vec = *(op + 1);
+
+                        CONTEXT context;
+                        WORD ip = m_eip;
+                        WORD cs = SREG(CS);
+                        PUSH16(cs);
+                        PUSH16(ip);
+                        save_context(&context);
+                        DWORD cs2 = context.SegCs;
+                        DWORD eip2 = context.Eip;
+                        context.Eip = ip;
+                        context.SegCs = cs;
+                        //wine int handler ‚ÍCS:IP‚ð‚¢‚¶‚éê‡‚ª‚ ‚é
+                        __wine_call_int_handler(&context, vec);
+                        WORD ip3 = context.Eip;
+                        WORD cs3 = context.SegCs;
+                        context.SegCs = cs2;
+                        context.Eip = eip2;
+                        load_context(&context);
+                        WORD a = POP16();
+                        WORD b = POP16();
+                        m_eip += 2;
+                        continue;
+                    }
+                    else if (*op == 0xCC)
+                    {
+                        vec = 0x03;
+                        m_eip += 1;
+                        continue;
+                    }
+                }
 #if defined(HAS_I386)
 				m_cycles = 1;
 				CPU_EXECUTE_CALL(i386);
@@ -1157,7 +1274,7 @@ extern "C"
         {
             SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 
-            printf("%i: %s - 0x%0X\n", frames - i - 1, symbol->Name, symbol->Address);
+            printf("%i: %s - 0x%p\n", frames - i - 1, symbol->Name, symbol->Address);
         }
 
         free(symbol);
@@ -1199,11 +1316,11 @@ extern "C"
 "Access violation\naddress=%p\naccess address=%p\n\
 %dbit\n\
 16bit context\n\
-AX:%p,CX:%p,DX:%p,BX:%p\n\
-SP:%p,BP:%p,SI:%p,DI:%p\n\
-ES:%p,SS:%p,CS:%p,DS:%p\n\
-IP:%p, address:%p\n\
-%s\n%s", rec->ExceptionAddress, rec->ExceptionInformation[1],
+AX:%04X,CX:%04X,DX:%04X,BX:%04X\n\
+SP:%04X,BP:%04X,SI:%04X,DI:%04X\n\
+ES:%04X,SS:%04X,CS:%04X,DS:%04X\n\
+IP:%04X, address:%08X\n\
+%s\n%s", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
 m_VM ? 16 : 32,
 REG16(AX), REG16(CX), REG16(DX), REG16(BX), REG16(SP), REG16(BP), REG16(SI), REG16(DI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, buffer2, buffer);

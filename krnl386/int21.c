@@ -5004,7 +5004,7 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
             }
             else
             {
-                LPVOID address = (void*)(context->SegEs << 4);
+                LPVOID address = (size_t)(context->SegEs << 4) + DOSMEM_dosmem;
                 UINT blocksize = DOSMEM_ResizeBlock( address, newsize, FALSE );
 
                 RESET_CFLAG(context);
