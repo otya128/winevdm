@@ -1,0 +1,6 @@
+; File generated automatically from toolhelp\toolhelp.dll16.spec; do not edit!
+
+LIBRARY toolhelp\toolhelp.dll16.spec
+
+EXPORTS
+  _wine_spec_dos_header;=.L__wine_spec_dos_header @1 DATA PRIVATE

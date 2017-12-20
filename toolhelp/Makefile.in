@@ -1,0 +1,4 @@
+MODULE    = toolhelp.dll16
+EXTRADLLFLAGS = -m16
+
+C_SRCS = toolhelp.c
