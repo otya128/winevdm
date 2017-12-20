@@ -12,7 +12,8 @@ winevdm.exe [--app-name app.exe] command line
 
 winevdm.exe CALC.EXE
 ```
-今の所DOS実行ファイルは扱えない(DOSエミュレータは他に存在するためそれを使った方が確実)
+DOS実行ファイルを実行することも可能(ただしDOSエミュレータは他に存在するためそれを使った方が確実)
+VDMDOSVER環境変数を設定するとDOSのバージョンを指定できる
 # convspec
 convert wine spec file
 winebuildから必要な部分を取り出しVC++で動かせるようにし、関数名の扱いなどを変え出力されたassemblyをVC++で扱えるようにした
@@ -31,7 +32,7 @@ KRNL386.EXE
 # user
 USER.EXE
 # vm86
-emulate virtual 8086 mode
+CPU emulator
 # wine
 libwine
 # wow32

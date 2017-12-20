@@ -1194,7 +1194,7 @@ extern "C"
 					else
 #endif
 						i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-					fprintf(stderr, "\t%s,ES:%04X\n", buffer,SREG(ES));
+					fprintf(stderr, "\t%s\n", buffer,SREG(ES));
 				}
 #endif
                 if (V8086_MODE)

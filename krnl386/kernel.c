@@ -241,6 +241,20 @@ BOOL WINAPI KERNEL_DllEntryPoint( DWORD reasion, HINSTANCE16 inst, WORD ds,
     return TRUE;
 }
 
+WORD get_env_dos_version()
+{
+    char buffer[100];
+    DWORD result = GetEnvironmentVariableA("VDMDOSVER", buffer, sizeof(buffer));
+    if (result > sizeof(buffer))
+        return 0;
+    if (result == 0)
+        return 0;
+    int v1 = 0, v2 = 0;
+    sscanf(buffer, "%d.%d", &v1, &v2);
+    if (v2 <= 9)
+        v2 *= 10;
+    return v1 << 8 | v2;
+}
 /***********************************************************************
  *         GetVersion   (KERNEL.3)
  */
@@ -248,6 +262,10 @@ DWORD WINAPI GetVersion16(void)
 {
     static WORD dosver, winver;
 
+    if (!dosver)
+    {
+        dosver = get_env_dos_version();
+    }
     if (!dosver)  /* not determined yet */
     {
         RTL_OSVERSIONINFOEXW info;

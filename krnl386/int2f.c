@@ -212,6 +212,20 @@ void WINAPI DOSVM_Int2fHandler( CONTEXT *context )
            INT_BARF( context, 0x2f );
        }
        break;
+    case 0x4f:
+        switch (LOBYTE(context->Eax))
+        {
+        case 0x01: /*get code page*/
+            SET_AX(context, 0);
+            SET_BX(context, GetConsoleCP());
+            break;
+        default:
+            INT_BARF(context, 0x2f);
+            SET_AX(context, 1);
+            SET_CFLAG(context);
+
+        }
+        break;
     case 0x56:  /* INTERLNK */
        switch(LOBYTE(context->Eax))
        {
