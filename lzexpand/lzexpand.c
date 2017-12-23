@@ -33,6 +33,11 @@ WINE_DEFAULT_DEBUG_CHANNEL(file);
 #define MAX_LZSTATES 16
 
 #define IS_LZ_HANDLE(h) (((h) >= 0x400) && ((h) < 0x400+MAX_LZSTATES))
+#define LZHFILE16(h) (((WORD)h) + 1)
+#define LZHFILE32(h) (((WORD)h) - 1)
+//overwite
+#define DosFileHandleToWin32Handle LZHFILE32
+#define Win32HandleToDosFileHandle LZHFILE16
 
 
 /***********************************************************************
@@ -116,7 +121,7 @@ HFILE16 WINAPI LZOpenFile16( LPSTR fn, LPOFSTRUCT ofs, UINT16 mode )
 {
     HFILE hfret = LZOpenFileA( fn, ofs, mode );
     /* return errors and LZ handles unmodified */
-    if ((INT)hfret <= 0) return hfret;
+    if ((INT)hfret < 0) return hfret;
     if (IS_LZ_HANDLE(hfret)) return hfret;
     /* but allocate a dos handle for 'normal' files */
     return Win32HandleToDosFileHandle((HANDLE)hfret);

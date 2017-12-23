@@ -210,7 +210,7 @@ void WINAPI DisposeLZ32Handle( HANDLE handle )
         if (dos_handles[i] == handle)
         {
             dos_handles[i] = 0;
-            CloseHandle( handle );
+            LZClose( handle );
             break;
         }
 }
