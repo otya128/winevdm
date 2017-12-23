@@ -855,6 +855,10 @@ BYTE *hwndwordbuf[65536];
 void SetWindowHInst16(WORD hWnd16, HINSTANCE16 hinst16);
 //__declspec(dllexport) 
 HINSTANCE16 GetWindowHInst16(WORD hWnd16);
+//__declspec(dllexport)
+void SetWindowHMenu16(WORD hWnd16, HMENU16 hinst16);
+//__declspec(dllexport) 
+HMENU16 GetWindowHMenu16(WORD hWnd16);
 /**************************************************************************
  *              GetWindowWord   (USER.133)
  */
@@ -1145,7 +1149,7 @@ HMENU16 WINAPI GetSystemMenu16( HWND16 hwnd, BOOL16 revert )
  */
 HMENU16 WINAPI GetMenu16( HWND16 hwnd )
 {
-    return HMENU_16(GetMenu( WIN_Handle32(hwnd) ));
+    return GetWindowHMenu16(( WIN_Handle32(hwnd) ));
 }
 
 
@@ -1154,7 +1158,11 @@ HMENU16 WINAPI GetMenu16( HWND16 hwnd )
  */
 BOOL16 WINAPI SetMenu16( HWND16 hwnd, HMENU16 hMenu )
 {
-    return SetMenu( WIN_Handle32(hwnd), HMENU_32(hMenu) );
+    BOOL result = SetMenu(WIN_Handle32(hwnd), HMENU_32(hMenu));
+    if (result)
+    {
+        SetWindowHMenu16(hwnd, hMenu);
+    }
 }
 
 
@@ -2139,6 +2147,15 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     cs.lpCreateParams = data;
     cs.hInstance      = HINSTANCE_32(instance);
     cs.hMenu          = HMENU_32(menu);
+
+    if (menu != 0)
+    {
+        if (!IsMenu(cs.hMenu) || (style & (WS_CHILD | WS_POPUP)) != WS_CHILD)
+        {
+            //hMenu is window id(16bit)
+            cs.hMenu = menu;
+        }
+    }
     cs.hwndParent     = WIN_Handle32( parent );
     cs.style          = style;
     cs.lpszName       = windowName;
@@ -2174,6 +2191,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
 	HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);
+    SetWindowHMenu16(hWnd16, menu);
 	return hWnd16;
 }
 void InitWndProc16(HWND hWnd, HWND16 hWnd16)

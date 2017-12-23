@@ -134,6 +134,8 @@ static void logfont_32_to_16( const LOGFONTA* font32, LPLOGFONT16 font16 )
     font16->lfQuality = font32->lfQuality;
     font16->lfPitchAndFamily = font32->lfPitchAndFamily;
     lstrcpynA( font16->lfFaceName, font32->lfFaceName, LF_FACESIZE );
+    //SYSTEM FONT
+    //lstrcpynA(font16->lfFaceName, "SYSTEM", LF_FACESIZE);
 }
 
 static int get_bitmap_width_bytes( int width, int bpp )

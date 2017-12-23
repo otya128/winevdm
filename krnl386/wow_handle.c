@@ -27,6 +27,7 @@ typedef struct
 	HANDLE handle32;
 	DWORD wndproc;
     HINSTANCE16 hInst16;
+    HMENU16 hMenu16;
 } HANDLE_DATA;
 HANDLE_DATA handle_hwnd[65536];
 WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o);
@@ -122,6 +123,27 @@ __declspec(dllexport) HINSTANCE16 GetWindowHInst16(WORD hWnd16)
         return 0;
     }
     return dat->hInst16;
+}
+
+__declspec(dllexport) void SetWindowHMenu16(WORD hWnd16, HMENU16 h)
+{
+    HANDLE_DATA *dat;
+    if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
+    {
+        ERR("Invalid Window Handle SetWindowHMenu16(0x%04X);", hWnd16);
+        return;
+    }
+    dat->hMenu16 = h;
+}
+__declspec(dllexport) HMENU16 GetWindowHMenu16(WORD hWnd16)
+{
+    HANDLE_DATA *dat;
+    if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
+    {
+        ERR("Invalid Window Handle GetWindowHMenu16(0x%04X);", hWnd16);
+        return 0;
+    }
+    return dat->hMenu16;
 }
 
 __declspec(dllexport) void SetWndProc16(WORD hWnd16, DWORD WndProc)
