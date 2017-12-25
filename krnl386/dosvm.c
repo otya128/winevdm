@@ -756,7 +756,8 @@ static LPVOID DOSVM_AllocUMB( DWORD size )
 	//not wine
 	if (DOSVM_UMB_BOTTOM == DOSVM_umb_free)
 	{
-		DOSVM_umb_free = malloc(DOSVM_UMB_TOP - DOSVM_UMB_BOTTOM);
+        DOSVM_umb_free = (size_t)DOSMEM_dosmem + DOSVM_umb_free;
+		//DOSVM_umb_free = malloc(DOSVM_UMB_TOP - DOSVM_UMB_BOTTOM);
 		DOSVM_umb_bottom = DOSVM_umb_free;
 		DOSVM_umb_top = (BYTE*)DOSVM_umb_bottom + DOSVM_UMB_TOP - DOSVM_UMB_BOTTOM;
 		//LPVOID ret = VirtualAlloc(DOSVM_UMB_BOTTOM, DOSVM_UMB_TOP - DOSVM_UMB_BOTTOM, MEM_COMMIT, PAGE_READWRITE);//DOSVM_UMB_TOP    0xeffff
