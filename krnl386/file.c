@@ -614,11 +614,19 @@ UINT16 WINAPI GetPrivateProfileInt16( LPCSTR section, LPCSTR entry,
 char windowsPath[MAX_PATH];
 const char *GetRedirectWindowsDir()
 {
+    if (*windowsPath != '\0')
+        return windowsPath;
+#ifdef ENABLEREDIRECTSYSTEMDIR
     GetModuleFileNameA(GetModuleHandleA("krnl386.exe16"), windowsPath, MAX_PATH);
     PathRemoveFileSpecA(windowsPath);
     PathCombineA(windowsPath, windowsPath, "WINDOWS");
     GetShortPathNameA(windowsPath, windowsPath, sizeof(windowsPath));
     return windowsPath;
+#else
+    GetWindowsDirectoryA(windowsPath, sizeof(windowsPath));
+    GetShortPathNameA(windowsPath, windowsPath, sizeof(windowsPath));
+    return windowsPath;
+#endif
 }
 
 void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output)
