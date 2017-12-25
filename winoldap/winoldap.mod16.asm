@@ -1,4 +1,4 @@
-/* File generated automatically from ../winoldap\winoldap.mod16.spec; do not edit! */
+/* File generated automatically from winoldap.mod16.spec; do not edit! */
 /* This file can be copied, modified and distributed without restriction. */
 
 
@@ -20,14 +20,14 @@ ___wine_spec_nt_header:
 	.long 0
 	.long 0
 	.short 224
-	.short 0x2000
+	.short 0x0102
 	.short 0x010b
 	.byte 0
 	.byte 0
 	.long 0
 	.long 0
 	.long 0
-	.long ___wine_spec_dll_entry
+	.long 0
 	.long 0
 	.long 0
 	.long __wine_spec_pe_header
@@ -67,7 +67,7 @@ ___wine_spec_nt_header:
 	.globl ___wine_spec_file_name
 ___wine_spec_file_name:
 .L__wine_spec_file_name:
-	.string "../winoldap\winoldap.mod16.spec"
+	.string "winoldap.mod16.spec"
 
 	.section .init,"ax"
 	call ___wine_spec_init_ctor
@@ -107,11 +107,11 @@ _wine_spec_dos_header:
 	.short .L__wine_spec_ne_enttab-.L__wine_spec_ne_header
 	.short .L__wine_spec_ne_enttab_end-.L__wine_spec_ne_enttab
 	.long 0
-	.short 0x8001
+	.short 0x0001
 	.short 2
 	.short 0
 	.short 0
-	.long 0
+	.short .L__wine_WINOLDAP_0-.L__wine_spec_code_segment,1
 	.short 0,2
 	.short 2
 	.short 0
@@ -181,6 +181,17 @@ _wine_spec_dos_header:
 	lretw $10
 	.short 0x86c7
 	.long 0x00000649,0x00000000
+.L__wine_spec_callfrom16_p_regs_:
+	pushl $.L__wine_spec_call16_p__regs
+	lcall $0,$0
+	lretw
+	.byte 0x8d,0x74,0x26,0x00,0x8d,0x74,0x26,0x00
+	.short 0x86c7
+	.long 0x00000000,0x00000000
+.L__wine_WINOLDAP_0:
+	pushw %bp
+	pushl $___wine_spec_exe16_entry@4
+	callw .L__wine_spec_callfrom16_p_regs_
 .L__wine_WINOLDAP_1:
 	pushw %bp
 	pushl $_WndProc@16
@@ -199,6 +210,16 @@ _wine_spec_dos_header:
 /* relay functions */
 
 	.text
+	.align 4
+	.def .L__wine_spec_call16_p__regs; .scl 2; .type 32; .endef
+.L__wine_spec_call16_p__regs:
+	pushl %ebp
+	movl %esp,%ebp
+	subl $4,%esp
+	pushl 16(%ebp)
+	call *8(%ebp)
+	leave
+	ret
 	.align 4
 	.def .L__wine_spec_call16_p_wwwl; .scl 2; .type 32; .endef
 .L__wine_spec_call16_p_wwwl:
@@ -241,15 +262,15 @@ wine_ldt_copy_ptr:
 	.long .L__wine_spec_main_module
 
 .L__wine_spec_exp_name_ptrs:
-	.long .L__wine_spec_exp_names+32-.L__wine_spec_rva_base
-	.long .L__wine_spec_exp_names+55-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+20-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+43-.L__wine_spec_rva_base
 
 .L__wine_spec_exp_ordinals:
 	.short 0
 	.short 1
 
 .L__wine_spec_exp_names:
-	.string "../winoldap\winoldap.mod16.spec"
+	.string "winoldap.mod16.spec"
 	.string "__wine_spec_dos_header"
 	.string "__wine_spec_main_module"
 	.align 4
