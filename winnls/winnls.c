@@ -48,27 +48,41 @@ BOOL WINAPI WINNLSGetEnableStatus16( HWND16 hwnd )
 #include "ime.h"
 #include "wine/debug.h"
 WINE_DEFAULT_DEBUG_CHANNEL(nls);
+#include <pshpack1.h>
 typedef struct _tagIMEPRO16 {
 	HWND16      hWnd;
 	DATETIME    InstDate;
-	UINT        wVersion;
+	UINT16      wVersion;
 	BYTE        szDescription[50];
 	BYTE        szName[80];
 	BYTE        szOptions[30];
 } IMEPRO16, *PIMEPRO16, NEAR *NPIMEPRO16, FAR *LPIMEPRO16;
+#include <poppack.h>
 void IMEPRO16ToIMEPRO(IMEPRO16 *imepro, IMEPROA *imepro32)
 {
 	imepro32->hWnd = HWND_32(imepro->hWnd);
-	memcpy(((HWND*)imepro32) + 1, ((HWND16*)imepro) + 1, sizeof(IMEPROA) - sizeof(HWND));
+    imepro32->InstDate = imepro->InstDate;
+    imepro32->wVersion = imepro->wVersion;
+    memcpy(imepro32->szDescription, imepro->szDescription, sizeof(imepro32->szDescription));
+    memcpy(imepro32->szName, imepro->szName, sizeof(imepro32->szName));
+    memcpy(imepro32->szOptions, imepro->szOptions, sizeof(imepro32->szOptions));
 }
 void IMEPROToIMEPRO16(IMEPROA *imepro32, IMEPRO16 *imepro)
 {
 	imepro->hWnd = HWND_16(imepro32->hWnd);
-	memcpy(((HWND16*)imepro) + 1, ((HWND*)imepro32) + 1, sizeof(IMEPRO16) - sizeof(HWND16));
+    imepro->InstDate = imepro32->InstDate;
+    //lost data
+    imepro->wVersion = (UINT16)imepro32->wVersion;
+    memcpy(imepro->szDescription, imepro32->szDescription, sizeof(imepro32->szDescription));
+    memcpy(imepro->szName, imepro32->szName, sizeof(imepro32->szName));
+    memcpy(imepro->szOptions, imepro32->szOptions, sizeof(imepro32->szOptions));
 }
 BOOL16  WINAPI IMPQueryIME16(IN OUT LPIMEPRO16 lpIMEPro)
 {
 	IMEPROA imepro32;
+    //WHY???
+    if (!strcmp(lpIMEPro->szName, "msctf.dll"))
+        return FALSE;
 	IMEPRO16ToIMEPRO(lpIMEPro, &imepro32);
 	BOOL ret = IMPQueryIMEA(&imepro32);
 	TRACE("IMPQueryIME16(0x%p) ret{0x%p, \"%s\", \"%s\", \"%s\", %d}\n", lpIMEPro, imepro32.hWnd, imepro32.szDescription, imepro32.szName, imepro32.szOptions, imepro32.wVersion);
