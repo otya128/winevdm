@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
 {
 	if (argc <= 1)
 	{
-		printf("wine spec file convert tool\nusage: %s specfile(16bit only) module name\n%s specfile(16bit only) -DEF\n", argv[0], argv[0]);
+		printf("wine spec file convert tool\nusage: %s specfile(16bit only) module name [-EXE]\n%s specfile(16bit only) -DEF\n", argv[0], argv[0]);
 		fatal_error("file argument '%s' not allowed in this mode\n", argv[0]);
 	}
 	DLLSPEC *spec = alloc_dll_spec();
@@ -24,9 +24,13 @@ int main(int argc, char* argv[])
 		if (!strcmp(argv[2], "-DEF"))
 		{
 			exec_mode = MODE_DEF;
-		}
-		else
+		} 
+        else
 		{
+            if (!strcmp(argv[3], "-EXE"))
+            {
+                exec_mode = MODE_EXE;
+            }
 			spec->main_module = xstrdup(argv[2]);
 			spec->dll_name = xstrdup(argv[2]);
 		}
@@ -57,6 +61,8 @@ int main(int argc, char* argv[])
 			break;
 		}
 		//read_undef_symbols(spec, argv);
+        if (spec->type == SPEC_WIN16 && exec_mode == MODE_EXE)
+            spec->init_func = xstrdup("__wine_spec_exe16_entry");
 		switch (spec->type)
 		{
 		case SPEC_WIN16:
