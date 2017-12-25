@@ -4466,6 +4466,24 @@ extern "C"
 	{
 		m_x87_sw &= ~0x80ff;
 	}
+    __declspec(dllexport) void fsave(char *ptr)
+    {
+        UINT32 ea = (UINT32)ptr;
+        *(UINT16*)(ptr + 0) = m_x87_cw;
+        *(UINT16*)(ptr + 2) = m_x87_sw;
+        *(UINT16*)(ptr + 4) = m_x87_tw;
+        for (int i = 0; i < 8; ++i)
+            WRITE80(ea + i * 10, ST(i));
+    }
+    __declspec(dllexport) void frstor(const char *ptr)
+    {
+        UINT32 ea = (UINT32)ptr;
+        x87_write_cw(READ16(ea));
+        m_x87_sw = READ16(ea + 2);
+        m_x87_tw = READ16(ea + 4);
+        for (int i = 0; i < 8; ++i)
+            x87_write_stack(i, READ80(ea + i * 10), FALSE);
+    }
 }
 
 void x87_fstcw(UINT8 modrm)

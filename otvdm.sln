@@ -113,6 +113,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ver", "ver\ver.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "winecrt0", "winecrt0\winecrt0.vcxproj", "{583655C3-2633-4597-BD31-C5AA1EC78AD2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "system", "system.drv16\system.vcxproj", "{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -545,6 +547,19 @@ Global
 		{583655C3-2633-4597-BD31-C5AA1EC78AD2}.Release|Win32.Build.0 = Release|Win32
 		{583655C3-2633-4597-BD31-C5AA1EC78AD2}.Release|x64.ActiveCfg = Release|x64
 		{583655C3-2633-4597-BD31-C5AA1EC78AD2}.Release|x64.Build.0 = Release|x64
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Debug|Win32.Build.0 = Debug|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Debug|x64.ActiveCfg = Debug|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Debug-USER.EXE|Win32.ActiveCfg = Debug|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Debug-USER.EXE|Win32.Build.0 = Debug|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Debug-USER.EXE|x64.ActiveCfg = Release|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Debug-USER.EXE|x64.Build.0 = Release|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.GenLibFileRelease|Win32.ActiveCfg = GenLibFileRelease|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.GenLibFileRelease|Win32.Build.0 = GenLibFileRelease|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.GenLibFileRelease|x64.ActiveCfg = GenLibFileRelease|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Release|Win32.ActiveCfg = Release|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Release|Win32.Build.0 = Release|Win32
+		{6E81B0D8-0218-4EB9-88D7-AD2F2EBD928C}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

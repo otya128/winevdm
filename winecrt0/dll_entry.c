@@ -26,9 +26,9 @@
 
 extern BOOL WINAPI DECLSPEC_HIDDEN DllMain( HINSTANCE inst, DWORD reason, LPVOID reserved );
 
-BOOL WINAPI DECLSPEC_HIDDEN __wine_spec_dll_entry( HINSTANCE inst, DWORD reason, LPVOID reserved )
+BOOL /*WINAPI*/ DECLSPEC_HIDDEN __wine_spec_dll_entry( HINSTANCE inst, DWORD reason, LPVOID reserved )
 {
-    static BOOL call_fini;
+    /*static BOOL call_fini;
     BOOL ret;
 
     if (reason == DLL_PROCESS_ATTACH && __wine_spec_init_state != CONSTRUCTORS_DONE)
@@ -40,6 +40,8 @@ BOOL WINAPI DECLSPEC_HIDDEN __wine_spec_dll_entry( HINSTANCE inst, DWORD reason,
     ret = DllMain( inst, reason, reserved );
 
     if (reason == DLL_PROCESS_DETACH && call_fini) _fini();
-
+    
     return ret;
+    */
+    return 0;
 }

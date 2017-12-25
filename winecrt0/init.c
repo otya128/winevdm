@@ -32,7 +32,7 @@ extern const char __wine_spec_file_name[];
 void DECLSPEC_HIDDEN __wine_spec_init(void)
 {
     __wine_spec_init_state = DLL_REGISTERED;
-    __wine_dll_register( &__wine_spec_nt_header, __wine_spec_file_name );
+    //__wine_dll_register( &__wine_spec_nt_header, __wine_spec_file_name );
 }
 
 void DECLSPEC_HIDDEN __wine_spec_init_ctor(void)
