@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 		} 
         else
 		{
-            if (!strcmp(argv[3], "-EXE"))
+            if (argc > 3 && !strcmp(argv[3], "-EXE"))
             {
                 exec_mode = MODE_EXE;
             }
