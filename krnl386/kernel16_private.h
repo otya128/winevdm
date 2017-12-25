@@ -117,11 +117,13 @@
 #ifdef _TEB
 #error aaa
 #endif
+/*
 typedef struct _CLIENT_ID
 {
 	HANDLE UniqueProcess;
 	HANDLE UniqueThread;
 } CLIENT_ID, *PCLIENT_ID;
+*/
 typedef struct _GDI_TEB_BATCH
 {
 	ULONG  Offset;
@@ -746,7 +748,7 @@ static inline struct kernel_thread_data *kernel_get_thread_data(void)
 #define __ms_va_start va_start
 #define __ms_va_end va_end
 //??
-#define PEXCEPTION_HANDLER PEXCEPTION_RECORD
+#define PEXCEPTION_HANDLER PEXCEPTION_ROUTINE
 //ntdef.h
 typedef enum _EVENT_TYPE {
     NotificationEvent,
