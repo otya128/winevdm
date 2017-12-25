@@ -144,7 +144,7 @@ static char *find_dosbox(void)
     return NULL;
 }
 
-
+#ifdef SUPPORT_DOSBOX
 /***********************************************************************
  *           start_dosbox
  */
@@ -205,8 +205,12 @@ static void start_dosbox( const char *appname, const char *args )
     HeapFree( GetProcessHeap(), 0, buffer );
     ExitProcess( ret );
 }
-
-
+#else
+static void start_dosbox(const char *appname, const char *args)
+{
+    return;
+}
+#endif
 /***********************************************************************
  *           start_dos_exe
  */
@@ -217,7 +221,7 @@ static void start_dos_exe( LPCSTR filename, LPCSTR cmdline )
 
     start_dosbox( filename, cmdline );
 
-    if (VirtualQuery( NULL, &mem_info, sizeof(mem_info) ) && mem_info.State != MEM_FREE)
+    if (TRUE || VirtualQuery( NULL, &mem_info, sizeof(mem_info) ) && mem_info.State != MEM_FREE)
     {
         __wine_load_dos_exe( filename, cmdline );
         if (GetLastError() == ERROR_NOT_SUPPORTED)
@@ -346,7 +350,7 @@ static VOID pif_cmd( char *filename, char *cmdline)
         return;
     }
     CloseHandle( hFile);
-    if( (p = strrchr( progname, '.')) && !strcasecmp( p, ".bat"))
+    if( (p = strrchr( progname, '.')) && !_stricmp( p, ".bat"))
         WINE_FIXME(".bat programs in pif files are not supported.\n"); 
     /* first change dir, so the search below can start from there */
     if( startdir[0] && !SetCurrentDirectoryA( startdir)) {
@@ -566,7 +570,7 @@ int main( int argc, char *argv[] )
         {
 #ifdef SUPPORT_DOS
             /* first see if it is a .pif file */
-            if( ( p = strrchr( appname, '.' )) && !strcasecmp( p, ".pif"))
+            if( ( p = strrchr( appname, '.' )) && !_stricmp( p, ".pif"))
                 pif_cmd( appname, cmdline + 1);
             else
             {
