@@ -659,6 +659,7 @@ extern "C"
 	WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags);
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
+
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
 		CPU_INIT_CALL(CPU_MODEL);
 		//enable x87
@@ -720,7 +721,7 @@ extern "C"
     }
 	void WINAPI InitTask16(CONTEXT*);
 	BOOL initflag;
-	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
+	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
@@ -728,7 +729,7 @@ extern "C"
 		bool dasm
 		);
 	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
-	void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
+	void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
@@ -743,7 +744,7 @@ extern "C"
 			initflag = init_vm86(vm86);
 		vm86main(context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm);
 	}	
-	DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_RECORD handler,
+	DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
@@ -770,7 +771,7 @@ extern "C"
 	}
 	UINT old_eip = 0;
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE er);
-	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
+	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point,	unsigned char *args16, CONTEXT *context),
@@ -885,28 +886,50 @@ extern "C"
 				if (m_pc >= (UINT)/*ptr!*/iret && m_pc <= (UINT)/*ptr!*/iret + 255)
 				{
 					CONTEXT context;
-                    WORD ip = POP16();
-                    WORD cs = POP16();
-                    PUSH16(cs);
-                    PUSH16(ip);
-					save_context(&context);
-                    DWORD cs2 = context.SegCs;
-                    DWORD eip2 = context.Eip;
-                    context.Eip = ip;
-                    context.SegCs = cs;
-                    //wine int handler ‚ÍCS:IP‚ð‚¢‚¶‚éê‡‚ª‚ ‚é
-					__wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
-                    WORD ip3 = context.Eip;
-                    WORD cs3 = context.SegCs;
-                    context.SegCs = cs2;
-                    context.Eip = eip2;
-					load_context(&context);
-                    WORD a = POP16();
-                    WORD b = POP16();
-                    WORD c = POP16();
-                    PUSH16((WORD)context.EFlags);
-                    PUSH16(cs3);
-                    PUSH16(ip3);
+                    //GP
+                    /*if (m_pc - (UINT)iret == 0x0d)
+                    {
+                        WORD err = POP16();
+                        WORD ip = POP16();
+                        WORD cs = POP16();
+                        WORD oldflags = POP16();
+                        EXCEPTION_RECORD rec = {};
+                        rec.ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
+                        save_context(&context);
+                        context.SegCs = cs;
+                        context.Eip = ip;
+                        EXCEPTION_DISPOSITION result = handler(&rec, NULL, &context, NULL);
+                        if (result == ExceptionContinueExecution)
+                        {
+                            load_context(&context);
+                            continue;
+                        }
+                    }
+                    else*/
+                    {
+                        WORD ip = POP16();
+                        WORD cs = POP16();
+                        PUSH16(cs);
+                        PUSH16(ip);
+                        save_context(&context);
+                        DWORD cs2 = context.SegCs;
+                        DWORD eip2 = context.Eip;
+                        context.Eip = ip;
+                        context.SegCs = cs;
+                        //wine int handler ‚ÍCS:IP‚ð‚¢‚¶‚éê‡‚ª‚ ‚é
+                        __wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
+                        WORD ip3 = context.Eip;
+                        WORD cs3 = context.SegCs;
+                        context.SegCs = cs2;
+                        context.Eip = eip2;
+                        load_context(&context);
+                        WORD a = POP16();
+                        WORD b = POP16();
+                        WORD c = POP16();
+                        PUSH16((WORD)context.EFlags);
+                        PUSH16(cs3);
+                        PUSH16(ip3);
+                    }
 				}
 				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
 				{
@@ -1095,8 +1118,6 @@ extern "C"
 						SREG(FS) = (WORD)context.SegFs;
 						SREG(GS) = (WORD)context.SegGs;
 						REG16(SP) = osp + 18 + 2;
-						//if (IsInitTask)//??????????????????????//(!reg)
-						//	REG16(SP) += 2;
 						REG16(SP) -= (ooo - context.Esp);
 						REG16(BP) = bp;
 						set_flags(context.EFlags);
@@ -1108,53 +1129,9 @@ extern "C"
 						m_eip = context.Eip;
 						i386_jmp_far(SREG(CS), context.Eip);
 					}
-					/*
-					m_eip = POP32();
-					m_sreg[CS].selector = POP32();
-					i386_load_segment_descriptor(CS);
-					CHANGE_PC(m_eip);
-					from16_reg();
-					UINT addr = POP32();
-					if (addr == (UINT)relay_call_from_16)
-					{
-					UINT16 retadr2 = POP16();
-					void *func = (void*)POP32();
-					UINT16 bp = POP16();
-					m_eip = POP16();
-					m_sreg[CS].selector = POP16();
-					i386_load_segment_descriptor(CS);
-					CHANGE_PC(m_eip);
-					unsigned char *args = (unsigned char*)i386_translate(SS, REG32(SP), 0);
-					CONTEXT context;
-					context.Eax = REG16(AX);
-					context.Ecx = REG16(CX);
-					context.Edx = REG16(DX);
-					context.Ebx = REG16(BX);
-					context.Esp = REG16(SP);
-					context.Ebp = REG16(BP);
-					context.Esi = REG16(SI);
-					context.Edi = REG16(DI);
-					context.SegEs = SREG(ES);
-					context.SegCs = SREG(CS);
-					context.SegSs = SREG(SS);
-					context.SegDs = SREG(DS);
-					int fret = relay_call_from_16(func, args, &context);
-					REG16(AX) = fret & 0xFFFF;
-					REG16(DX) = fret >> 16;
-					}
-					else
-					{
-					printf("????\n");
-					}*/
-					//i386_jmp_far(SREG(CS), addr);
-					//
 				}
 				if (is_32bit_segment(CS))
 				{
-					if (dasm && m_VM)
-					{
-						//printf("==ENTER 32BIT CODE==\n");
-					}
 					m_VM = 0;
 					m_eflags &= ~0x20000;
 					//????
@@ -1187,14 +1164,21 @@ extern "C"
 
 					fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
 					fflush(stderr);
+                    int result;
 #if defined(HAS_I386)
 					if (m_operand_size) {
-						CPU_DISASSEMBLE_CALL(x86_32);
+                        result = CPU_DISASSEMBLE_CALL(x86_32);
 					}
 					else
 #endif
-						i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-					fprintf(stderr, "\t%s\n", buffer,SREG(ES));
+                        result = i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+                    int opsize = result & 0xFF;
+                    while (opsize--)
+                    {
+                        fprintf(stderr, "%02X", *oprom);
+                        oprom++;
+                    }
+					fprintf(stderr, "\t%s\n", buffer);
 				}
 #endif
                 if (V8086_MODE)

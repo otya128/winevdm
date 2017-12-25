@@ -217,7 +217,7 @@ static void insert_event_check( CONTEXT *context )
  *
  * Handler for exceptions occurring in 16-bit code.
  */
-static DWORD call16_handler( EXCEPTION_RECORD *record, EXCEPTION_REGISTRATION_RECORD *frame,
+static EXCEPTION_DISPOSITION NTAPI call16_handler( EXCEPTION_RECORD *record, EXCEPTION_REGISTRATION_RECORD *frame,
                              CONTEXT *context, EXCEPTION_REGISTRATION_RECORD **pdispatcher )
 {
     if (record->ExceptionFlags & (EH_UNWINDING | EH_EXIT_UNWIND))

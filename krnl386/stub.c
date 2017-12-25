@@ -157,7 +157,7 @@ DWORD WINAPI wine_call_to_16(FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER 
 
 	return 0;
 }
- void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);
+ void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler);
 void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
 	//DPRINTF("NOTIMPL:wine_call_to_16_regs(%p, %u, %p)", context, cbArgs, handler);
