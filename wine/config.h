@@ -286,6 +286,12 @@
 /* Define to 1 if you have the <gsm.h> header file. */
 /* #undef HAVE_GSM_H */
 
+/* Define to 1 if you have the <gssapi/gssapi_ext.h> header file. */
+/* #undef HAVE_GSSAPI_GSSAPI_EXT_H */
+
+/* Define to 1 if you have the <gssapi/gssapi.h> header file. */
+/* #undef HAVE_GSSAPI_GSSAPI_H */
+
 /* Define to 1 if you have the <ieeefp.h> header file. */
 #define HAVE_IEEEFP_H 1
 
@@ -1479,6 +1485,9 @@
 
 /* Define to the soname of the libgsm library. */
 #define SONAME_LIBGSM "	cyggsm-1.dll"
+
+/* Define to the soname of the libgssapi_krb5 library. */
+/* #undef SONAME_LIBGSSAPI_KRB5 */
 
 /* Define to the soname of the libhal library. */
 /* #undef SONAME_LIBHAL */
