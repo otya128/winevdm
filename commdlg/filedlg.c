@@ -18,12 +18,15 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
+
+#include <assert.h>
 #include <stdarg.h>
 #include "windef.h"
 #include "winbase.h"
 #include "wine/winbase16.h"
 #include "wingdi.h"
 #include "winuser.h"
+#include "winternl.h"
 #include "commdlg.h"
 #include "cdlg16.h"
 #include "wine/debug.h"
@@ -94,6 +97,105 @@ COMMDLGTHUNK *allocate_thunk(SEGPTR ofnseg, SEGPTR func)
         }
     }
     return NULL;
+}
+
+
+static inline WORD get_word( const char **ptr )
+{
+    WORD ret = *(WORD *)*ptr;
+    *ptr += sizeof(WORD);
+    return ret;
+}
+
+static inline void copy_string( WORD **out, const char **in, DWORD maxlen )
+{
+    DWORD len = MultiByteToWideChar( CP_ACP, 0, *in, -1, *out, maxlen );
+    *in += strlen(*in) + 1;
+    *out += len;
+}
+
+static inline void copy_dword( WORD **out, const char **in )
+{
+    *(DWORD *)*out = *(DWORD *)*in;
+    *in += sizeof(DWORD);
+    *out += sizeof(DWORD) / sizeof(WORD);
+}
+
+static LPDLGTEMPLATEA convert_dialog( const char *p, DWORD size )
+{
+    LPDLGTEMPLATEA dlg;
+    WORD len, count, *out, *end;
+
+    if (!(dlg = HeapAlloc( GetProcessHeap(), 0, size * 2 ))) return NULL;
+    out = (WORD *)dlg;
+    end = out + size;
+    copy_dword( &out, &p );  /* style */
+    *out++ = 0; *out++ = 0;  /* exstyle */
+    *out++ = count = (BYTE)*p++;  /* count */
+    *out++ = get_word( &p );  /* x */
+    *out++ = get_word( &p );  /* y */
+    *out++ = get_word( &p );  /* cx */
+    *out++ = get_word( &p );  /* cy */
+
+    if ((BYTE)*p == 0xff)  /* menu */
+    {
+        p++;
+        *out++ = 0xffff;
+        *out++ = get_word( &p );
+    }
+    else copy_string( &out, &p, end - out );
+
+    copy_string( &out, &p, end - out );  /* class */
+    copy_string( &out, &p, end - out );  /* caption */
+
+    if (dlg->style & DS_SETFONT)
+    {
+        *out++ = get_word( &p );  /* point size */
+        copy_string( &out, &p, end - out );  /* face name */
+    }
+
+    /* controls */
+    while (count--)
+    {
+        WORD x = get_word( &p );
+        WORD y = get_word( &p );
+        WORD cx = get_word( &p );
+        WORD cy = get_word( &p );
+        WORD id = get_word( &p );
+
+        out = (WORD *)(((UINT_PTR)out + 3) & ~3);
+
+        copy_dword( &out, &p );  /* style */
+        *out++ = 0; *out++ = 0;  /* exstyle */
+        *out++ = x;
+        *out++ = y;
+        *out++ = cx;
+        *out++ = cy;
+        *out++ = id;
+
+        if (*p & 0x80)  /* class */
+        {
+            *out++ = 0xffff;
+            *out++ = (BYTE)*p++;
+        }
+        else copy_string( &out, &p, end - out );
+
+        if (*p & 0x80)  /* window */
+        {
+            *out++ = 0xffff;
+            *out++ = get_word( &p );
+        }
+        else copy_string( &out, &p, end - out );
+
+        len = (BYTE)*p++;  /* data */
+        *out++ = (len + 1) & ~1;
+        memcpy( out, p, len );
+        p += len;
+        out += (len + 1) / sizeof(WORD);
+    }
+
+    assert( out <= end );
+    return dlg;
 }
 
 static UINT_PTR CALLBACK dummy_hook( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp )
@@ -192,6 +294,7 @@ LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
 BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure with data*/
 {
     LPOPENFILENAME16 lpofn = MapSL(ofn);
+    LPDLGTEMPLATEA template = NULL;
     OPENFILENAMEA ofn32;
     BOOL ret;
 
@@ -219,6 +322,21 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.lpTemplateName    = dynamic_resource(lpofn->hInstance, lpofn->lpTemplateName);
     ofn32.hInstance         = GetModuleHandleW(L"commdlg.dll16");
 
+    if (lpofn->Flags & OFN_ENABLETEMPLATE)
+    {
+        HRSRC16 res = FindResource16( lpofn->hInstance, MapSL(lpofn->lpTemplateName), (LPCSTR)RT_DIALOG );
+        HGLOBAL16 handle = LoadResource16( lpofn->hInstance, res );
+        DWORD size = SizeofResource16( lpofn->hInstance, res );
+        void *ptr = LockResource16( handle );
+
+        if (ptr && (template = convert_dialog( ptr, size )))
+        {
+            ofn32.hInstance = (HINSTANCE)template;
+            ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
+        }
+        FreeResource16( handle );
+    }
+
     if (lpofn->Flags & OFN_ENABLEHOOK)
     {
         ofn32.lpfnHook = allocate_thunk(ofn, lpofn->lpfnHook);
@@ -237,6 +355,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 	lpofn->nFileExtension = ofn32.nFileExtension;
     }
     delete_thunk(ofn32.lpfnHook);
+    HeapFree( GetProcessHeap(), 0, template );
     return ret;
 }
 
@@ -255,6 +374,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure with data*/
 {
     LPOPENFILENAME16 lpofn = MapSL(ofn);
+    LPDLGTEMPLATEA template = NULL;
     OPENFILENAMEA ofn32;
     BOOL ret;
 
@@ -283,6 +403,21 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.lpTemplateName    = dynamic_resource(lpofn->hInstance, lpofn->lpTemplateName);
     ofn32.hInstance         = GetModuleHandleW(L"commdlg.dll16");
 
+    if (lpofn->Flags & OFN_ENABLETEMPLATE)
+    {
+        HRSRC16 res = FindResource16( lpofn->hInstance, MapSL(lpofn->lpTemplateName), (LPCSTR)RT_DIALOG );
+        HGLOBAL16 handle = LoadResource16( lpofn->hInstance, res );
+        DWORD size = SizeofResource16( lpofn->hInstance, res );
+        void *ptr = LockResource16( handle );
+
+        if (ptr && (template = convert_dialog( ptr, size )))
+        {
+            ofn32.hInstance = (HINSTANCE)template;
+            ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
+        }
+        FreeResource16( handle );
+    }
+
     if (lpofn->Flags & OFN_ENABLEHOOK)
     {
         ofn32.lpfnHook = allocate_thunk(ofn, lpofn->lpfnHook);
@@ -300,6 +435,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 	lpofn->nFileExtension = ofn32.nFileExtension;
     }
     delete_thunk(ofn32.lpfnHook);
+    HeapFree( GetProcessHeap(), 0, template );
     return ret;
 }
 
