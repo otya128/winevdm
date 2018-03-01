@@ -1531,6 +1531,9 @@
 /* Define to the soname of the libv4l1 library. */
 /* #undef SONAME_LIBV4L1 */
 
+/* Define to the soname of the libvulkan library. */
+/* #undef SONAME_LIBVULKAN */
+
 /* Define to the soname of the libX11 library. */
 /* #undef SONAME_LIBX11 */
 
