@@ -149,7 +149,7 @@ _wine_spec_dos_header:
 
 	.align 2
 .L__wine_spec_ne_restab:
-	.byte 0x06,0x53,0x59,0x53,0x54,0x45,0x4d /* SYSTEM */
+	.byte 0x05,0x4d,0x4f,0x55,0x53,0x45 /* MOUSE */
 	.short 0
 	.byte 0x0d,0x49,0x4e,0x51,0x55,0x49,0x52,0x45,0x53,0x59,0x53,0x54,0x45,0x4d /* InquireSystem */
 	.short 1
@@ -181,35 +181,35 @@ _wine_spec_dos_header:
 	.byte 0,0
 
 .L__wine_spec_ne_enttab:
-	/* SYSTEM.1 - SYSTEM.9 */
+	/* MOUSE.1 - MOUSE.9 */
 	.byte 0x09,0x01
 	.byte 0x03
-	.short .L__wine_SYSTEM_1-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_1-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_SYSTEM_2-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_2-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_SYSTEM_3-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_3-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_SYSTEM_4-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_4-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_SYSTEM_5-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_5-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_SYSTEM_6-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_6-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_SYSTEM_7-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_7-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_SYSTEM_8-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_8-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_SYSTEM_9-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_9-.L__wine_spec_code_segment
 	.byte 0x03,0x00
-	/* SYSTEM.13 - SYSTEM.13 */
+	/* MOUSE.13 - MOUSE.13 */
 	.byte 0x01,0x01
 	.byte 0x03
-	.short .L__wine_SYSTEM_13-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_13-.L__wine_spec_code_segment
 	.byte 0x06,0x00
 	.byte 0x01,0x01
 	.byte 0x03
-	.short .L__wine_SYSTEM_20-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_20-.L__wine_spec_code_segment
 	.byte 0x00
 .L__wine_spec_ne_enttab_end:
 
@@ -277,47 +277,47 @@ _wine_spec_dos_header:
 	.byte 0x89,0xf6
 	.short 0x86c7
 	.long 0x00000000,0x00000000
-.L__wine_SYSTEM_1:
+.L__wine_MOUSE_1:
 	pushw %bp
 	pushl $_InquireSystem16@8
 	callw .L__wine_spec_callfrom16_p_long_ww
-.L__wine_SYSTEM_2:
+.L__wine_MOUSE_2:
 	pushw %bp
 	pushl $_CreateSystemTimer16@8
 	callw .L__wine_spec_callfrom16_p_word_wl
-.L__wine_SYSTEM_3:
+.L__wine_MOUSE_3:
 	pushw %bp
 	pushl $_SYSTEM_KillSystemTimer@4
 	callw .L__wine_spec_callfrom16_p_word_w
-.L__wine_SYSTEM_4:
+.L__wine_MOUSE_4:
 	pushw %bp
 	pushl $_EnableSystemTimers16@0
 	callw .L__wine_spec_callfrom16_p_word_
-.L__wine_SYSTEM_5:
+.L__wine_MOUSE_5:
 	pushw %bp
 	pushl $_DisableSystemTimers16@0
 	callw .L__wine_spec_callfrom16_p_word_
-.L__wine_SYSTEM_6:
+.L__wine_MOUSE_6:
 	pushw %bp
 	pushl $_GetSystemMSecCount16@0
 	callw .L__wine_spec_callfrom16_p_long_
-.L__wine_SYSTEM_7:
+.L__wine_MOUSE_7:
 	pushw %bp
 	pushl $_Get80x87SaveSize16@0
 	callw .L__wine_spec_callfrom16_p_word_
-.L__wine_SYSTEM_8:
+.L__wine_MOUSE_8:
 	pushw %bp
 	pushl $_Save80x87State16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_SYSTEM_9:
+.L__wine_MOUSE_9:
 	pushw %bp
 	pushl $_Restore80x87State16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_SYSTEM_13:
+.L__wine_MOUSE_13:
 	pushw %bp
 	pushl $___wine_stub_INQUIRELONGINTS
 	callw .L__wine_spec_callfrom16_c_long_
-.L__wine_SYSTEM_20:
+.L__wine_MOUSE_20:
 	pushw %bp
 	pushl $_A20_Proc16@4
 	callw .L__wine_spec_callfrom16_p_word_w
@@ -469,5 +469,5 @@ ___wine_stub_INQUIRELONGINTS:
 
 	.section .rodata
 .L__wine_spec_main_module:
-	.string "SYSTEM"
+	.string "MOUSE"
 __end:/*?*/

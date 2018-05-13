@@ -172,4 +172,7 @@
       <Filter>ソース ファイル</Filter>
     </Object>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="krnl386.exe16.spec" />
+  </ItemGroup>
 </Project>

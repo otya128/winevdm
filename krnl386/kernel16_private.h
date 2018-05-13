@@ -728,16 +728,27 @@ static inline struct kernel_thread_data *kernel_get_thread_data(void)
     return (struct kernel_thread_data *)NtCurrentTeb()->SystemReserved1;
 }
 
-#define DEFINE_REGS_ENTRYPOINT( name, args ) \
-    __ASM_GLOBAL_FUNC( name, \
-                       ".byte 0x68\n\t"  /* pushl $__regs_func */       \
-                       ".long " __ASM_NAME("__regs_") #name "-.-11\n\t" \
-                       ".byte 0x6a," #args "\n\t" /* pushl $args */     \
-                       "call " __ASM_NAME("__wine_call_from_regs") "\n\t" \
-                       "ret $(4*" #args ")" ) /* fake ret to make copy protections happy */
-
+//#define DEFINE_REGS_ENTRYPOINT( name, args ) \
+//    __ASM_GLOBAL_FUNC( name, \
+//                       ".byte 0x68\n\t"  /* pushl $__regs_func */       \
+//                       ".long " __ASM_NAME("__regs_") #name "-.-11\n\t" \
+//                       ".byte 0x6a," #args "\n\t" /* pushl $args */     \
+//                       "call " __ASM_NAME("__wine_call_from_regs") "\n\t" \
+//                       "ret $(4*" #args ")" )/* fake ret to make copy protections happy */
 #undef DEFINE_REGS_ENTRYPOINT
-#define DEFINE_REGS_ENTRYPOINT(name, args) void name(){ERR("notimpl:DEFINE_REGS_ENTRYPOINT(" #name ")\n");}
+#define DEFINE_REGS_ENTRYPOINT_ARG(name, ...) void __stdcall name(__VA_ARGS__){ERR("notimpl:DEFINE_REGS_ENTRYPOINT(" #name ")\n");}
+#define DEFINE_REGS_ENTRYPOINT_0(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1)
+#define DEFINE_REGS_ENTRYPOINT_1(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2)
+#define DEFINE_REGS_ENTRYPOINT_2(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3)
+#define DEFINE_REGS_ENTRYPOINT_3(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4)
+#define DEFINE_REGS_ENTRYPOINT_4(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5)
+#define DEFINE_REGS_ENTRYPOINT_5(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5, int a6)
+#define DEFINE_REGS_ENTRYPOINT_6(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+#define DEFINE_REGS_ENTRYPOINT_7(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+#define DEFINE_REGS_ENTRYPOINT_8(name) DEFINE_REGS_ENTRYPOINT_ARG(name, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9)
+#define DEFINE_REGS_ENTRYPOINT_JOIN(base, count) base ## count
+#define DEFINE_REGS_ENTRYPOINT(name, args) DEFINE_REGS_ENTRYPOINT_JOIN(DEFINE_REGS_ENTRYPOINT_, args) (name)
+//void __stdcall name(__declspec(align(0)) struct {__declspec(align(0)) char reg;__declspec(align(0))char a[args];} a){ERR("notimpl:DEFINE_REGS_ENTRYPOINT(" #name ")\n");}
 #define __ms_va_list va_list
 #define __ms_va_start va_start
 #define __ms_va_end va_end

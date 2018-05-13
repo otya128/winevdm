@@ -29,4 +29,9 @@
       <Filter>ソース ファイル</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="win87em.dll16.spec">
+      <Filter>ソース ファイル</Filter>
+    </CustomBuild>
+  </ItemGroup>
 </Project>

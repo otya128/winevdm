@@ -40,13 +40,15 @@
     <None Include="commdlg.def">
       <Filter>ソース ファイル</Filter>
     </None>
-    <None Include="commdlg.dll16.spec">
-      <Filter>ソース ファイル</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Object Include="commdlg.dll16.obj">
       <Filter>ソース ファイル</Filter>
     </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="commdlg.dll16.spec">
+      <Filter>ソース ファイル</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

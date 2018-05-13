@@ -21,8 +21,6 @@
 #include <stdarg.h>
 #include "windef.h"
 #include "winbase.h"
-//#include "wownt32.h"
-#include "windows/wownt32.h"
 
 #undef WOWCallback16
 #undef WOWCallback16Ex
@@ -40,95 +38,160 @@
 #undef WOWHandle16
 #undef WOWHandle32
 #undef WOWYield16
+enum WOW_HANDLE_TYPE;
+typedef enum WOW_HANDLE_TYPE WOW_HANDLE_TYPE;
+BOOL init = FALSE;
+BOOL(WINAPI *K32WOWGetDescriptor)(DWORD segptr, LPLDT_ENTRY ldtent);
+LPVOID(WINAPI *K32WOWGetVDMPointer)(DWORD vp, DWORD dwBytes, BOOL fProtectedMode);
+LPVOID(WINAPI *K32WOWGetVDMPointerFix)(DWORD vp, DWORD dwBytes, BOOL fProtectedMode);
+void (WINAPI *K32WOWGetVDMPointerUnfix)(DWORD vp);
+WORD(WINAPI *K32WOWGlobalAlloc16)(WORD wFlags, DWORD cb);
+WORD(WINAPI *K32WOWGlobalFree16)(WORD hMem);
+DWORD(WINAPI *K32WOWGlobalLock16)(WORD hMem);
+BOOL(WINAPI *K32WOWGlobalUnlock16)(WORD hMem);
+DWORD(WINAPI *K32WOWGlobalAllocLock16)(WORD wFlags, DWORD cb, WORD *phMem);
+DWORD(WINAPI *K32WOWGlobalLockSize16)(WORD hMem, PDWORD pcb);
+WORD(WINAPI *K32WOWGlobalUnlockFree16)(DWORD vpMem);
+void (WINAPI *K32WOWYield16)(void);
+void (WINAPI *K32WOWDirectedYield16)(WORD htask16);
+HANDLE(WINAPI *K32WOWHandle32)(WORD handle, WOW_HANDLE_TYPE type);
+WORD(WINAPI *K32WOWHandle16)(HANDLE handle, WOW_HANDLE_TYPE type);
+BOOL(WINAPI *K32WOWCallback16Ex)(DWORD vpfn16, DWORD dwFlags, DWORD cbArgs, PVOID pArgs, PDWORD pdwRetCode);
+DWORD(WINAPI *K32WOWCallback16)(DWORD vpfn16, DWORD dwParam);
 
-BOOL   WINAPI K32WOWGetDescriptor(DWORD,LPLDT_ENTRY);
+void load_functions()
+{
+	HMODULE krnl386 = GetModuleHandleA("krnl386.exe16");
+#define LOAD(func) func = GetProcAddress(krnl386, #func)
+	LOAD(K32WOWGetDescriptor);
+	LOAD(K32WOWGetVDMPointer);
+	LOAD(K32WOWGetVDMPointerFix);
+	LOAD(K32WOWGetVDMPointerUnfix);
+	LOAD(K32WOWGlobalAlloc16);
+	LOAD(K32WOWGlobalFree16);
+	LOAD(K32WOWGlobalLock16);
+	LOAD(K32WOWGlobalUnlock16);
+	LOAD(K32WOWGlobalAllocLock16);
+	LOAD(K32WOWGlobalLockSize16);
+	LOAD(K32WOWGlobalUnlockFree16);
+	LOAD(K32WOWYield16);
+	LOAD(K32WOWDirectedYield16);
+	LOAD(K32WOWHandle32);
+	LOAD(K32WOWHandle16);
+	LOAD(K32WOWCallback16Ex);
+	LOAD(K32WOWCallback16);
+#undef LOAD
+	init = TRUE;
+}
 
 /**********************************************************************
  *           WOWGetDescriptor   (WOW32.1)
  */
-BOOL WINAPI WOWGetDescriptor( DWORD segptr, LPLDT_ENTRY ldtent )
+BOOL WINAPI WOWGetDescriptor(DWORD segptr, LPLDT_ENTRY ldtent)
 {
-    return K32WOWGetDescriptor( segptr, ldtent );
+	if (!K32WOWGetDescriptor)
+		load_functions();
+	return K32WOWGetDescriptor(segptr, ldtent);
 }
 
 /**********************************************************************
  *           WOWGetVDMPointer   (WOW32.@)
  */
-LPVOID WINAPI WOWGetVDMPointer( DWORD vp, DWORD dwBytes, BOOL fProtectedMode )
+LPVOID WINAPI WOWGetVDMPointer(DWORD vp, DWORD dwBytes, BOOL fProtectedMode)
 {
-    return K32WOWGetVDMPointer( vp, dwBytes, fProtectedMode );
+	if (!K32WOWGetVDMPointer)
+		load_functions();
+	return K32WOWGetVDMPointer(vp, dwBytes, fProtectedMode);
 }
 
 /**********************************************************************
  *           WOWGetVDMPointerFix   (WOW32.@)
  */
-LPVOID WINAPI WOWGetVDMPointerFix( DWORD vp, DWORD dwBytes, BOOL fProtectedMode )
+LPVOID WINAPI WOWGetVDMPointerFix(DWORD vp, DWORD dwBytes, BOOL fProtectedMode)
 {
-    return K32WOWGetVDMPointerFix( vp, dwBytes, fProtectedMode );
+	if (!K32WOWGetVDMPointerFix)
+		load_functions();
+	return K32WOWGetVDMPointerFix(vp, dwBytes, fProtectedMode);
 }
 
 /**********************************************************************
  *           WOWGetVDMPointerUnfix   (WOW32.@)
  */
-void WINAPI WOWGetVDMPointerUnfix( DWORD vp )
+void WINAPI WOWGetVDMPointerUnfix(DWORD vp)
 {
-    K32WOWGetVDMPointerUnfix( vp );
+	if (!K32WOWGetVDMPointerUnfix)
+		load_functions();
+	K32WOWGetVDMPointerUnfix(vp);
 }
 
 /**********************************************************************
  *           WOWGlobalAlloc16   (WOW32.@)
  */
-WORD WINAPI WOWGlobalAlloc16( WORD wFlags, DWORD cb )
+WORD WINAPI WOWGlobalAlloc16(WORD wFlags, DWORD cb)
 {
-    return K32WOWGlobalAlloc16( wFlags, cb );
+	if (!K32WOWGlobalAlloc16)
+		load_functions();
+	return K32WOWGlobalAlloc16(wFlags, cb);
 }
 
 /**********************************************************************
  *           WOWGlobalFree16   (WOW32.@)
  */
-WORD WINAPI WOWGlobalFree16( WORD hMem )
+WORD WINAPI WOWGlobalFree16(WORD hMem)
 {
-    return K32WOWGlobalFree16( hMem );
+	if (!K32WOWGlobalFree16)
+		load_functions();
+	return K32WOWGlobalFree16(hMem);
 }
 
 /**********************************************************************
  *           WOWGlobalLock16   (WOW32.@)
  */
-DWORD WINAPI WOWGlobalLock16( WORD hMem )
+DWORD WINAPI WOWGlobalLock16(WORD hMem)
 {
-    return K32WOWGlobalLock16( hMem );
+	if (!K32WOWGlobalLock16)
+		load_functions();
+	return K32WOWGlobalLock16(hMem);
 }
 
 /**********************************************************************
  *           WOWGlobalUnlock16   (WOW32.@)
  */
-BOOL WINAPI WOWGlobalUnlock16( WORD hMem )
+BOOL WINAPI WOWGlobalUnlock16(WORD hMem)
 {
-    return K32WOWGlobalUnlock16( hMem );
+	if (!K32WOWGlobalUnlock16)
+		load_functions();
+	return K32WOWGlobalUnlock16(hMem);
 }
 
 /**********************************************************************
  *           WOWGlobalAllocLock16   (WOW32.@)
  */
-DWORD WINAPI WOWGlobalAllocLock16( WORD wFlags, DWORD cb, WORD *phMem )
+DWORD WINAPI WOWGlobalAllocLock16(WORD wFlags, DWORD cb, WORD *phMem)
 {
-    return K32WOWGlobalAllocLock16( wFlags, cb, phMem );
+	if (!K32WOWGlobalAllocLock16)
+		load_functions();
+	return K32WOWGlobalAllocLock16(wFlags, cb, phMem);
 }
 
 /**********************************************************************
  *           WOWGlobalLockSize16   (WOW32.@)
  */
-DWORD WINAPI WOWGlobalLockSize16( WORD hMem, PDWORD pcb )
+DWORD WINAPI WOWGlobalLockSize16(WORD hMem, PDWORD pcb)
 {
-    return K32WOWGlobalLockSize16( hMem, pcb );
+	if (!K32WOWGlobalLockSize16)
+		load_functions();
+	return K32WOWGlobalLockSize16(hMem, pcb);
 }
 
 /**********************************************************************
  *           WOWGlobalUnlockFree16   (WOW32.@)
  */
-WORD WINAPI WOWGlobalUnlockFree16( DWORD vpMem )
+WORD WINAPI WOWGlobalUnlockFree16(DWORD vpMem)
 {
-    return K32WOWGlobalUnlockFree16( vpMem );
+	if (!K32WOWGlobalUnlockFree16)
+		load_functions();
+	return K32WOWGlobalUnlockFree16(vpMem);
 }
 
 /**********************************************************************
@@ -136,46 +199,58 @@ WORD WINAPI WOWGlobalUnlockFree16( DWORD vpMem )
  */
 void WINAPI WOWYield16(void)
 {
-    K32WOWYield16();
+	if (!K32WOWYield16)
+		load_functions();
+	K32WOWYield16();
 }
 
 /**********************************************************************
  *           WOWDirectedYield16   (WOW32.@)
  */
-void WINAPI WOWDirectedYield16( WORD htask16 )
+void WINAPI WOWDirectedYield16(WORD htask16)
 {
-    K32WOWDirectedYield16( htask16 );
+	if (!K32WOWDirectedYield16)
+		load_functions();
+	K32WOWDirectedYield16(htask16);
 }
 
 /***********************************************************************
  *           WOWHandle32   (WOW32.@)
  */
-HANDLE WINAPI WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
+HANDLE WINAPI WOWHandle32(WORD handle, WOW_HANDLE_TYPE type)
 {
-    return K32WOWHandle32( handle, type );
+	if (!K32WOWHandle32)
+		load_functions();
+	return K32WOWHandle32(handle, type);
 }
 
 /***********************************************************************
  *           WOWHandle16   (WOW32.@)
  */
-WORD WINAPI WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
+WORD WINAPI WOWHandle16(HANDLE handle, WOW_HANDLE_TYPE type)
 {
-    return K32WOWHandle16( handle, type );
+	if (!K32WOWHandle16)
+		load_functions();
+	return K32WOWHandle16(handle, type);
 }
 
 /**********************************************************************
  *           WOWCallback16Ex   (WOW32.@)
  */
-BOOL WINAPI WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
-                             DWORD cbArgs, PVOID pArgs, PDWORD pdwRetCode )
+BOOL WINAPI WOWCallback16Ex(DWORD vpfn16, DWORD dwFlags,
+	DWORD cbArgs, PVOID pArgs, PDWORD pdwRetCode)
 {
-    return K32WOWCallback16Ex( vpfn16, dwFlags, cbArgs, pArgs, pdwRetCode );
+	if (!K32WOWCallback16Ex)
+		load_functions();
+	return K32WOWCallback16Ex(vpfn16, dwFlags, cbArgs, pArgs, pdwRetCode);
 }
 
 /**********************************************************************
  *           WOWCallback16   (WOW32.@)
  */
-DWORD WINAPI WOWCallback16( DWORD vpfn16, DWORD dwParam )
+DWORD WINAPI WOWCallback16(DWORD vpfn16, DWORD dwParam)
 {
-    return K32WOWCallback16( vpfn16, dwParam );
+	if (!K32WOWCallback16)
+		load_functions();
+	return K32WOWCallback16(vpfn16, dwParam);
 }

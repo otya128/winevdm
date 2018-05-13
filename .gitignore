@@ -191,3 +191,5 @@ ModelManifest.xml
 *.opendb
 *.tlog
 /.vs
+*.asm
+*.i

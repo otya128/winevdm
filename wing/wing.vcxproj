@@ -46,12 +46,15 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -143,6 +146,17 @@ gdi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
   </ItemGroup>
   <ItemGroup>
     <Object Include="wing.dll16.obj" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="wing.dll16.spec">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(OutDir)convspec" "%(Filename).spec" WING &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).obj</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'">"$(OutDir)convspec" "%(Filename).spec" WING &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'">%(Filename).obj</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(OutDir)convspec" "%(Filename).spec" WING &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).obj</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

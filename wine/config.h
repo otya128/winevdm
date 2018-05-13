@@ -1450,7 +1450,21 @@
    convention */
 #define __ASM_STDCALL_FUNC(name,args,code) __ASM_DEFINE_FUNC(name,__ASM_STDCALL(args),code)
 #undef __ASM_STDCALL_FUNC
-#define __ASM_STDCALL_FUNC(name, args, code) void name(){ERR("__ASM_STDCALL_FUNC(" #name ")\n");}
+//#define __ASM_STDCALL_FUNC(name, args, code) void __stdcall name(){ERR("__ASM_STDCALL_FUNC(" #name ")\n");}
+
+#define __ASM_STDCALL_FUNC_ARG(name, ...) void __stdcall name(__VA_ARGS__){ERR("notimpl:__ASM_STDCALL_FUNC(" #name ")\n");}
+#define __ASM_STDCALL_FUNC_0(name) __ASM_STDCALL_FUNC_ARG(name)
+#define __ASM_STDCALL_FUNC_1(name) __ASM_STDCALL_FUNC_ARG(name, int a1)
+#define __ASM_STDCALL_FUNC_2(name) __ASM_STDCALL_FUNC_ARG(name, int a1)
+#define __ASM_STDCALL_FUNC_3(name) __ASM_STDCALL_FUNC_ARG(name, int a1)
+#define __ASM_STDCALL_FUNC_4(name) __ASM_STDCALL_FUNC_ARG(name, int a1)
+#define __ASM_STDCALL_FUNC_5(name) __ASM_STDCALL_FUNC_ARG(name, int a1, int a2)
+#define __ASM_STDCALL_FUNC_6(name) __ASM_STDCALL_FUNC_ARG(name, int a1, int a2)
+#define __ASM_STDCALL_FUNC_7(name) __ASM_STDCALL_FUNC_ARG(name, int a1, int a2)
+#define __ASM_STDCALL_FUNC_8(name) __ASM_STDCALL_FUNC_ARG(name, int a1, int a2)
+#define __ASM_STDCALL_FUNC_9(name) __ASM_STDCALL_FUNC_ARG(name, int a1, int a2, int a3)
+#define __ASM_STDCALL_FUNC_JOIN(base, count) base ## count
+#define __ASM_STDCALL_FUNC(name, args, code) __ASM_STDCALL_FUNC_JOIN(__ASM_STDCALL_FUNC_, args) (name)
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
 #ifndef __cplusplus

@@ -1,4 +1,4 @@
-/* File generated automatically from ..\ctl3dv2\ctl3dv2.dll16.spec; do not edit! */
+/* File generated automatically from ctl3dv2.dll16.spec; do not edit! */
 /* This file can be copied, modified and distributed without restriction. */
 
 
@@ -67,7 +67,7 @@ ___wine_spec_nt_header:
 	.globl ___wine_spec_file_name
 ___wine_spec_file_name:
 .L__wine_spec_file_name:
-	.string "..\ctl3dv2\ctl3dv2.dll16.spec"
+	.string "ctl3dv2.dll16.spec"
 
 	.section .init,"ax"
 	call ___wine_spec_init_ctor
@@ -576,15 +576,15 @@ ___wine_stub_Ctl3dSetStyle:
 	.long .L__wine_spec_main_module
 
 .L__wine_spec_exp_name_ptrs:
-	.long .L__wine_spec_exp_names+30-.L__wine_spec_rva_base
-	.long .L__wine_spec_exp_names+53-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+19-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+42-.L__wine_spec_rva_base
 
 .L__wine_spec_exp_ordinals:
 	.short 0
 	.short 1
 
 .L__wine_spec_exp_names:
-	.string "..\ctl3dv2\ctl3dv2.dll16.spec"
+	.string "ctl3dv2.dll16.spec"
 	.string "__wine_spec_dos_header"
 	.string "__wine_spec_main_module"
 	.align 4

@@ -159,7 +159,7 @@ static HANDLE open_vxd_handle( LPCWSTR name )
 }
 
 /* retrieve the DeviceIoControl function for a Vxd given a file handle */
-DeviceIoProc __wine_vxd_get_proc( HANDLE handle )
+DeviceIoProc WINAPI __wine_vxd_get_proc( HANDLE handle )
 {
     DeviceIoProc ret = NULL;
     int status, i;
@@ -196,7 +196,7 @@ done:
 
 
 /* load a VxD and return a file handle to it */
-HANDLE __wine_vxd_open( LPCWSTR filenameW, DWORD access, SECURITY_ATTRIBUTES *sa )
+HANDLE WINAPI __wine_vxd_open( LPCWSTR filenameW, DWORD access, SECURITY_ATTRIBUTES *sa )
 {
     static const WCHAR dotVxDW[] = {'.','v','x','d',0};
     int i;
@@ -315,9 +315,13 @@ void WINAPI __regs_VxDCall( DWORD service, CONTEXT *context )
         context->Eax = 0xffffffff; /* FIXME */
     }
 }
-#ifdef DEFINE_REGS_ENTRYPOINT
-DEFINE_REGS_ENTRYPOINT( VxDCall, 1 )
-#endif
+DEFINE_REGS_ENTRYPOINT(aa0, 0);
+DEFINE_REGS_ENTRYPOINT(aa1, 1);
+DEFINE_REGS_ENTRYPOINT(aa2, 2);
+DEFINE_REGS_ENTRYPOINT(aa3, 3);
+DEFINE_REGS_ENTRYPOINT(aa4, 4);
+DEFINE_REGS_ENTRYPOINT(aa5, 5);
+DEFINE_REGS_ENTRYPOINT(VxDCall, 1);
 
 
 /***********************************************************************

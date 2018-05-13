@@ -30,13 +30,14 @@ extern WORD WINAPI WinMain16( HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline,
 
 void WINAPI DECLSPEC_HIDDEN __wine_spec_exe16_entry( CONTEXT *context )
 {
+	HMODULE krnl386 = LoadLibraryA("krnl386.exe16");
     PDB16 *psp;
     WORD len;
     LPSTR cmdline;
 
-    InitTask16( context );
+    /*InitTask16*/((void(WINAPI*)(CONTEXT*))GetProcAddress(krnl386, "InitTask16"))( context );
 
-    psp = MapSL( WOWGlobalLock16( context->SegEs ));
+    psp = /*MapSL*/((LPVOID(WINAPI*)(DWORD))GetProcAddress(krnl386, "MapSL"))( WOWGlobalLock16( context->SegEs ));
     len = psp->cmdLine[0];
     cmdline = HeapAlloc( GetProcessHeap(), 0, len + 1 );
     memcpy( cmdline, psp->cmdLine + 1, len );

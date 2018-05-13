@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2000
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "otvdm", "otvdm\otvdm.vcxproj", "{9C0EBE04-AE9A-40D5-ACFA-5F0854456DDA}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -36,6 +36,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "krnl386", "krnl386\krnl386.
 	ProjectSection(ProjectDependencies) = postProject
 		{E4950E01-C995-49A5-9FED-5EF03155FD65} = {E4950E01-C995-49A5-9FED-5EF03155FD65}
 		{0A37BC0E-8433-453D-9DEA-7AAD7C0E6E5C} = {0A37BC0E-8433-453D-9DEA-7AAD7C0E6E5C}
+		{DC6BA231-C318-436F-8F5C-5E2CC73779E2} = {DC6BA231-C318-436F-8F5C-5E2CC73779E2}
+		{C978A6C2-F788-4F5E-8E14-73C1B6B521CE} = {C978A6C2-F788-4F5E-8E14-73C1B6B521CE}
+		{583655C3-2633-4597-BD31-C5AA1EC78AD2} = {583655C3-2633-4597-BD31-C5AA1EC78AD2}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wow32", "wow32\wow32.vcxproj", "{E4950E01-C995-49A5-9FED-5EF03155FD65}"
@@ -45,6 +48,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "user", "user\user.vcxproj", "{066A261B-90F6-4AB7-8F53-1455F068D6F7}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vm86", "vm86\vm86.vcxproj", "{0A37BC0E-8433-453D-9DEA-7AAD7C0E6E5C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C978A6C2-F788-4F5E-8E14-73C1B6B521CE} = {C978A6C2-F788-4F5E-8E14-73C1B6B521CE}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gdi", "gdi\gdi.vcxproj", "{0EBCFB5B-3092-4E06-A007-CA50B1DA3298}"
 EndProject
@@ -563,5 +569,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {692D1D4A-93CF-4B31-BF6F-4901B375934E}
 	EndGlobalSection
 EndGlobal

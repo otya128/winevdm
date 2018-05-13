@@ -148,10 +148,10 @@ SEGPTR CALL32_CBClientEx_RetAddr = 0;
 
 extern int call_entry_point( void *func, int nb_args, const DWORD *args );
 extern void __wine_call_from_16_thunk(void);
-extern void FT_Prolog(void);
-extern void FT_PrologPrime(void);
-extern void QT_Thunk(void);
-extern void QT_ThunkPrime(void);
+DEFINE_REGS_ENTRYPOINT(FT_Prolog, 0)
+DEFINE_REGS_ENTRYPOINT(FT_PrologPrime, 0)
+DEFINE_REGS_ENTRYPOINT(QT_Thunk, 0)
+DEFINE_REGS_ENTRYPOINT(QT_ThunkPrime, 0)
 
 /* Push a DWORD on the 32-bit stack */
 static inline void stack32_push( CONTEXT *context, DWORD val )
@@ -488,7 +488,6 @@ void WINAPI __regs_QT_Thunk( CONTEXT *context )
     context->Esp +=   LOWORD(context16.Esp) -
                         ( OFFSETOF(getWOW32Reserved()) - argsize );
 }
-DEFINE_REGS_ENTRYPOINT( QT_Thunk, 0 )
 
 
 /**********************************************************************
@@ -554,7 +553,6 @@ void WINAPI __regs_FT_Prolog( CONTEXT *context )
     *(DWORD *)(context->Ebp - 48) = context->Eax;
     *(DWORD *)(context->Ebp - 52) = context->Edx;
 }
-DEFINE_REGS_ENTRYPOINT( FT_Prolog, 0 )
 
 /**********************************************************************
  * 		FT_Thunk			(KERNEL32.@)
@@ -657,8 +655,6 @@ DEFINE_REGS_ENTRYPOINT( FT_Thunk, 0 )
 #define DEFINE_FT_Exit(n) \
     __ASM_STDCALL_FUNC( FT_Exit ## n, 0, FT_EXIT_RESTORE_REGS "ret $" #n )
 
-#undef DEFINE_FT_Exit
-#define DEFINE_FT_Exit(n)
 
 DEFINE_FT_Exit(0)
 DEFINE_FT_Exit(4)
@@ -927,7 +923,6 @@ void WINAPI __regs_FT_PrologPrime( CONTEXT *context )
     /* Jump to the call stub just created */
     context->Eip = (DWORD)relayCode;
 }
-DEFINE_REGS_ENTRYPOINT( FT_PrologPrime, 0 )
 
 /***********************************************************************
  *		QT_ThunkPrime			(KERNEL32.90)
@@ -957,7 +952,6 @@ void WINAPI __regs_QT_ThunkPrime( CONTEXT *context )
     /* Jump to the call stub just created */
     context->Eip = (DWORD)relayCode;
 }
-DEFINE_REGS_ENTRYPOINT( QT_ThunkPrime, 0 )
 
 /***********************************************************************
  *		ThunkInitSL (KERNEL32.46)
@@ -2320,7 +2314,6 @@ void WINAPI Catch16( LPCATCHBUF lpbuf, CONTEXT *context )
     lpbuf[8] = context->SegSs;
     context->Eax &= ~0xffff;  /* Return 0 */
 }
-
 
 /**********************************************************************
  *	     Throw    (KERNEL.56)

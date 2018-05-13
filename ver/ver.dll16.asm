@@ -1,4 +1,4 @@
-/* File generated automatically from ..\ver\ver.dll16.spec; do not edit! */
+/* File generated automatically from ver.dll16.spec; do not edit! */
 /* This file can be copied, modified and distributed without restriction. */
 
 
@@ -67,7 +67,7 @@ ___wine_spec_nt_header:
 	.globl ___wine_spec_file_name
 ___wine_spec_file_name:
 .L__wine_spec_file_name:
-	.string "..\ver\ver.dll16.spec"
+	.string "ver.dll16.spec"
 
 	.section .init,"ax"
 	call ___wine_spec_init_ctor
@@ -149,7 +149,7 @@ _wine_spec_dos_header:
 
 	.align 2
 .L__wine_spec_ne_restab:
-	.byte 0x03,0x56,0x45,0x52 /* VER */
+	.byte 0x05,0x4d,0x4f,0x55,0x53,0x45 /* MOUSE */
 	.short 0
 	.byte 0x13,0x47,0x45,0x54,0x46,0x49,0x4c,0x45,0x52,0x45,0x53,0x4f,0x55,0x52,0x43,0x45,0x53,0x49,0x5a,0x45 /* GetFileResourceSize */
 	.short 2
@@ -178,31 +178,31 @@ _wine_spec_dos_header:
 
 .L__wine_spec_ne_enttab:
 	.byte 0x01,0x00
-	/* VER.2 - VER.3 */
+	/* MOUSE.2 - MOUSE.3 */
 	.byte 0x02,0x01
 	.byte 0x03
-	.short .L__wine_VER_2-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_2-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_VER_3-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_3-.L__wine_spec_code_segment
 	.byte 0x02,0x00
-	/* VER.6 - VER.11 */
+	/* MOUSE.6 - MOUSE.11 */
 	.byte 0x06,0x01
 	.byte 0x03
-	.short .L__wine_VER_6-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_6-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_VER_7-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_7-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_VER_8-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_8-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_VER_9-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_9-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_VER_10-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_10-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_VER_11-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_11-.L__wine_spec_code_segment
 	.byte 0x08,0x00
 	.byte 0x01,0x01
 	.byte 0x03
-	.short .L__wine_VER_20-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_20-.L__wine_spec_code_segment
 	.byte 0x00
 .L__wine_spec_ne_enttab_end:
 
@@ -281,39 +281,39 @@ _wine_spec_dos_header:
 	.byte 0x89,0xf6
 	.short 0x86c7
 	.long 0x00000000,0x00000000
-.L__wine_VER_2:
+.L__wine_MOUSE_2:
 	pushw %bp
 	pushl $_GetFileResourceSize16@16
 	callw .L__wine_spec_callfrom16_p_long_tttp
-.L__wine_VER_3:
+.L__wine_MOUSE_3:
 	pushw %bp
 	pushl $_GetFileResource16@24
 	callw .L__wine_spec_callfrom16_p_long_tttllp
-.L__wine_VER_6:
+.L__wine_MOUSE_6:
 	pushw %bp
 	pushl $_GetFileVersionInfoSize16@8
 	callw .L__wine_spec_callfrom16_p_long_tp
-.L__wine_VER_7:
+.L__wine_MOUSE_7:
 	pushw %bp
 	pushl $_GetFileVersionInfo16@16
 	callw .L__wine_spec_callfrom16_p_long_tllp
-.L__wine_VER_8:
+.L__wine_MOUSE_8:
 	pushw %bp
 	pushl $_VerFindFile16@32
 	callw .L__wine_spec_callfrom16_p_long_wtttpppp
-.L__wine_VER_9:
+.L__wine_MOUSE_9:
 	pushw %bp
 	pushl $_VerInstallFile16@32
 	callw .L__wine_spec_callfrom16_p_long_wtttttpp
-.L__wine_VER_10:
+.L__wine_MOUSE_10:
 	pushw %bp
 	pushl $_VerLanguageName16@12
 	callw .L__wine_spec_callfrom16_p_long_wpw
-.L__wine_VER_11:
+.L__wine_MOUSE_11:
 	pushw %bp
 	pushl $_VerQueryValue16@16
 	callw .L__wine_spec_callfrom16_p_long_ltpp
-.L__wine_VER_20:
+.L__wine_MOUSE_20:
 	pushw %bp
 	pushl $___wine_stub_GETFILEVERSIONINFORAW
 	callw .L__wine_spec_callfrom16_c_long_
@@ -602,15 +602,15 @@ ___wine_stub_GETFILEVERSIONINFORAW:
 	.long .L__wine_spec_main_module
 
 .L__wine_spec_exp_name_ptrs:
-	.long .L__wine_spec_exp_names+22-.L__wine_spec_rva_base
-	.long .L__wine_spec_exp_names+45-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+15-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+38-.L__wine_spec_rva_base
 
 .L__wine_spec_exp_ordinals:
 	.short 0
 	.short 1
 
 .L__wine_spec_exp_names:
-	.string "..\ver\ver.dll16.spec"
+	.string "ver.dll16.spec"
 	.string "__wine_spec_dos_header"
 	.string "__wine_spec_main_module"
 	.align 4
@@ -619,5 +619,5 @@ ___wine_stub_GETFILEVERSIONINFORAW:
 
 	.section .rodata
 .L__wine_spec_main_module:
-	.string "VER"
+	.string "MOUSE"
 __end:/*?*/

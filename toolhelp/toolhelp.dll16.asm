@@ -1,4 +1,4 @@
-/* File generated automatically from toolhelp\toolhelp.dll16.spec; do not edit! */
+/* File generated automatically from toolhelp.dll16.spec; do not edit! */
 /* This file can be copied, modified and distributed without restriction. */
 
 
@@ -67,7 +67,7 @@ ___wine_spec_nt_header:
 	.globl ___wine_spec_file_name
 ___wine_spec_file_name:
 .L__wine_spec_file_name:
-	.string "toolhelp\toolhelp.dll16.spec"
+	.string "toolhelp.dll16.spec"
 
 	.section .init,"ax"
 	call ___wine_spec_init_ctor
@@ -149,7 +149,7 @@ _wine_spec_dos_header:
 
 	.align 2
 .L__wine_spec_ne_restab:
-	.byte 0x08,0x54,0x4f,0x4f,0x4c,0x48,0x45,0x4c,0x50 /* TOOLHELP */
+	.byte 0x05,0x4d,0x4f,0x55,0x53,0x45 /* MOUSE */
 	.short 0
 	.byte 0x11,0x47,0x4c,0x4f,0x42,0x41,0x4c,0x48,0x41,0x4e,0x44,0x4c,0x45,0x54,0x4f,0x53,0x45,0x4c /* GlobalHandleToSel */
 	.short 50
@@ -236,79 +236,79 @@ _wine_spec_dos_header:
 	.byte 0x31,0x00
 	.byte 0x25,0x01
 	.byte 0x03
-	.short .L__wine_TOOLHELP_50-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_50-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_51-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_51-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_52-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_52-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_53-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_53-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_54-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_54-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_55-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_55-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_56-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_56-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_57-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_57-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_58-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_58-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_59-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_59-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_60-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_60-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_61-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_61-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_62-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_62-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_63-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_63-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_64-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_64-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_65-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_65-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_66-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_66-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_67-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_67-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_68-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_68-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_69-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_69-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_70-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_70-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_71-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_71-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_72-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_72-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_73-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_73-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_74-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_74-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_75-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_75-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_76-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_76-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_77-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_77-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_78-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_78-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_79-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_79-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_80-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_80-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_81-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_81-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_82-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_82-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_83-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_83-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_84-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_84-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_85-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_85-.L__wine_spec_code_segment
 	.byte 0x03
-	.short .L__wine_TOOLHELP_86-.L__wine_spec_code_segment
+	.short .L__wine_MOUSE_86-.L__wine_spec_code_segment
 	.byte 0x00
 .L__wine_spec_ne_enttab_end:
 
@@ -412,151 +412,151 @@ _wine_spec_dos_header:
 	.byte 0x89,0xf6
 	.short 0x86c7
 	.long 0x00000000,0x00000000
-.L__wine_TOOLHELP_50:
+.L__wine_MOUSE_50:
 	pushw %bp
 	pushl $_GlobalHandleToSel16@4
 	callw .L__wine_spec_callfrom16_p_word_w
-.L__wine_TOOLHELP_51:
+.L__wine_MOUSE_51:
 	pushw %bp
 	pushl $_GlobalFirst16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_52:
+.L__wine_MOUSE_52:
 	pushw %bp
 	pushl $_GlobalNext16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_53:
+.L__wine_MOUSE_53:
 	pushw %bp
 	pushl $_GlobalInfo16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_54:
+.L__wine_MOUSE_54:
 	pushw %bp
 	pushl $_GlobalEntryHandle16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_55:
+.L__wine_MOUSE_55:
 	pushw %bp
 	pushl $_GlobalEntryModule16@12
 	callw .L__wine_spec_callfrom16_p_word_pww
-.L__wine_TOOLHELP_56:
+.L__wine_MOUSE_56:
 	pushw %bp
 	pushl $_LocalInfo16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_57:
+.L__wine_MOUSE_57:
 	pushw %bp
 	pushl $_LocalFirst16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_58:
+.L__wine_MOUSE_58:
 	pushw %bp
 	pushl $_LocalNext16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_59:
+.L__wine_MOUSE_59:
 	pushw %bp
 	pushl $_ModuleFirst16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_60:
+.L__wine_MOUSE_60:
 	pushw %bp
 	pushl $_ModuleNext16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_61:
+.L__wine_MOUSE_61:
 	pushw %bp
 	pushl $_ModuleFindName16@8
 	callw .L__wine_spec_callfrom16_p_word_pp
-.L__wine_TOOLHELP_62:
+.L__wine_MOUSE_62:
 	pushw %bp
 	pushl $_ModuleFindHandle16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_63:
+.L__wine_MOUSE_63:
 	pushw %bp
 	pushl $_TaskFirst16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_64:
+.L__wine_MOUSE_64:
 	pushw %bp
 	pushl $_TaskNext16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_65:
+.L__wine_MOUSE_65:
 	pushw %bp
 	pushl $_TaskFindHandle16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_66:
+.L__wine_MOUSE_66:
 	pushw %bp
 	pushl $_StackTraceFirst16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_67:
+.L__wine_MOUSE_67:
 	pushw %bp
 	pushl $_StackTraceCSIPFirst16@20
 	callw .L__wine_spec_callfrom16_p_word_pwwww
-.L__wine_TOOLHELP_68:
+.L__wine_MOUSE_68:
 	pushw %bp
 	pushl $_StackTraceNext16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_69:
+.L__wine_MOUSE_69:
 	pushw %bp
 	pushl $___wine_stub_ClassFirst
 	callw .L__wine_spec_callfrom16_c_long_
-.L__wine_TOOLHELP_70:
+.L__wine_MOUSE_70:
 	pushw %bp
 	pushl $___wine_stub_ClassNext
 	callw .L__wine_spec_callfrom16_c_long_
-.L__wine_TOOLHELP_71:
+.L__wine_MOUSE_71:
 	pushw %bp
 	pushl $_SystemHeapInfo16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_72:
+.L__wine_MOUSE_72:
 	pushw %bp
 	pushl $_MemManInfo16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_73:
+.L__wine_MOUSE_73:
 	pushw %bp
 	pushl $_NotifyRegister16@12
 	callw .L__wine_spec_callfrom16_p_word_wlw
-.L__wine_TOOLHELP_74:
+.L__wine_MOUSE_74:
 	pushw %bp
 	pushl $_NotifyUnregister16@4
 	callw .L__wine_spec_callfrom16_p_word_w
-.L__wine_TOOLHELP_75:
+.L__wine_MOUSE_75:
 	pushw %bp
 	pushl $_InterruptRegister16@8
 	callw .L__wine_spec_callfrom16_p_word_wl
-.L__wine_TOOLHELP_76:
+.L__wine_MOUSE_76:
 	pushw %bp
 	pushl $_InterruptUnRegister16@4
 	callw .L__wine_spec_callfrom16_p_word_w
-.L__wine_TOOLHELP_77:
+.L__wine_MOUSE_77:
 	pushw %bp
 	pushl $_TerminateApp16@8
 	callw .L__wine_spec_callfrom16_p_word_ww
-.L__wine_TOOLHELP_78:
+.L__wine_MOUSE_78:
 	pushw %bp
 	pushl $_MemoryRead16@16
 	callw .L__wine_spec_callfrom16_p_long_wlpl
-.L__wine_TOOLHELP_79:
+.L__wine_MOUSE_79:
 	pushw %bp
 	pushl $_MemoryWrite16@16
 	callw .L__wine_spec_callfrom16_p_long_wlpl
-.L__wine_TOOLHELP_80:
+.L__wine_MOUSE_80:
 	pushw %bp
 	pushl $_TimerCount16@4
 	callw .L__wine_spec_callfrom16_p_word_p
-.L__wine_TOOLHELP_81:
+.L__wine_MOUSE_81:
 	pushw %bp
 	pushl $___wine_stub_TASKSETCSIP
 	callw .L__wine_spec_callfrom16_c_long_
-.L__wine_TOOLHELP_82:
+.L__wine_MOUSE_82:
 	pushw %bp
 	pushl $___wine_stub_TASKGETCSIP
 	callw .L__wine_spec_callfrom16_c_long_
-.L__wine_TOOLHELP_83:
+.L__wine_MOUSE_83:
 	pushw %bp
 	pushl $___wine_stub_TASKSWITCH
 	callw .L__wine_spec_callfrom16_c_long_
-.L__wine_TOOLHELP_84:
+.L__wine_MOUSE_84:
 	pushw %bp
 	pushl $_Local32Info16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_85:
+.L__wine_MOUSE_85:
 	pushw %bp
 	pushl $_Local32First16@8
 	callw .L__wine_spec_callfrom16_p_word_pw
-.L__wine_TOOLHELP_86:
+.L__wine_MOUSE_86:
 	pushw %bp
 	pushl $_Local32Next16@4
 	callw .L__wine_spec_callfrom16_p_word_p
@@ -881,15 +881,15 @@ ___wine_stub_TASKSWITCH:
 	.long .L__wine_spec_main_module
 
 .L__wine_spec_exp_name_ptrs:
-	.long .L__wine_spec_exp_names+29-.L__wine_spec_rva_base
-	.long .L__wine_spec_exp_names+52-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+20-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+43-.L__wine_spec_rva_base
 
 .L__wine_spec_exp_ordinals:
 	.short 0
 	.short 1
 
 .L__wine_spec_exp_names:
-	.string "toolhelp\toolhelp.dll16.spec"
+	.string "toolhelp.dll16.spec"
 	.string "__wine_spec_dos_header"
 	.string "__wine_spec_main_module"
 	.align 4
@@ -898,5 +898,5 @@ ___wine_stub_TASKSWITCH:
 
 	.section .rodata
 .L__wine_spec_main_module:
-	.string "TOOLHELP"
+	.string "MOUSE"
 __end:/*?*/

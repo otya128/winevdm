@@ -46,18 +46,21 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>../wine;$(IncludePath)</IncludePath>
-    <TargetName>krnl386</TargetName>
+    <TargetName>$(ProjectName)</TargetName>
     <TargetExt>.exe16</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -81,12 +84,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>MZ_SUPPORTED;ENABLEREDIRECTSYSTEMDIR;WIN32;_DEBUG;_WINDOWS;_USRDLL;KRNL386_EXPORTS;_X86_;__WINESRC__;__i386__;USE_COMPILER_EXCEPTIONS;HAVE_STRNCASECMP;HAVE__STRNICMP;_WINTERNL_;NtCurrentTeb=NtCurrentTeb__;inline=__inline</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>lz32.lib;$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;$(OutDir)vm86.lib;$(OutDir)wow32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;lz32.lib;$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;$(OutDir)vm86.lib;$(OutDir)wow32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>krnl386.def</ModuleDefinitionFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -198,6 +203,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="krnl386.def" />
+    <CustomBuild Include="krnl386.exe16.spec">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(OutDir)convspec" "%(Filename).spec" KERNEL &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).obj</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'">"$(OutDir)convspec" "%(Filename).spec" KERNEL &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'">%(Filename).obj</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(OutDir)convspec" "%(Filename).spec" KERNEL &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).obj</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Object Include="krnl386.exe16.obj">

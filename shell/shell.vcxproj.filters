@@ -29,4 +29,9 @@
       <Filter>ソース ファイル</Filter>
     </Object>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="shell.dll16.spec">
+      <Filter>ソース ファイル</Filter>
+    </CustomBuild>
+  </ItemGroup>
 </Project>

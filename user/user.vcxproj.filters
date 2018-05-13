@@ -56,4 +56,9 @@
       <Filter>ソース ファイル</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="user.exe16.spec">
+      <Filter>ソース ファイル</Filter>
+    </CustomBuild>
+  </ItemGroup>
 </Project>

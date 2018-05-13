@@ -46,12 +46,15 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\PropertySheet.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -88,6 +91,12 @@ user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
 mouse.def
       </ModuleDefinitionFile>
     </Link>
+    <CustomBuildStep>
+      <Command>
+      </Command>
+      <Outputs>
+      </Outputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -112,6 +121,12 @@ mouse.def
       <AdditionalDependencies>$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CustomBuildStep>
+      <Command>
+      </Command>
+      <Outputs>
+      </Outputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'">
     <ClCompile>
@@ -136,13 +151,32 @@ mouse.def
       <AdditionalDependencies>$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CustomBuildStep>
+      <Command>
+      </Command>
+      <Outputs>
+      </Outputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="mouse.c" />
     <ClCompile Include="stub.c" />
   </ItemGroup>
   <ItemGroup>
-    <Object Include="mouse.drv16.obj" />
+    <Object Include="mouse.drv16.obj">
+      <FileType>Document</FileType>
+    </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="mouse.drv16.spec">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(OutDir)convspec" "%(Filename).spec" MOUSE &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).obj</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'">"$(OutDir)convspec" "%(Filename).spec" MOUSE &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'">%(Filename).obj</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(OutDir)convspec" "%(Filename).spec" MOUSE &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).obj</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

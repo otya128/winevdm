@@ -500,6 +500,37 @@ extern "C"
 {
     //kenel16_private.h
 #include "../krnl386/kernel16_private.h"
+#define KRNL386 "krnl386.exe16"
+	PVOID dynamic_setWOW32Reserved(PVOID w)
+	{
+		static PVOID(*setWOW32Reserved)(PVOID);
+		if (!setWOW32Reserved)
+		{
+			HMODULE krnl386 = LoadLibraryA(KRNL386);
+			setWOW32Reserved = (PVOID(*)(PVOID))GetProcAddress(krnl386, "setWOW32Reserved");
+		}
+		return setWOW32Reserved(w);
+	}
+	PVOID dynamic_getWOW32Reserved()
+	{
+		static PVOID(*getWOW32Reserved)();
+		if (!getWOW32Reserved)
+		{
+			HMODULE krnl386 = LoadLibraryA(KRNL386);
+			getWOW32Reserved = (PVOID(*)())GetProcAddress(krnl386, "getWOW32Reserved");
+		}
+		return getWOW32Reserved();
+	}
+	void dynamic__wine_call_int_handler(CONTEXT *context, BYTE intnum)
+	{
+		static void(*WINAPI __wine_call_int_handler)(CONTEXT *context, BYTE intnum);
+		if (!__wine_call_int_handler)
+		{
+			HMODULE krnl386 = LoadLibraryA(KRNL386);
+			__wine_call_int_handler = (void(*)(CONTEXT *context, BYTE intnum))GetProcAddress(krnl386, "__wine_call_int_handler");
+		}
+		return __wine_call_int_handler(context, intnum);
+	}
 //	__declspec(dllimport) PVOID getWOW32Reserved();
 //	__declspec(dllimport) PVOID setWOW32Reserved(PVOID w);
 //	unsigned short wine_ldt_alloc_entries(int count);
@@ -623,7 +654,7 @@ extern "C"
 		context->SegFs = SREG(FS);
 		context->SegGs = SREG(GS);
         context->EFlags = m_eflags;// &~0x20000;
-		setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
+		dynamic_setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
 	}
 	void load_context(CONTEXT *context)
 	{
@@ -652,7 +683,6 @@ extern "C"
 		i386_jmp_far(SREG(CS), context->Eip);
 		set_flags(context->EFlags);
 	}
-	void __wine_call_int_handler(CONTEXT *context, BYTE intnum);
 	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
 	unsigned char table[256 * 4 + 2 + 0x8 * 256] = { 0xcf };
 	unsigned char iret[256] = { 0xcf };
@@ -719,7 +749,6 @@ extern "C"
     {
         return a1 == a2 ? a1 : a2;
     }
-	void WINAPI InitTask16(CONTEXT*);
 	BOOL initflag;
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
@@ -758,12 +787,12 @@ extern "C"
 		if (!initflag)
 			initflag = init_vm86(vm86);
 		CONTEXT context;
-        PVOID oldstack = getWOW32Reserved();
+        PVOID oldstack = dynamic_getWOW32Reserved();
 		save_context(&context);
 		//why??
-        setWOW32Reserved(oldstack);
-		context.SegSs = ((size_t)getWOW32Reserved() >> 16) & 0xFFFF;
-		context.Esp = ((size_t)getWOW32Reserved()) & 0xFFFF;
+		dynamic_setWOW32Reserved(oldstack);
+		context.SegSs = ((size_t)dynamic_getWOW32Reserved() >> 16) & 0xFFFF;
+		context.Esp = ((size_t)dynamic_getWOW32Reserved()) & 0xFFFF;
 		context.SegCs = target >> 16;
 		context.Eip = target & 0xFFFF;//i386_jmp_far(target >> 16, target & 0xFFFF);
 		vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm);
@@ -917,7 +946,7 @@ extern "C"
                         context.Eip = ip;
                         context.SegCs = cs;
                         //wine int handler ÇÕCS:IPÇÇ¢Ç∂ÇÈèÍçáÇ™Ç†ÇÈ
-                        __wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
+                        dynamic__wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
                         WORD ip3 = context.Eip;
                         WORD cs3 = context.SegCs;
                         context.SegCs = cs2;
@@ -978,75 +1007,6 @@ extern "C"
 					m_sreg[CS].selector = cs;
 					i386_load_segment_descriptor(CS);
 					CHANGE_PC(m_eip);
-					if ((void*)relay != relay_call_from_16 && 0)
-					{
-						//SNOOP???
-						stack = stack1;
-						ip = *(DWORD*)stack;
-						stack += sizeof(DWORD);
-						cs = *(DWORD*)stack;//4
-						stack += sizeof(DWORD);
-						relay = *(DWORD*)stack;//8
-						stack += sizeof(DWORD);
-						WORD ax = *(WORD*)stack;//10
-						stack += sizeof(WORD);
-						DWORD eax = *(DWORD*)stack;//14
-						stack += sizeof(DWORD);
-						bp = *(WORD*)stack;//16
-						stack += sizeof(WORD);
-						ip19 = *(WORD*)stack;
-						stack += sizeof(WORD);
-						cs16 = *(WORD*)stack;
-						stack += sizeof(WORD);
-						args = (WORD*)stack;
-
-						CONTEXT context;
-						WORD osp = REG16(SP);
-						PUSH16(SREG(GS));
-						PUSH16(SREG(FS));
-						PUSH16(SREG(ES));
-						PUSH16(SREG(DS));
-						PUSH32(REG32(EBP));
-						PUSH32(REG32(ECX));
-						PUSH32(REG32(EDX));
-						PUSH32(/*context.Esp*/osp);
-						save_context(&context);
-						int fret = ((int(WINAPI*)(void *, unsigned char *, CONTEXT *))relay)((void*)entry, (unsigned char*)args, &context);
-						//int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
-						if (!reg)
-						{
-							REG16(AX) = fret & 0xFFFF;
-							REG16(DX) = (fret >> 16) & 0xFFFF;
-						}
-						if (reg) REG16(AX) = (WORD)context.Eax;
-						REG16(CX) = (WORD)context.Ecx;
-						if (reg) REG16(DX) = (WORD)context.Edx;
-						REG16(BX) = (WORD)context.Ebx;
-						REG16(SP) = (WORD)context.Esp;
-						REG16(BP) = (WORD)context.Ebp;
-						REG16(SI) = (WORD)context.Esi;
-						REG16(DI) = (WORD)context.Edi;
-						SREG(ES) = (WORD)context.SegEs;
-						SREG(CS) = (WORD)context.SegCs;
-						SREG(SS) = (WORD)context.SegSs;
-						SREG(DS) = (WORD)context.SegDs;//ES, CS, SS, DS
-						//ES, CS, SS, DS, FS, GS
-						SREG(FS) = (WORD)context.SegFs;
-						SREG(GS) = (WORD)context.SegGs;
-						REG16(SP) = osp + 18;
-						if (entryf != InitTask16)//??????????????????????//(!reg)
-							REG16(SP) += 2;
-						REG16(BP) = bp;
-						i386_load_segment_descriptor(ES);
-						i386_load_segment_descriptor(SS);
-						i386_load_segment_descriptor(DS);
-						i386_load_segment_descriptor(FS);
-						i386_load_segment_descriptor(GS);
-						m_eip = context.Eip;
-						i386_jmp_far(SREG(CS), context.Eip);
-						i386_jmp_far(cs16, ip19);
-						m_eflags = context.EFlags;
-					}
 					if (relay == (UINT)relay_call_from_16 || 1)
 					{
 #include <pshpack1.h>
@@ -1201,7 +1161,7 @@ extern "C"
                         context.Eip = ip;
                         context.SegCs = cs;
                         //wine int handler ÇÕCS:IPÇÇ¢Ç∂ÇÈèÍçáÇ™Ç†ÇÈ
-                        __wine_call_int_handler(&context, vec);
+                        dynamic__wine_call_int_handler(&context, vec);
                         WORD ip3 = context.Eip;
                         WORD cs3 = context.SegCs;
                         context.SegCs = cs2;

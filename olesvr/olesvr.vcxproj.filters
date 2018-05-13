@@ -32,4 +32,9 @@
       <Filter>ソース ファイル</Filter>
     </Object>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="olesvr.dll16.spec">
+      <Filter>ソース ファイル</Filter>
+    </CustomBuild>
+  </ItemGroup>
 </Project>

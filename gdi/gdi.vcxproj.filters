@@ -47,4 +47,7 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="gdi.exe16.spec" />
+  </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-/* File generated automatically from ..\sound\sound.drv16.spec; do not edit! */
+/* File generated automatically from sound.drv16.spec; do not edit! */
 /* This file can be copied, modified and distributed without restriction. */
 
 
@@ -67,7 +67,7 @@ ___wine_spec_nt_header:
 	.globl ___wine_spec_file_name
 ___wine_spec_file_name:
 .L__wine_spec_file_name:
-	.string "..\sound\sound.drv16.spec"
+	.string "sound.drv16.spec"
 
 	.section .init,"ax"
 	call ___wine_spec_init_ctor
@@ -561,15 +561,15 @@ ___wine_stub_MYOPENSOUND:
 	.long .L__wine_spec_main_module
 
 .L__wine_spec_exp_name_ptrs:
-	.long .L__wine_spec_exp_names+26-.L__wine_spec_rva_base
-	.long .L__wine_spec_exp_names+49-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+17-.L__wine_spec_rva_base
+	.long .L__wine_spec_exp_names+40-.L__wine_spec_rva_base
 
 .L__wine_spec_exp_ordinals:
 	.short 0
 	.short 1
 
 .L__wine_spec_exp_names:
-	.string "..\sound\sound.drv16.spec"
+	.string "sound.drv16.spec"
 	.string "__wine_spec_dos_header"
 	.string "__wine_spec_main_module"
 	.align 4

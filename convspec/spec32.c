@@ -317,10 +317,13 @@ void output_exports( DLLSPEC *spec )
         if (!odp) output( "\t%s 0\n", get_asm_ptr_keyword() );
         else switch(odp->type)
         {
+		case TYPE_CDECL:
+			output("\t%s .L__wine_spec_forwards+%u\n", get_asm_ptr_keyword(), fwd_size);
+			fwd_size += strlen(odp->link_name) + 1;
+			break;
         case TYPE_EXTERN:
         case TYPE_STDCALL:
         case TYPE_VARARGS:
-        case TYPE_CDECL:
         case TYPE_THISCALL:
             if (odp->flags & FLAG_FORWARD)
             {
