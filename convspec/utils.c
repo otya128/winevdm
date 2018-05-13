@@ -997,8 +997,6 @@ unsigned int get_args_size( const ORDDEF *odp )
 }
 static int get_function_argsize16(const ORDDEF *odp)
 {
-	if (odp->flags & FLAG_REGISTER)
-		return 4;//ARG_PTR
 	int i, argsize = 0;
 
 	for (i = 0; i < odp->u.func.nb_args; i++)
@@ -1025,6 +1023,8 @@ static int get_function_argsize16(const ORDDEF *odp)
 			break;
 		}
 	}
+	if (odp->flags & FLAG_REGISTER)
+		return argsize + 4;//ARG_PTR
 	return argsize;
 }
 const char *asm_name_stdcall16(const char *sym, ORDDEF *ord)
