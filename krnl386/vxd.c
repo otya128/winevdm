@@ -34,6 +34,8 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include <stdio.h>
+
 #define NONAMELESSUNION
 #define NONAMELESSSTRUCT
 #include "ntstatus.h"

@@ -118,12 +118,6 @@
 #error aaa
 #endif
 
-typedef struct _CLIENT_ID
-{
-	HANDLE UniqueProcess;
-	HANDLE UniqueThread;
-} CLIENT_ID, *PCLIENT_ID;
-
 typedef struct _GDI_TEB_BATCH
 {
 	ULONG  Offset;

@@ -36,6 +36,7 @@
 #include "ntddstor.h"
 #include "ntddcdrm.h"
 #include "dosexe.h"
+#include "kernel16_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(int);
 
