@@ -85,8 +85,20 @@ void change_console_size_to_80x25();
 #endif
 #define U64(v) UINT64(v)
 
-//#define logerror(...) fprintf(stderr, __VA_ARGS__)
+#ifdef _DEBUG
+void logerror(const char *format, ...)
+{
+	va_list arg;
+
+	va_start(arg, format);
+	vfprintf(stderr, format, arg);
+	va_end(arg);
+}
+#else
 #define logerror(...)
+#endif
+//#define logerror(...) fprintf(stderr, __VA_ARGS__)
+//#define logerror(...)
 //#define popmessage(...) fprintf(stderr, __VA_ARGS__)
 #define popmessage(...)
 
@@ -494,7 +506,7 @@ void write_io_dword(offs_t addr, UINT32 val)
 	write_io_byte(addr + 2, (val >> 16) & 0xff);
 	write_io_byte(addr + 3, (val >> 24) & 0xff);
 }
-
+#include <vector>
 BOOL is_32bit_segment(int sreg);
 extern "C"
 {
@@ -799,6 +811,39 @@ extern "C"
 		return context.Eax | context.Edx << 16;
 	}
 	UINT old_eip = 0;
+	struct dasm_buffer
+	{
+		size_t index;
+		size_t current_size = 0;
+		const size_t size = 1000;
+		std::vector<char[1000]> buffer;
+		dasm_buffer(size_t cap) : buffer(cap), size(cap)
+		{
+
+		}
+		char *get_current()
+		{
+			char *buf = buffer[index];
+			buf[0] = '\0';
+			current_size++;
+			index = (index + 1) % size;
+			return buf;
+		}
+		void dump()
+		{
+			size_t base = current_size < size ? 0 : (index + size) % size;
+			for (int i = 0; i < current_size && i < size; i++)
+			{
+				fprintf(stderr, "%s", buffer[(base + i) % size]);
+			}
+		}
+	};
+	struct dasm_buffer dasm_buffer(1000);
+	//for debug
+	__declspec(dllexport) void dasm_buffer_dump()
+	{
+		dasm_buffer.dump();
+	}
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE er);
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
@@ -808,6 +853,11 @@ extern "C"
 		bool dasm
 		)
 	{
+		bool dasm_buffering = false;
+		if (dasm == 2)
+		{
+			dasm_buffering = true;
+		}
 		__try
         {
 			if (!initflag)
@@ -1122,9 +1172,18 @@ extern "C"
 #endif
 					UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 
-					fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
-					fflush(stderr);
-                    int result;
+					char *dbuf = NULL;
+					if (dasm_buffering)
+					{
+						dbuf = dasm_buffer.get_current();
+						dbuf += sprintf(dbuf, "%04x:%04x", SREG(CS), (unsigned)eip);
+					}
+					else
+					{
+						fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
+						fflush(stderr);
+					}
+					int result;
 #if defined(HAS_I386)
 					if (m_operand_size) {
                         result = CPU_DISASSEMBLE_CALL(x86_32);
@@ -1135,10 +1194,16 @@ extern "C"
                     int opsize = result & 0xFF;
                     while (opsize--)
                     {
-                        fprintf(stderr, "%02X", *oprom);
+						if (dasm_buffering)
+							dbuf += sprintf(dbuf, "%02X", *oprom);
+						else
+	                        fprintf(stderr, "%02X", *oprom);
                         oprom++;
                     }
-					fprintf(stderr, "\t%s\n", buffer);
+					if (dasm_buffering)
+						dbuf += sprintf(dbuf, "\t%s\n", buffer);
+					else
+						fprintf(stderr, "\t%s\n", buffer);
 				}
 #endif
                 if (V8086_MODE)
