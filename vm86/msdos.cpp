@@ -911,6 +911,11 @@ extern "C"
                         set_flags(get_flags() | get_vm86_teb_info()->vm86_pending);
                     }
                 }
+				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
+				{
+					__wine_call_to_16_ret();
+					break;//return VM
+				}
 				bool reg = false;
 				if (m_pc >= (UINT)/*ptr!*/iret && m_pc <= (UINT)/*ptr!*/iret + 255)
 				{
@@ -959,11 +964,6 @@ extern "C"
                         PUSH16(cs3);
                         PUSH16(ip3);
                     }
-				}
-				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
-				{
-					__wine_call_to_16_ret();
-					break;//return VM
 				}
 				if ((void(*)(void))m_eip == from16_reg)
 				{

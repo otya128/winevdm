@@ -166,44 +166,16 @@ void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HAND
 	context->Esp = OFFSETOF(getWOW32Reserved());
 	wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, TRACE_ON(disasm), FALSE, DOSMEM_dosmem);
 }
-/*
-int call_entry_point(void *func, int nb_args, const DWORD *args)
-{
-	DPRINTF("NOTIMPL:call_entry_point(%p, %d, %p)", func, nb_args, args);
-}*/
 void __wine_call_from_16_thunk(void)
 {
 	DPRINTF("NOTIMPL:__wine_call_from_16_thunk()");
 }
-/*
-void FT_Prolog(void)
-{
-	DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
-}
-void FT_PrologPrime(void)
-{
-	DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
-}
-void QT_Thunk(void)
-{
-	DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
-}
-void QT_ThunkPrime(void)
-{
-	DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
-}*/
 LONG __wine_call_from_16(void)
 {
 	//DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
 	return 0;
 }
 void __wine_call_from_16_regs(void)
-{
-	//DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
-}
-BYTE __wine_call16_start[1];
-BYTE __wine_call16_end[1];
-void __wine_call_to_16_ret(void)
 {
 	//DPRINTF("NOTIMPL:" __FUNCTION__ "()\n");
 }
