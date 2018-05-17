@@ -2146,16 +2146,8 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
 
     cs.lpCreateParams = data;
     cs.hInstance      = HINSTANCE_32(instance);
-    cs.hMenu          = HMENU_32(menu);
-
-    if (menu != 0)
-    {
-        if (!IsMenu(cs.hMenu) || (style & (WS_CHILD | WS_POPUP)) != WS_CHILD)
-        {
-            //hMenu is window id(16bit)
-            cs.hMenu = menu;
-        }
-    }
+    cs.hMenu          = menu;
+	
     cs.hwndParent     = WIN_Handle32( parent );
     cs.style          = style;
     cs.lpszName       = windowName;

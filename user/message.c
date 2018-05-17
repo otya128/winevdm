@@ -3173,7 +3173,16 @@ HWND create_window(CREATESTRUCTW* cs, LPCWSTR className, HINSTANCE instance, BOO
 {
 	if (!strncasecmp(className, "MDICLIENT", strlen(className)))
 		cs->lpCreateParams = MapSL(cs->lpCreateParams);
+	SetLastError(0);
 	HWND hWnd = CreateWindowExA(cs->dwExStyle, className, cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance, cs->lpCreateParams);
+	if (hWnd == 0)
+	{
+		if (GetLastError() == ERROR_INVALID_MENU_HANDLE)
+		{
+			cs->hMenu = HMENU_32(cs->hMenu);
+			hWnd = CreateWindowExA(cs->dwExStyle, className, cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance, cs->lpCreateParams);
+		}
+	}
 	return hWnd;
 }
 __declspec(dllimport) HICON16 K32HICON_16(HICON handle);
