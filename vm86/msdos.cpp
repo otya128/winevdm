@@ -699,9 +699,56 @@ extern "C"
 	unsigned char table[256 * 4 + 2 + 0x8 * 256] = { 0xcf };
 	unsigned char iret[256] = { 0xcf };
 	WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags);
+#include <imagehlp.h>
+
+#pragma comment(lib, "imagehlp.lib")
+	const size_t stack_frame_size = 100;
+	thread_local void* current_stack_frame[100];
+	thread_local size_t current_stack_frame_size;
+	void capture_stack_trace()
+	{
+		auto process = GetCurrentProcess();
+		current_stack_frame_size = CaptureStackBackTrace(0, stack_frame_size, current_stack_frame, NULL);
+	}
+	void dump_stack_trace(void)
+	{
+		unsigned int   i;
+		SYMBOL_INFO  * symbol;
+		HANDLE         process;
+
+		process = GetCurrentProcess();
+
+		SymInitialize(process, NULL, TRUE);
+
+		symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
+		symbol->MaxNameLen = 255;
+		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+		for (i = 0; i < current_stack_frame_size; i++)
+		{
+			IMAGEHLP_LINE line = {};
+			line.SizeOfStruct = sizeof(IMAGEHLP_LINE);
+			DWORD d = 0;
+			auto success = SymGetLineFromAddr(process, (DWORD64)current_stack_frame[i], &d, &line);
+			SymFromAddr(process, (DWORD64)(current_stack_frame[i]), 0, symbol);
+			printf("%i: %s - 0x%llx %s(%d)\n", current_stack_frame_size - i - 1, symbol->Name, symbol->Address, line.FileName, line.LineNumber);
+			if (!strcmp(symbol->Name, "KiUserExceptionDispatcher"))
+			{
+				printf("=============================\n");
+			}
+		}
+
+		free(symbol);
+		current_stack_frame_size = 0;
+	}
+	LONG NTAPI vm86_vectored_exception_handler(struct _EXCEPTION_POINTERS *ExceptionInfo)
+	{
+		capture_stack_trace();
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
 
+		AddVectoredExceptionHandler(TRUE, vm86_vectored_exception_handler);
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
 		CPU_INIT_CALL(CPU_MODEL);
 		//enable x87
@@ -1333,6 +1380,7 @@ IP:%04X, address:%08X\n\
 m_VM ? 16 : 32,
 REG16(AX), REG16(CX), REG16(DX), REG16(BX), REG16(SP), REG16(BP), REG16(SI), REG16(DI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, buffer2, buffer);
+		dump_stack_trace();
         printStack();
 		/*
 		
