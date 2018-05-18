@@ -32,6 +32,7 @@
 #include "wincon.h"
 #include "wine/unicode.h"
 #include "wine/debug.h"
+#include "resource.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winevdm);
 
@@ -563,7 +564,16 @@ int main( int argc, char *argv[] )
     LoadLibrary16( "gdi.exe" );
     LoadLibrary16( "user.exe" );
     LoadLibrary16( "mmsystem.dll" );
-
+#ifdef ENABLE_VISUAL_STYLE
+	ACTCTXA actctx = { 0 };
+	actctx.cbSize = sizeof(actctx);
+	actctx.hModule = GetModuleHandleW(NULL);
+	actctx.dwFlags = ACTCTX_FLAG_HMODULE_VALID | ACTCTX_FLAG_RESOURCE_NAME_VALID;
+	actctx.lpResourceName = MAKEINTRESOURCE(IDS_MANIFEST);
+	HANDLE result = CreateActCtxA(&actctx);
+	ULONG_PTR lpCookie;
+	BOOL res = ActivateActCtx(result, &lpCookie);
+#endif
     if ((instance = LoadModule16( appname, &params )) < 32)
     {
         if (instance == 11)

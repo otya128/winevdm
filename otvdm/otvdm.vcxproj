@@ -17,6 +17,12 @@
   <ItemGroup>
     <ClCompile Include="winevdm.c" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="otvdm.rc" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9C0EBE04-AE9A-40D5-ACFA-5F0854456DDA}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
