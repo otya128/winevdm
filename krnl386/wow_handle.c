@@ -9,6 +9,7 @@ handle16 <-> wow64 handle32
 #include <stdarg.h>
 #include <errno.h>
 
+#include "windows.h"
 #include "wine/winbase16.h"
 #include "windef.h"
 #include "winbase.h"
@@ -137,13 +138,17 @@ __declspec(dllexport) void SetWindowHMenu16(WORD hWnd16, HMENU16 h)
 }
 __declspec(dllexport) HMENU16 GetWindowHMenu16(WORD hWnd16)
 {
-    HANDLE_DATA *dat;
-    if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
-    {
-        ERR("Invalid Window Handle GetWindowHMenu16(0x%04X);", hWnd16);
-        return 0;
-    }
-    return dat->hMenu16;
+	HANDLE_DATA *dat;
+	if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
+	{
+		ERR("Invalid Window Handle GetWindowHMenu16(0x%04X);", hWnd16);
+		return 0;
+	}
+	if (dat->hMenu16)
+	{
+		return dat->hMenu16;
+	}
+	return WOWHandle16(GetMenu(dat->handle32), WOW_TYPE_HMENU);
 }
 
 __declspec(dllexport) void SetWndProc16(WORD hWnd16, DWORD WndProc)

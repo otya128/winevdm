@@ -1149,7 +1149,7 @@ HMENU16 WINAPI GetSystemMenu16( HWND16 hwnd, BOOL16 revert )
  */
 HMENU16 WINAPI GetMenu16( HWND16 hwnd )
 {
-    return GetWindowHMenu16(( WIN_Handle32(hwnd) ));
+    return GetWindowHMenu16(( /*WIN_Handle32*/(hwnd) ));
 }
 
 
