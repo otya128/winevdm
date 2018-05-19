@@ -560,6 +560,7 @@ int main( int argc, char *argv[] )
 
     RestoreThunkLock(1);  /* grab the Win16 lock */
 
+	SetDllDirectoryA(argv[0]);
     /* some programs assume mmsystem is always present */
     LoadLibrary16( "gdi.exe" );
     LoadLibrary16( "user.exe" );
