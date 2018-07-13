@@ -604,6 +604,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
 
+/* Define to 1 if you have the <Metal/Metal.h> header file. */
+/* #undef HAVE_METAL_METAL_H */
+
 /* Define to 1 if you have the `mmap' function. */
 //#define HAVE_MMAP 1
 
