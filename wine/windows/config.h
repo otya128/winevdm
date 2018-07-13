@@ -1522,6 +1522,9 @@
 /* Define to the soname of the libkrb5 library. */
 /* #undef SONAME_LIBKRB5 */
 
+/* Define to the soname of the libMoltenVK library. */
+/* #undef SONAME_LIBMOLTENVK */
+
 /* Define to the soname of the libncurses library. */
 #define SONAME_LIBNCURSES "	cygncursesw-10.dll"
 
