@@ -195,7 +195,10 @@ WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
 }
 BOOL WINPROC_IsNativeProc(WNDPROC16 func)
 {
-    return winproc16_native[winproc_to_index(func)];
+    int index = winproc_to_index(func);
+    if (index == -1)
+        return FALSE;
+    return winproc16_native[index];
 }
 /**********************************************************************
  *	     WINPROC_AllocProc16
