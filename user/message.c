@@ -2102,7 +2102,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
                 msg32.time = msg->time;
                 msg32.pt.x = msg->pt.x;
                 msg32.pt.y = msg->pt.y;
-                return DispatchMessageA(&msg);
+                return DispatchMessageA(&msg32);
             }
             return CallWindowProc16((WNDPROC16)msg->lParam, msg->hwnd,
                 msg->message, msg->wParam, GetTickCount());
@@ -2144,7 +2144,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
 		msg32.time = msg->time;
 		msg32.pt.x = msg->pt.x;
 		msg32.pt.y = msg->pt.y;
-		return DispatchMessageA(&msg);
+		return DispatchMessageA(&msg32);
 		/*
 		LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 		return DefWndProca(msg->hwnd, msg->message, msg->wParam, msg->lParam);
