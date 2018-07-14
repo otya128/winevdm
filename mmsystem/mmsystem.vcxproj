@@ -84,7 +84,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 winmm.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
@@ -112,7 +112,7 @@ mmsystem.def
       <ModuleDefinitionFile>
 mmsystem.def
       </ModuleDefinitionFile>
-      <AdditionalDependencies>$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 winmm.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -136,7 +136,7 @@ winmm.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>
 mmsystem.def
       </ModuleDefinitionFile>
-      <AdditionalDependencies>$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 winmm.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -146,9 +146,6 @@ winmm.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     <ClCompile Include="message16.c" />
     <ClCompile Include="mmio16.c" />
     <ClCompile Include="mmsystem.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="stub.c" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="mmsystem.dll16.obj" />
