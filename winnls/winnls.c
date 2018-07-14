@@ -89,22 +89,23 @@ BOOL16  WINAPI IMPQueryIME16(IN OUT LPIMEPRO16 lpIMEPro)
 	IMEPROToIMEPRO16(&imepro32, lpIMEPro);
 	return ret;
 }
-BOOL WINAPI IMPGetIME16(IN HWND16 hWnd, OUT LPIMEPRO lpIMEPro)
+BOOL WINAPI IMPGetIME16(IN HWND16 hWnd, OUT LPIMEPRO16 lpIMEPro)
 {
 	IMEPROA imepro32;
 	BOOL ret = IMPGetIMEA(HWND_32(hWnd), &imepro32);
 	IMEPROToIMEPRO16(&imepro32, lpIMEPro);
 	return ret;
 }
-BOOL  WINAPI IMPSetIME16(IN HWND16 hWnd, IN LPIMEPROA lpIMEPro)
+BOOL  WINAPI IMPSetIME16(IN HWND16 hWnd, IN LPIMEPRO16 lpIMEPro)
 {
 	IMEPROA imepro32;
 	IMEPRO16ToIMEPRO(lpIMEPro, &imepro32);
-	return IMPSetIME16(HWND_32(hWnd), &imepro32);
+	return IMPSetIMEA(HWND_32(hWnd), &imepro32);
 }
 BOOL WINAPI IMPModifyIME16(LPSTR lpStr, IN LPIMEPRO lpIMEPro)
 {
 	ERR("NOTIMPL:IMPModifyIME16(\"%s\", 0x%p)\n", lpStr, lpIMEPro);
+    return FALSE;
 }
 WORD WINAPI IMPGetDefaultIME16(LPIMEPRO lpIMEPro)
 {
@@ -183,10 +184,10 @@ LRESULT WINAPI SendIMEMessageEx16(
     lpime32->lParam1 = lpime->lParam1;
     lpime32->lParam2 = lpime->lParam2;
     lpime32->lParam3 = lpime->lParam3;
-    const char *a = GlobalLock16(lpime->lParam1);
-    const char *b = GlobalLock16(lpime->lParam2);
-    GlobalUnlock16(lpime->lParam1);
-    GlobalUnlock16(lpime->lParam2);
+    //const char *a = GlobalLock16(lpime->lParam1);
+    //const char *b = GlobalLock16(lpime->lParam2);
+    //GlobalUnlock16(lpime->lParam1);
+    //GlobalUnlock16(lpime->lParam2);
     switch (lpime->fnc)
     {
     case IME_SETCONVERSIONWINDOW:
@@ -203,7 +204,7 @@ LRESULT WINAPI SendIMEMessageEx16(
             HIMC hi = ImmGetContext(hwnd32);
             BOOL a = ImmSetCompositionWindow(hi, &c);
             ImmReleaseContext(hwnd32, hi);
-            return;
+            return a;
         }
             break;
         case MCW_DEFAULT:
@@ -248,19 +249,4 @@ LRESULT WINAPI SendIMEMessageEx16(
     GlobalUnlock16(hglobal);
     GlobalFree(hglobal32);
     return ret;
-}
-
-///////////////
-#include <stdio.h>
-void __wine_spec_init_ctor()
-{
-	ERR("NOTIMPL:__wine_spec_init_ctor()\n");
-}
-void __wine_spec_unimplemented_stub(const char *module, const char *function)
-{
-	ERR("NOTIMPL:__wine_spec_unimplemented_stub(%s, %s)\n", module, function);
-}
-void __wine_spec_dll_entry()
-{
-	ERR("NOTIMPL:__wine_spec_dll_entry(?)\n");
 }
