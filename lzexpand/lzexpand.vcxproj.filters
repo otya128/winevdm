@@ -18,6 +18,9 @@
     <ClCompile Include="lzexpand.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="wine_lzexpand.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="lzexpand.def">
