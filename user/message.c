@@ -190,7 +190,10 @@ WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
     if (func == DefEditProc)
         func = edit_wndproc16;
     WNDPROC ret = WINPROC_AllocProc16(func);
-    winproc16_native[winproc_to_index(ret)] = TRUE;
+    int index = winproc_to_index(ret);
+    if (index == -1)
+        return ret;
+    winproc16_native[index] = TRUE;
     return ret;
 }
 BOOL WINPROC_IsNativeProc(WNDPROC16 func)
