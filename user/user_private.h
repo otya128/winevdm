@@ -163,7 +163,46 @@ FIXME: correct name */
 #define LB_CARETON             0x01a3
 #define LB_CARETOFF            0x01a4
 #include <windowsx.h>
-#include "winuser.rh"
+//#include "winuser.rh"
+#define WM_SIZEWAIT            0x0004 /* DDK / Win16 */
+#define WM_SETVISIBLE          0x0009 /* DDK / Win16 */
+#define WM_SYSTEMERROR         0x0017 /* DDK / Win16 */
+#define WM_ALTTABACTIVE        0x0029 /* DDK / Win16 */
+#define WM_FILESYSCHANGE       0x0034 /* DDK / Win16 */
+#define WM_ISACTIVEICON        0x0035 /* DDK / Win16 */
+#define WM_TESTING             0x003a /* DDK / Win16 */
+#define WM_KEYF1               0x004d /* DDK / Win16 */
+#define WM_SYNCTASK            0x0089 /* DDK / Win16 */
+#define WM_LBTRACKPOINT        0x0131 /* DDK / Win16 */
+/* D&D messages */
+#define WM_DROPOBJECT          0x022A /* DDK / Win16 */
+#define WM_QUERYDROPOBJECT     0x022B /* DDK / Win16 */
+#define WM_BEGINDRAG           0x022C /* DDK / Win16 */
+#define WM_DRAGLOOP            0x022D /* DDK / Win16 */
+#define WM_DRAGSELECT          0x022E /* DDK / Win16 */
+#define WM_DRAGMOVE            0x022F /* DDK / Win16 */
+/* DDK / Win16 defines */
+#define MFS_MASK               __MSABI_LONG(0x0000108B)
+#define MFS_HOTTRACKDRAWN      __MSABI_LONG(0x10000000)
+#define MFS_CACHEDBMP          __MSABI_LONG(0x20000000)
+#define MFS_BOTTOMGAPDROP      __MSABI_LONG(0x40000000)
+#define MFS_TOPGAPDROP         __MSABI_LONG(0x80000000)
+#define MFS_GAPDROP            (MFS_BOTTOMGAPDROP | MFS_TOPGAPDROP)
+
+#define OCR_HELP               32651 /* DDK / Win16 */
+#define OCR_RDRVERT            32652 /* DDK / Win16 */
+#define OCR_RDRHORZ            32653 /* DDK / Win16 */
+#define OCR_RDR2DIM            32654 /* DDK / Win16 */
+#define OCR_RDRNORTH           32655 /* DDK / Win16 */
+#define OCR_RDRSOUTH           32656 /* DDK / Win16 */
+#define OCR_RDRWEST            32657 /* DDK / Win16 */
+#define OCR_RDREAST            32658 /* DDK / Win16 */
+#define OCR_RDRNORTHWEST       32659 /* DDK / Win16 */
+#define OCR_RDRNORTHEAST       32660 /* DDK / Win16 */
+#define OCR_RDRSOUTHWEST       32661 /* DDK / Win16 */
+#define OCR_RDRSOUTHEAST       32662 /* DDK / Win16 */
+#define EM_SETFONT             0x00c3 /* DDK / Win16 */
+#define EM_SETWORDBREAK        0x00ca /* DDK / Win16 */
 //winuser
 #define DCX_USESTYLE         0x00010000
 __declspec(dllimport) PVOID getWOW32Reserved();

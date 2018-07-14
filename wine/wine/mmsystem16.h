@@ -21,7 +21,7 @@
 #ifndef __WINE_WINE_MMSYSTEM16_H
 #define __WINE_WINE_MMSYSTEM16_H
 
-#include "winuser.rh"
+//#include "winuser.rh"
 #include "windef.h"
 #include "wine/windef16.h"
 #define DECL_WINELIB_TYPE_AW(x)

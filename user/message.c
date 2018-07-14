@@ -185,12 +185,12 @@ LRESULT CALLBACK DefEditProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
 {
-    if (func == DefWndProca)
-        func = DefWindowProcA;
-    if (func == DefEditProc)
-        func = edit_wndproc16;
+    if (func == (WNDPROC16)DefWndProca)
+        func = (WNDPROC16)DefWindowProcA;
+    if (func == (WNDPROC16)DefEditProc)
+        func = (WNDPROC16)edit_wndproc16;
     WNDPROC ret = WINPROC_AllocProc16(func);
-    int index = winproc_to_index(ret);
+    int index = winproc_to_index((WNDPROC16)ret);
     if (index == -1)
         return ret;
     winproc16_native[index] = TRUE;
@@ -639,11 +639,11 @@ BOOL isListBox(HWND hWnd)
 		HWND hWnd = CreateWindowExA(0, "LISTBOX", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
 		if (hWnd)
 		{
-			lpfnListBoxWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			lpfnListBoxWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 			DestroyWindow(hWnd);
 		}
 	}
-	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 	return hWnd ? (lpfnWndProc == lpfnListBoxWndProc1 || lpfnWndProc == lpfnListBoxWndProc2) : FALSE;
 }
 BOOL isEdit(HWND hWnd)
@@ -661,11 +661,11 @@ BOOL isEdit(HWND hWnd)
 		HWND hWnd = CreateWindowExA(0, "EDIT", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
 		if (hWnd)
 		{
-			lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 			DestroyWindow(hWnd);
 		}
 	}
-	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
 BOOL isScrollBar(HWND hWnd)
@@ -683,11 +683,11 @@ BOOL isScrollBar(HWND hWnd)
 		HWND hWnd = CreateWindowExA(0, "SCROLLBAR ", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
 		if (hWnd)
 		{
-			lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 			DestroyWindow(hWnd);
 		}
 	}
-	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
 WNDPROC get_classinfo_wndproc(const char *class)
@@ -702,7 +702,7 @@ WNDPROC get_window_wndproc(const char *class)
     HWND hWnd = CreateWindowExA(0, class, "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), 0);
     if (hWnd)
     {
-        lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+        lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
         DestroyWindow(hWnd);
     }
     return lpfnWndProc2;
@@ -722,11 +722,11 @@ BOOL isStatic(HWND hWnd)
 		HWND hWnd = CreateWindowExA(0, "STATIC", "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), 0);
 		if (hWnd)
 		{
-			lpfnWndProc2 = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 			DestroyWindow(hWnd);
 		}
 	}
-	WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
 BOOL isButton(HWND hWnd)
@@ -737,7 +737,7 @@ BOOL isButton(HWND hWnd)
         lpfnWndProc1 = get_classinfo_wndproc("BUTTON");
     if (!lpfnWndProc2)
         lpfnWndProc2 = get_window_wndproc("BUTTON");
-    WNDPROC lpfnWndProc = GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
     return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
 
@@ -2126,7 +2126,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
     retval = CallWindowProc16( winproc, msg->hwnd, msg->message, msg->wParam, msg->lParam );
     TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx returned %08lx\n",
 		msg->hwnd, msg->message, msg->wParam, msg->lParam, retval);
-	void *a = (GetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC));
+	void *a = (void*)(GetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC));
 	if (a)// && !retval)
 	{
 		//SetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC, 0);
