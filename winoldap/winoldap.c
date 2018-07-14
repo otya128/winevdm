@@ -53,19 +53,25 @@ LPWSTR convert_wstr(LPSTR str)
     size_t size = 100 * sizeof(WCHAR);
     LPWSTR strw = malloc(size);
     size = MultiByteToWideChar(CP_ACP, 0, str, -1, strw, size);
-    if (GetLastError() == ERROR_SUCCESS)
+    SetLastError(ERROR_SUCCESS);
+    if (GetLastError() == ERROR_SUCCESS && size < 100 * sizeof(WCHAR))
+    {
+        strw[size] = '\0';
         return strw;
+    }
     free(strw);
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         return NULL;
 
-    strw = malloc(size * sizeof(WCHAR));
+    strw = malloc(size * sizeof(WCHAR) + sizeof(WCHAR));
+    SetLastError(ERROR_SUCCESS);
     size = MultiByteToWideChar(CP_ACP, 0, str, -1, strw, size);
-    if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    if (GetLastError() != ERROR_SUCCESS)
     {
         free(strw);
         return NULL;
     }
+    strw[size] = '\0';
     return strw;
 }
 /**************************************************************************

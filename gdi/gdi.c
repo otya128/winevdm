@@ -36,6 +36,7 @@ __declspec(dllimport) HGDIOBJ16 K32HGDIOBJ_16(HGDIOBJ handle);
 __declspec(dllimport) HGDIOBJ K32HGDIOBJ_32(HGDIOBJ16 handle);
 #define HGDIOBJ_32(handle16)    (K32HGDIOBJ_32(handle16))
 #define HGDIOBJ_16(handle32)    (K32HGDIOBJ_16(handle32))
+static BYTE fix_font_charset(BYTE charset);
 
 struct saved_visrgn
 {
@@ -268,7 +269,7 @@ static void logfont_16_to_W( const LOGFONT16 *font16, LPLOGFONTW font32 )
     font32->lfItalic = font16->lfItalic;
     font32->lfUnderline = font16->lfUnderline;
     font32->lfStrikeOut = font16->lfStrikeOut;
-    font32->lfCharSet = font16->lfCharSet;
+    font32->lfCharSet = fix_font_charset(font16->lfCharSet);
     font32->lfOutPrecision = font16->lfOutPrecision;
     font32->lfClipPrecision = font16->lfClipPrecision;
     font32->lfQuality = font16->lfQuality | NONANTIALIASED_QUALITY;
@@ -1203,6 +1204,18 @@ HRGN16 WINAPI CreateEllipticRgnIndirect16( const RECT16 *rect )
 }
 
 
+static BYTE fix_font_charset(BYTE charset)
+{
+    //windows 3.1(JP) behaviour
+    if (GetACP() == 932/*sjis*/)
+    {
+        if (charset != ANSI_CHARSET && charset != DEFAULT_CHARSET && charset != SYMBOL_CHARSET && charset != OEM_CHARSET)
+        {
+            charset = SHIFTJIS_CHARSET;
+        }
+    }
+    return charset;
+}
 /***********************************************************************
  *           CreateFont    (GDI.56)
  */
@@ -1213,7 +1226,7 @@ HFONT16 WINAPI CreateFont16(INT16 height, INT16 width, INT16 esc, INT16 orient,
                             LPCSTR name )
 {
     return HFONT_16( CreateFontA( height, width, esc, orient, weight, italic, underline,
-                                  strikeout, charset, outpres, clippres, quality | NONANTIALIASED_QUALITY, pitch, name ));
+                                  strikeout, fix_font_charset(charset), outpres, clippres, quality | NONANTIALIASED_QUALITY, pitch, name ));
 }
 
 /***********************************************************************
@@ -2418,7 +2431,7 @@ BOOL16 WINAPI ExtTextOut16( HDC16 hdc, INT16 x, INT16 y, UINT16 flags,
         rect32.right  = lprect->right;
         rect32.bottom = lprect->bottom;
     }
-    ret = ExtTextOutA(HDC_32(hdc),x,y,flags,lprect?&rect32:NULL,str,count,lpdx32);
+    ret = ExtTextOutA(HDC_32(hdc), x, y, flags, lprect ? &rect32 : NULL, str, count, lpdx32);
     HeapFree( GetProcessHeap(), 0, lpdx32 );
     return ret;
 }
