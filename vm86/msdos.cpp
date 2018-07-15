@@ -1363,7 +1363,17 @@ extern "C"
     }
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE winehandler)
 	{
-		PEXCEPTION_RECORD rec = ep->ExceptionRecord;
+        static void(*NE_DumpAllModules)();
+        if (!NE_DumpAllModules)
+        {
+            NE_DumpAllModules = ((void(*)())GetProcAddress(LoadLibraryA(KRNL386), "NE_DumpAllModules"));
+        }
+        if (NE_DumpAllModules)
+        {
+            fprintf(stderr, "=====dump all modules=====\n");
+            NE_DumpAllModules();
+        }
+        PEXCEPTION_RECORD rec = ep->ExceptionRecord;
 		if (rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
 			return EXCEPTION_CONTINUE_SEARCH;
         CONTEXT context;

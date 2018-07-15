@@ -312,6 +312,26 @@ void NE_WalkModules(void)
 }
 
 
+__declspec(dllexport) void NE_DumpAllModules(void)
+{
+    HMODULE16 hModule = hFirstModule;
+    MESSAGE("Module Flags Name\n");
+    while (hModule)
+    {
+        NE_MODULE *pModule = NE_GetPtr(hModule);
+        if (!pModule)
+        {
+            MESSAGE("Bad module %04x in list\n", hModule);
+            return;
+        }
+        MESSAGE(" %04x  %04x  %.*s\n", hModule, pModule->ne_flags,
+            *((char *)pModule + pModule->ne_restab),
+            (char *)pModule + pModule->ne_restab + 1);
+        NE_DumpModule(hModule);
+        hModule = pModule->next;
+    }
+}
+
 /***********************************************************************
  *           NE_InitResourceHandler
  *

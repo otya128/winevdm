@@ -63,11 +63,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetExt>.dll16</TargetExt>
+    <TargetExt>.exe16</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='GenLibFileRelease|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetExt>.dll16</TargetExt>
+    <TargetExt>.exe16</TargetExt>
     <OutDir>$(SolutionDir)Release\</OutDir>
     <IntDir>Release\</IntDir>
   </PropertyGroup>
