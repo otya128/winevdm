@@ -1778,27 +1778,44 @@ WORD WINAPI GetFreeSystemResources16( WORD resType )
     switch(resType)
     {
     case GFSR_USERRESOURCES:
+    {
         stack16->ds = USER_HeapSel;
-        userPercent = (int)LocalCountFree16() * 100 / LocalHeapSize16();
-        gdiPercent  = 100;
+        WORD size = LocalHeapSize16();
+        WORD cf = LocalCountFree16();
+        if (size == 0)
+            userPercent = 100;
+        else
+            userPercent = (int)cf * 100 / size;
+        gdiPercent = 100;
         stack16->ds = oldDS;
         break;
-
+    }
     case GFSR_GDIRESOURCES:
-        stack16->ds = gdi_inst;
-        gdiPercent  = (int)LocalCountFree16() * 100 / LocalHeapSize16();
+    {    stack16->ds = gdi_inst;
+        WORD size = LocalHeapSize16();
+        WORD cf = LocalCountFree16();
+        if (size == 0)
+            gdiPercent = 100;
+        else
+            gdiPercent  = (int)cf * 100 / size;
         userPercent = 100;
         stack16->ds = oldDS;
         break;
-
+    }
     case GFSR_SYSTEMRESOURCES:
+    {
         stack16->ds = USER_HeapSel;
-        userPercent = (int)LocalCountFree16() * 100 / LocalHeapSize16();
+        WORD size = LocalHeapSize16();
+        WORD cf = LocalCountFree16();
+        if (size == 0)
+            userPercent = 100;
+        else
+            userPercent = (int)cf * 100 / size;
         stack16->ds = gdi_inst;
-        gdiPercent  = (int)LocalCountFree16() * 100 / LocalHeapSize16();
+        gdiPercent = userPercent;
         stack16->ds = oldDS;
         break;
-
+    }
     default:
         userPercent = gdiPercent = 0;
         break;
