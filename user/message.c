@@ -675,12 +675,12 @@ BOOL isScrollBar(HWND hWnd)
 	if (!lpfnWndProc1)
 	{
 		WNDCLASSA wc;
-		GetClassInfoA(NULL, "SCROLLBAR ", &wc);
+		GetClassInfoA(NULL, "SCROLLBAR", &wc);
 		lpfnWndProc1 = wc.lpfnWndProc;
 	}
 	if (!lpfnWndProc2)
 	{
-		HWND hWnd = CreateWindowExA(0, "SCROLLBAR ", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
+		HWND hWnd = CreateWindowExA(0, "SCROLLBAR", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
 		if (hWnd)
 		{
 			lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
@@ -689,6 +689,28 @@ BOOL isScrollBar(HWND hWnd)
 	}
 	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
 	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL isComboBox(HWND hWnd)
+{
+    static WNDPROC lpfnWndProc1 = 0;
+    static WNDPROC lpfnWndProc2 = 0;
+    if (!lpfnWndProc1)
+    {
+        WNDCLASSA wc;
+        GetClassInfoA(NULL, "COMBOBOX ", &wc);
+        lpfnWndProc1 = wc.lpfnWndProc;
+    }
+    if (!lpfnWndProc2)
+    {
+        HWND hWnd = CreateWindowExA(0, "COMBOBOX", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
+        if (hWnd)
+        {
+            lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+            DestroyWindow(hWnd);
+        }
+    }
+    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
 WNDPROC get_classinfo_wndproc(const char *class)
 {
@@ -911,6 +933,13 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 		if (f)
 			return ret;
 	}
+    if (isComboBox(hwnd32))
+    {
+        BOOL f;
+        ret = combo_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
+        if (f)
+            return ret;
+    }
     switch(msg)
     {
     case WM_NCCREATE:
@@ -2443,6 +2472,86 @@ static LRESULT combo_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, 
     return wow_handlers32.combo_proc( hwnd, msg, wParam, lParam, FALSE );
 }
 
+
+/***********************************************************************
+*           combo_proc16
+*/
+static LRESULT combo_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f) 
+{
+    static const UINT msg16_offset = CB_GETEDITSEL16 - CB_GETEDITSEL;
+
+    switch (msg)
+    {
+    case CB_INSERTSTRING16:
+    case CB_SELECTSTRING16:
+    case CB_FINDSTRING16:
+    case CB_FINDSTRINGEXACT16:
+        wParam = (INT)(INT16)wParam;
+        /* fall through */
+    case CB_ADDSTRING16:
+    {
+        DWORD style = GetWindowLongW(hwnd, GWL_STYLE);
+        if ((style & CBS_HASSTRINGS) || !(style & (CBS_OWNERDRAWFIXED | CBS_OWNERDRAWVARIABLE)))
+            lParam = (LPARAM)MapSL(lParam);
+        msg -= msg16_offset;
+        break;
+    }
+    case CB_SETITEMHEIGHT16:
+    case CB_GETITEMHEIGHT16:
+    case CB_SETCURSEL16:
+    case CB_GETLBTEXTLEN16:
+    case CB_GETITEMDATA16:
+    case CB_SETITEMDATA16:
+        wParam = (INT)(INT16)wParam;	/* signed integer */
+        msg -= msg16_offset;
+        break;
+    case CB_GETDROPPEDCONTROLRECT16:
+        lParam = (LPARAM)MapSL(lParam);
+        if (lParam)
+        {
+            RECT r;
+            RECT16 *r16 = (RECT16 *)lParam;
+            wow_handlers32.combo_proc(hwnd, CB_GETDROPPEDCONTROLRECT, wParam, (LPARAM)&r, FALSE);
+            r16->left = r.left;
+            r16->top = r.top;
+            r16->right = r.right;
+            r16->bottom = r.bottom;
+        }
+        return CB_OKAY;
+    case CB_DIR16:
+        if (wParam & DDL_DRIVES) wParam |= DDL_EXCLUSIVE;
+        lParam = (LPARAM)MapSL(lParam);
+        msg -= msg16_offset;
+        break;
+    case CB_GETLBTEXT16:
+        wParam = (INT)(INT16)wParam;
+        lParam = (LPARAM)MapSL(lParam);
+        msg -= msg16_offset;
+        break;
+    case CB_GETEDITSEL16:
+        wParam = lParam = 0;   /* just in case */
+        msg -= msg16_offset;
+        break;
+    case CB_LIMITTEXT16:
+    case CB_SETEDITSEL16:
+    case CB_DELETESTRING16:
+    case CB_RESETCONTENT16:
+    case CB_GETDROPPEDSTATE16:
+    case CB_SHOWDROPDOWN16:
+    case CB_GETCOUNT16:
+    case CB_GETCURSEL16:
+    case CB_SETEXTENDEDUI16:
+    case CB_GETEXTENDEDUI16:
+        msg -= msg16_offset;
+        break;
+    default:
+        return callback(hwnd, msg, wParam, lParam, result, arg);
+    }
+    return callback(hwnd, msg, wParam, lParam, result, arg);;
+}
+
+
 /*********************************************************************
  * edit_lock_buffer (internal)
  *
@@ -3097,6 +3206,7 @@ void InitHook()
     isListBox(NULL);//判定の無限ループが起こるので先に実行する
     isButton(NULL);//判定の無限ループが起こるので先に実行する
     isEdit(NULL);//判定の無限ループが起こるので先に実行する
+    isComboBox(NULL);//判定の無限ループが起こるので先に実行する
     SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
     SetWindowsHookExA(WH_CBT, CBTHook, GetModuleHandle(NULL), GetCurrentThreadId());
 }

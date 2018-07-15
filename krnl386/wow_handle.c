@@ -110,7 +110,7 @@ __declspec(dllexport) void SetWindowHInst16(WORD hWnd16, HINSTANCE16 hinst16)
     HANDLE_DATA *dat;
     if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
     {
-        ERR("Invalid Window Handle SetWindowHInst16(0x%04X);", hWnd16);
+        ERR("Invalid Window Handle SetWindowHInst16(%04X,%04X)\n", hWnd16, hinst16);
         return;
     }
     dat->hInst16 = hinst16;
@@ -120,7 +120,7 @@ __declspec(dllexport) HINSTANCE16 GetWindowHInst16(WORD hWnd16)
     HANDLE_DATA *dat;
     if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
     {
-        ERR("Invalid Window Handle GetWindowHInst16(0x%04X);", hWnd16);
+        ERR("Invalid Window Handle GetWindowHInst16(%04X)\n", hWnd16);
         return 0;
     }
     return dat->hInst16;
@@ -131,7 +131,7 @@ __declspec(dllexport) void SetWindowHMenu16(WORD hWnd16, HMENU16 h)
     HANDLE_DATA *dat;
     if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
     {
-        ERR("Invalid Window Handle SetWindowHMenu16(0x%04X);", hWnd16);
+        ERR("Invalid Window Handle SetWindowHMenu16(%04X,%04X)\n", hWnd16, h);
         return;
     }
     dat->hMenu16 = h;
@@ -141,7 +141,7 @@ __declspec(dllexport) HMENU16 GetWindowHMenu16(WORD hWnd16)
 	HANDLE_DATA *dat;
 	if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
 	{
-		ERR("Invalid Window Handle GetWindowHMenu16(0x%04X);", hWnd16);
+		ERR("Invalid Window Handle GetWindowHMenu16(%04X)\n", hWnd16);
 		return 0;
 	}
 	if (dat->hMenu16)
@@ -156,7 +156,7 @@ __declspec(dllexport) void SetWndProc16(WORD hWnd16, DWORD WndProc)
 	HANDLE_DATA *dat;
 	if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
 	{
-		ERR("Invalid Window Handle SetWndProc16(0x%04X);", hWnd16);
+		ERR("Invalid Window Handle SetWndProc16(%04X,%04X)\n", hWnd16, WndProc);
 		return;
 	}
 	dat->wndproc = WndProc;
@@ -166,7 +166,7 @@ __declspec(dllexport) DWORD GetWndProc16(WORD hWnd16)
 	HANDLE_DATA *dat;
 	if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
 	{
-		ERR("Invalid Window Handle SetWndProc16(0x%04X);", hWnd16);
+		ERR("Invalid Window Handle GetWndProc16(%04X)\n", hWnd16);
 		return 0;
 	}
 	return dat->wndproc;
