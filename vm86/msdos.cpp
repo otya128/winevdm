@@ -510,6 +510,7 @@ void write_io_dword(offs_t addr, UINT32 val)
 BOOL is_32bit_segment(int sreg);
 extern "C"
 {
+#define EXCEPTION_PROTECTED_MODE       0x80020100
     //kenel16_private.h
 #include "../krnl386/kernel16_private.h"
 #define KRNL386 "krnl386.exe16"
@@ -1064,6 +1065,29 @@ extern "C"
                     }
                     else*/
                     {
+                        int num = m_pc - (UINT)iret;
+                        const char *name = NULL;
+                        switch (num)
+                        {
+                        case FAULT_UD:name = "#UD"; break;
+                        case FAULT_NM:name = "#NM"; break;
+                        case FAULT_DF:name = "#DF"; break;
+                        case FAULT_TS:name = "#TS"; break;
+                        case FAULT_NP:name = "#NP"; break;
+                        case FAULT_SS:name = "#SS"; break;
+                        case FAULT_GP:name = "#GP"; break;
+                        case FAULT_PF:name = "#PF"; break;
+                        case FAULT_MF:name = "#MF"; break;
+                        }
+                        if (name)
+                        {
+                            WORD err = POP16();
+                            WORD ip = POP16();
+                            WORD cs = POP16();
+                            WORD flags = POP16();
+                            ULONG_PTR arguments[6] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags };
+                            RaiseException(EXCEPTION_PROTECTED_MODE, 0, 6, arguments);
+                        }
                         WORD ip = POP16();
                         WORD cs = POP16();
                         PUSH16(cs);
@@ -1335,7 +1359,7 @@ extern "C"
 
 #pragma comment(lib, "imagehlp.lib")
 
-    void printStack(void)
+    void print_stack(void)
     {
         unsigned int   i;
         void         * stack[100];
@@ -1361,15 +1385,15 @@ extern "C"
 
         free(symbol);
     }
-	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE winehandler)
-	{
+    LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE winehandler)
+    {
         PEXCEPTION_RECORD rec = ep->ExceptionRecord;
         if (rec->ExceptionCode == 0x80000100/*EXCEPTION_WINE_STUB*/)
         {
             fprintf(stderr, "stub function %s %s\n", rec->ExceptionInformation[0], rec->ExceptionInformation[1]);
             return EXCEPTION_CONTINUE_SEARCH;
         }
-        if (rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
+        if (rec->ExceptionCode != EXCEPTION_PROTECTED_MODE && rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
             return EXCEPTION_CONTINUE_SEARCH;
         static void(*NE_DumpAllModules)();
         if (!NE_DumpAllModules)
@@ -1384,7 +1408,7 @@ extern "C"
                 NE_DumpAllModules();
                 fprintf(stderr, "=====dump all modules=====\n");
             }
-            __except(EXCEPTION_CONTINUE_EXECUTION)
+            __except (EXCEPTION_CONTINUE_EXECUTION)
             {
 
             }
@@ -1393,65 +1417,96 @@ extern "C"
         save_context(&context);
         //return winehandler(ep->ExceptionRecord, NULL, &context, NULL);
         char buffer[256] = {}, buffer2[256] = {};
-		if (!1) {
+        if (!1) {
+            __try
+            {
 #if defined(HAS_I386)
-			UINT64 eip = m_eip;
+            UINT64 eip = m_eip;
 #else
-			UINT64 eip = m_pc - SREG_BASE(CS);
+            UINT64 eip = m_pc - SREG_BASE(CS);
 #endif
-			UINT8 *oprom = mem + SREG_BASE(CS) + eip;
+            UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 #if defined(HAS_I386)
-			if (m_operand_size) {
-				CPU_DISASSEMBLE_CALL(x86_32);
-			}
-			else
+            if (m_operand_size) {
+                CPU_DISASSEMBLE_CALL(x86_32);
+            }
+            else
 #endif
-				i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-			oprom = mem + SREG_BASE(CS) + m_prev_eip;
+                i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+            oprom = mem + SREG_BASE(CS) + m_prev_eip;
 #if defined(HAS_I386)
-			if (m_operand_size) {
-				CPU_DISASSEMBLE_CALL(x86_32);
-			}
-			else
+            if (m_operand_size) {
+                CPU_DISASSEMBLE_CALL(x86_32);
+            }
+            else
 #endif
-				i386_dasm_one_ex(buffer2, m_prev_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-		}
-		char buf[2048];
-		sprintf(buf, 
-"Access violation\naddress=%p\naccess address=%p\n\
+                i386_dasm_one_ex(buffer2, m_prev_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+            }
+            __except (EXCEPTION_CONTINUE_EXECUTION)
+            {
+
+            }
+        }
+        char buf_pre[2048];
+        buf_pre[0] = '\0';
+
+        if (rec->ExceptionCode == EXCEPTION_PROTECTED_MODE)
+        {
+            //ULONG_PTR arguments[6] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags };
+            WORD num = (WORD)rec->ExceptionInformation[0];
+            const char *name = (const char*)rec->ExceptionInformation[1];
+            WORD err = (WORD)rec->ExceptionInformation[2];
+            WORD ip = (WORD)rec->ExceptionInformation[3];
+            WORD cs = (WORD)rec->ExceptionInformation[4];
+            WORD flags = (WORD)rec->ExceptionInformation[5];
+            sprintf(buf_pre, "Interrupt %02X %s (%04X:%04X) flags %04X err %04X\n", num, name, cs, ip, flags, err);
+        }
+        else
+        {
+            buf_pre[0] = 'S';
+            buf_pre[1] = 'E';
+            buf_pre[2] = 'G';
+            buf_pre[3] = 'V';
+            buf_pre[4] = '\0';
+        }
+        char buf[2048];
+        sprintf(buf,
+            "Access violation\naddress=%p\naccess address=%p\n\
 %dbit\n\
 16bit context\n\
 AX:%04X,CX:%04X,DX:%04X,BX:%04X\n\
 SP:%04X,BP:%04X,SI:%04X,DI:%04X\n\
 ES:%04X,SS:%04X,CS:%04X,DS:%04X\n\
 IP:%04X, address:%08X\n\
-%s\n%s", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
+%s\n%s\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
 m_VM ? 16 : 32,
 REG16(AX), REG16(CX), REG16(DX), REG16(BX), REG16(SP), REG16(BP), REG16(SI), REG16(DI),
-SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, buffer2, buffer);
-		dump_stack_trace();
-        printStack();
-		/*
-		
-					context.Eax = REG16(AX);
-					context.Ecx = REG16(CX);
-					context.Edx = REG16(DX);
-					context.Ebx = REG16(BX);
-					context.Esp = REG16(SP);
-					context.Ebp = REG16(BP);
-					context.Esi = REG16(SI);
-					context.Edi = REG16(DI);
-					context.SegEs = SREG(ES);
-					context.SegCs = SREG(CS);
-					context.SegSs = SREG(SS);
-					context.SegDs = SREG(DS);*/
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, buffer2, buffer, buf_pre);
+        dump_stack_trace();
+        fprintf(stderr, "========================\n");
+        print_stack();
+        /*
+
+                    context.Eax = REG16(AX);
+                    context.Ecx = REG16(CX);
+                    context.Edx = REG16(DX);
+                    context.Ebx = REG16(BX);
+                    context.Esp = REG16(SP);
+                    context.Ebp = REG16(BP);
+                    context.Esi = REG16(SI);
+                    context.Edi = REG16(DI);
+                    context.SegEs = SREG(ES);
+                    context.SegCs = SREG(CS);
+                    context.SegSs = SREG(SS);
+                    context.SegDs = SREG(DS);*/
         fprintf(stderr, "%s", buf);
+
 #ifdef _DEBUG
         _getch();
 #endif
-		MessageBoxA(NULL, buf, "SEGV", MB_ICONERROR);
-		return EXCEPTION_EXECUTE_HANDLER;
-	}
+        MessageBoxA(NULL, buf, buf_pre, MB_ICONERROR);
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
 
 	void *wine_ldt_get_ptr(unsigned short sel, unsigned long offset);
 	void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry);
