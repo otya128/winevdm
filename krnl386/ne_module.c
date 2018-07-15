@@ -315,7 +315,7 @@ void NE_WalkModules(void)
 __declspec(dllexport) void NE_DumpAllModules(void)
 {
     HMODULE16 hModule = hFirstModule;
-    MESSAGE("Module Flags Name\n");
+    MESSAGE("Module Flags Name Flag\n");
     while (hModule)
     {
         NE_MODULE *pModule = NE_GetPtr(hModule);
@@ -324,10 +324,31 @@ __declspec(dllexport) void NE_DumpAllModules(void)
             MESSAGE("Bad module %04x in list\n", hModule);
             return;
         }
-        MESSAGE(" %04x  %04x  %.*s\n", hModule, pModule->ne_flags,
+        char buffer[1024];
+        buffer[0] = '\0';
+        char *cbuf = buffer;
+        if (pModule->ne_flags & NE_FFLAGS_SINGLEDATA) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_SINGLEDATA | ");
+        if (pModule->ne_flags & NE_FFLAGS_MULTIPLEDATA) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_MULTIPLEDATA | ");
+        if (pModule->ne_flags & NE_FFLAGS_WIN32) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_WIN32 | ");
+        if (pModule->ne_flags & NE_FFLAGS_BUILTIN) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_BUILTIN | ");
+        if (pModule->ne_flags & NE_FFLAGS_FRAMEBUF) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_FRAMEBUF | ");
+        if (pModule->ne_flags & NE_FFLAGS_CONSOLE) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_CONSOLE | ");
+        if (pModule->ne_flags & NE_FFLAGS_GUI) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_GUI | ");
+        if (pModule->ne_flags & NE_FFLAGS_SELFLOAD) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_SELFLOAD | ");
+        if (pModule->ne_flags & NE_FFLAGS_LINKERROR) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_LINKERROR | ");
+        if (pModule->ne_flags & NE_FFLAGS_CALLWEP) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_CALLWEP | ");
+        if (pModule->ne_flags & NE_FFLAGS_LIBMODULE) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_LIBMODULE | ");
+        
+        if (cbuf != buffer)
+        {
+            if (cbuf[-1] == ' ' && cbuf[-2] == '|' && cbuf[-3] == ' ')
+                cbuf[-3] = '\0';
+        }
+        MESSAGE(" %04x  %04x  %.*s  %s\n", hModule, pModule->ne_flags,
             *((char *)pModule + pModule->ne_restab),
-            (char *)pModule + pModule->ne_restab + 1);
-        NE_DumpModule(hModule);
+            (char *)pModule + pModule->ne_restab + 1, buffer);
+        if (TRACE_ON(module))
+            NE_DumpModule(hModule);
         hModule = pModule->next;
     }
 }

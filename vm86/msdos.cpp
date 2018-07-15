@@ -1363,6 +1363,14 @@ extern "C"
     }
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE winehandler)
 	{
+        PEXCEPTION_RECORD rec = ep->ExceptionRecord;
+        if (rec->ExceptionCode == 0x80000100/*EXCEPTION_WINE_STUB*/)
+        {
+            fprintf(stderr, "stub function %s %s\n", rec->ExceptionInformation[0], rec->ExceptionInformation[1]);
+            return EXCEPTION_CONTINUE_SEARCH;
+        }
+        if (rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
+            return EXCEPTION_CONTINUE_SEARCH;
         static void(*NE_DumpAllModules)();
         if (!NE_DumpAllModules)
         {
@@ -1370,12 +1378,17 @@ extern "C"
         }
         if (NE_DumpAllModules)
         {
-            fprintf(stderr, "=====dump all modules=====\n");
-            NE_DumpAllModules();
+            __try
+            {
+                fprintf(stderr, "=====dump all modules=====\n");
+                NE_DumpAllModules();
+                fprintf(stderr, "=====dump all modules=====\n");
+            }
+            __except(EXCEPTION_CONTINUE_EXECUTION)
+            {
+
+            }
         }
-        PEXCEPTION_RECORD rec = ep->ExceptionRecord;
-		if (rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
-			return EXCEPTION_CONTINUE_SEARCH;
         CONTEXT context;
         save_context(&context);
         //return winehandler(ep->ExceptionRecord, NULL, &context, NULL);
