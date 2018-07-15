@@ -787,6 +787,31 @@ extern "C"
             *(BYTE*)&table[i * 8 + 5] = 0x66 | 0x80;
             *(WORD*)&table[i * 8 + 6] = 0;
         }
+        WORD reg_fs = 0;
+        WORD reg_gs = 0;
+        __asm
+        {
+            mov reg_fs, fs;
+            mov reg_gs, gs;
+        }
+
+        wine_ldt[reg_gs >> 3].HighWord.Bits.Type = 0x18;
+        wine_ldt[reg_gs >> 3].HighWord.Bits.Pres = 1;
+        wine_ldt[reg_gs >> 3].HighWord.Bits.Sys = 1;
+        wine_ldt[reg_gs >> 3].LimitLow = 0xFFFF;
+        wine_ldt[reg_gs >> 3].HighWord.Bits.LimitHi = 0xF;
+        wine_ldt[reg_gs >> 3].HighWord.Bits.Default_Big = 1;
+        wine_ldt[reg_gs >> 3].HighWord.Bits.Granularity = 1;
+        wine_ldt[reg_gs >> 3].HighWord.Bits.Dpl = m_CPL;
+
+        wine_ldt[reg_fs >> 3].HighWord.Bits.Type = 0x18;
+        wine_ldt[reg_fs >> 3].HighWord.Bits.Pres = 1;
+        wine_ldt[reg_fs >> 3].HighWord.Bits.Sys = 1;
+        wine_ldt[reg_fs >> 3].LimitLow = 0xFFFF;
+        wine_ldt[reg_fs >> 3].HighWord.Bits.LimitHi = 0xF;
+        wine_ldt[reg_fs >> 3].HighWord.Bits.Default_Big = 1;
+        wine_ldt[reg_fs >> 3].HighWord.Bits.Granularity = 1;
+        wine_ldt[reg_fs >> 3].HighWord.Bits.Dpl = m_CPL;
 #if defined(HAS_I386)
 		cpu_type = (REG32(EDX) >> 8) & 0x0f;
 		cpu_step = (REG32(EDX) >> 0) & 0x0f;
@@ -802,7 +827,8 @@ extern "C"
         else
         {
             m_cr[0] |= 1;//PROTECTED MODE
-        }return TRUE;
+        }
+        return TRUE;
 	}
     DWORD mergeReg(DWORD a1, DWORD a2)
     {
