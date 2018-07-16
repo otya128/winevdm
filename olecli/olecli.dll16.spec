@@ -52,7 +52,7 @@
 56 stub OLEQUERYSIZE
 57 stub OLEEXECUTE
 58 stub OLECREATEINVISIBLE
-59 stub OLEQUERYCLIENTVERSION
+59 pascal OleQueryClientVersion() OleQueryClientVersion16
 60 pascal -ret16 OleIsDcMeta(word) OleIsDcMeta16
 100 stub DOCWNDPROC
 101 stub SRVRWNDPROC

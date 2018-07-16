@@ -18,9 +18,6 @@
     <ClCompile Include="olesvr.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="stub.c">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="olesvr.def">

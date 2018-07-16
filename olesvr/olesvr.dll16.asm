@@ -169,9 +169,9 @@ _wine_spec_dos_header:
 	.short 9
 	.byte 0x11,0x4f,0x4c,0x45,0x53,0x41,0x56,0x45,0x44,0x53,0x45,0x52,0x56,0x45,0x52,0x44,0x4f,0x43 /* OleSavedServerDoc */
 	.short 10
-	.byte 0x0f,0x4f,0x4c,0x45,0x52,0x45,0x56,0x4f,0x4b,0x45,0x4f,0x42,0x4a,0x45,0x43,0x54 /* OLEREVOKEOBJECT */
+	.byte 0x0f,0x4f,0x4c,0x45,0x52,0x45,0x56,0x4f,0x4b,0x45,0x4f,0x42,0x4a,0x45,0x43,0x54 /* OleRevokeObject */
 	.short 11
-	.byte 0x15,0x4f,0x4c,0x45,0x51,0x55,0x45,0x52,0x59,0x53,0x45,0x52,0x56,0x45,0x52,0x56,0x45,0x52,0x53,0x49,0x4f,0x4e /* OLEQUERYSERVERVERSION */
+	.byte 0x15,0x4f,0x4c,0x45,0x51,0x55,0x45,0x52,0x59,0x53,0x45,0x52,0x56,0x45,0x52,0x56,0x45,0x52,0x53,0x49,0x4f,0x4e /* OleQueryServerVersion */
 	.short 12
 	.byte 0x0b,0x53,0x52,0x56,0x52,0x57,0x4e,0x44,0x50,0x52,0x4f,0x43 /* SRVRWNDPROC */
 	.short 21
@@ -257,6 +257,15 @@ _wine_spec_dos_header:
 
 	.align 2
 .L__wine_spec_code_segment:
+.L__wine_spec_callfrom16_p_long_:
+	pushl $.L__wine_spec_call16_p_
+	lcall $0,$0
+	shld $16,%eax,%edx
+	orl %eax,%eax
+	lretw
+	.byte 0x89,0xf6
+	.short 0x86c7
+	.long 0x00000000,0x00000000
 .L__wine_spec_callfrom16_p_long_l:
 	pushl $.L__wine_spec_call16_p_l
 	lcall $0,$0
@@ -289,6 +298,14 @@ _wine_spec_dos_header:
 	lretw $16
 	.short 0x86c7
 	.long 0x0000092b,0x00000000
+.L__wine_spec_callfrom16_p_long_p:
+	pushl $.L__wine_spec_call16_p_p
+	lcall $0,$0
+	shld $16,%eax,%edx
+	orl %eax,%eax
+	lretw $4
+	.short 0x86c7
+	.long 0x00000004,0x00000000
 .L__wine_spec_callfrom16_p_long_tppww:
 	pushl $.L__wine_spec_call16_p_pppww
 	lcall $0,$0
@@ -344,12 +361,12 @@ _wine_spec_dos_header:
 	callw .L__wine_spec_callfrom16_p_long_l
 .L__wine_OLESVR_11:
 	pushw %bp
-	pushl $___wine_stub_OLEREVOKEOBJECT
-	callw .L__wine_spec_callfrom16_c_long_
+	pushl $_OleRevokeObject16@4
+	callw .L__wine_spec_callfrom16_p_long_p
 .L__wine_OLESVR_12:
 	pushw %bp
-	pushl $___wine_stub_OLEQUERYSERVERVERSION
-	callw .L__wine_spec_callfrom16_c_long_
+	pushl $_OleQueryServerVersion16@0
+	callw .L__wine_spec_callfrom16_p_long_
 .L__wine_OLESVR_21:
 	pushw %bp
 	pushl $___wine_stub_SRVRWNDPROC
@@ -415,6 +432,15 @@ _wine_spec_dos_header:
 	leave
 	ret
 	.align 4
+	.def .L__wine_spec_call16_p_; .scl 2; .type 32; .endef
+.L__wine_spec_call16_p_:
+	pushl %ebp
+	movl %esp,%ebp
+	subl $8,%esp
+	call *8(%ebp)
+	leave
+	ret
+	.align 4
 	.def .L__wine_spec_call16_p_l; .scl 2; .type 32; .endef
 .L__wine_spec_call16_p_l:
 	pushl %ebp
@@ -474,6 +500,23 @@ _wine_spec_dos_header:
 	leave
 	ret
 	.align 4
+	.def .L__wine_spec_call16_p_p; .scl 2; .type 32; .endef
+.L__wine_spec_call16_p_p:
+	pushl %ebp
+	movl %esp,%ebp
+	pushl %esi
+	movl $__imp__wine_ldt_copy,%esi
+	movl 12(%ebp),%ecx
+	movzwl 2(%ecx),%edx
+	shr $3,%edx
+	movzwl 0(%ecx),%eax
+	addl (%esi,%edx,4),%eax
+	pushl %eax
+	call *8(%ebp)
+	movl -4(%ebp),%esi
+	leave
+	ret
+	.align 4
 	.def .L__wine_spec_call16_p_pppww; .scl 2; .type 32; .endef
 .L__wine_spec_call16_p_pppww:
 	pushl %ebp
@@ -511,38 +554,6 @@ wine_ldt_copy_ptr:
 /* stub functions */
 
 	.text
-	.align 4
-	.def ___wine_stub_OLEREVOKEOBJECT; .scl 2; .type 32; .endef
-___wine_stub_OLEREVOKEOBJECT:
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
-	subl $12,%esp
-	movl $.L__wine_stub_OLEREVOKEOBJECT_string,4(%esp)
-	movl $.L__wine_spec_file_name,(%esp)
-	call ___wine_spec_unimplemented_stub
-	.align 4
-	.def ___wine_stub_OLEQUERYSERVERVERSION; .scl 2; .type 32; .endef
-___wine_stub_OLEQUERYSERVERVERSION:
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
-	subl $12,%esp
-	movl $.L__wine_stub_OLEQUERYSERVERVERSION_string,4(%esp)
-	movl $.L__wine_spec_file_name,(%esp)
-	call ___wine_spec_unimplemented_stub
 	.align 4
 	.def ___wine_stub_SRVRWNDPROC; .scl 2; .type 32; .endef
 ___wine_stub_SRVRWNDPROC:
@@ -720,10 +731,6 @@ ___wine_stub_ENUMFORTERMINATE:
 	movl $.L__wine_spec_file_name,(%esp)
 	call ___wine_spec_unimplemented_stub
 	.section .rodata
-.L__wine_stub_OLEREVOKEOBJECT_string:
-	.string "OLEREVOKEOBJECT"
-.L__wine_stub_OLEQUERYSERVERVERSION_string:
-	.string "OLEQUERYSERVERVERSION"
 .L__wine_stub_SRVRWNDPROC_string:
 	.string "SRVRWNDPROC"
 .L__wine_stub_DOCWNDPROC_string:

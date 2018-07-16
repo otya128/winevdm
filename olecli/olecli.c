@@ -22,19 +22,30 @@
  */
 
 #include "config.h"
-
+//?????
+#define __oleidl_h__
+#define _OLE2_H_
 #include <stdarg.h>
 
-#include "windef.h"
+#include <windows.h>
+#include <ole.h>
+ //#include "windef.h"
 #include "wine/windef16.h"
 #include "wine/winbase16.h"
 #include "winbase.h"
 #include "wingdi.h"
 #include "wownt32.h"
 #include "objbase.h"
-#include "olecli.h"
+//#include "olecli.h"
 #include "wine/debug.h"
 
+typedef LONG LHCLIENTDOC;
+typedef struct _OLEOBJECT *_LPOLEOBJECT;
+typedef struct _OLECLIENT *LPOLECLIENT;
+typedef OLEOPT_UPDATE *LPOLEOPT_UPDATE;
+typedef LPCSTR LPCOLESTR16;
+
+struct _OLESTREAM;
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
 typedef struct _OLEOBJECTVTBL16 {
@@ -76,12 +87,12 @@ typedef struct _OLEOBJECTVTBL16 {
     OLE_RELEASE_METHOD (CALLBACK *QueryReleaseMethod)(_LPOLEOBJECT);
     OLESTATUS      (CALLBACK *RequestData)(_LPOLEOBJECT,OLECLIPFORMAT);
     OLESTATUS      (CALLBACK *ObjectLong)(_LPOLEOBJECT,UINT16,LPLONG);
-} OLEOBJECTVTBL;
-typedef OLEOBJECTVTBL *LPOLEOBJECTVTBL;
+} OLEOBJECTVTBL16;
+typedef OLEOBJECTVTBL16 *LPOLEOBJECTVTBL16;
 
-typedef struct _OLEOBJECT
+typedef struct _OLEOBJECT16
 {
-    const OLEOBJECTVTBL *lpvtbl;
+    const OLEOBJECTVTBL16 *lpvtbl;
 } OLEOBJECT16;
 
 static LONG OLE_current_handle;
@@ -185,9 +196,14 @@ BOOL16 WINAPI OleIsDcMeta16(HDC16 hdc)
 /******************************************************************************
  *		OleQueryType	[OLECLI.14]
  */
-OLESTATUS WINAPI OleQueryType16(_LPOLEOBJECT oleob,  SEGPTR xlong) {
-	FIXME("(%p, %p): stub!\n", oleob, MapSL(xlong));
-	return OLE_OK;
+OLESTATUS WINAPI OleQueryType16(OLEOBJECT16 *oleob,  SEGPTR xlong) {
+    OLEOBJECT oleobject32;
+    oleobject32.lpvtbl = MapSL(oleob->lpvtbl);
+    OLESTATUS result =  OleQueryType(&oleobject32, MapSL(xlong));
+    oleob->lpvtbl = MapLS(oleobject32.lpvtbl);
+    return result;
+	//FIXME("(%p, %p): stub!\n", oleob, MapSL(xlong));
+	//return OLE_OK;
 }
 
 /******************************************************************************
@@ -197,8 +213,14 @@ OLESTATUS WINAPI OleCreateFromClip16( LPCSTR name, SEGPTR olecli, LHCLIENTDOC hc
                                       LPCSTR xname, SEGPTR lpoleob,
                                       UINT16 render, UINT16 clipformat )
 {
-	FIXME("(%s, %04x:%04x, %d, %s, %04x:%04x, %d, %d): stub!\n",
-              name, HIWORD(olecli), LOWORD(olecli), hclientdoc, xname, HIWORD(lpoleob),
-              LOWORD(lpoleob), render, clipformat);
-	return OLE_OK;
+    return OleCreateFromClip(name, MapSL(olecli), MapSL(hclientdoc), xname, MapSL(lpoleob), render, clipformat);
+	//FIXME("(%s, %04x:%04x, %d, %s, %04x:%04x, %d, %d): stub!\n",
+    //          name, HIWORD(olecli), LOWORD(olecli), hclientdoc, xname, HIWORD(lpoleob),
+    //          LOWORD(lpoleob), render, clipformat);
+	//return OLE_OK;
+}
+
+DWORD WINAPI OleQueryClientVersion16()
+{
+    return OleQueryClientVersion();
 }

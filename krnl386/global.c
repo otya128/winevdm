@@ -274,7 +274,12 @@ HGLOBAL16 WINAPI GlobalAlloc16(
         STACK16FRAME *frame = CURRENT_STACK16;
         owner = GetExePtr( frame->cs );
     }
-    return GLOBAL_Alloc( flags, size, owner, WINE_LDT_FLAGS_DATA );
+    HGLOBAL16 handle = GLOBAL_Alloc( flags, size, owner, WINE_LDT_FLAGS_DATA );
+    if (!handle)
+    {
+        ERR("Could not allocate %04X,%08X\n", flags, size);
+    }
+    return handle;
 }
 
 

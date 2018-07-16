@@ -8,8 +8,8 @@
 8  pascal OleRenameServerDoc(long str) OleRenameServerDoc16
 9  pascal OleRevertServerDoc(long) OleRevertServerDoc16
 10 pascal OleSavedServerDoc(long) OleSavedServerDoc16
-11 stub OLEREVOKEOBJECT
-12 stub OLEQUERYSERVERVERSION
+11 pascal OleRevokeObject(ptr) OleRevokeObject16
+12 pascal OleQueryServerVersion() OleQueryServerVersion16
 21 stub SRVRWNDPROC
 22 stub DOCWNDPROC
 23 stub ITEMWNDPROC

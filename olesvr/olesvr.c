@@ -23,97 +23,39 @@
 
 #include "config.h"
 
+//?????
+#define __oleidl_h__
+#define _OLE2_H_
+#include <windows.h>
+#include <ole.h>
 #include <stdarg.h>
 
 #include "windef.h"
 #include "winbase.h"
 #include "wine/windef16.h"
+#include "wine/winbase16.h"
 #include "objbase.h"
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
-typedef enum
-{
-	OLE_OK,
-	OLE_WAIT_FOR_RELEASE,
-	OLE_BUSY,
-	OLE_ERROR_PROTECT_ONLY,
-	OLE_ERROR_MEMORY,
-	OLE_ERROR_STREAM,
-	OLE_ERROR_STATIC,
-	OLE_ERROR_BLANK,
-	OLE_ERROR_DRAW,
-	OLE_ERROR_METAFILE,
-	OLE_ERROR_ABORT,
-	OLE_ERROR_CLIPBOARD,
-	OLE_ERROR_FORMAT,
-	OLE_ERROR_OBJECT,
-	OLE_ERROR_OPTION,
-	OLE_ERROR_PROTOCOL,
-	OLE_ERROR_ADDRESS,
-	OLE_ERROR_NOT_EQUAL,
-	OLE_ERROR_HANDLE,
-	OLE_ERROR_GENERIC,
-	OLE_ERROR_CLASS,
-	OLE_ERROR_SYNTAX,
-	OLE_ERROR_DATATYPE,
-	OLE_ERROR_PALETTE,
-	OLE_ERROR_NOT_LINK,
-	OLE_ERROR_NOT_EMPTY,
-	OLE_ERROR_SIZE,
-	OLE_ERROR_DRIVE,
-	OLE_ERROR_NETWORK,
-	OLE_ERROR_NAME,
-	OLE_ERROR_TEMPLATE,
-	OLE_ERROR_NEW,
-	OLE_ERROR_EDIT,
-	OLE_ERROR_OPEN,
-	OLE_ERROR_NOT_OPEN,
-	OLE_ERROR_LAUNCH,
-	OLE_ERROR_COMM,
-	OLE_ERROR_TERMINATE,
-	OLE_ERROR_COMMAND,
-	OLE_ERROR_SHOW,
-	OLE_ERROR_DOVERB,
-	OLE_ERROR_ADVISE_NATIVE,
-	OLE_ERROR_ADVISE_PICT,
-	OLE_ERROR_ADVISE_RENAME,
-	OLE_ERROR_POKE_NATIVE,
-	OLE_ERROR_REQUEST_NATIVE,
-	OLE_ERROR_REQUEST_PICT,
-	OLE_ERROR_SERVER_BLOCKED,
-	OLE_ERROR_REGISTRATION,
-	OLE_ERROR_ALREADY_REGISTERED,
-	OLE_ERROR_TASK,
-	OLE_ERROR_OUTOFDATE,
-	OLE_ERROR_CANT_UPDATE_CLIENT,
-	OLE_ERROR_UPDATE,
-	OLE_ERROR_SETDATA_FORMAT,
-	OLE_ERROR_STATIC_FROM_OTHER_OS,
-	OLE_WARN_DELETE_DATA = 1000
-} OLESTATUS;
-
-typedef enum {
-	OLE_SERVER_MULTI,
-	OLE_SERVER_SINGLE
-} OLE_SERVER_USE;
-
+#define HINSTANCE_32(h16)	((HINSTANCE)(ULONG_PTR)(h16))
+#define HINSTANCE_16(h32)	(LOWORD(h32))
 typedef LONG LHSERVER;
 typedef LONG LHSERVERDOC;
 typedef LPCSTR LPCOLESTR16;
 
-typedef struct _OLESERVERDOC *LPOLESERVERDOC;
+typedef struct _OLESERVERDOC16 *LPOLESERVERDOC16;
 
-struct _OLESERVERDOCVTBL;
-typedef struct _OLESERVERDOC
+struct _OLESERVERDOCVTBL16;
+typedef struct _OLESERVERDOC16
 {
-	const struct _OLESERVERDOCVTBL *lpvtbl;
+	const struct _OLESERVERDOCVTBL16 *lpvtbl;
 	/* server provided state info */
-} OLESERVERDOC;
+} OLESERVERDOC16;
 
-typedef struct _OLESERVER *LPOLESERVER;
-typedef struct _OLESERVERVTBL
+typedef struct _OLESERVER16 *LPOLESERVER16;
+typedef struct _OLESERVERVTBL16
 {
 	OLESTATUS(CALLBACK *Open)(LPOLESERVER, LHSERVERDOC, LPCOLESTR16, LPOLESERVERDOC *);
 	OLESTATUS(CALLBACK *Create)(LPOLESERVER, LHSERVERDOC, LPCOLESTR16, LPCOLESTR16, LPOLESERVERDOC*);
@@ -122,27 +64,115 @@ typedef struct _OLESERVERVTBL
 	OLESTATUS(CALLBACK *Exit)(LPOLESERVER);
 	OLESTATUS(CALLBACK *Release)(LPOLESERVER);
 	OLESTATUS(CALLBACK *Execute)(LPOLESERVER);
-} OLESERVERVTBL, *LPOLESERVERVTBL;
+} OLESERVERVTBL16, *LPOLESERVERVTBL16;
 
-typedef struct _OLESERVER
+typedef struct _OLESERVER16
 {
-	const OLESERVERVTBL *lpvtbl;
+	const OLESERVERVTBL16 *lpvtbl;
 	/* server specific data */
-} OLESERVER;
+} OLESERVER16;
 
 static LONG OLE_current_handle;
+//
+//OLESTATUS(CALLBACK* Open)  (LPOLESERVER, LHSERVERDOC, OLE_LPCSTR, LPOLESERVERDOC FAR*);
+///* long handle to doc(privtate to DLL)  */
+///* lp to OLESERVER                      */
+///* document name                        */
+///* place holder for returning oledoc.   */
+//
+//OLESTATUS(CALLBACK* Create)(LPOLESERVER, LHSERVERDOC, OLE_LPCSTR, OLE_LPCSTR, LPOLESERVERDOC FAR*);
+///* long handle to doc(privtate to DLL)  */
+///* lp to OLESERVER                      */
+///* lp class name                        */
+///* lp doc name                          */
+///* place holder for returning oledoc.   */
+//
+//OLESTATUS(CALLBACK* CreateFromTemplate)(LPOLESERVER, LHSERVERDOC, OLE_LPCSTR, OLE_LPCSTR, OLE_LPCSTR, LPOLESERVERDOC FAR*);
+///* long handle to doc(privtate to DLL)  */
+///* lp to OLESERVER                      */
+///* lp class name                        */
+///* lp doc name                          */
+///* lp template name                     */
+///* place holder for returning oledoc.   */
+//
+//OLESTATUS(CALLBACK* Edit)  (LPOLESERVER, LHSERVERDOC, OLE_LPCSTR, OLE_LPCSTR, LPOLESERVERDOC FAR*);
+///* long handle to doc(privtate to DLL)  */
+///* lp to OLESERVER                      */
+///* lp class name                        */
+///* lp doc name                          */
+///* place holder for returning oledoc.   */
+//
+//_Analysis_noreturn_
+//OLESTATUS(CALLBACK* Exit)  (LPOLESERVER);
+///* lp OLESERVER                         */
+//
+//OLESTATUS(CALLBACK* Release)  (LPOLESERVER);
+///* lp OLESERVER                         */
+//
+//OLESTATUS(CALLBACK* Execute)(LPOLESERVER, HGLOBAL);
+///* lp OLESERVER                         */
+///* handle to command strings            */
+#define MAX_OLESERVER 32
+int current_oleserver = 0;
+OLESERVER oleservers[MAX_OLESERVER];
+OLESERVERVTBL oleservervtbls[MAX_OLESERVER];
+LPOLESERVERVTBL16 oleservervtbl16s[MAX_OLESERVER];
+static OLESTATUS CALLBACK ole_open_callback(LPOLESERVER a, LHSERVERDOC b, OLE_LPCSTR doc_name, LPOLESERVERDOC FAR* d)
+{
+    return OLE_OK;
+}
+static OLESTATUS CALLBACK ole_create_callback(LPOLESERVER a, LHSERVERDOC b, OLE_LPCSTR c, OLE_LPCSTR d, LPOLESERVERDOC FAR* e)
+{
+    return OLE_OK;
+}
+static OLESTATUS CALLBACK ole_create_from_template_callback(LPOLESERVER a, LHSERVERDOC b, OLE_LPCSTR c, OLE_LPCSTR d, OLE_LPCSTR e, LPOLESERVERDOC FAR* f)
+{
+    return OLE_OK;
+}
+static OLESTATUS CALLBACK ole_edit_callback(LPOLESERVER a, LHSERVERDOC b, OLE_LPCSTR c, LPOLESERVERDOC FAR* d)
+{
+    return OLE_OK;
+}
+static OLESTATUS CALLBACK ole_exit_callback(LPOLESERVER a)
+{
+    return OLE_OK;
+}
+static OLESTATUS CALLBACK ole_release_callback(LPOLESERVER a)
+{
+    return OLE_OK;
+}
+static OLESTATUS CALLBACK ole_excute_callback(LPOLESERVER a, HGLOBAL b)
+{
+    return OLE_OK;
+}
+static OLESERVER *register_oleserver(LPOLESERVERVTBL16 vtbl16)
+{
+    if (current_oleserver >= MAX_OLESERVER)
+        return NULL;
+    current_oleserver++;
+    LPOLESERVER server = &oleservers[current_oleserver - 1];
+    server->lpvtbl = &oleservervtbls[current_oleserver - 1];
+    server->lpvtbl->Open = ole_open_callback;
+    server->lpvtbl->Create = ole_create_callback;
+    server->lpvtbl->CreateFromTemplate = ole_create_from_template_callback;
+    server->lpvtbl->Edit = ole_edit_callback;
+    server->lpvtbl->Exit = ole_exit_callback;
+    server->lpvtbl->Release = ole_release_callback;
+    server->lpvtbl->Execute = ole_excute_callback;
+    oleservervtbl16s[current_oleserver - 1] = vtbl16;
+    return server;
+}
 
 /******************************************************************************
 *		OleRegisterServer	[OLESVR.2]
 */
-OLESTATUS WINAPI OleRegisterServer16(LPCSTR name, LPOLESERVER serverStruct,
+OLESTATUS WINAPI OleRegisterServer16(LPCSTR name, LPOLESERVER16 serverStruct,
 	LHSERVER *hRet, HINSTANCE16 hServer,
 	OLE_SERVER_USE use)
 {
-	FIXME("(%s,...): stub\n", name);
-	*hRet = ++OLE_current_handle;
-	/* return OLE_ERROR_MEMORY, OLE_ERROR_PROTECT_ONLY if you want it fail*/
-	return OLE_OK;
+    OLESERVER *s = register_oleserver(MapSL(serverStruct->lpvtbl));
+    OLESTATUS status = OleRegisterServer(name, s, hRet, HINSTANCE_32(hServer), use);
+    return status;
 }
 
 /******************************************************************************
@@ -150,8 +180,7 @@ OLESTATUS WINAPI OleRegisterServer16(LPCSTR name, LPOLESERVER serverStruct,
 */
 OLESTATUS WINAPI OleRevokeServer16(LHSERVER hServer)
 {
-	FIXME("%d - stub\n", hServer);
-	return OLE_OK;
+    return OleRevokeServer(hServer);
 }
 
 /******************************************************************************
@@ -159,8 +188,7 @@ OLESTATUS WINAPI OleRevokeServer16(LHSERVER hServer)
 */
 OLESTATUS WINAPI OleBlockServer16(LHSERVER hServer)
 {
-	FIXME("(%d): stub\n", hServer);
-	return OLE_OK;
+    return OleBlockServer(hServer);
 }
 
 /******************************************************************************
@@ -168,12 +196,76 @@ OLESTATUS WINAPI OleBlockServer16(LHSERVER hServer)
 */
 OLESTATUS WINAPI OleUnblockServer16(LHSERVER hServer, BOOL16 *block)
 {
-	FIXME("(%d): stub\n", hServer);
-	/* no more blocked messages :) */
-	*block = FALSE;
-	return OLE_OK;
+    return OleUnblockServer(hServer, block);
 }
-
+typedef struct _OLESERVERDOCVTBL16 {
+    SEGPTR Save;
+    SEGPTR Close;
+    SEGPTR SetHostNames;
+    SEGPTR SetDocDimensions;
+    SEGPTR GetObject;
+    SEGPTR Release;
+    SEGPTR SetColorScheme;
+    SEGPTR Execute;
+} OLESERVERDOCVTBL16;
+struct ole_server_doc_wrapper
+{
+    OLESERVERDOC document;
+    OLESERVERDOCVTBL vtable;
+    OLESERVERDOCVTBL16 *vtable16;
+};
+OLESTATUS CALLBACK ole_doc_Save(LPOLESERVERDOC document)
+{
+    return OLE_OK;
+}
+OLESTATUS CALLBACK ole_doc_Close      (LPOLESERVERDOC document)
+{
+    return OLE_OK;
+}
+OLESTATUS CALLBACK ole_doc_SetHostNames (LPOLESERVERDOC document, OLE_LPCSTR name1, OLE_LPCSTR name2)
+{
+    return OLE_OK;
+}
+OLESTATUS CALLBACK ole_doc_SetDocDimensions (LPOLESERVERDOC document, OLE_CONST RECT FAR* rect)
+{
+    return OLE_OK;
+}
+OLESTATUS CALLBACK ole_doc_GetObject  (LPOLESERVERDOC document, OLE_LPCSTR name, LPOLEOBJECT FAR* object, LPOLECLIENT client)
+{
+    return OLE_OK;
+}
+OLESTATUS CALLBACK ole_doc_Release    (LPOLESERVERDOC document)
+{
+    return OLE_OK;
+}
+OLESTATUS CALLBACK ole_doc_SetColorScheme (LPOLESERVERDOC document, OLE_CONST LOGPALETTE FAR* palette)
+{
+    return OLE_OK;
+}
+OLESTATUS CALLBACK ole_doc_Execute   (LPOLESERVERDOC document, HGLOBAL h)
+{
+    return OLE_OK;
+}
+struct ole_server_doc_wrapper ole_docs[MAX_OLESERVER];
+int current_oleserver_doc = 0;
+static LPOLESERVERDOC register_oleserver_doc(OLESERVERDOCVTBL16 *vtbl16)
+{
+    if (current_oleserver_doc >= MAX_OLESERVER)
+        return NULL;
+    current_oleserver_doc++;
+    LPOLESERVERDOC doc = &ole_docs[current_oleserver_doc - 1].document;
+    doc->lpvtbl = &ole_docs[current_oleserver_doc - 1].vtable;
+    doc->lpvtbl->Save = ole_doc_Save;
+    doc->lpvtbl->Close = ole_doc_Close;
+    doc->lpvtbl->SetHostNames = ole_doc_SetHostNames;
+    doc->lpvtbl->SetDocDimensions = ole_doc_SetDocDimensions;
+    doc->lpvtbl->GetObject = ole_doc_GetObject;
+    doc->lpvtbl->Release = ole_doc_Release;
+    doc->lpvtbl->SetColorScheme = ole_doc_SetColorScheme;
+    doc->lpvtbl->Execute = ole_doc_Execute;
+    ole_docs[current_oleserver_doc - 1].vtable16 = vtbl16;
+    return doc;
+}
 /***********************************************************************
 *		OleRegisterServerDoc	[OLESVR.6]
 */
@@ -181,9 +273,9 @@ OLESTATUS WINAPI OleRegisterServerDoc16(LHSERVER hServer, LPCSTR docname,
 	LPOLESERVERDOC document,
 	LHSERVERDOC *hRet)
 {
-	FIXME("(%d,%s): stub\n", hServer, docname);
-	*hRet = ++OLE_current_handle;
-	return OLE_OK;
+    LPOLESERVERDOC doc32 = register_oleserver_doc(document->lpvtbl);
+    OLESTATUS result = OleRegisterServerDoc(hServer, docname, doc32, hRet);
+    return result;
 }
 
 /******************************************************************************
@@ -191,8 +283,7 @@ OLESTATUS WINAPI OleRegisterServerDoc16(LHSERVER hServer, LPCSTR docname,
 */
 OLESTATUS WINAPI OleRevokeServerDoc16(LHSERVERDOC hServerDoc)
 {
-	FIXME("%d  - stub\n", hServerDoc);
-	return OLE_OK;
+    return OleRevokeServerDoc(hServerDoc);
 }
 
 /******************************************************************************
@@ -201,8 +292,7 @@ OLESTATUS WINAPI OleRevokeServerDoc16(LHSERVERDOC hServerDoc)
 */
 OLESTATUS WINAPI OleRenameServerDoc16(LHSERVERDOC hDoc, LPCSTR newName)
 {
-	FIXME("(%d,%s): stub.\n", hDoc, newName);
-	return OLE_OK;
+    return OleRenameServerDoc(hDoc, newName);
 }
 
 /******************************************************************************
@@ -211,8 +301,7 @@ OLESTATUS WINAPI OleRenameServerDoc16(LHSERVERDOC hDoc, LPCSTR newName)
 */
 OLESTATUS WINAPI OleRevertServerDoc16(LHSERVERDOC hDoc)
 {
-	FIXME("(%d): stub.\n", hDoc);
-	return OLE_OK;
+	return OleRevertServerDoc(hDoc);
 }
 
 /******************************************************************************
@@ -221,6 +310,15 @@ OLESTATUS WINAPI OleRevertServerDoc16(LHSERVERDOC hDoc)
 */
 OLESTATUS WINAPI OleSavedServerDoc16(LHSERVERDOC hDoc)
 {
-	FIXME("(%d): stub.\n", hDoc);
-	return OLE_OK;
+    return OleSavedServerDoc(hDoc);
+}
+
+OLESTATUS WINAPI OleRevokeObject16(LPOLECLIENT client)
+{
+    return OleRevokeObject(client);
+}
+
+DWORD WINAPI OleQueryServerVersion16()
+{
+    return OleQueryServerVersion();
 }

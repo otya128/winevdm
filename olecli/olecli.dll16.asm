@@ -257,7 +257,7 @@ _wine_spec_dos_header:
 	.short 57
 	.byte 0x12,0x4f,0x4c,0x45,0x43,0x52,0x45,0x41,0x54,0x45,0x49,0x4e,0x56,0x49,0x53,0x49,0x42,0x4c,0x45 /* OLECREATEINVISIBLE */
 	.short 58
-	.byte 0x15,0x4f,0x4c,0x45,0x51,0x55,0x45,0x52,0x59,0x43,0x4c,0x49,0x45,0x4e,0x54,0x56,0x45,0x52,0x53,0x49,0x4f,0x4e /* OLEQUERYCLIENTVERSION */
+	.byte 0x15,0x4f,0x4c,0x45,0x51,0x55,0x45,0x52,0x59,0x43,0x4c,0x49,0x45,0x4e,0x54,0x56,0x45,0x52,0x53,0x49,0x4f,0x4e /* OleQueryClientVersion */
 	.short 59
 	.byte 0x0b,0x4f,0x4c,0x45,0x49,0x53,0x44,0x43,0x4d,0x45,0x54,0x41 /* OleIsDcMeta */
 	.short 60
@@ -928,6 +928,15 @@ _wine_spec_dos_header:
 
 	.align 2
 .L__wine_spec_code_segment:
+.L__wine_spec_callfrom16_p_long_:
+	pushl $.L__wine_spec_call16_p_
+	lcall $0,$0
+	shld $16,%eax,%edx
+	orl %eax,%eax
+	lretw
+	.byte 0x89,0xf6
+	.short 0x86c7
+	.long 0x00000000,0x00000000
 .L__wine_spec_callfrom16_p_long_l:
 	pushl $.L__wine_spec_call16_p_l
 	lcall $0,$0
@@ -1229,8 +1238,8 @@ _wine_spec_dos_header:
 	callw .L__wine_spec_callfrom16_c_long_
 .L__wine_OLECLI_59:
 	pushw %bp
-	pushl $___wine_stub_OLEQUERYCLIENTVERSION
-	callw .L__wine_spec_callfrom16_c_long_
+	pushl $_OleQueryClientVersion16@0
+	callw .L__wine_spec_callfrom16_p_long_
 .L__wine_OLECLI_60:
 	pushw %bp
 	pushl $_OleIsDcMeta16@4
@@ -1740,6 +1749,15 @@ _wine_spec_dos_header:
 	movl %esp,%ebp
 	subl $12,%esp
 	movl 12(%ebp),%ecx
+	call *8(%ebp)
+	leave
+	ret
+	.align 4
+	.def .L__wine_spec_call16_p_; .scl 2; .type 32; .endef
+.L__wine_spec_call16_p_:
+	pushl %ebp
+	movl %esp,%ebp
+	subl $8,%esp
 	call *8(%ebp)
 	leave
 	ret
@@ -2573,22 +2591,6 @@ ___wine_stub_OLECREATEINVISIBLE:
  	nop
 	subl $12,%esp
 	movl $.L__wine_stub_OLECREATEINVISIBLE_string,4(%esp)
-	movl $.L__wine_spec_file_name,(%esp)
-	call ___wine_spec_unimplemented_stub
-	.align 4
-	.def ___wine_stub_OLEQUERYCLIENTVERSION; .scl 2; .type 32; .endef
-___wine_stub_OLEQUERYCLIENTVERSION:
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
- 	nop
-	subl $12,%esp
-	movl $.L__wine_stub_OLEQUERYCLIENTVERSION_string,4(%esp)
 	movl $.L__wine_spec_file_name,(%esp)
 	call ___wine_spec_unimplemented_stub
 	.align 4
@@ -4628,8 +4630,6 @@ ___wine_stub_GETTASKVISIBLEWINDOW:
 	.string "OLEEXECUTE"
 .L__wine_stub_OLECREATEINVISIBLE_string:
 	.string "OLECREATEINVISIBLE"
-.L__wine_stub_OLEQUERYCLIENTVERSION_string:
-	.string "OLEQUERYCLIENTVERSION"
 .L__wine_stub_DOCWNDPROC_string:
 	.string "DOCWNDPROC"
 .L__wine_stub_SRVRWNDPROC_string:

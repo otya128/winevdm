@@ -980,6 +980,11 @@ extern "C"
 		{
 			dasm_buffering = true;
 		}
+        if (dasm_buffering)
+        {
+            char *dbuf = dasm_buffer.get_current();
+            sprintf(dbuf, "vm86main\n");
+        }
 		__try
         {
 			if (!initflag)
@@ -1199,6 +1204,11 @@ extern "C"
 					CHANGE_PC(m_eip);
 					if (relay == (UINT)relay_call_from_16 || 1)
 					{
+                        if (dasm_buffering)
+                        {
+                            char *dbuf = dasm_buffer.get_current();
+                            sprintf(dbuf, "call built-in func %p\n", entry);
+                        }
 #include <pshpack1.h>
                         /* 16-bit stack layout after __wine_call_from_16() */
                         typedef struct _STACK16FRAME
