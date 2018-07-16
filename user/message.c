@@ -3316,7 +3316,7 @@ ULONG_PTR set_icon_param(HICON hIcon, ULONG_PTR param)
 struct tagDIALOGINFO unknown;
 struct tagDIALOGINFO *get_dialog_info(HWND hWnd, BOOL b)
 {
-	ERR("NOTIMPL:get_dialog_info(hWnd=%d\n, BOOL=%d)\n", hWnd, b);
+	ERR("NOTIMPL:get_dialog_info(hWnd=%d, BOOL=%d)\n", hWnd, b);
 	return &unknown;
 }
 INT dialog_box_loop(HWND hWnd, HWND owner)

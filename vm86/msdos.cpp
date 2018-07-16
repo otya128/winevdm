@@ -918,6 +918,54 @@ extern "C"
 	{
 		dasm_buffer.dump();
 	}
+    void protected_mode_exception_handler(WORD num, const char *name)
+    {
+        WORD err = POP16();
+        WORD ip = POP16();
+        WORD cs = POP16();
+        WORD flags = POP16();
+        ULONG_PTR arguments[6] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags };
+        m_eip = ip;
+        m_sreg[CS].selector = cs;
+        i386_load_segment_descriptor(CS);
+
+        //jump to next instr
+
+        __try
+        {
+            char buffer[256];
+#if defined(HAS_I386)
+            UINT64 eip = m_eip;
+#else
+            UINT64 eip = m_pc - SREG_BASE(CS);
+#endif
+            UINT8 *oprom = mem + SREG_BASE(CS) + eip;
+
+            int result;
+#if defined(HAS_I386)
+            if (m_operand_size) {
+                result = CPU_DISASSEMBLE_CALL(x86_32);
+            }
+            else
+#endif
+                result = i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+
+            int opsize = result & 0xFF;
+            if ((int)ip + opsize <= 0xFFFF)
+            {
+                ip += opsize;
+                m_eip = ip;
+                m_sreg[CS].selector = cs;
+                i386_load_segment_descriptor(CS);
+            }
+        }
+        __except (EXCEPTION_CONTINUE_EXECUTION)
+        {
+
+        }
+        set_flags(flags);
+        RaiseException(EXCEPTION_PROTECTED_MODE, 0, 6, arguments);
+    }
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE er);
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
@@ -1081,12 +1129,7 @@ extern "C"
                         }
                         if (name)
                         {
-                            WORD err = POP16();
-                            WORD ip = POP16();
-                            WORD cs = POP16();
-                            WORD flags = POP16();
-                            ULONG_PTR arguments[6] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags };
-                            RaiseException(EXCEPTION_PROTECTED_MODE, 0, 6, arguments);
+                            protected_mode_exception_handler(num, name);
                         }
                         WORD ip = POP16();
                         WORD cs = POP16();
@@ -1501,10 +1544,34 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, buffer2, buffer, buf_pre);
                     context.SegDs = SREG(DS);*/
         fprintf(stderr, "%s", buf);
 
-#ifdef _DEBUG
-        _getch();
-#endif
-        MessageBoxA(NULL, buf, buf_pre, MB_ICONERROR);
+        DWORD threadId;
+        //same thread:
+        //MessageBox->WndProc->exception->MessageBox->WndProc->...
+        const char *a[2];
+        a[0] = buf;
+        a[1] = buf_pre;
+        auto lam = [](void *lpThreadParameter)
+        {
+            return (DWORD)MessageBoxA(NULL, ((const char**)lpThreadParameter)[0], ((const char**)lpThreadParameter)[1], MB_RETRYCANCEL | MB_ICONERROR);
+        };
+        LPTHREAD_START_ROUTINE routine = lam;
+        HANDLE hThread = CreateThread(NULL, 0, routine, a, 0, &threadId);
+        WaitForSingleObject(hThread, INFINITE);
+        DWORD exitcode;
+        BOOL success = GetExitCodeThread(hThread, &exitcode);
+        CloseHandle(hThread);
+        if (success)
+        {
+            if (exitcode == IDCANCEL)
+            {
+                return EXCEPTION_CONTINUE_SEARCH;
+            }
+            if (exitcode == IDRETRY)
+            {
+                return EXCEPTION_CONTINUE_EXECUTION;
+            }
+        }
+
         return EXCEPTION_EXECUTE_HANDLER;
     }
 

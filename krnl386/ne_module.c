@@ -344,7 +344,7 @@ __declspec(dllexport) void NE_DumpAllModules(void)
             if (cbuf[-1] == ' ' && cbuf[-2] == '|' && cbuf[-3] == ' ')
                 cbuf[-3] = '\0';
         }
-        MESSAGE(" %04x  %04x  %.*s  %s\n", hModule, pModule->ne_flags,
+        MESSAGE(" %04x\t%04x\t%.*s\t%s\n", hModule, pModule->ne_flags,
             *((char *)pModule + pModule->ne_restab),
             (char *)pModule + pModule->ne_restab + 1, buffer);
         if (TRACE_ON(module))
