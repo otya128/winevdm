@@ -26,7 +26,8 @@ WINE_DEFAULT_DEBUG_CHANNEL(thunk);
 typedef struct
 {
 	HANDLE handle32;
-	DWORD wndproc;
+    DWORD wndproc;
+    DWORD dlgproc;
     HINSTANCE16 hInst16;
     HMENU16 hMenu16;
 } HANDLE_DATA;
@@ -69,6 +70,7 @@ WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o)
 		ERR("Could not allocate a handle.\n");
 	}
 	*o = &handles[fhandle];
+    memset(*o, 0, sizeof(HANDLE_DATA));
 	return fhandle;
 }
 HANDLE get_handle32_data(WORD h, HANDLE_DATA handles[], HANDLE_DATA **o)
@@ -170,4 +172,26 @@ __declspec(dllexport) DWORD GetWndProc16(WORD hWnd16)
 		return 0;
 	}
 	return dat->wndproc;
+}
+
+
+__declspec(dllexport) void SetDlgProc16(WORD hWnd16, DWORD WndProc)
+{
+    HANDLE_DATA *dat;
+    if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
+    {
+        ERR("Invalid Window Handle SetDlgProc16(%04X,%04X)\n", hWnd16, WndProc);
+        return;
+    }
+    dat->dlgproc = WndProc;
+}
+__declspec(dllexport) DWORD GetDlgProc16(WORD hWnd16)
+{
+    HANDLE_DATA *dat;
+    if (!get_handle32_data(hWnd16, handle_hwnd, &dat))
+    {
+        ERR("Invalid Window Handle GetDlgProc16(%04X)\n", hWnd16);
+        return 0;
+    }
+    return dat->dlgproc;
 }

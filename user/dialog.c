@@ -318,11 +318,11 @@ LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam
 			{
 				if (params[1])
 				{
-					SetWndProc16(hWnd16, params[1]);
+					SetDlgProc16(hWnd16, params[1]);
 				}
 				else
 				{
-					SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+                    SetDlgProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
 				}
 			}
 			cs->lpCreateParams = params[0];
@@ -356,7 +356,7 @@ LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lPar
 BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	HWND16 hWnd16 = HWND_16(hDlg);
-	WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
+	WNDPROC16 wndproc16 = GetDlgProc16(hWnd16);
     LRESULT ret = 0;
 	if (wndproc16)
 	{
@@ -394,15 +394,15 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		{
 			if (params[1])
 			{
-				SetWndProc16(hWnd16, params[1]);
+				SetDlgProc16(hWnd16, params[1]);
 			}
 			else
 			{
-				SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+				SetDlgProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
 			}
 		}
 		cs->lpCreateParams = params[0];
-		wndproc16 = GetWndProc16(hWnd16);
+		wndproc16 = GetDlgProc16(hWnd16);
 		if (wndproc16)
 		{
 			LRESULT unused;
@@ -730,11 +730,12 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	{
 		if (dlgProc)
 		{
-			SetWndProc16(hWnd16, dlgProc);
+            SetDlgProc16(hWnd16, dlgProc);
 		}
 		else
 		{
-			SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+            //why??
+			//SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
 		}
 	}
 	return hwnd;
