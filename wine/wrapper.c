@@ -1,0 +1,6 @@
+#include <Windows.h>
+//PROGMAN.EXEÇ»Ç«Ç≈COMMDLGÇ™ì«Ç›çûÇ‹ÇÍÇ»Ç©Ç¡ÇΩÇÃÇ≈èCê≥
+HMODULE LoadLibraryAWrapper(const char *name)
+{
+    return LoadLibraryA(name);
+}
