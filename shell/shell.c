@@ -47,6 +47,7 @@
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(shell);
+WINE_DECLARE_DEBUG_CHANNEL(registry);
 
 extern HINSTANCE WINAPI WOWShellExecute(HWND hWnd, LPCSTR lpOperation,LPCSTR lpFile,
                                         LPCSTR lpParameters,LPCSTR lpDirectory,
@@ -663,7 +664,9 @@ static inline void fix_win16_hkey( HKEY *hkey )
 DWORD WINAPI RegOpenKey16( HKEY hkey, LPCSTR name, PHKEY retkey )
 {
     fix_win16_hkey( &hkey );
-    return RegOpenKeyA( hkey, name, retkey );
+    DWORD ret = RegOpenKeyA( hkey, name, retkey );
+    TRACE_(registry)("(%p, %s, %p, %08X) = 0x%08X\n", hkey, name, *retkey, ret);
+    return ret;
 }
 
 /******************************************************************************
@@ -718,7 +721,9 @@ DWORD WINAPI RegQueryValue16( HKEY hkey, LPCSTR name, LPSTR data, LPDWORD count
 {
     fix_win16_hkey( &hkey );
     if (count) *count &= 0xffff;
-    return RegQueryValueA( hkey, name, data, (LONG*) count );
+    DWORD result = RegQueryValueA( hkey, name, data, (LONG*) count );
+    TRACE_(registry)("(%p, %s, %s, %d)\n", hkey, name, data, *count);
+    return result;
 }
 
 /******************************************************************************
@@ -727,7 +732,10 @@ DWORD WINAPI RegQueryValue16( HKEY hkey, LPCSTR name, LPSTR data, LPDWORD count
 DWORD WINAPI RegEnumKey16( HKEY hkey, DWORD index, LPSTR name, DWORD name_len )
 {
     fix_win16_hkey( &hkey );
-    return RegEnumKeyA( hkey, index, name, name_len );
+    DWORD result = RegEnumKeyA( hkey, index, name, name_len );
+
+    TRACE_(registry)("(%p, %d, \"%s\", %d) = 0x%04X\n", hkey, index, name, name_len, result);
+    return result;
 }
 
 /*************************************************************************

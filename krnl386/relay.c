@@ -257,8 +257,12 @@ static const CALLFROM16 *get_entry_point( STACK16FRAME *frame, LPSTR module, LPS
     ET_ENTRY *entry;
 
     *pOrd = 0;
-    if (!(pModule = NE_GetPtr( FarGetOwner16( GlobalHandle16( frame->module_cs ) ))))
+    if (!(pModule = NE_GetPtr(FarGetOwner16(GlobalHandle16(frame->module_cs)))))
+    {
+        module[0] = '\0';
+        func[0] = '\0';
         return NULL;
+    }
 
     max_offset = 0;
     bundle = (ET_BUNDLE *)((BYTE *)pModule + pModule->ne_enttab);
@@ -456,6 +460,14 @@ static int relay_call_from_16_no_debug( void *entry_point, unsigned char *args16
 }
 
 
+__declspec(dllexport) void vm_debug_get_entry_point(char *module, char *func, WORD *ordinal)
+{
+    STACK16FRAME *frame;
+    frame = CURRENT_STACK16;
+    //FIXME:security
+    const CALLFROM16 *call;
+    call = get_entry_point(frame, module, func, ordinal);
+}
 /***********************************************************************
  *           relay_call_from_16
  *

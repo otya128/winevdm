@@ -93,7 +93,6 @@ VOID WINAPI _EnterSysLevel(SYSLEVEL *lock)
 
     TRACE("(%p, level %d): thread %x count before %d\n",
           lock, lock->level, GetCurrentThreadId(), thread_data->sys_count[lock->level] );
-    printf("");
 
     for ( i = 3; i > lock->level; i-- )
         if ( thread_data->sys_count[i] > 0 )

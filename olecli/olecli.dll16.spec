@@ -11,13 +11,13 @@
 12 pascal -ret16 OleCreateFromClip(str segptr long str long word word) OleCreateFromClip16
 13 stub OLECOPYTOCLIPBOARD
 14 pascal -ret16 OleQueryType(ptr segptr) OleQueryType16
-15 stub OLESETHOSTNAMES
+15 pascal OleSetHostNames(long str str) OleSetHostNames16
 16 stub OLESETTARGETDEVICE
 17 stub OLESETBOUNDS
-18 stub OLEQUERYBOUNDS
-19 stub OLEDRAW
+18 pascal OleQueryBounds(long ptr) OleQueryBounds16
+19 pascal OleDraw(long word ptr ptr word) OleDraw16
 20 stub OLEQUERYOPEN
-21 stub OLEACTIVATE
+21 pascal OleActivate(long word word word word ptr) OleActivate16
 22 stub OLEUPDATE
 23 stub OLERECONNECT
 24 stub OLEGETLINKUPDATEOPTIONS
@@ -30,10 +30,10 @@
 31 stub OLEQUERYOUTOFDATE
 32 stub OLEOBJECTCONVERT
 33 stub OLECREATEFROMTEMPLATE
-34 stub OLECREATE
+34 pascal OleCreate(str segptr str long str ptr word word) OleCreate16
 35 stub OLEQUERYRELEASESTATUS
-36 stub OLEQUERYRELEASEERROR
-37 stub OLEQUERYRELEASEMETHOD
+36 pascal OleQueryReleaseError(long) OleQueryReleaseError16
+37 pascal -ret16 OleQueryReleaseMethod(long) OleQueryReleaseMethod16
 38 stub OLECREATEFROMFILE
 39 stub OLECREATELINKFROMFILE
 40 stub OLERELEASE
@@ -49,7 +49,7 @@
 50 stub OLEREQUESTDATA
 54 stub OLELOCKSERVER
 55 stub OLEUNLOCKSERVER
-56 stub OLEQUERYSIZE
+56 pascal OleQuerySize(long ptr) OleQuerySize16
 57 stub OLEEXECUTE
 58 stub OLECREATEINVISIBLE
 59 pascal OleQueryClientVersion() OleQueryClientVersion16

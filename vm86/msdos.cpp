@@ -731,10 +731,10 @@ extern "C"
 			DWORD d = 0;
 			auto success = SymGetLineFromAddr(process, (DWORD64)current_stack_frame[i], &d, &line);
 			SymFromAddr(process, (DWORD64)(current_stack_frame[i]), 0, symbol);
-			printf("%i: %s - 0x%llx %s(%d)\n", current_stack_frame_size - i - 1, symbol->Name, symbol->Address, line.FileName, line.LineNumber);
+			fprintf(stderr, "%i: %s - 0x%llx %s(%d)\n", current_stack_frame_size - i - 1, symbol->Name, symbol->Address, line.FileName, line.LineNumber);
 			if (!strcmp(symbol->Name, "KiUserExceptionDispatcher"))
 			{
-				printf("=============================\n");
+				fprintf(stderr, "=============================\n");
 			}
 		}
 
@@ -912,7 +912,7 @@ extern "C"
 			}
 		}
 	};
-	struct dasm_buffer dasm_buffer(1000);
+	struct dasm_buffer dasm_buffer(8000);
 	//for debug
 	__declspec(dllexport) void dasm_buffer_dump()
 	{
@@ -1204,11 +1204,6 @@ extern "C"
 					CHANGE_PC(m_eip);
 					if (relay == (UINT)relay_call_from_16 || 1)
 					{
-                        if (dasm_buffering)
-                        {
-                            char *dbuf = dasm_buffer.get_current();
-                            sprintf(dbuf, "call built-in func %p\n", entry);
-                        }
 #include <pshpack1.h>
                         /* 16-bit stack layout after __wine_call_from_16() */
                         typedef struct _STACK16FRAME
@@ -1245,6 +1240,22 @@ extern "C"
                         STACK16FRAME *oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
 						DWORD ooo = (WORD)context.Esp;
 						int fret;
+                        if (dasm_buffering)
+                        {
+                            char *dbuf = dasm_buffer.get_current();
+
+                           // __declspec(dllexport) void vm_debug_get_entry_point(char *module, char *func, WORD *ordinal)
+                            typedef void(*vm_debug_get_entry_point_t)(char *module, char *func, WORD *ordinal);
+                            static vm_debug_get_entry_point_t vm_debug_get_entry_point;
+                            if (!vm_debug_get_entry_point)
+                            {
+                                vm_debug_get_entry_point = (vm_debug_get_entry_point_t)GetProcAddress(LoadLibraryA(KRNL386), "vm_debug_get_entry_point");
+                            }
+                            char module[100], func[100];
+                            WORD ordinal = 0;
+                            vm_debug_get_entry_point(module, func, &ordinal);
+                            sprintf(dbuf, "call built-in func %p %s.%d: %s\n", entry, module, ordinal, func);
+                        }
 						if (relay != (UINT)relay_call_from_16)
 						{
 							fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
@@ -1433,7 +1444,7 @@ extern "C"
         {
             SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 
-            printf("%i: %s - 0x%p\n", frames - i - 1, symbol->Name, symbol->Address);
+            fprintf(stderr, "%i: %s - 0x%p\n", frames - i - 1, symbol->Name, symbol->Address);
         }
 
         free(symbol);
