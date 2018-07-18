@@ -19,6 +19,7 @@
     <ClCompile Include="ldt2.c" />
     <ClCompile Include="string.c" />
     <ClCompile Include="wctype.c" />
+    <ClCompile Include="wrapper.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="wine.def" />

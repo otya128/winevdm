@@ -1049,7 +1049,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
         for (q = dllname; *q; q++) if (*q >= 'A' && *q <= 'Z') *q += 32;
 
         strcpy( q, "16" );
-        if ((mod32 = LoadLibraryA( dllname )))
+        if ((mod32 = LoadLibraryAWrapper( dllname )))
         {
 			if (!(descr = (void *)GetProcAddress(mod32, "_wine_spec_dos_header")))
             {
@@ -1065,7 +1065,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
                 if ((main_module = (void *)GetProcAddress( mod32, "__wine_spec_main_module" )))
                 {
                     LDR_MODULE *ldr;
-                    HMODULE main_owner = LoadLibraryA( main_module );
+                    HMODULE main_owner = LoadLibraryAWrapper( main_module );
 
                     if (!main_owner)
                     {
@@ -2070,7 +2070,7 @@ HMODULE WINAPI LoadLibrary32_16( LPCSTR libname )
     DWORD count;
 
     ReleaseThunkLock( &count );
-    hModule = LoadLibraryA( libname );
+    hModule = LoadLibraryAWrapper( libname );
     RestoreThunkLock( count );
     return hModule;
 }

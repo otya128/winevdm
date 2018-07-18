@@ -236,4 +236,3 @@ int wine_ldt_is_system(unsigned short sel)
 	TRACE("wine_ldt_is_system(%04X)\n", sel);
 	return 0;
 }
-
