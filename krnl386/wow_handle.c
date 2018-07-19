@@ -73,15 +73,21 @@ WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o)
     memset(*o, 0, sizeof(HANDLE_DATA));
 	return fhandle;
 }
-HANDLE get_handle32_data(WORD h, HANDLE_DATA handles[], HANDLE_DATA **o)
+BOOL get_handle32_data(WORD h, HANDLE_DATA handles[], HANDLE_DATA **o)
 {
-	if (h < HANDLE_RESERVED)
+    if (!h)
+    {
+        *o = NULL;
+        return FALSE;
+    }
+    if (h < HANDLE_RESERVED)
 	{
 		*o = &handles[(size_t)h];
 		(*o)->handle32 = h;
-		return;
+		return TRUE;
 	}
 	*o = &handles[h];
+    return TRUE;
 }
 HANDLE get_handle32(WORD h, HANDLE_DATA handles[])
 {

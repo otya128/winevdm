@@ -624,94 +624,6 @@ static int find_sub_menu( HMENU *hmenu, HMENU16 target )
     return -1;
 }
 
-BOOL isListBox(HWND hWnd)
-{
-	static WNDPROC lpfnListBoxWndProc1 = 0;
-	static WNDPROC lpfnListBoxWndProc2 = 0;
-	if (!lpfnListBoxWndProc1)
-	{
-		WNDCLASSA wc;
-		GetClassInfoA(NULL, "LISTBOX", &wc);
-		lpfnListBoxWndProc1 = wc.lpfnWndProc;
-	}
-	if (!lpfnListBoxWndProc2)
-	{
-		HWND hWnd = CreateWindowExA(0, "LISTBOX", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
-		if (hWnd)
-		{
-			lpfnListBoxWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-			DestroyWindow(hWnd);
-		}
-	}
-	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-	return hWnd ? (lpfnWndProc == lpfnListBoxWndProc1 || lpfnWndProc == lpfnListBoxWndProc2) : FALSE;
-}
-BOOL isEdit(HWND hWnd)
-{
-	static WNDPROC lpfnWndProc1 = 0;
-	static WNDPROC lpfnWndProc2 = 0;
-	if (!lpfnWndProc1)
-	{
-		WNDCLASSA wc;
-		GetClassInfoA(NULL, "EDIT", &wc);
-		lpfnWndProc1 = wc.lpfnWndProc;
-	}
-	if (!lpfnWndProc2)
-	{
-		HWND hWnd = CreateWindowExA(0, "EDIT", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
-		if (hWnd)
-		{
-			lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-			DestroyWindow(hWnd);
-		}
-	}
-	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
-}
-BOOL isScrollBar(HWND hWnd)
-{
-	static WNDPROC lpfnWndProc1 = 0;
-	static WNDPROC lpfnWndProc2 = 0;
-	if (!lpfnWndProc1)
-	{
-		WNDCLASSA wc;
-		GetClassInfoA(NULL, "SCROLLBAR", &wc);
-		lpfnWndProc1 = wc.lpfnWndProc;
-	}
-	if (!lpfnWndProc2)
-	{
-		HWND hWnd = CreateWindowExA(0, "SCROLLBAR", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
-		if (hWnd)
-		{
-			lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-			DestroyWindow(hWnd);
-		}
-	}
-	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
-}
-BOOL isComboBox(HWND hWnd)
-{
-    static WNDPROC lpfnWndProc1 = 0;
-    static WNDPROC lpfnWndProc2 = 0;
-    if (!lpfnWndProc1)
-    {
-        WNDCLASSA wc;
-        GetClassInfoA(NULL, "COMBOBOX ", &wc);
-        lpfnWndProc1 = wc.lpfnWndProc;
-    }
-    if (!lpfnWndProc2)
-    {
-        HWND hWnd = CreateWindowExA(0, "COMBOBOX", "", 0, 0, 0, 1, 1, 0, 0, 0, 0);
-        if (hWnd)
-        {
-            lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-            DestroyWindow(hWnd);
-        }
-    }
-    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-    return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
-}
 WNDPROC get_classinfo_wndproc(const char *class)
 {
     WNDCLASSA wc;
@@ -729,29 +641,87 @@ WNDPROC get_window_wndproc(const char *class)
     }
     return lpfnWndProc2;
 }
+BOOL is_listbox_wndproc(WNDPROC lpfnWndProc)
+{
+    static WNDPROC lpfnWndProc1 = 0;
+    static WNDPROC lpfnWndProc2 = 0;
+    if (!lpfnWndProc1)
+        lpfnWndProc1 = get_classinfo_wndproc("LISTBOX");
+    if (!lpfnWndProc2)
+        lpfnWndProc2 = get_window_wndproc("LISTBOX");
+    return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL isListBox(HWND hWnd)
+{
+    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    return is_listbox_wndproc(lpfnWndProc);
+}
+
+BOOL is_edit_wndproc(WNDPROC lpfnWndProc)
+{
+    static WNDPROC lpfnWndProc1 = 0;
+    static WNDPROC lpfnWndProc2 = 0;
+    if (!lpfnWndProc1)
+        lpfnWndProc1 = get_classinfo_wndproc("EDIT");
+    if (!lpfnWndProc2)
+        lpfnWndProc2 = get_window_wndproc("EDIT");
+    return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL isEdit(HWND hWnd)
+{
+    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    return is_edit_wndproc(lpfnWndProc);
+}
+
+BOOL is_scrollbar_wndproc(WNDPROC lpfnWndProc)
+{
+    static WNDPROC lpfnWndProc1 = 0;
+    static WNDPROC lpfnWndProc2 = 0;
+    if (!lpfnWndProc1)
+        lpfnWndProc1 = get_classinfo_wndproc("SCROLLBAR");
+    if (!lpfnWndProc2)
+        lpfnWndProc2 = get_window_wndproc("SCROLLBAR");
+    return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL isScrollBar(HWND hWnd)
+{
+    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    return is_scrollbar_wndproc(lpfnWndProc);
+}
+
+BOOL is_combobox_wndproc(WNDPROC lpfnWndProc)
+{
+    static WNDPROC lpfnWndProc1 = 0;
+    static WNDPROC lpfnWndProc2 = 0;
+    if (!lpfnWndProc1)
+        lpfnWndProc1 = get_classinfo_wndproc("COMBOBOX");
+    if (!lpfnWndProc2)
+        lpfnWndProc2 = get_window_wndproc("COMBOBOX");
+    return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL isComboBox(HWND hWnd)
+{
+    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    return is_combobox_wndproc(lpfnWndProc);
+}
+
+BOOL is_static_wndproc(WNDPROC lpfnWndProc)
+{
+    static WNDPROC lpfnWndProc1 = 0;
+    static WNDPROC lpfnWndProc2 = 0;
+    if (!lpfnWndProc1)
+        lpfnWndProc1 = get_classinfo_wndproc("STATIC");
+    if (!lpfnWndProc2)
+        lpfnWndProc2 = get_window_wndproc("STATIC");
+    return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
 BOOL isStatic(HWND hWnd)
 {
-	static WNDPROC lpfnWndProc1 = 0;
-	static WNDPROC lpfnWndProc2 = 0;
-	if (!lpfnWndProc1)
-	{
-		WNDCLASSA wc;
-		GetClassInfoA(NULL, "STATIC", &wc);
-		lpfnWndProc1 = wc.lpfnWndProc;
-	}
-	if (!lpfnWndProc2)
-	{
-		HWND hWnd = CreateWindowExA(0, "STATIC", "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), 0);
-		if (hWnd)
-		{
-			lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-			DestroyWindow(hWnd);
-		}
-	}
-	WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-	return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    return is_static_wndproc(lpfnWndProc);
 }
-BOOL isButton(HWND hWnd)
+
+BOOL is_button_wndproc(WNDPROC lpfnWndProc)
 {
     static WNDPROC lpfnWndProc1 = 0;
     static WNDPROC lpfnWndProc2 = 0;
@@ -759,8 +729,12 @@ BOOL isButton(HWND hWnd)
         lpfnWndProc1 = get_classinfo_wndproc("BUTTON");
     if (!lpfnWndProc2)
         lpfnWndProc2 = get_window_wndproc("BUTTON");
+    return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL isButton(HWND hWnd)
+{
     WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-    return hWnd ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+    return is_button_wndproc(lpfnWndProc);
 }
 
 /***********************************************************************
@@ -926,17 +900,24 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     LRESULT ret = 0;
     HWND hwnd32 = WIN_Handle32( hwnd );
 
-	if (isListBox(hwnd32))
+	if (isListBox(hwnd32) || (call_window_proc_callback == callback && is_listbox_wndproc(arg)))
 	{
 		BOOL f;
 		ret = listbox_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
 		if (f)
 			return ret;
 	}
-    if (isComboBox(hwnd32))
+    if (isComboBox(hwnd32) || (call_window_proc_callback == callback && is_combobox_wndproc(arg)))
     {
         BOOL f;
         ret = combo_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
+        if (f)
+            return ret;
+    }
+    if (isButton(hwnd32) || (call_window_proc_callback == callback && is_button_wndproc(arg)))
+    {
+        BOOL f;
+        ret = button_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
         if (f)
             return ret;
     }
@@ -2375,6 +2356,28 @@ BOOL16 WINAPI TranslateMDISysAccel16( HWND16 hwndClient, LPMSG16 msg )
 
 
 /***********************************************************************
+*           button_proc16
+*/
+static LRESULT button_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f)
+{
+    static const UINT msg16_offset = BM_GETCHECK16 - BM_GETCHECK;
+    *f = TRUE;
+
+    switch (msg)
+    {
+    case BM_GETCHECK16:
+    case BM_SETCHECK16:
+    case BM_GETSTATE16:
+    case BM_SETSTATE16:
+    case BM_SETSTYLE16:
+        return callback(hwnd, msg - msg16_offset, wParam, lParam, result, arg);
+    default:
+        *f = FALSE;
+        return 0;
+    }
+}
+/***********************************************************************
  *           button_proc16
  */
 static LRESULT button_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode )
@@ -2480,7 +2483,7 @@ static LRESULT combo_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd
     , LRESULT *result, void *arg, BOOL *f) 
 {
     static const UINT msg16_offset = CB_GETEDITSEL16 - CB_GETEDITSEL;
-
+    *f = TRUE;
     switch (msg)
     {
     case CB_INSERTSTRING16:
@@ -2546,9 +2549,10 @@ static LRESULT combo_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd
         msg -= msg16_offset;
         break;
     default:
-        return callback(hwnd, msg, wParam, lParam, result, arg);
+        *f = FALSE;
+        return 0;
     }
-    return callback(hwnd, msg, wParam, lParam, result, arg);;
+    return callback(hwnd, msg, wParam, lParam, result, arg);
 }
 
 

@@ -793,6 +793,11 @@ WORD WINAPI SetClassWord16( HWND16 hwnd, INT16 offset, WORD newval )
 }
 
 
+LRESULT CALLBACK UserAdapterWindowClass(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    ERR("(%p, %d, %d, %d)\n", msg, wparam, lparam);
+    return FALSE;
+}
 /***********************************************************************
  *		GetClassLong (USER.131)
  */
@@ -805,7 +810,21 @@ LONG WINAPI GetClassLong16( HWND16 hwnd16, INT16 offset )
     case GCLP_WNDPROC:
     {
         ATOM atom = GetClassWord(WIN_Handle32(hwnd16), GCW_ATOM);
-        return WNDCLASS16Info[atom].wndproc ? WNDCLASS16Info[atom].wndproc : WINPROC_AllocNativeProc(ret);//(LONG_PTR)WINPROC_GetProc16((WNDPROC)ret, FALSE);
+        WNDCLASSEXA cls;
+        char name[256];
+        if (GetClassNameA(WIN_Handle32(hwnd16), name, sizeof(name)))
+        {
+            if (!strcmp(name, "UserAdapterWindowClass"))
+            {
+                return WINPROC_AllocNativeProc((WNDPROC)UserAdapterWindowClass);
+            }
+        }
+        WNDPROC proc = GetClassLongPtrA(WIN_Handle32(hwnd16), GCLP_WNDPROC);
+        if ((DWORD)proc >> 16 == 0xFFFF)
+        {
+            return WINPROC_AllocNativeProc((WNDPROC)UserAdapterWindowClass);
+        }
+        return WNDCLASS16Info[atom].wndproc ? WNDCLASS16Info[atom].wndproc : WINPROC_AllocNativeProc(proc);//(LONG_PTR)WINPROC_GetProc16((WNDPROC)ret, FALSE);
     }
     case GCLP_MENUNAME:
         return MapLS( (void *)ret );  /* leak */
@@ -2120,7 +2139,6 @@ BOOL16 WINAPI DrawAnimatedRects16( HWND16 hwnd, INT16 idAni,
     rcTo32.bottom   = lprcTo->bottom;
     return DrawAnimatedRects( WIN_Handle32(hwnd), idAni, &rcFrom32, &rcTo32 );
 }
-
 
 /***********************************************************************
  *		CreateWindowEx (USER.452)
