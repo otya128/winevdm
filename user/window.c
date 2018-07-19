@@ -1065,7 +1065,7 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
             }
             else
             {
-                //SetWindowLongA(hwnd, offset, DefWndProca);
+                SetWindowLongA(hwnd, offset, DefWndProca);
             }
         }
 		return old;
