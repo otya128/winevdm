@@ -2179,10 +2179,23 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 			case OBM_OLD_ZOOM:
 				n = OBM_ZOOM;
 				break;
+            case OCR_SIZE:
+                n = OCR_SIZEALL;
+                break;
+            case OCR_ICON:
+                n = OCR_NORMAL;
+                break;
+            case OCR_ICOCUR:
+                n = OIC_WINLOGO;
+                break;
 			default:
-				return 0;
+                break;
 			}
 			h = LoadImageA(0, n, type, cx, cy, flags);
+            if (h == 0)
+            {
+                ERR("LoadImageA(%d, %d, %d, %d, %d, %d)\n", 0, n, type, cx, cy, flags);
+            }
 		}
 		//OBM_OLD_CLOSE
 		//OBM_OLD_DNARROW
