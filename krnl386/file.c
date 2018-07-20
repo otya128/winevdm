@@ -44,6 +44,8 @@
 WINE_DEFAULT_DEBUG_CHANNEL(file);
 
 #include <shlwapi.h>
+#include <imagehlp.h>
+#pragma comment(lib, "imagehlp.lib")
 #pragma comment(lib, "shlwapi.lib")
 #ifdef ENABLEREDIRECTSYSTEMDIR
 BOOL EnableRedirectSystemDir = TRUE;
@@ -51,6 +53,37 @@ BOOL EnableRedirectSystemDir = TRUE;
 BOOL EnableRedirectSystemDir = FALSE;
 #endif
 const char *GetRedirectWindowsDir();
+__declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL is_dir)
+{
+    if (!(path[0] && path[1] == ':' && (path[2] == 0 || path[2] == '\\' || path[2] == '/')))
+        return path;
+    char drive = path[0];
+    path += 2;
+    if (path[0])
+        path += 1;
+    char drive_buf[2];
+    drive_buf[0] = drive;
+    drive_buf[1] = 0;
+    char dirbuf[MAX_PATH], *dir = dirbuf;
+    GetModuleFileNameA(GetModuleHandleA("otvdm.exe"), dir, MAX_PATH);
+    char *file = PathFindFileNameA(dir);
+    if (file != dir) *file = '\0';
+    char dir_short[MAX_PATH];
+    GetShortPathNameA(dirbuf, dir_short, max_len);
+    char dirbuf2[MAX_PATH];
+    PathCombineA(dirbuf2, dir_short, drive_buf);
+    if (*path)
+    {
+        PathCombineA(dirbuf2, to, path);
+    }
+    else
+    {
+        strcpy(to, dirbuf2);
+    }
+    PathAddBackslashA(to);
+    MakeSureDirectoryPathExists(to);
+    return to;
+}
 //SYSTEM DIR
 //%WINDIR%->
 __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
@@ -84,7 +117,7 @@ __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max
 	}
 	//.\windir\ 
 	char dirbuf[MAX_PATH], *dir = dirbuf;
-	GetModuleFileNameA(NULL, dir, MAX_PATH);
+	GetModuleFileNameA(GetModuleHandleA("otvdm.exe"), dir, MAX_PATH);
 	char *file = PathFindFileNameA(dir);
 	if (file != dir) *file = '\0';
 	if (!PathAppendA(dir, GetRedirectWindowsDir()))
@@ -593,6 +626,16 @@ UINT16 WINAPI GetTempFileName16( BYTE drive, LPCSTR prefix, UINT16 unique,
 
     ret = GetTempFileNameA( temppath, prefix16, unique, buffer );
 
+    if (!ret)
+    {
+        //C:\ => ERROR_ACCESS_DENIED
+        if (GetLastError() == ERROR_ACCESS_DENIED)
+        {
+            char buf[MAX_PATH];
+            char *temppath2 = RedirectDriveRoot(temppath, buf, MAX_PATH, TRUE);
+            ret = GetTempFileNameA(temppath2, prefix16, unique, buffer);
+        }
+    }
     HeapFree(GetProcessHeap(), 0, prefix16);
     return ret;
 }
