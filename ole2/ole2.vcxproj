@@ -90,7 +90,7 @@ ole2.def
       <ModuleDefinitionFile>
 ole2.def
       </ModuleDefinitionFile>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 uuid.lib;ole32.lib;user32.lib;gdi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
