@@ -39,6 +39,33 @@ DWORD USER16_AlertableWait = 0;
 
 struct wow_handlers32 wow_handlers32;
 
+static void dump_hmenu(HMENU menu)
+{
+    int count = GetMenuItemCount(menu);
+    MENUINFO info = { 0 };
+
+    GetMenuInfo(menu, &info);
+    for (int i = 0; i < count; i++)
+    {
+        MENUITEMINFOA item = { 0 };
+        GetMenuItemInfoA(menu, TRUE, i, &item);
+        char buf[1000];
+        buf[0] = 0;
+        GetMenuStringA(menu, i, buf, sizeof(buf), MF_BYPOSITION);
+        MESSAGE("%s bmp:%p\n", buf, item.hbmpItem);
+        if (item.hSubMenu)
+        {
+            MESSAGE("====BEGIN SUB MENU %p/%p ====\n", menu, item.hSubMenu);
+            dump_hmenu(item.hSubMenu);
+            MESSAGE("====END   SUB MENU %p/%p ====\n", menu, item.hSubMenu);
+        }
+    }
+}
+static void dump_menu(HWND hwnd)
+{
+    HMENU menu = GetMenu(hwnd);
+    dump_hmenu(menu);
+}
 static LRESULT send_message_callback( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
                                       LRESULT *result, void *arg )
 {
@@ -1242,6 +1269,10 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_SETCURSOR:
         ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
         break;
+    case WM_INITMENU:
+    case WM_INITMENUPOPUP:
+        ret = callback(hwnd32, msg, HMENU_32(wParam), lParam, result, arg);
+        break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1249,7 +1280,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     return ret;
 }
 
-
+#include <uxtheme.h>
 void InitWndProc16(HWND hWnd, HWND16 hWnd16);
 /**********************************************************************
  *	     WINPROC_CallProc32ATo16
@@ -1275,7 +1306,12 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             CREATESTRUCT32Ato16( cs32, &cs );
             cs.lpszName  = MapLS( cs32->lpszName );
             cs.lpszClass = MapLS( cs32->lpszClass );
-
+            if (1||!(GetWindowLongW(hwnd, GWL_STYLE) & WS_CHILD))
+            {
+                //SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
+                SetWindowTheme(hwnd, "", "");
+                //SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+            }
             if (mdi_child)
             {
                 MDICREATESTRUCTA *mdi_cs = cs32->lpCreateParams;
@@ -1820,6 +1856,10 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_SETFOCUS:
     case WM_SETCURSOR:
         ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
+        break;
+    case WM_INITMENU:
+    case WM_INITMENUPOPUP:
+        ret = callback(HWND_16(hwnd), msg, HMENU_16(wParam), lParam, result, arg);
         break;
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
