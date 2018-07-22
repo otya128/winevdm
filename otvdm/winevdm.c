@@ -33,6 +33,7 @@
 #include "wine/unicode.h"
 #include "wine/debug.h"
 #include "resource.h"
+#include "windows.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winevdm);
 
@@ -503,7 +504,287 @@ static void usage(void)
     ExitProcess(1);
 }
 
+static void fix_compatible(int argc, char *argv[])
+{
+    HKEY hkey;
+    LSTATUS stat = RegOpenKeyW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", &hkey);
+    if (stat)
+        return;
+    WCHAR image_path[MAX_PATH];
+    GetModuleFileNameW(NULL, image_path, sizeof(image_path));
+    LPWSTR reg_value = L"VistaRTM";// L"~ Win7RTM";
+    stat = RegSetValueExW(hkey, image_path, 0, REG_SZ, reg_value, strlenW(reg_value) * sizeof(WCHAR));
+    if (stat)
+        return;
+    RegCloseKey(hkey);
+    LPWSTR arg = GetCommandLineW();
+    DWORD pid = GetCurrentProcessId();
+    LPWSTR compat_arg = L"--fix-compat-mode ";
+    
+    PWSTR arg2 = (PWSTR)malloc(sizeof(WCHAR) * (11 + strlenW(arg) + strlenW(compat_arg)));
+    sprintfW(arg2, L"%s%d %s", compat_arg, pid, arg);
+    PROCESS_INFORMATION proc_inf;
+    STARTUPINFOW start_inf = { sizeof(STARTUPINFOW) };
+    CreateProcessW(image_path, arg2, NULL, NULL, FALSE, 0, NULL, NULL, &start_inf, &proc_inf);
+    WaitForSingleObject(proc_inf.hProcess, INFINITE);
+    CloseHandle(proc_inf.hProcess);
+    CloseHandle(proc_inf.hThread);
+}
+DWORD WINAPI fix_compat_mode_wait_process(LPVOID ppid)
+{
+    DWORD pid = *(DWORD*)ppid;
+    HANDLE proc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    WaitForSingleObject(proc, INFINITE);
+    DWORD exitcode;
+    BOOL result = GetExitCodeProcess(proc, &exitcode);
+    CloseHandle(proc);
+    if (!result)
+    {
+        ExitProcess(0);
+    }
+    ExitProcess(exitcode);
+    return 0;
 
+}
+#include <winternl.h>
+
+typedef struct _CURDIR
+{
+    UNICODE_STRING DosPath;
+    PVOID Handle;
+} CURDIR, *PCURDIR;
+
+typedef struct RTL_DRIVE_LETTER_CURDIR
+{
+    USHORT              Flags;
+    USHORT              Length;
+    ULONG               TimeStamp;
+    UNICODE_STRING      DosPath;
+} RTL_DRIVE_LETTER_CURDIR, *PRTL_DRIVE_LETTER_CURDIR;
+
+typedef struct tagRTL_BITMAP {
+    ULONG  SizeOfBitMap; /* Number of bits in the bitmap */
+    PULONG Buffer; /* Bitmap data, assumed sized to a DWORD boundary */
+} RTL_BITMAP, *PRTL_BITMAP;
+
+typedef const RTL_BITMAP *PCRTL_BITMAP;
+
+typedef struct tagRTL_BITMAP_RUN {
+    ULONG StartingIndex; /* Bit position at which run starts */
+    ULONG NumberOfBits;  /* Size of the run in bits */
+} RTL_BITMAP_RUN, *PRTL_BITMAP_RUN;
+
+typedef const RTL_BITMAP_RUN *PCRTL_BITMAP_RUN;
+
+/* value for Flags field (FIXME: not the correct name) */
+#define PROCESS_PARAMS_FLAG_NORMALIZED 1
+
+typedef struct _GDI_TEB_BATCH
+{
+    ULONG  Offset;
+    HANDLE HDC;
+    ULONG  Buffer[0x136];
+} GDI_TEB_BATCH;
+
+typedef struct _RTL_ACTIVATION_CONTEXT_STACK_FRAME
+{
+    struct _RTL_ACTIVATION_CONTEXT_STACK_FRAME *Previous;
+    struct _ACTIVATION_CONTEXT                 *ActivationContext;
+    ULONG                                       Flags;
+} RTL_ACTIVATION_CONTEXT_STACK_FRAME, *PRTL_ACTIVATION_CONTEXT_STACK_FRAME;
+
+typedef struct _ACTIVATION_CONTEXT_STACK
+{
+    ULONG                               Flags;
+    ULONG                               NextCookieSequenceNumber;
+    RTL_ACTIVATION_CONTEXT_STACK_FRAME *ActiveFrame;
+    LIST_ENTRY                          FrameListCache;
+} ACTIVATION_CONTEXT_STACK, *PACTIVATION_CONTEXT_STACK;
+
+/***********************************************************************
+* PEB data structure
+*/
+typedef struct 
+{                                                                 /* win32/win64 */
+    BOOLEAN                      InheritedAddressSpace;             /* 000/000 */
+    BOOLEAN                      ReadImageFileExecOptions;          /* 001/001 */
+    BOOLEAN                      BeingDebugged;                     /* 002/002 */
+    BOOLEAN                      SpareBool;                         /* 003/003 */
+    HANDLE                       Mutant;                            /* 004/008 */
+    HMODULE                      ImageBaseAddress;                  /* 008/010 */
+    PPEB_LDR_DATA                LdrData;                           /* 00c/018 */
+    RTL_USER_PROCESS_PARAMETERS *ProcessParameters;                 /* 010/020 */
+    PVOID                        SubSystemData;                     /* 014/028 */
+    HANDLE                       ProcessHeap;                       /* 018/030 */
+    PRTL_CRITICAL_SECTION        FastPebLock;                       /* 01c/038 */
+    PVOID /*PPEBLOCKROUTINE*/    FastPebLockRoutine;                /* 020/040 */
+    PVOID /*PPEBLOCKROUTINE*/    FastPebUnlockRoutine;              /* 024/048 */
+    ULONG                        EnvironmentUpdateCount;            /* 028/050 */
+    PVOID                        KernelCallbackTable;               /* 02c/058 */
+    ULONG                        Reserved[2];                       /* 030/060 */
+    PVOID /*PPEB_FREE_BLOCK*/    FreeList;                          /* 038/068 */
+    ULONG                        TlsExpansionCounter;               /* 03c/070 */
+    PRTL_BITMAP                  TlsBitmap;                         /* 040/078 */
+    ULONG                        TlsBitmapBits[2];                  /* 044/080 */
+    PVOID                        ReadOnlySharedMemoryBase;          /* 04c/088 */
+    PVOID                        ReadOnlySharedMemoryHeap;          /* 050/090 */
+    PVOID                       *ReadOnlyStaticServerData;          /* 054/098 */
+    PVOID                        AnsiCodePageData;                  /* 058/0a0 */
+    PVOID                        OemCodePageData;                   /* 05c/0a8 */
+    PVOID                        UnicodeCaseTableData;              /* 060/0b0 */
+    ULONG                        NumberOfProcessors;                /* 064/0b8 */
+    ULONG                        NtGlobalFlag;                      /* 068/0bc */
+    LARGE_INTEGER                CriticalSectionTimeout;            /* 070/0c0 */
+    SIZE_T                       HeapSegmentReserve;                /* 078/0c8 */
+    SIZE_T                       HeapSegmentCommit;                 /* 07c/0d0 */
+    SIZE_T                       HeapDeCommitTotalFreeThreshold;    /* 080/0d8 */
+    SIZE_T                       HeapDeCommitFreeBlockThreshold;    /* 084/0e0 */
+    ULONG                        NumberOfHeaps;                     /* 088/0e8 */
+    ULONG                        MaximumNumberOfHeaps;              /* 08c/0ec */
+    PVOID                       *ProcessHeaps;                      /* 090/0f0 */
+    PVOID                        GdiSharedHandleTable;              /* 094/0f8 */
+    PVOID                        ProcessStarterHelper;              /* 098/100 */
+    PVOID                        GdiDCAttributeList;                /* 09c/108 */
+    PVOID                        LoaderLock;                        /* 0a0/110 */
+    ULONG                        OSMajorVersion;                    /* 0a4/118 */
+    ULONG                        OSMinorVersion;                    /* 0a8/11c */
+    ULONG                        OSBuildNumber;                     /* 0ac/120 */
+    ULONG                        OSPlatformId;                      /* 0b0/124 */
+    ULONG                        ImageSubSystem;                    /* 0b4/128 */
+    ULONG                        ImageSubSystemMajorVersion;        /* 0b8/12c */
+    ULONG                        ImageSubSystemMinorVersion;        /* 0bc/130 */
+    ULONG                        ImageProcessAffinityMask;          /* 0c0/134 */
+    HANDLE                       GdiHandleBuffer[28];               /* 0c4/138 */
+    ULONG                        unknown[6];                        /* 134/218 */
+    PVOID                        PostProcessInitRoutine;            /* 14c/230 */
+    PRTL_BITMAP                  TlsExpansionBitmap;                /* 150/238 */
+    ULONG                        TlsExpansionBitmapBits[32];        /* 154/240 */
+    ULONG                        SessionId;                         /* 1d4/2c0 */
+    ULARGE_INTEGER               AppCompatFlags;                    /* 1d8/2c8 */
+    ULARGE_INTEGER               AppCompatFlagsUser;                /* 1e0/2d0 */
+    PVOID                        ShimData;                          /* 1e8/2d8 */
+    PVOID                        AppCompatInfo;                     /* 1ec/2e0 */
+    UNICODE_STRING               CSDVersion;                        /* 1f0/2e8 */
+    PVOID                        ActivationContextData;             /* 1f8/2f8 */
+    PVOID                        ProcessAssemblyStorageMap;         /* 1fc/300 */
+    PVOID                        SystemDefaultActivationData;       /* 200/308 */
+    PVOID                        SystemAssemblyStorageMap;          /* 204/310 */
+    SIZE_T                       MinimumStackCommit;                /* 208/318 */
+    PVOID                       *FlsCallback;                       /* 20c/320 */
+    LIST_ENTRY                   FlsListHead;                       /* 210/328 */
+    PRTL_BITMAP                  FlsBitmap;                         /* 218/338 */
+    ULONG                        FlsBitmapBits[4];                  /* 21c/340 */
+} PEB2, *PPEB2;
+/***********************************************************************
+* TEB data structure
+*/
+typedef struct
+{                                                                 /* win32/win64 */
+    NT_TIB                       Tib;                               /* 000/0000 */
+    PVOID                        EnvironmentPointer;                /* 01c/0038 */
+    HANDLE                    ClientId1, ClientId2;                          /* 020/0040 */
+    PVOID                        ActiveRpcHandle;                   /* 028/0050 */
+    PVOID                        ThreadLocalStoragePointer;         /* 02c/0058 */
+    PPEB2                         Peb;                               /* 030/0060 */
+} TEB2, *PTEB2;
+
+//===reactos/sdk/include/ndk/pstypes.h==
+// PEB.AppCompatFlags
+// Tag FLAG_MASK_KERNEL
+//
+typedef enum _APPCOMPAT_FLAGS
+{
+    GetShortPathNameNT4 = 0x1,
+    GetDiskFreeSpace2GB = 0x8,
+    FTMFromCurrentAPI = 0x20,
+    DisallowCOMBindingNotifications = 0x40,
+    Ole32ValidatePointers = 0x80,
+    DisableCicero = 0x100,
+    Ole32EnableAsyncDocFile = 0x200,
+    EnableLegacyExceptionHandlinginOLE = 0x400,
+    DisableAdvanceRPCClientHardening = 0x800,
+    DisableMaybeNULLSizeisConsistencycheck = 0x1000,
+    DisableAdvancedRPCrangeCheck = 0x4000,
+    EnableLegacyExceptionHandlingInRPC = 0x8000,
+    EnableLegacyNTFSFlagsForDocfileOpens = 0x10000,
+    DisableNDRIIDConsistencyCheck = 0x20000,
+    UserDisableForwarderPatch = 0x40000,
+    DisableNewWMPAINTDispatchInOLE = 0x100000,
+    Unknown0x00400000 = 0x00400000,
+    DoNotAddToCache = 0x80000000,
+} APPCOMPAT_FLAGS;
+
+
+//
+// PEB.AppCompatFlagsUser.LowPart
+// Tag FLAG_MASK_USER
+//
+typedef enum _APPCOMPAT_USERFLAGS
+{
+    DisableAnimation = 0x1,
+    DisableKeyboardCues = 0x2,
+    No50StylebitsInSetWindowLong = 0x4,
+    DisableDrawPatternRect = 0x8,
+    MSShellDialog = 0x10,
+    NoDDETerminateDuringDestroy = 0x20,
+    GiveupForeground = 0x40,
+    AlwaysActiveMenus = 0x80,
+    NoMouseHideInEdit = 0x100,
+    NoGdiBatching = 0x200,
+    FontSubstitution = 0x400,
+    No50StylebitsInCreateWindow = 0x800,
+    NoCustomPaperSizes = 0x1000,
+    AllTheDdeHacks = 0x2000,
+    UseDefaultCharset = 0x4000,
+    NoCharDeadKey = 0x8000,
+    NoTryExceptForWindowProc = 0x10000,
+    NoInitInsertReplaceFlags = 0x20000,
+    NoDdeSync = 0x40000,
+    NoGhost = 0x80000,
+    NoDdeAsyncReg = 0x100000,
+    StrictLLHook = 0x200000,
+    NoShadow = 0x400000,
+    NoTimerCallbackProtection = 0x1000000,
+    HighDpiAware = 0x2000000,
+    OpenGLEmfAware = 0x4000000,
+    EnableTransparantBltMirror = 0x8000000,
+    NoPaddedBorder = 0x10000000,
+    ForceLegacyResizeCM = 0x20000000,
+    HardwareAudioMixer = 0x40000000,
+    DisableSWCursorOnMoveSize = 0x80000000,
+#if 0
+    DisableWindowArrangement = 0x100000000,
+    ReorderWaveForCommunications = 0x200000000,
+    NoGdiHwAcceleration = 0x400000000,
+#endif
+} APPCOMPAT_USERFLAGS;
+
+//
+// PEB.AppCompatFlagsUser.HighPart
+// Tag FLAG_MASK_USER
+//
+typedef enum _APPCOMPAT_USERFLAGS_HIGHPART
+{
+    DisableWindowArrangement = 0x1,
+    ReorderWaveForCommunications = 0x2,
+    NoGdiHwAcceleration = 0x4,
+} APPCOMPAT_USERFLAGS_HIGHPART;
+//===reactos/sdk/include/ndk/pstypes.h==
+
+static void set_peb_compatible_flag()
+{
+    TEB2 *teb = (TEB2*)NtCurrentTeb();
+    HMODULE user32 = GetModuleHandleA("user32.dll");
+    if (user32 != NULL)
+    {
+        WINE_ERR("user32.dll has already been loaded.");
+    }
+    APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;
+    APPCOMPAT_USERFLAGS flags2 = (APPCOMPAT_USERFLAGS)teb->Peb->AppCompatFlagsUser.LowPart;
+    APPCOMPAT_USERFLAGS_HIGHPART flags3 = (APPCOMPAT_USERFLAGS_HIGHPART)teb->Peb->AppCompatFlagsUser.HighPart;
+    teb->Peb->AppCompatFlagsUser.LowPart |= NoPaddedBorder;
+}
+//
 /***********************************************************************
  *           main
  */
@@ -517,6 +798,25 @@ int main( int argc, char *argv[] )
     STARTUPINFOA info;
     char *cmdline, *appname, **first_arg;
     char *p;
+    DWORD pid;
+    set_peb_compatible_flag();
+    if (!strcmp(argv[0], "--fix-compat-mode"))
+    {
+        pid = atoi(argv[1]);
+        DWORD threadId;
+        HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)fix_compat_mode_wait_process, &pid, 0, &threadId);
+        argv += 2;
+        argc -= 2;
+    }
+#ifdef FIX_COMPAT_MODE
+    //compatible mode
+    else if (getenv("__COMPAT_LAYER") == NULL)
+    {
+        printf("set compatible mode to VistaRTM\n");
+        fix_compatible(argc, argv);
+        return 0;
+    }
+#endif
 
     if (!argv[1]) usage();
 

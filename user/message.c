@@ -927,6 +927,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     LRESULT ret = 0;
     HWND hwnd32 = WIN_Handle32( hwnd );
 
+    TRACE("(%p, %04X, %04X, %04X, %08X)\n", callback, hwnd, msg, wParam, lParam);
 	if (isListBox(hwnd32) || (call_window_proc_callback == callback && is_listbox_wndproc(arg)))
 	{
 		BOOL f;
@@ -1253,7 +1254,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         FIXME_(msg)( "message %04x needs translation\n", msg );
         break;
 	case WM_NCPAINT:
-		ret = callback(hwnd32, msg, HRGN_32(wParam), lParam, result, arg);
+        ret = callback(hwnd32, msg, HRGN_32(wParam), lParam, result, arg);
 		break;
     case WM_ERASEBKGND:
         if (IsIconic(hwnd) && GetClassLongPtrW(hwnd, GCLP_HICON)) msg = WM_ICONERASEBKGND;
@@ -1273,6 +1274,12 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_INITMENUPOPUP:
         ret = callback(hwnd32, msg, HMENU_32(wParam), lParam, result, arg);
         break;
+    case WM_THEMECHANGED:
+        ret = callback(hwnd32, msg, (INT)((INT16)wParam), lParam, result, arg);
+        break;
+    case WM_NCACTIVATE:
+        ret = callback(hwnd32, WM_NCACTIVATE, wParam, HWND_32(lParam), result, arg);
+        break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1281,6 +1288,8 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 }
 
 #include <uxtheme.h>
+#include <vssym32.h>
+
 void InitWndProc16(HWND hWnd, HWND16 hWnd16);
 /**********************************************************************
  *	     WINPROC_CallProc32ATo16
@@ -1292,6 +1301,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 {
     LRESULT ret = 0;
 
+    TRACE("(%p, %p, %08X, %08X, %08X)\n", callback, hwnd, msg, wParam, lParam);
     switch(msg)
     {
     case WM_NCCREATE:
@@ -1306,12 +1316,6 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             CREATESTRUCT32Ato16( cs32, &cs );
             cs.lpszName  = MapLS( cs32->lpszName );
             cs.lpszClass = MapLS( cs32->lpszClass );
-            if (1||!(GetWindowLongW(hwnd, GWL_STYLE) & WS_CHILD))
-            {
-                //SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
-                SetWindowTheme(hwnd, "", "");
-                //SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-            }
             if (mdi_child)
             {
                 MDICREATESTRUCTA *mdi_cs = cs32->lpCreateParams;
@@ -1598,7 +1602,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             ret = callback( HWND_16(hwnd), WM_PAINT, wParam, lParam, result, arg );
         break;
 	case WM_NCPAINT:
-		ret = callback(HWND_16(hwnd), WM_NCPAINT, HRGN_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), WM_NCPAINT, HRGN_16(wParam), lParam, result, arg);
 		break;
 	case WM_NCACTIVATE:
 		ret = callback(HWND_16(hwnd), WM_NCACTIVATE, wParam, HWND_16(lParam), result, arg);
@@ -3177,6 +3181,8 @@ LRESULT CALLBACK CBTHook(
     if (nCode == HCBT_CREATEWND)
     {
         HWND hWnd = (HWND)wParam;
+        SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
+        SetWindowTheme(hWnd, L"", L"");
         if (isEdit(hWnd))
         {
             SetWindowLongPtrA(hWnd, GWLP_WNDPROC, edit_wndproc16);
