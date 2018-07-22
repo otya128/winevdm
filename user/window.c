@@ -909,6 +909,11 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
         HINSTANCE h = HINSTANCE_32(GetWindowLongPtrW(WIN_Handle32(hwnd), offset));
         return h ? HINSTANCE_16(h) : hwnd;
     }
+    case GWL_ID:
+    {
+        LONG ret = GetWindowLongA(WIN_Handle32(hwnd), GWL_ID);
+        return ret;
+    }
     case GWL_HWNDPARENT:
         return HWND_16(GetWindowLongA(WIN_Handle32(hwnd), offset));
     default:
@@ -947,6 +952,11 @@ WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
         SetWindowHInst16(hwnd, newval);
         (SetWindowLongA(WIN_Handle32(hwnd), offset, HINSTANCE_32(newval)));
         return old;
+    }
+    case GWL_ID:
+    {
+        LONG ret = SetWindowLongA(WIN_Handle32(hwnd), GWL_ID, newval);
+        return ret;
     }
     case GWL_HWNDPARENT:
         return (SetWindowLongA(WIN_Handle32(hwnd), offset, HWND_32(newval)));

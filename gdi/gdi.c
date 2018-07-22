@@ -1235,7 +1235,6 @@ HFONT16 WINAPI CreateFont16(INT16 height, INT16 width, INT16 esc, INT16 orient,
 HFONT16 WINAPI CreateFontIndirect16( const LOGFONT16 *plf16 )
 {
     HFONT ret;
-
     if (plf16)
     {
         LOGFONTW lfW;
@@ -1819,7 +1818,8 @@ LONG WINAPI SetBitmapBits16( HBITMAP16 hbitmap, LONG count, LPCVOID buffer )
  */
 INT16 WINAPI AddFontResource16( LPCSTR filename )
 {
-    return AddFontResourceA( filename );
+    ERR("(%s)\n", debugstr_a(filename));
+    return 0;// AddFontResourceA(filename);
 }
 
 
