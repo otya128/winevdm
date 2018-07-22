@@ -31,7 +31,7 @@
 #include "dde.h"
 #include "user_private.h"
 #include "wine/debug.h"
-
+#include "message_table.h"
 WINE_DEFAULT_DEBUG_CHANNEL(msg);
 WINE_DECLARE_DEBUG_CHANNEL(message);
 
@@ -927,8 +927,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     LRESULT ret = 0;
     HWND hwnd32 = WIN_Handle32( hwnd );
 
-    TRACE("(%p, %04X, %04X, %04X, %08X)\n", callback, hwnd, msg, wParam, lParam);
-	if (isListBox(hwnd32) || (call_window_proc_callback == callback && is_listbox_wndproc(arg)))
+    const char *msg_str = message_to_str(msg);
+    TRACE("(%p, %04X, %s(%04X), %04X, %08X)\n", callback, hwnd, msg_str, msg, wParam, lParam);
+    if (isListBox(hwnd32) || (call_window_proc_callback == callback && is_listbox_wndproc(arg)))
 	{
 		BOOL f;
 		ret = listbox_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
@@ -1301,8 +1302,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 {
     LRESULT ret = 0;
 
-    TRACE("(%p, %p, %08X, %08X, %08X)\n", callback, hwnd, msg, wParam, lParam);
-    switch(msg)
+    const char *msg_str = message_to_str(msg);
+    TRACE("(%p, %p, %s(%04X), %08X, %08X)\n", callback, hwnd, msg_str, msg, wParam, lParam);
+    switch (msg)
     {
     case WM_NCCREATE:
     case WM_CREATE:

@@ -47,6 +47,9 @@
     <ClInclude Include="user_private.h">
       <Filter>ソース ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="message_table.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Object Include="user.exe16.obj" />

@@ -97,6 +97,7 @@
     <ClCompile Include="window.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="message_table.h" />
     <ClInclude Include="user_private.h" />
   </ItemGroup>
   <ItemGroup>
