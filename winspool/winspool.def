@@ -1,0 +1,6 @@
+; File generated automatically from winspool.drv16; do not edit!
+
+LIBRARY winspool.drv16
+
+EXPORTS
+  _wine_spec_dos_header @1 DATA PRIVATE
