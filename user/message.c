@@ -275,7 +275,10 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
     return alloc_win16_thunk( winproc );
 }DWORD TEST(WNDPROC16 func)
 {
-    return winproc16_array[winproc_to_index(func) - MAX_WINPROCS32];
+    int index = winproc_to_index(func);
+    if (index == -1)
+        return winproc16_array[index - MAX_WINPROCS32];
+    return winproc16_array[index - MAX_WINPROCS32];
 }
 
 /* call a 16-bit window procedure */
@@ -947,6 +950,20 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     {
         BOOL f;
         ret = button_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
+        if (f)
+            return ret;
+    }
+    if (isEdit(hwnd32) || (call_window_proc_callback == callback && is_edit_wndproc(arg)))
+    {
+        BOOL f;
+        ret = edit_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
+        if (f)
+            return ret;
+    }
+    if (isScrollBar(hwnd32) || (call_window_proc_callback == callback && is_scrollbar_wndproc(arg)))
+    {
+        BOOL f;
+        ret = scrollbar_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
         if (f)
             return ret;
     }
@@ -2760,6 +2777,137 @@ static void edit_destroy_handle( HWND hwnd )
     }
 }
 
+static LRESULT edit_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+, LRESULT *result, void *arg, BOOL *f)
+{
+    static const UINT msg16_offset = EM_GETSEL16 - EM_GETSEL;
+    *f = TRUE;
+
+    //edit_lock_buffer( hwnd );
+    switch (msg)
+    {
+    case EM_SCROLL16:
+    case EM_SCROLLCARET16:
+    case EM_GETMODIFY16:
+    case EM_SETMODIFY16:
+    case EM_GETLINECOUNT16:
+    case EM_GETTHUMB16:
+    case EM_LINELENGTH16:
+    case EM_LIMITTEXT16:
+    case EM_CANUNDO16:
+    case EM_UNDO16:
+    case EM_FMTLINES16:
+    case EM_LINEFROMCHAR16:
+    case EM_SETPASSWORDCHAR16:
+    case EM_EMPTYUNDOBUFFER16:
+    case EM_SETREADONLY16:
+    case EM_GETPASSWORDCHAR16:
+        /* these messages missing from specs */
+    case WM_USER + 15:
+    case WM_USER + 16:
+    case WM_USER + 19:
+    case WM_USER + 26:
+        return callback(hwnd, msg - msg16_offset, wParam, lParam, result, arg);
+    case EM_GETSEL16:
+        return callback(hwnd, msg - msg16_offset, 0, 0, result, arg);
+    case EM_REPLACESEL16:
+    case EM_GETLINE16:
+        return callback(hwnd, msg - msg16_offset, wParam, (LPARAM)MapSL(lParam), result, arg);
+    case EM_LINESCROLL16:
+        return callback(hwnd, msg - msg16_offset, (INT)(SHORT)HIWORD(lParam), (INT)(SHORT)LOWORD(lParam), result, arg);
+        break;
+    case EM_LINEINDEX16:
+        if ((INT16)wParam == -1) wParam = -1;
+        return callback(hwnd, msg - msg16_offset, wParam, lParam, result, arg);
+    case EM_SETSEL16:
+        if ((short)LOWORD(lParam) == -1)
+        {
+            wParam = -1;
+            lParam = 0;
+        }
+        else
+        {
+            wParam = LOWORD(lParam);
+            lParam = HIWORD(lParam);
+        }
+        return callback(hwnd, msg - msg16_offset, wParam, lParam, result, arg);
+    case EM_GETRECT16:
+        if (lParam)
+        {
+            RECT rect;
+            RECT16 *r16 = MapSL(lParam);
+            if (SELECTOROF(r16) == 0x0000)
+            {
+                ERR("EM_GETRECT16:Invalid pointer(%02X:%02X)\n", SELECTOROF(lParam), OFFSETOF(lParam));
+                return 0;
+            }
+            LRESULT a = callback(hwnd, msg - msg16_offset, wParam, (LPARAM)&rect, result, arg);
+            r16->left = rect.left;
+            r16->top = rect.top;
+            r16->right = rect.right;
+            r16->bottom = rect.bottom;
+            return a;
+        }
+        break;
+    case EM_SETRECT16:
+    case EM_SETRECTNP16:
+        if (lParam)
+        {
+            RECT rect;
+            RECT16 *r16 = MapSL(lParam);
+            rect.left = r16->left;
+            rect.top = r16->top;
+            rect.right = r16->right;
+            rect.bottom = r16->bottom;
+            return callback(hwnd, msg - msg16_offset, wParam, (LPARAM)&rect, result, arg);
+        }
+        break;
+    case EM_SETHANDLE16:
+        edit_set_handle(hwnd, (HLOCAL16)wParam);
+        *result = FALSE;
+        return *result;
+    case EM_GETHANDLE16:
+        *result = edit_get_handle(hwnd);
+        return *result;
+    case EM_SETTABSTOPS16:
+    {
+        INT16 *tabs16 = MapSL(lParam);
+        INT i, count = wParam, *tabs = NULL;
+        if (count > 0)
+        {
+            if (!(tabs = HeapAlloc(GetProcessHeap(), 0, count * sizeof(*tabs)))) return 0;
+            for (i = 0; i < count; i++) tabs[i] = tabs16[i];
+        }
+        LRESULT r = callback(hwnd, msg - msg16_offset, wParam, (LPARAM)tabs, result, arg);
+        HeapFree(GetProcessHeap(), 0, tabs);
+        return r;
+    }
+    case EM_GETFIRSTVISIBLELINE16:
+        if (!(GetWindowLongW(hwnd, GWL_STYLE) & ES_MULTILINE)) break;
+        return callback(hwnd, msg - msg16_offset, wParam, lParam, result, arg);
+    case EM_SETWORDBREAKPROC16:
+    {
+        struct word_break_thunk *thunk = add_word_break_thunk((EDITWORDBREAKPROC16)lParam);
+        return callback(hwnd, EM_SETWORDBREAKPROC, wParam, (LPARAM)thunk, result, arg);
+    }
+    case EM_GETWORDBREAKPROC16:
+        callback(hwnd, msg, wParam, lParam, result, arg);
+        *result = (LRESULT)get_word_break_thunk((EDITWORDBREAKPROCA)*result);
+        return *result;
+    case WM_NCDESTROY:
+        edit_destroy_handle(hwnd);
+        return callback(hwnd, msg, wParam, lParam, result, arg);/* no unlock on destroy */
+    case WM_HSCROLL:
+    case WM_VSCROLL:
+        if (LOWORD(wParam) == EM_GETTHUMB16 || LOWORD(wParam) == EM_LINESCROLL16) wParam -= msg16_offset;
+        return callback(hwnd, msg, wParam, lParam, result, arg);
+    }
+    //edit_unlock_buffer( hwnd );
+    *f = FALSE;
+    return result;
+}
+
+
 /*********************************************************************
  *	edit_proc16
  */
@@ -3077,7 +3225,32 @@ static LRESULT mdiclient_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     return wow_handlers32.mdiclient_proc( hwnd, msg, wParam, lParam, unicode );
 }
 
-
+static LRESULT scrollbar_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f)
+{
+    static const UINT msg16_offset = SBM_SETPOS16 - SBM_SETPOS;
+    *f = TRUE;
+    switch (msg)
+    {
+    case SBM_SETPOS16:
+    case SBM_GETPOS16:
+    case SBM_ENABLE_ARROWS16:
+        msg -= msg16_offset;
+        return callback(hwnd, msg, wParam, lParam, result, arg);
+    case SBM_SETRANGE16:
+        msg = wParam ? SBM_SETRANGEREDRAW : SBM_SETRANGE;
+        wParam = LOWORD(lParam);
+        lParam = HIWORD(lParam);
+        return callback(hwnd, msg, wParam, lParam, result, arg);
+    case SBM_GETRANGE16:
+    {
+        INT min, max;
+        callback(hwnd, msg, wParam, lParam, result, arg);
+        return *result = MAKELRESULT(min, max);
+    }
+    }
+    return *f = FALSE;
+}
 /***********************************************************************
  *           scrollbar_proc16
  */
