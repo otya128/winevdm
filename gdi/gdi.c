@@ -1240,6 +1240,9 @@ HFONT16 WINAPI CreateFontIndirect16( const LOGFONT16 *plf16 )
         LOGFONTW lfW;
         logfont_16_to_W( plf16, &lfW );
         ret = CreateFontIndirectW( &lfW );
+        TRACE("(%04X, %04X, %04X, %04X, %04X, %02X, %02X, %02X, %02X, %02X, %02X, %02X, %s) = %04X\n", plf16->lfHeight, plf16->lfWidth, plf16->lfEscapement, plf16->lfOrientation, plf16->lfWeight
+            , plf16->lfItalic, plf16->lfUnderline, plf16->lfStrikeOut, plf16->lfCharSet, plf16->lfOutPrecision, plf16->lfClipPrecision
+            , plf16->lfPitchAndFamily, debugstr_a(plf16->lfFaceName), (int)HFONT_16(ret));
     }
     else ret = CreateFontIndirectW( NULL );
     return HFONT_16(ret);

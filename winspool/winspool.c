@@ -50,7 +50,7 @@ typedef struct {
     INT16   dmTTOption;
 } DEVMODE16, *LPDEVMODE16;
 #pragma pack(pop)
-//sizeof(DEVMODE16) == sizeof(DEVMODEA)
+//sizeof(DEVMODE16) != sizeof(DEVMODEA)
 void DEVMODE16To32(CONST DEVMODE16 *src, LPDEVMODEA dst, LONG extra)
 {
     memcpy(dst->dmDeviceName, src->dmDeviceName, min(CCHDEVICENAME16, CCHDEVICENAME));

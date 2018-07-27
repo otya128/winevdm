@@ -779,10 +779,14 @@ static void set_peb_compatible_flag()
     {
         WINE_ERR("user32.dll has already been loaded.");
     }
+    //ExtractAssociatedIcon
     APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;
     APPCOMPAT_USERFLAGS flags2 = (APPCOMPAT_USERFLAGS)teb->Peb->AppCompatFlagsUser.LowPart;
     APPCOMPAT_USERFLAGS_HIGHPART flags3 = (APPCOMPAT_USERFLAGS_HIGHPART)teb->Peb->AppCompatFlagsUser.HighPart;
     teb->Peb->AppCompatFlagsUser.LowPart |= NoPaddedBorder;
+    //teb->Peb->AppCompatFlagsUser.LowPart = -1;
+    //teb->Peb->AppCompatFlagsUser.HighPart = -1;
+    //teb->Peb->AppCompatFlags.LowPart = -1;
 }
 //
 /***********************************************************************
