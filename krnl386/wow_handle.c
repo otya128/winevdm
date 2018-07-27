@@ -33,9 +33,27 @@ typedef struct
 } HANDLE_DATA;
 HANDLE_DATA handle_hwnd[65536];
 WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o);
+BOOL is_reserved_handle32(HANDLE h)
+{
+    SSIZE_T signedh = (SSIZE_T)h;
+    if (signedh <= HANDLE_RESERVED && signedh >= -HANDLE_RESERVED)
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+BOOL is_reserved_handle16(HANDLE16 h)
+{
+    INT16 signedh = (INT16)h;
+    if (signedh <= HANDLE_RESERVED && signedh >= -HANDLE_RESERVED)
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
 WORD get_handle16(HANDLE h, HANDLE_DATA handles[])
 {
-	if (h < HANDLE_RESERVED)
+	if (is_reserved_handle32(h))
 	{
 		return h;
 	}
@@ -47,7 +65,7 @@ WORD get_handle16(HANDLE h, HANDLE_DATA handles[])
 WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o)
 {
 	//?
-	if (h < HANDLE_RESERVED)
+	if (is_reserved_handle32(h))
 	{
 		*o = &handles[(size_t)h];
 		return h;
@@ -80,7 +98,7 @@ BOOL get_handle32_data(WORD h, HANDLE_DATA handles[], HANDLE_DATA **o)
         *o = NULL;
         return FALSE;
     }
-    if (h < HANDLE_RESERVED)
+    if (is_reserved_handle16(h))
 	{
 		*o = &handles[(size_t)h];
 		(*o)->handle32 = h;
@@ -91,7 +109,7 @@ BOOL get_handle32_data(WORD h, HANDLE_DATA handles[], HANDLE_DATA **o)
 }
 HANDLE get_handle32(WORD h, HANDLE_DATA handles[])
 {
-	if (h < HANDLE_RESERVED)
+	if (is_reserved_handle16(h))
 	{
 		return h;
 	}
