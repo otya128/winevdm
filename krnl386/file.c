@@ -765,6 +765,17 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
         }
         return 0;
     }
+    if (!strcmpi(section, "windows") && !strcmpi(entry, "device") && !strcmpi("win.ini", PathFindFileNameA(filename)))
+    {
+        /*GetProfileString("windows", "device", ..., "...\\win.ini")
+        returns "Microsoft Print to PDF,winspool,Ne01:" (windows 10)*/
+        INT16 result = GetPrivateProfileStringA(section, entry, def_val, buffer, len, filename);
+        if (len >= strlen("Microsoft Print to PDF,winspool,Ne01:") + 1)
+        {
+            strcpy(buffer, "Microsoft Print to PDF,winspool,Ne01:");
+        }
+        return result;
+    }
     return GetPrivateProfileStringA( section, entry, def_val, buffer, len, filename );
 }
 
