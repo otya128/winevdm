@@ -3192,6 +3192,8 @@ LRESULT CALLBACK CBTHook(
     }
     return FALSE;
 }
+//reactos sdk/include/reactos/undocuser.h
+#define WM_SETVISIBLE 0x009
 LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
 {
     if (code < 0)
@@ -3199,18 +3201,24 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
     if (code == HC_ACTION) {
         if (wParam == NULL) {
             CWPSTRUCT *pcwp = (CWPSTRUCT *)lParam;
-            if (isStatic(pcwp->hwnd))
+            //I don't know.
+            if (pcwp->message == WM_SHOWWINDOW)
             {
-                SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, static_wndproc16);
+                //see 42353ecbadd096358f250a9dd931d4cf0981b417 reactos win32ss/user/ntuser/winpos.c:2551
+                SendMessageA(pcwp->hwnd, WM_SETVISIBLE, pcwp->wParam, 0);
             }
-            if (isListBox(pcwp->hwnd))
-            {
-                //SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, listbox_wndproc16);
-            }
-            if (isButton(pcwp->hwnd))
-            {
-                SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, button_wndproc16);
-            }
+            //if (isStatic(pcwp->hwnd))
+            //{
+            //    SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, static_wndproc16);
+            //}
+            //if (isListBox(pcwp->hwnd))
+            //{
+            //    //SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, listbox_wndproc16);
+            //}
+            //if (isButton(pcwp->hwnd))
+            //{
+            //    SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, button_wndproc16);
+            //}
         }
     }
 
