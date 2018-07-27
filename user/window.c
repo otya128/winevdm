@@ -69,8 +69,15 @@ static BOOL CALLBACK wnd_enum_callback( HWND hwnd, LPARAM param )
 /* convert insert after window handle to 32-bit */
 static inline HWND full_insert_after_hwnd( HWND16 hwnd )
 {
+    if (hwnd == (HWND)0xffff)
+        return HWND_TOPMOST;
+    if (hwnd == (HWND)0xfffe)
+        return HWND_NOTOPMOST;
+    if (hwnd == (HWND)HWND_TOP)
+        return HWND_TOP;
+    if (hwnd == (HWND)HWND_BOTTOM)
+        return HWND_BOTTOM;
     HWND ret = WIN_Handle32( hwnd );
-    if (ret == (HWND)0xffff) ret = HWND_TOPMOST;
     return ret;
 }
 
@@ -888,6 +895,7 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
         size_t siz = GetClassLongA(WIN_Handle32(hwnd), GCL_CBWNDEXTRA);
         if (siz + sizeof(WORD) < offset)
         {
+            ERR("(0x%04X, %d) Out of range\n", hwnd, offset);
             return 0;
         }
         if (!hwndwordbuf[hwnd])
@@ -933,6 +941,7 @@ WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
         size_t siz = GetClassLongA(WIN_Handle32(hwnd), GCL_CBWNDEXTRA);
         if (siz + sizeof(WORD) < offset)
         {
+            ERR("(0x%04X, %d, 0x%04X) Out of range\n", hwnd, offset, newval);
             return 0;
         }
         if (!hwndwordbuf[hwnd])
@@ -993,6 +1002,7 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
             }
             else
             {
+                ERR("(0x%04X, %d) Out of range\n", hwnd, offset);
                 SetLastError( ERROR_INVALID_INDEX );
                 return 0;
             }
