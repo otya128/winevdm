@@ -1,0 +1,6 @@
+; File generated automatically from ole2conv\ole2conv.dll16.spec; do not edit!
+
+LIBRARY ole2conv\ole2conv.dll16.spec
+
+EXPORTS
+  _wine_spec_dos_header @1 DATA PRIVATE
