@@ -3366,9 +3366,9 @@ LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     return edit_proc16(hwnd, msg, wParam, lParam, FALSE);
 }
 LRESULT CALLBACK CBTHook(
-    int nCode,      // フックコード
-    WPARAM wParam,  // フックコードに依存
-    LPARAM lParam   // フックコードに依存
+    int nCode,
+    WPARAM wParam,
+    LPARAM lParam
 )
 {
     if (nCode < 0)
@@ -3388,7 +3388,7 @@ LRESULT CALLBACK CBTHook(
     return FALSE;
 }
 //reactos sdk/include/reactos/undocuser.h
-#define WM_SETVISIBLE 0x009
+#define WM_SETVISIBLE 0x0009
 LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
 {
     if (code < 0)
