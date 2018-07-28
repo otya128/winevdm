@@ -800,10 +800,18 @@ extern "C"
         }
         WORD reg_fs = 0;
         WORD reg_gs = 0;
+        WORD reg_cs = 0;
+        WORD reg_ss = 0;
+        WORD reg_ds = 0;
+        WORD reg_es = 0;
         __asm
         {
             mov reg_fs, fs;
             mov reg_gs, gs;
+            mov reg_cs, cs;
+            mov reg_ss, ss;
+            mov reg_ds, ds;
+            mov reg_es, es;
         }
 
         wine_ldt[reg_gs >> 3].HighWord.Bits.Type = 0x18;
@@ -823,6 +831,26 @@ extern "C"
         wine_ldt[reg_fs >> 3].HighWord.Bits.Default_Big = 1;
         wine_ldt[reg_fs >> 3].HighWord.Bits.Granularity = 1;
         wine_ldt[reg_fs >> 3].HighWord.Bits.Dpl = m_CPL;
+
+
+        wine_ldt[reg_cs >> 3].HighWord.Bits.Type = 0x18;
+        wine_ldt[reg_cs >> 3].HighWord.Bits.Pres = 1;
+        wine_ldt[reg_cs >> 3].HighWord.Bits.Sys = 1;
+        wine_ldt[reg_cs >> 3].LimitLow = 0xFFFF;
+        wine_ldt[reg_cs >> 3].HighWord.Bits.LimitHi = 0xFFFF;
+        wine_ldt[reg_cs >> 3].HighWord.Bits.Default_Big = 1;
+        wine_ldt[reg_cs >> 3].HighWord.Bits.Granularity = 1;
+        wine_ldt[reg_cs >> 3].HighWord.Bits.Dpl = m_CPL;
+
+
+        wine_ldt[reg_ds >> 3].HighWord.Bits.Type = 0x18;
+        wine_ldt[reg_ds >> 3].HighWord.Bits.Pres = 1;
+        wine_ldt[reg_ds >> 3].HighWord.Bits.Sys = 1;
+        wine_ldt[reg_ds >> 3].LimitLow = 0xFFFF;
+        wine_ldt[reg_ds >> 3].HighWord.Bits.LimitHi = 0xFFFF;
+        wine_ldt[reg_ds >> 3].HighWord.Bits.Default_Big = 1;
+        wine_ldt[reg_ds >> 3].HighWord.Bits.Granularity = 1;
+        wine_ldt[reg_ds >> 3].HighWord.Bits.Dpl = m_CPL;
 #if defined(HAS_I386)
 		cpu_type = (REG32(EDX) >> 8) & 0x0f;
 		cpu_step = (REG32(EDX) >> 0) & 0x0f;
@@ -1365,14 +1393,14 @@ extern "C"
 #endif
                         result = i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
                     int opsize = result & 0xFF;
-                    while (opsize--)
+                    /*while (opsize--)
                     {
 						if (dasm_buffering)
 							dbuf += sprintf(dbuf, "%02X", *oprom);
 						else
 	                        fprintf(stderr, "%02X", *oprom);
                         oprom++;
-                    }
+                    }*/
 					if (dasm_buffering)
 						dbuf += sprintf(dbuf, "\t%s\n", buffer);
 					else
