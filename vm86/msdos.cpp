@@ -758,9 +758,9 @@ extern "C"
 		CPU_RESET_CALL(CPU_MODEL);
         UINT8 *base = 0;//mem;
 		m_idtr.base = (UINT32)(table - base);
-        m_ldtr.limit = 8192;
+        m_ldtr.limit = 65535;
         m_ldtr.base = (UINT32)((UINT8*)&wine_ldt - base);
-        m_gdtr.limit = 8192;
+        m_gdtr.limit = 65535;
         m_gdtr.base = (UINT32)((UINT8*)&wine_ldt - base);
         m_CPL = 3;
         wine_ldt[4].HighWord.Bits.Type = 0x18;
