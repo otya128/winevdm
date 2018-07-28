@@ -85,7 +85,7 @@ BOOL16  WINAPI IMPQueryIME16(IN OUT LPIMEPRO16 lpIMEPro)
         return FALSE;
 	IMEPRO16ToIMEPRO(lpIMEPro, &imepro32);
 	BOOL ret = IMPQueryIMEA(&imepro32);
-	TRACE("IMPQueryIME16(0x%p) ret{0x%p, \"%s\", \"%s\", \"%s\", %d}\n", lpIMEPro, imepro32.hWnd, imepro32.szDescription, imepro32.szName, imepro32.szOptions, imepro32.wVersion);
+    ERR("IMPQueryIME16(0x%p) ret{0x%p, \"%s\", \"%s\", \"%s\", %d}\n", lpIMEPro, imepro32.hWnd, imepro32.szDescription, imepro32.szName, imepro32.szOptions, imepro32.wVersion);
 	IMEPROToIMEPRO16(&imepro32, lpIMEPro);
 	return ret;
 }
@@ -93,6 +93,7 @@ BOOL WINAPI IMPGetIME16(IN HWND16 hWnd, OUT LPIMEPRO16 lpIMEPro)
 {
 	IMEPROA imepro32;
 	BOOL ret = IMPGetIMEA(HWND_32(hWnd), &imepro32);
+    ERR("\n");
 	IMEPROToIMEPRO16(&imepro32, lpIMEPro);
 	return ret;
 }
@@ -100,6 +101,7 @@ BOOL  WINAPI IMPSetIME16(IN HWND16 hWnd, IN LPIMEPRO16 lpIMEPro)
 {
 	IMEPROA imepro32;
 	IMEPRO16ToIMEPRO(lpIMEPro, &imepro32);
+    ERR("\n");
 	return IMPSetIMEA(HWND_32(hWnd), &imepro32);
 }
 BOOL WINAPI IMPModifyIME16(LPSTR lpStr, IN LPIMEPRO lpIMEPro)
@@ -156,6 +158,7 @@ LRESULT WINAPI SendIMEMessage16(HWND16 a1, WPARAM16 a2, WPARAM16 a3)
     ERR("NOTIMPL:SendIMEMessage16(%04X, %04X, %04X)\n", a1, a2, a3);
     return SendIMEMessageEx16(a1, a2 << 16 | a3);
 }
+#include <pshpack1.h>
 typedef struct tagIMESTRUCT16 {
     UINT16   fnc;        // function code
     WPARAM16 wParam;     // word parameter
@@ -166,6 +169,8 @@ typedef struct tagIMESTRUCT16 {
     LPARAM   lParam2;
     LPARAM   lParam3;
 } IMESTRUCT16, *PIMESTRUCT16, NEAR *NPIMESTRUCT16, FAR *LPIMESTRUCT16;
+C_ASSERT(sizeof(IMESTRUCT16) == 0x16);
+#include <poppack.h>
 LRESULT WINAPI SendIMEMessageEx16(
     _In_ HWND16   hwnd,
     _In_ LPARAM lParam
@@ -196,7 +201,7 @@ LRESULT WINAPI SendIMEMessageEx16(
         {
         case MCW_WINDOW:
         {
-            TRACE("MCW_WINDOW(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            ERR("MCW_WINDOW(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             COMPOSITIONFORM c = { 0 };
             c.dwStyle = CFS_FORCE_POSITION;
             c.ptCurrentPos.x = (lpime->lParam1 >> 16) & ~0x800;
@@ -208,34 +213,72 @@ LRESULT WINAPI SendIMEMessageEx16(
         }
             break;
         case MCW_DEFAULT:
-            TRACE("MCW_DEFAULT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            ERR("MCW_DEFAULT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_RECT:
-            TRACE("MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            ERR("MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_SCREEN:
-            TRACE("MCW_SCREEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            ERR("MCW_SCREEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_VERTICAL:
-            TRACE("MCW_VERTICAL(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            ERR("MCW_VERTICAL(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_HIDDEN:
-            TRACE("MCW_HIDDEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            ERR("MCW_HIDDEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_WINDOW | MCW_RECT:
-            TRACE("MCW_WINDOW | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            ERR("MCW_WINDOW | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_SCREEN | MCW_RECT:
-            TRACE("MCW_SCREEN | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            ERR("MCW_SCREEN | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         default:
             break;
         }
     }
         break;
+    case IME_ENTERWORDREGISTERMODE:
+        ERR("IME_ENTERWORDREGISTERMODE\n");
+        break;
+    case IME_GETCONVERSIONMODE:
+        ERR("IME_GETCONVERSIONMODE\n");
+        break;
+    case IME_SETCONVERSIONFONTEX:
+        ERR("IME_SETCONVERSIONFONTEX\n");
+        break;
+    case IME_SETCONVERSIONMODE:
+        ERR("IME_SETCONVERSIONMODE\n");
+        break;
+    //case IME_SETLEVEL:
+    //    ERR("IME_SETLEVEL\n");
+    //    break;
+    case IME_GETOPEN:
+        ERR("IME_GETOPEN\n");
+        break;
+    case IME_SETOPEN:
+        ERR("IME_SETOPEN\n");
+        break;
+    case IME_GETVERSION:
+        ERR("IME_GETVERSION\n");
+        break;
+    case IME_SET_MODE:
+        ERR("IME_SET_MODE\n");
+        break;
+    case IME_GETIMECAPS:
+        ERR("IME_GETIMECAPS\n");
+        break;
+    case IME_SENDVKEY:
+        ERR("IME_SENDVKEY\n");
+        break;
+    //case IME_SET_MODEK:
+    //    ERR("IME_SET_MODEK\n");
+    //  break;
     default:
+        ERR("unknown %04x\n", lpime->fnc);
         break;
     }
+    ERR("(%04x,%04x,%04x,%04x,%04x,%08x,%08x,%08x)\n", lpime->fnc, lpime->wParam, lpime->wCount, lpime->dchSource, lpime->dchDest, lpime->lParam1, lpime->lParam2, lpime->lParam3);
     LRESULT ret = SendIMEMessageExA(hwnd32, (LPARAM)hglobal32);
     lpime->fnc = lpime32->fnc;
     lpime->wParam = lpime32->wParam;
@@ -245,6 +288,8 @@ LRESULT WINAPI SendIMEMessageEx16(
     lpime->lParam1 = lpime32->lParam1;
     lpime->lParam2 = lpime32->lParam2;
     lpime->lParam3 = lpime32->lParam3;
+    ERR("(%04x,%04x,%04x,%04x,%04x,%08x,%08x,%08x) retval=%08x\n", lpime->fnc, lpime->wParam, lpime->wCount, lpime->dchSource, lpime->dchDest, lpime->lParam1, lpime->lParam2, lpime->lParam3, ret);
+    lpime->wParam = 0;
     GlobalUnlock(hglobal32);
     GlobalUnlock16(hglobal);
     GlobalFree(hglobal32);
