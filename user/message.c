@@ -3383,8 +3383,6 @@ LRESULT CALLBACK CBTHook(
     if (nCode == HCBT_CREATEWND)
     {
         HWND hWnd = (HWND)wParam;
-        SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
-        SetWindowTheme(hWnd, L"", L"");
         if (isEdit(hWnd))
         {
             SetWindowLongPtrA(hWnd, GWLP_WNDPROC, edit_wndproc16);
@@ -3406,6 +3404,8 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
             {
                 //see 42353ecbadd096358f250a9dd931d4cf0981b417 reactos win32ss/user/ntuser/winpos.c:2551
                 SendMessageA(pcwp->hwnd, WM_SETVISIBLE, pcwp->wParam, 0);
+                SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
+                SetWindowTheme(pcwp->hwnd, L"", L"");
             }
             //if (isStatic(pcwp->hwnd))
             //{
