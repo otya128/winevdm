@@ -2227,20 +2227,19 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
 
     if (!IS_INTRESOURCE(className))
     {
-		//remove wide
-        //WCHAR bufferW[256];
-
-        //if (!MultiByteToWideChar( CP_ACP, 0, className, -1, bufferW, sizeof(bufferW)/sizeof(WCHAR) ))
-        //    return 0;
-        //hwnd = create_window16( (CREATESTRUCTW *)&cs, bufferW, HINSTANCE_32(instance), FALSE );
-        hwnd = create_window16( (CREATESTRUCTW *)&cs, className, HINSTANCE_32(instance), FALSE );
     }
     else
     {
         if (!GlobalGetAtomNameA( LOWORD(className), buffer, sizeof(buffer) )) return 0;
         cs.lpszClass = buffer;
-        hwnd = create_window16( (CREATESTRUCTW *)&cs, (LPCWSTR)className, HINSTANCE_32(instance), FALSE );
     }
+    WNDCLASSA wndclass;
+    //reactos win32ss/user/ntuser/window.c
+    if (GetClassInfoExA(cs.hInstance, cs.lpszClass, &wndclass) && cs.hwndParent && (wndclass.style & CS_PARENTDC) && !(GetWindowLongA(cs.hwndParent, GWL_STYLE)  & WS_CLIPCHILDREN))
+    {
+        cs.style &= ~(WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+    }
+    hwnd = create_window16((CREATESTRUCTW *)&cs, (LPCWSTR)className, HINSTANCE_32(instance), FALSE);
 	HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);

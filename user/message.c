@@ -1304,7 +1304,10 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         break;
     case WM_SETICON:
         ret = callback(hwnd32, msg, wParam, get_icon_32(lParam), result, arg);
-        ERR("SI %x\n", lParam);
+        break;
+    case WM_QUERYDRAGICON:
+        ret = callback(hwnd32, msg, wParam, lParam, result, arg);
+        *result = get_icon_16(*result);
         break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
@@ -1898,6 +1901,10 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         break;
     case WM_SETICON:
         ret = callback(HWND_16(hwnd), msg, wParam, get_icon_16(lParam), result, arg);
+        break;
+    case WM_QUERYDRAGICON:
+        ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
+        *result = get_icon_32(*result);
         break;
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
