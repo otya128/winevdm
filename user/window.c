@@ -773,7 +773,6 @@ void WINAPI ValidateRgn16( HWND16 hwnd, HRGN16 hrgn )
     RedrawWindow16( hwnd, NULL, hrgn, RDW_VALIDATE | RDW_NOCHILDREN );
 }
 
-
 /**************************************************************************
  *              GetClassWord   (USER.129)
  */
@@ -790,6 +789,8 @@ WORD WINAPI GetClassWord16( HWND16 hwnd, INT16 offset )
     case GCLP_HICONSM:
         icon = (HICON)GetClassLongPtrW( WIN_Handle32(hwnd), offset );
         return get_icon_16( icon );
+    case GCLP_HBRBACKGROUND:
+        return HBRUSH_16(GetClassLongPtrW(WIN_Handle32(hwnd), offset));
     }
     return GetClassWord( WIN_Handle32(hwnd), offset );
 }
@@ -809,6 +810,8 @@ WORD WINAPI SetClassWord16( HWND16 hwnd, INT16 offset, WORD newval )
     case GCLP_HICONSM:
         icon = (HICON)SetClassLongPtrW( WIN_Handle32(hwnd), offset, (ULONG_PTR)get_icon_32(newval) );
         return get_icon_16( icon );
+    case GCLP_HBRBACKGROUND:
+        return HBRUSH_16(SetClassLongPtrW(WIN_Handle32(hwnd), offset, HBRUSH_16(newval)));
     }
     return SetClassWord( WIN_Handle32(hwnd), offset, newval );
 }
@@ -885,7 +888,7 @@ LONG WINAPI SetClassLong16( HWND16 hwnd16, INT16 offset, LONG newval )
             return old;//(LONG)WINPROC_GetProc16(old_proc, FALSE);
         }
     case GCLP_HBRBACKGROUND:
-        return SetClassLongA(WIN_Handle32(hwnd16), offset, HBRUSH_32(newval));
+        return HBRUSH_32(SetClassLongA(WIN_Handle32(hwnd16), offset, HBRUSH_32(newval)));
     case GCLP_MENUNAME:
         newval = (LONG)MapSL( newval );
         /* fall through */
