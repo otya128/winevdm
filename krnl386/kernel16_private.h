@@ -453,9 +453,10 @@ typedef struct
 	DWORD        vm86_pending;
 } WINE_VM86_TEB_INFO;
 
+__declspec(dllexport) WINE_VM86_TEB_INFO *getGdiTebBatch();
 static inline WINE_VM86_TEB_INFO *get_vm86_teb_info(void)
 {
-	return (WINE_VM86_TEB_INFO *)&NtCurrentTeb()->GdiTebBatch;
+    return getGdiTebBatch();// (WINE_VM86_TEB_INFO *)&NtCurrentTeb()->GdiTebBatch;
 }
 
 /* The thread information for 16-bit threads */
@@ -723,9 +724,10 @@ struct kernel_thread_data
     void               *pad[45];        /* change this if you add fields! */
 };
 
+__declspec(dllexport) struct kernel_thread_data *tls_get_kernel_thread_data();
 static inline struct kernel_thread_data *kernel_get_thread_data(void)
 {
-    return (struct kernel_thread_data *)NtCurrentTeb()->SystemReserved1;
+    return tls_get_kernel_thread_data();//(struct kernel_thread_data *)NtCurrentTeb()->SystemReserved1;
 }
 
 //#define DEFINE_REGS_ENTRYPOINT( name, args ) \

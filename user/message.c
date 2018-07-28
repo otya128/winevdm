@@ -2109,8 +2109,13 @@ BOOL16 WINAPI GetMessage32_16( MSG32_16 *msg16, HWND16 hwnd16, UINT16 first,
 
     if(USER16_AlertableWait)
         MsgWaitForMultipleObjectsEx( 0, NULL, INFINITE, 0, MWMO_ALERTABLE );
-    WOWYield16();
-    GetMessageA( &msg, hwnd, first, last );
+
+    DWORD count;
+
+    //Yield
+    ReleaseThunkLock(&count);
+    GetMessageA(&msg, hwnd, first, last);
+    RestoreThunkLock(count);
     msg16->msg.time    = msg.time;
     msg16->msg.pt.x    = (INT16)msg.pt.x;
     msg16->msg.pt.y    = (INT16)msg.pt.y;

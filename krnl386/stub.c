@@ -234,3 +234,15 @@ __declspec(dllexport) PVOID setWOW32Reserved(PVOID w)
 {
 	return WOW32Reserved = w;
 }
+
+__declspec(thread) WINE_VM86_TEB_INFO GdiTebBatch;
+__declspec(dllexport) WINE_VM86_TEB_INFO *getGdiTebBatch()
+{
+    return &GdiTebBatch;
+}
+__declspec(thread) struct kernel_thread_data tls_kernel_thread_data;
+
+__declspec(dllexport) struct kernel_thread_data *tls_get_kernel_thread_data()
+{
+    return &tls_kernel_thread_data;
+}

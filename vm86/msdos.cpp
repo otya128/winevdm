@@ -534,6 +534,16 @@ extern "C"
 		}
 		return getWOW32Reserved();
 	}
+    WINE_VM86_TEB_INFO *dynamic_getGdiTebBatch()
+    {
+        static WINE_VM86_TEB_INFO*(*getGdiTebBatch)();
+        if (!getGdiTebBatch)
+        {
+            HMODULE krnl386 = LoadLibraryA(KRNL386);
+            getGdiTebBatch = (WINE_VM86_TEB_INFO*(*)())GetProcAddress(krnl386, "getGdiTebBatch");
+        }
+        return getGdiTebBatch();
+    }
 	void dynamic__wine_call_int_handler(CONTEXT *context, BYTE intnum)
 	{
 		static void(*WINAPI __wine_call_int_handler)(CONTEXT *context, BYTE intnum);
@@ -1028,7 +1038,7 @@ extern "C"
 			//dasm = true;
 			while (!m_halted) {
                 //merge_vm86_pending_flags
-                if (get_vm86_teb_info()->vm86_pending & 0x100000)//VIP flag
+                if (dynamic_getGdiTebBatch()->vm86_pending & 0x100000)//VIP flag
                 {
                     if (!V8086_MODE)
                     {
@@ -1043,7 +1053,7 @@ extern "C"
                         * we are returning from exception handler, pending events
                         * will be rechecked after each raised exception.
                         */
-                        while (check_pending && get_vm86_teb_info()->vm86_pending)
+                        while (check_pending && dynamic_getGdiTebBatch()->vm86_pending)
                         {
                             check_pending = FALSE;
 
@@ -1067,7 +1077,7 @@ extern "C"
                                 rec->ExceptionAddress = (LPVOID)vcontext.Eip;
 
                                 vcontext.EFlags &= ~0x100000;
-                                get_vm86_teb_info()->vm86_pending = 0;
+                                dynamic_getGdiTebBatch()->vm86_pending = 0;
                                 //dosvm.c exception_handler
                                 CONTEXT *ppcontext = &vcontext;
                                 ULONG exception_args[1 + sizeof(CONTEXT*) / sizeof(ULONG)] = {};
@@ -1087,7 +1097,7 @@ extern "C"
                         * that the following operation compiles into atomic
                         * instruction.
                         */
-                        set_flags(get_flags() | get_vm86_teb_info()->vm86_pending);
+                        set_flags(get_flags() | dynamic_getGdiTebBatch()->vm86_pending);
                     }
                 }
 				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
