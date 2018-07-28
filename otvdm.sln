@@ -277,14 +277,29 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "winspool", "winspool\winspo
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ole2conv", "ole2conv\ole2conv.vcxproj", "{90843552-9BC9-4DF2-AFC5-F4ECEDDF7E58}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3F34C25-272C-4E4F-9B6F-BE7ABB472966} = {D3F34C25-272C-4E4F-9B6F-BE7ABB472966}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ole2disp", "ole2disp\ole2disp.vcxproj", "{2D769A3B-881A-4307-B6C9-02EBC61211A4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3F34C25-272C-4E4F-9B6F-BE7ABB472966} = {D3F34C25-272C-4E4F-9B6F-BE7ABB472966}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ole2nls", "ole2nls\ole2nls.vcxproj", "{504CC4CA-612C-4681-AD9A-90E51785A5D2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3F34C25-272C-4E4F-9B6F-BE7ABB472966} = {D3F34C25-272C-4E4F-9B6F-BE7ABB472966}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ole2prox", "ole2prox\ole2prox.vcxproj", "{6139024B-2348-440D-9192-3A40C3CE31B5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3F34C25-272C-4E4F-9B6F-BE7ABB472966} = {D3F34C25-272C-4E4F-9B6F-BE7ABB472966}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ole2thx", "ole2thx\ole2thx.vcxproj", "{94C8AE24-778A-4FEB-B3E1-457BDCCE06DF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3F34C25-272C-4E4F-9B6F-BE7ABB472966} = {D3F34C25-272C-4E4F-9B6F-BE7ABB472966}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
