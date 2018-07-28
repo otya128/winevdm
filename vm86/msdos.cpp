@@ -924,7 +924,8 @@ extern "C"
         WORD ip = POP16();
         WORD cs = POP16();
         WORD flags = POP16();
-        ULONG_PTR arguments[6] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags };
+        PSTR dasm = (PSTR)calloc(256, 1);
+        ULONG_PTR arguments[7] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags, (ULONG_PTR)dasm };
         m_eip = ip;
         m_sreg[CS].selector = cs;
         i386_load_segment_descriptor(CS);
@@ -951,6 +952,7 @@ extern "C"
                 result = i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
 
             int opsize = result & 0xFF;
+            memcpy(dasm, buffer, sizeof(buffer));
             if ((int)ip + opsize <= 0xFFFF)
             {
                 ip += opsize;
@@ -964,7 +966,7 @@ extern "C"
 
         }
         set_flags(flags);
-        RaiseException(EXCEPTION_PROTECTED_MODE, 0, 6, arguments);
+        RaiseException(EXCEPTION_PROTECTED_MODE, 0, sizeof(arguments) / sizeof(ULONG_PTR), arguments);
     }
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE er);
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
@@ -1523,7 +1525,9 @@ extern "C"
             WORD ip = (WORD)rec->ExceptionInformation[3];
             WORD cs = (WORD)rec->ExceptionInformation[4];
             WORD flags = (WORD)rec->ExceptionInformation[5];
-            sprintf(buf_pre, "Interrupt %02X %s (%04X:%04X) flags %04X err %04X\n", num, name, cs, ip, flags, err);
+            LPSTR dasm = (LPSTR)rec->ExceptionInformation[6];
+            sprintf(buf_pre, "Interrupt %02X %s (%04X:%04X) flags %04X err %04X\n%s\n", num, name, cs, ip, flags, err, dasm);
+            free(dasm);
         }
         else
         {
