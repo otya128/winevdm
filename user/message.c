@@ -3489,7 +3489,11 @@ BOOL WINAPI DllMain(
 }
 BOOL16 WINAPI WaitMessage16()
 {
-	return WaitMessage();
+    DWORD lock;
+    ReleaseThunkLock(&lock);
+	BOOL ret = WaitMessage();
+    RestoreThunkLock(lock);
+    return ret;
 }
 /***********************************************************************
  *           wait_message16
