@@ -774,12 +774,15 @@ HINSTANCE16 WINAPI ShellExecute16( HWND16 hWnd, LPCSTR lpOperation,
     {
         return HINSTANCE_16(rret1632);
     }
+    if (rret1632 == ERROR_FILE_NOT_FOUND)
+    {
+        return rret1632;
+    }
 	HINSTANCE rret = ShellExecuteA(HWND_32(hWnd), lpOperation, lpFile, lpParameters,
 		lpDirectory, iShowCmd);
 	if (GetLastError() == 0x000000d8)
 	{
-		return HINSTANCE_16(WOWShellExecute(HWND_32(hWnd), lpOperation, lpFile, lpParameters,
-			lpDirectory, iShowCmd, SHELL_Execute16));
+        return (HINSTANCE16)rret;
 	}
 	else
 	{

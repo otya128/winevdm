@@ -11,6 +11,7 @@
 #include "wine/list.h"
 #include "wine/debug.h"
 #include "shellapi.h"
+#include "stdlib.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winoldap);
 
@@ -85,6 +86,19 @@ WORD WINAPI WinMain16(HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD sh
 
     WINE_TRACE("%x %x %s %u\n", inst, prev, wine_dbgstr_a(cmdline), show);
 
+    if (!memcmp("-WoAWoW32", cmdline, sizeof("-WoAWoW32") / sizeof(char) - sizeof(char)))
+    {
+        HANDLE handle;
+        handle = (HANDLE)strtoull(cmdline + sizeof("-WoAWoW32") / sizeof(char) - sizeof(char), NULL, 16);
+        DWORD count;
+        ReleaseThunkLock(&count);
+        WaitForSingleObject(handle, INFINITE);
+        RestoreThunkLock(count);
+        DWORD exit = 0;
+        if (GetExitCodeProcess(handle, &exit))
+            return exit;
+        return 1;
+    }
     memset(&startup, 0, sizeof(startup));
     startup.cb = sizeof(startup);
 

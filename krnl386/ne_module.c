@@ -39,6 +39,7 @@
 #include "kernel16_private.h"
 #include "wine/exception.h"
 #include "wine/debug.h"
+#include "winuser.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(module);
 WINE_DECLARE_DEBUG_CHANNEL(loaddll);
@@ -1187,6 +1188,71 @@ static HINSTANCE16 NE_CreateThread( NE_MODULE *pModule, WORD cmdShow, LPCSTR cmd
 }
 
 
+
+typedef struct tagLOADPARMS32 {
+    LPSTR lpEnvAddress;
+    LPSTR lpCmdLine;
+    LPSTR lpCmdShow;
+    DWORD dwReserved;
+} LOADPARMS32;
+/**********************************************************************
+*	    LoadModule    (KERNEL32.@)
+*/
+HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HANDLE *result)
+{
+    LOADPARMS32 *params = paramBlock;
+    PROCESS_INFORMATION info;
+    STARTUPINFOA startup;
+    DWORD ret;
+    LPSTR cmdline, p;
+    char filename[MAX_PATH];
+    BYTE len;
+
+    if (!name) return ERROR_FILE_NOT_FOUND;
+
+    if (!SearchPathA(NULL, name, ".exe", sizeof(filename), filename, NULL) &&
+        !SearchPathA(NULL, name, NULL, sizeof(filename), filename, NULL))
+        return GetLastError();
+
+    len = (BYTE)params->lpCmdLine[0];
+    if (!(cmdline = HeapAlloc(GetProcessHeap(), 0, strlen(filename) + len + 2)))
+        return ERROR_NOT_ENOUGH_MEMORY;
+
+    strcpy(cmdline, filename);
+    p = cmdline + strlen(cmdline);
+    *p++ = ' ';
+    memcpy(p, params->lpCmdLine + 1, len);
+    p[len] = 0;
+
+    memset(&startup, 0, sizeof(startup));
+    startup.cb = sizeof(startup);
+    if (params->lpCmdShow)
+    {
+        startup.dwFlags = STARTF_USESHOWWINDOW;
+        startup.wShowWindow = ((WORD *)params->lpCmdShow)[1];
+    }
+
+    if (CreateProcessA(filename, cmdline, NULL, NULL, FALSE, 0,
+        params->lpEnvAddress, NULL, &startup, &info))
+    {
+        /* Give 30 seconds to the app to come up */
+        if (WaitForInputIdle(info.hProcess, 30000) == WAIT_FAILED)
+            WARN("WaitForInputIdle failed: Error %d\n", GetLastError());
+        ret = info.hProcess;
+        /* Close off the handles */
+        CloseHandle(info.hThread);
+        *result = info.hProcess;
+        ret = 33;
+    }
+    else if ((ret = GetLastError()) >= 32)
+    {
+        FIXME("Strange error set by CreateProcess: %u\n", ret);
+        ret = 11;
+    }
+
+    HeapFree(GetProcessHeap(), 0, cmdline);
+    return ret;
+}
 LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 /**********************************************************************
  *          LoadModule      (KERNEL.45)
@@ -1223,8 +1289,30 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
     {
         /* Main case: load first instance of NE module */
 
-        if ( (hModule = MODULE_LoadModule16( name, FALSE, lib_only )) < 32 )
+        if ((hModule = MODULE_LoadModule16(name, FALSE, lib_only)) < 32)
+        {
+            if (hModule == 21/*win32*/)
+            {
+                params = paramBlock;
+                LOADPARMS32 paramBlock32;
+                paramBlock32.lpEnvAddress = GlobalLock16(params->hEnvironment);
+                DWORD showCmd32[2];
+                paramBlock32.lpCmdLine = MapSL(params->cmdLine);
+                paramBlock32.lpCmdShow = MapSL(params->showCmd);
+                paramBlock32.dwReserved = 0;
+                HANDLE hProcess = 0;
+                DWORD result = LoadModule_wine_implementation(name, &paramBlock32, &hProcess);/*win32 returns 33*/
+                GlobalUnlock16(params->hEnvironment);
+                UnMapLS(params->showCmd);
+                UnMapLS(params->cmdLine);
+                if (result < 32)
+                    return result;
+                char cmdlineBuf[_countof("WINOLDAP.MOD -WoAWoW32XXXXXXXX")];
+                sprintf(cmdlineBuf, "WINOLDAP.MOD -WoAWoW32%x", (SIZE_T)hProcess);
+                return WinExec16(cmdlineBuf, 1);/*wow32 returns winoldap.mod hinstance*/
+            }
             return hModule;
+        }
 
         if ( !(pModule = NE_GetPtr( hModule )) )
             return ERROR_BAD_FORMAT;
