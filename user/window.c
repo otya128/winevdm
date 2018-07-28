@@ -94,6 +94,20 @@ void free_module_classes( HINSTANCE16 inst )
 	}
 }
 
+static BOOL is_dialog(HWND hwnd)
+{
+    GetDlgItem(hwnd, 0);
+    int err = GetLastError();
+    return err == ERROR_WINDOW_NOT_DIALOG;
+    /*
+    char cbuf[512];
+    GetClassNameA(hwnd, cbuf, sizeof(cbuf));
+    if (!stricmp(cbuf, "_____DIALOGCLASS_____"))
+        return TRUE;
+    return FALSE;
+    */
+}
+
 /**************************************************************************
  *              MessageBox   (USER.1)
  */
@@ -1008,7 +1022,9 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
             }
         }
         else if (offset == DWLP_DLGPROC)
-            is_winproc = (wow_handlers32.get_dialog_info( hwnd, FALSE ) != NULL);
+        {
+            is_winproc = is_dialog(hwnd);
+        }
     }
     if (is_winproc)
     {
@@ -1086,7 +1102,7 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     BOOL is_winproc = (offset == GWLP_WNDPROC);
 
     if (offset == DWLP_DLGPROC)
-        is_winproc = (wow_handlers32.get_dialog_info( hwnd, FALSE ) != NULL);
+        is_winproc = is_dialog(hwnd);
 
 	if (is_winproc)
     {
