@@ -853,6 +853,8 @@ LONG WINAPI GetClassLong16( HWND16 hwnd16, INT16 offset )
     case GCLP_HICON:
     case GCLP_HICONSM:
         return get_icon_16( (HICON)ret );
+    case GCLP_HBRBACKGROUND:
+        return HBRUSH_16(ret);
     default:
         return ret;
     }
@@ -882,6 +884,8 @@ LONG WINAPI SetClassLong16( HWND16 hwnd16, INT16 offset, LONG newval )
             WNDCLASS16Info[atom].wndproc = new_proc;
             return old;//(LONG)WINPROC_GetProc16(old_proc, FALSE);
         }
+    case GCLP_HBRBACKGROUND:
+        return SetClassLongA(WIN_Handle32(hwnd16), offset, HBRUSH_32(newval));
     case GCLP_MENUNAME:
         newval = (LONG)MapSL( newval );
         /* fall through */
