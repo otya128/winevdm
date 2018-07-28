@@ -113,7 +113,10 @@ static BOOL is_dialog(HWND hwnd)
  */
 INT16 WINAPI MessageBox16( HWND16 hwnd, LPCSTR text, LPCSTR title, UINT16 type )
 {
-    return MessageBoxA( WIN_Handle32(hwnd), text, title, type );
+    DWORD count;
+    ReleaseThunkLock(&count);
+    int ret = MessageBoxA( WIN_Handle32(hwnd), text, title, type );
+    RestoreThunkLock(count);
 }
 
 
@@ -214,6 +217,7 @@ BOOL16 WINAPI SetProp16( HWND16 hwnd, LPCSTR str, HANDLE16 handle )
  */
 INT16 WINAPI EnumProps16( HWND16 hwnd, PROPENUMPROC16 func )
 {
+    ERR("(%04x,%08x)\n", hwnd, func);
 	return 0;
 #if 0
     int ret = -1, i, count, total = 32;
