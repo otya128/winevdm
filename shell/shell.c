@@ -768,6 +768,12 @@ HINSTANCE16 WINAPI ShellExecute16( HWND16 hWnd, LPCSTR lpOperation,
                                    LPCSTR lpFile, LPCSTR lpParameters,
                                    LPCSTR lpDirectory, INT16 iShowCmd )
 {
+    HINSTANCE rret1632 = WOWShellExecute(HWND_32(hWnd), lpOperation, lpFile, lpParameters,
+        lpDirectory, iShowCmd, SHELL_Execute16);
+    if (rret1632 >= 32)
+    {
+        return HINSTANCE_16(rret1632);
+    }
 	HINSTANCE rret = ShellExecuteA(HWND_32(hWnd), lpOperation, lpFile, lpParameters,
 		lpDirectory, iShowCmd);
 	if (GetLastError() == 0x000000d8)
