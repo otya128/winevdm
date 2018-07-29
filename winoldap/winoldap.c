@@ -11,6 +11,7 @@
 #include "wine/list.h"
 #include "wine/debug.h"
 #include "shellapi.h"
+#include "stdio.h"
 #include "stdlib.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winoldap);
@@ -115,6 +116,8 @@ WORD WINAPI WinMain16(HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD sh
         ExitThread(1);
     }
     WCHAR buffer[MAX_PATH];
+    GetModuleFileNameW(GetModuleHandleW(NULL), buffer, _countof(buffer));
+    exe = buffer;
     if ((p = wcsrchr(szArglist[0], L'.')) && !_wcsicmp(p, L".pif"))
     {
         if (SearchPathW(NULL, L"otvdm", L".exe", MAX_PATH, buffer, NULL))
@@ -122,8 +125,11 @@ WORD WINAPI WinMain16(HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD sh
             exe = buffer;
         }
     }
-    if (CreateProcessW(exe, cmdlinew, NULL, NULL, FALSE,
-        0, NULL, NULL, &startup, &info))
+    SIZE_T len = wcslen(cmdlinew) + wcslen(exe) + wcslen(L"\" \"");
+    PWSTR cmdline2 = (PWSTR)malloc(sizeof(WCHAR) * (len + 1));
+    swprintf(cmdline2, len, L"\"%s\" %s", exe, cmdlinew);
+    if (CreateProcessW(exe, cmdline2, NULL, NULL, FALSE,
+        CREATE_NEW_CONSOLE, NULL, NULL, &startup, &info))
     {
         /* Give 10 seconds to the app to come up */
         if (wait_input_idle(info.hProcess, 10000) == WAIT_FAILED)
@@ -139,6 +145,7 @@ WORD WINAPI WinMain16(HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD sh
 
     LocalFree(szArglist);
     free(cmdlinew);
+    free(cmdline2);
     HeapFree(GetProcessHeap(), 0, cmdline);
     ExitThread(exit_code);
 }
