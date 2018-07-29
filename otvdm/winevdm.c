@@ -777,7 +777,7 @@ static void set_peb_compatible_flag()
     HMODULE user32 = GetModuleHandleA("user32.dll");
     if (user32 != NULL)
     {
-        WINE_ERR("user32.dll has already been loaded.");
+        WINE_ERR("user32.dll has already been loaded.\n");
     }
     //ExtractAssociatedIcon
     APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;

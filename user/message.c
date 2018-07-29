@@ -347,7 +347,7 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
     args.params[1] = HIWORD(lParam);
     args.params[0] = LOWORD(lParam);
     WOWCallback16Ex( 0, WCB16_REGS, sizeof(args.params) + size, &args, (DWORD *)&context );
-    PVOID now = getWOW32Reserved();
+    //restore stack
     setWOW32Reserved(old);
     *result = MAKELONG( LOWORD(context.Eax), LOWORD(context.Edx) );
     return *result;
@@ -3389,7 +3389,7 @@ LRESULT CALLBACK CBTHook(
     if (nCode == HCBT_CREATEWND)
     {
         HWND hWnd = (HWND)wParam;
-        SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
+        SetThemeAppProperties(0);
         SetWindowTheme(hWnd, L"", L"");
         if (isEdit(hWnd))
         {
@@ -3412,7 +3412,6 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
             {
                 //see 42353ecbadd096358f250a9dd931d4cf0981b417 reactos win32ss/user/ntuser/winpos.c:2551
                 SendMessageA(pcwp->hwnd, WM_SETVISIBLE, pcwp->wParam, 0);
-                SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
                 SetWindowTheme(pcwp->hwnd, L"", L"");
             }
             if (isStatic(pcwp->hwnd))
