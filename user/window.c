@@ -1948,7 +1948,6 @@ BOOL16 WINAPI GetClassInfoEx16( HINSTANCE16 hInst16, SEGPTR name, WNDCLASSEX16 *
 
     if (ret)
     {
-		ERR("lpfnWndProc\n");
         wc->lpfnWndProc = WNDCLASS16Info[ret].wndproc ? WNDCLASS16Info[ret].wndproc : WINPROC_AllocNativeProc(wc32.lpfnWndProc);//WINPROC_GetProc16( wc32.lpfnWndProc, FALSE );
         wc->style         = wc32.style;
         wc->cbClsExtra    = wc32.cbClsExtra;
