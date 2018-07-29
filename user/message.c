@@ -3384,6 +3384,8 @@ LRESULT CALLBACK CBTHook(
     if (nCode == HCBT_CREATEWND)
     {
         HWND hWnd = (HWND)wParam;
+        SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
+        SetWindowTheme(hWnd, L"", L"");
         if (isEdit(hWnd))
         {
             SetWindowLongPtrA(hWnd, GWLP_WNDPROC, edit_wndproc16);
