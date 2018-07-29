@@ -18,6 +18,8 @@
 
 #include <stdlib.h>
 #include "windef.h"
+#include "wine/windef16.h"
+#include "wine/winbase16.h"
 #include "wine/debug.h"
 /*
 #define __asm__(xxx)
@@ -26,14 +28,6 @@
 */
 WINE_DEFAULT_DEBUG_CHANNEL(int);
 
-void __wine_spec_init_ctor()
-{
-	DPRINTF("NOTIMPL:__wine_spec_init_ctor()\n");
-}
-void __wine_spec_dll_entry()
-{
-	DPRINTF("NOTIMPL:__wine_spec_dll_entry(?)\n");
-}
 //VM86.DLL
 __declspec(dllimport) void fldcw(WORD cw);
 __declspec(dllimport) void wait();
@@ -42,6 +36,7 @@ __declspec(dllimport) void fstcw(WORD *ea);
 __declspec(dllimport) void frndint();
 __declspec(dllimport) void fclex();
 #define USE_VM86_DLL 1
+#include <pshpack1.h>
 struct Win87EmInfoStruct
 {
     unsigned short Version;
@@ -51,6 +46,7 @@ struct Win87EmInfoStruct
     unsigned short Have80x87;
     unsigned short Unused;
 };
+#include <poppack.h>
 
 /* Implementing this is easy cause Linux and *BSD* ALWAYS have a numerical
  * coprocessor. (either real or emulated on kernellevel)
@@ -315,12 +311,37 @@ void WINAPI _fpMath( CONTEXT *context )
     }
 }
 
+SEGPTR WINAPI K32WOWGlobalLock16(HGLOBAL16 handle);
+static HGLOBAL16 hGlobalD;
+static HGLOBAL16 hGlobalC;
+static WORD D;
+static WORD C;
 /***********************************************************************
  *		__WinEm87Info (WIN87EM.3)
  */
 void WINAPI __WinEm87Info(struct Win87EmInfoStruct *pWIS, int cbWin87EmInfoStruct)
 {
-  FIXME("(%p,%d), stub !\n",pWIS,cbWin87EmInfoStruct);
+    if (!hGlobalD)
+    {
+        hGlobalD = GlobalAlloc16(0, 65535);
+        hGlobalC = GlobalAlloc16(0, 65535);
+        D = K32WOWGlobalLock16(hGlobalD) >> 16;
+        C = K32WOWGlobalLock16(hGlobalC) >> 16;
+    }
+    if (cbWin87EmInfoStruct != sizeof(*pWIS))
+    {
+        ERR("(%p,%d) %d != sizeof(struct Win87EmInfoStruct)!\n", pWIS, cbWin87EmInfoStruct, cbWin87EmInfoStruct);
+    }
+    FIXME("(%p,%d), stub !\n",pWIS,cbWin87EmInfoStruct);
+    //WOW32
+    pWIS->Version = 0x0600;
+    pWIS->SizeSaveArea= 0x1D5;
+    pWIS->Have80x87 = TRUE;
+    pWIS->Unused = 0;
+    //unknown
+    pWIS->WinCodeSeg = C;
+    pWIS->WinDataSeg = D;
+    return 0;
 }
 
 /***********************************************************************
