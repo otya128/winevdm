@@ -1015,7 +1015,9 @@ extern "C"
 		bool dasm
 		)
 	{
+        DWORD dasm_nest_sp_table[8] = { 0 };
 		bool dasm_buffering = false;
+        int dasm_nest = 0;
 		if (dasm == 2)
 		{
 			dasm_buffering = true;
@@ -1374,6 +1376,15 @@ extern "C"
 					UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 
 					char *dbuf = NULL;
+                    if (dasm_nest && dasm_nest < 8)
+                        if (dasm_nest_sp_table[dasm_nest - 1] <= SREG_BASE(SS) + REG16(SP))
+                        {
+                            dasm_nest--;
+                        }
+                    if (dasm_nest >= 8 && dasm_nest_sp_table[7] <= SREG_BASE(SS) + REG16(SP))
+                    {
+                        dasm_nest = 7;
+                    }
 					if (dasm_buffering)
 					{
 						dbuf = dasm_buffer.get_current();
@@ -1381,7 +1392,9 @@ extern "C"
 					}
 					else
 					{
-						fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
+                        char nest_max[] = { ' ', ' ', ' ' , ' ' , ' ' , ' ' , ' ' , '+' , '\0' };
+                        nest_max[min(dasm_nest, sizeof(nest_max) - 1)] = 0;
+						fprintf(stderr, "%s%d %04x:%04x", nest_max, dasm_nest, SREG(CS), (unsigned)eip);
 						fflush(stderr);
 					}
 					int result;
@@ -1392,6 +1405,12 @@ extern "C"
 					else
 #endif
                         result = i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+                    if (!memcmp(buffer, "call", 4))
+                    {
+                        if (dasm_nest < 8)
+                            dasm_nest_sp_table[dasm_nest] = SREG_BASE(SS) + REG16(SP);
+                        dasm_nest++;
+                    }
                     int opsize = result & 0xFF;
                     /*while (opsize--)
                     {

@@ -333,9 +333,10 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
         }
         if (size)
         {
-            size = 0;
-            //memcpy( &args.u, MapSL(lParam), size );
-            //lParam = PtrToUlong(getWOW32Reserved()) - size;
+            //some programs crash??
+            //size = 0;
+            memcpy( &args.u, MapSL(lParam), size );
+            lParam = PtrToUlong(getWOW32Reserved()) - size;
         }
     }
 
