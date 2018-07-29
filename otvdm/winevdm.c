@@ -865,6 +865,7 @@ int main( int argc, char *argv[] )
     RestoreThunkLock(1);  /* grab the Win16 lock */
 
 	SetDllDirectoryA(argv[0]);
+    LoadLibrary16("krnl386.exe");
     /* some programs assume mmsystem is always present */
     LoadLibrary16( "gdi.exe" );
     LoadLibrary16( "user.exe" );

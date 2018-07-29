@@ -1141,6 +1141,13 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
         {
             NE_InitializeDLLs(hModule);
             NE_DllProcessAttach(hModule);
+            //some programs expect GlobalLock(hinst) + 0x06 non zero
+            if (pModule->ne_flags & NE_FFLAGS_BUILTIN)
+            {
+                BYTE *hptr = GlobalLock16(hinst);
+                hptr[0x06] = 0x0a;
+                GlobalUnlock16(hinst);
+            }
         }
         else DOSMEM_InitDosMemory();  /* we will be running a 16-bit task, setup DOS memory */
     }

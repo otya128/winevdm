@@ -167,10 +167,44 @@ static int get_debug_mode()
 		return 1;
 	return 1;
 }
+DWORD wine_pm_interrupt_handler(WORD num)
+{
+    HTASK16 hTask = GetCurrentTask();
+    TDB *pTask = GlobalLock16(hTask);
+    if (!pTask)
+        return 0;
+    DWORD handler = 0;
+    switch (num)
+    {
+    case 0:
+        handler = pTask->int0;
+        break;
+    case 2:
+        handler = pTask->int2;
+        break;
+    case 4:
+        handler = pTask->int4;
+        break;
+    case 6:
+        handler = pTask->int6;
+        break;
+    case 7:
+        handler = pTask->int7;
+        break;
+    case 0x3e:
+        handler = pTask->int3e;
+        break;
+    case 0x75:
+        handler = pTask->int75;
+        break;
+    }
+    GlobalUnlock16(hTask);
+    return handler;
+}
 DWORD WINAPI wine_call_to_16(FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
 	//DPRINTF("NOTIMPL:wine_call_to_16(%p, %u, %p)", target, cbArgs, handler);
-	return wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem);
+	return wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
 
 	return 0;
 }
@@ -181,7 +215,7 @@ void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HAND
 	//why??
 	context->SegSs = SELECTOROF(getWOW32Reserved());
 	context->Esp = OFFSETOF(getWOW32Reserved());
-	wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem);
+	wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
 }
 void __wine_call_from_16_thunk(void)
 {
@@ -208,7 +242,7 @@ DWORD CALL32_CBClientEx(FARPROC proc, LPWORD args, WORD *stackLin, DWORD *esi, I
 }
 void __wine_enter_vm86(CONTEXT *context)
 {
-    wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), TRUE, DOSMEM_dosmem);
+    wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), TRUE, DOSMEM_dosmem, wine_pm_interrupt_handler);
 	DPRINTF("NOTIMPL:__wine_enter_vm86(%p)\n", context);
 }
 void __wine_spec_init_ctor()

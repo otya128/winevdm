@@ -882,4 +882,8 @@ NTSYSAPI void      WINAPI RtlSecondsSince1970ToTime(DWORD, LARGE_INTEGER *);
 HANDLE WINAPI ConvertToGlobalHandle(HANDLE);
 NTSYSAPI void WINAPI DbgBreakPoint(void);
 NTSYSAPI NTSTATUS  WINAPI LdrFindEntryForAddress(const void*, PLDR_MODULE*);
+
+//vm
+
+typedef SEGPTR(*pm_interrupt_handler)(WORD num);
 #endif  /* __WINE_KERNEL16_PRIVATE_H */

@@ -879,7 +879,8 @@ extern "C"
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
 		void(*__wine_call_to_16_ret)(void),
-		bool dasm
+		bool dasm,
+        pm_interrupt_handler pih
 		);
 	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
 	void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
@@ -889,13 +890,14 @@ extern "C"
 		void(*__wine_call_to_16_ret)(void),
 		bool dasm,
         bool vm86,
-        void *memory_base
+        void *memory_base, 
+        pm_interrupt_handler pih
 		)
 	{
         mem = vm86 ? (UINT8*)memory_base : NULL;
 		if (!initflag)
 			initflag = init_vm86(vm86);
-		vm86main(context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm);
+		vm86main(context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih);
 	}	
 	DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
@@ -919,7 +921,7 @@ extern "C"
 		context.Esp = ((size_t)dynamic_getWOW32Reserved()) & 0xFFFF;
 		context.SegCs = target >> 16;
 		context.Eip = target & 0xFFFF;//i386_jmp_far(target >> 16, target & 0xFFFF);
-		vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm);
+		vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, NULL);
 		return context.Eax | context.Edx << 16;
 	}
 	UINT old_eip = 0;
@@ -956,12 +958,44 @@ extern "C"
 	{
 		dasm_buffer.dump();
 	}
-    void protected_mode_exception_handler(WORD num, const char *name)
+    BOOL has_x86_exception_err(WORD num)
     {
-        WORD err = POP16();
+        switch (num)
+        {
+        case 0:case 1:case 2:case 3:case 4:case 5:case 6:case 7:
+            return FALSE;
+        case 8:
+            return TRUE;
+        case 9:
+            return FALSE;
+        case 10:case 11:case 12:case 13:case 14:
+            return TRUE;
+        case 15:case 16:
+            return FALSE;
+        case 17:
+            return TRUE;
+        case 18:case 19:case 20:case 21:case 22:case 23:case 24:case 25:case 26:case 27:case 28:case 29:
+            return FALSE;
+        case 30:
+            return TRUE;
+        case 31:
+            return FALSE;
+        }
+        return FALSE;
+    }
+    void protected_mode_exception_handler(WORD num, const char *name, pm_interrupt_handler pih)
+    {
+        WORD err = has_x86_exception_err(num) ? POP16() : num;
         WORD ip = POP16();
         WORD cs = POP16();
         WORD flags = POP16();
+        DWORD ret = pih(num);
+        if (ret)
+        {
+            //TODO:arguments?
+            i386_jmp_far((ret >> 16) & 0xFFFF, ret & 0xFFFF);
+            return;
+        }
         PSTR dasm = (PSTR)calloc(256, 1);
         ULONG_PTR arguments[7] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags, (ULONG_PTR)dasm };
         m_eip = ip;
@@ -999,7 +1033,7 @@ extern "C"
                 i386_load_segment_descriptor(CS);
             }
         }
-        __except (EXCEPTION_CONTINUE_EXECUTION)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
 
         }
@@ -1012,7 +1046,8 @@ extern "C"
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point,	unsigned char *args16, CONTEXT *context),
 		void(*__wine_call_to_16_ret)(void),
-		bool dasm
+		bool dasm, 
+        pm_interrupt_handler pih
 		)
 	{
         DWORD dasm_nest_sp_table[8] = { 0 };
@@ -1162,8 +1197,12 @@ extern "C"
                     {
                         int num = m_pc - (UINT)iret;
                         const char *name = NULL;
+                        //win16 handle int 2/4/6/7
                         switch (num)
                         {
+                        case 0:name = "#DE"; break;
+                        case 2:name = "int 2h"; break;
+                        case 4:name = "#OF"; break;
                         case FAULT_UD:name = "#UD"; break;
                         case FAULT_NM:name = "#NM"; break;
                         case FAULT_DF:name = "#DF"; break;
@@ -1176,7 +1215,8 @@ extern "C"
                         }
                         if (name)
                         {
-                            protected_mode_exception_handler(num, name);
+                            protected_mode_exception_handler(num, name, pih);
+                            continue;
                         }
                         WORD ip = POP16();
                         WORD cs = POP16();
@@ -1603,10 +1643,11 @@ AX:%04X,CX:%04X,DX:%04X,BX:%04X\n\
 SP:%04X,BP:%04X,SI:%04X,DI:%04X\n\
 ES:%04X,SS:%04X,CS:%04X,DS:%04X\n\
 IP:%04X, address:%08X\n\
+EFLAGS:%08X\
 %s\n%s\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
 m_VM ? 16 : 32,
 REG16(AX), REG16(CX), REG16(DX), REG16(BX), REG16(SP), REG16(BP), REG16(SI), REG16(DI),
-SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, buffer2, buffer, buf_pre);
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, buf_pre);
         dump_stack_trace();
         fprintf(stderr, "========================\n");
         print_stack();
