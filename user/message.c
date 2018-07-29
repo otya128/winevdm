@@ -3412,10 +3412,10 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
                 SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
                 SetWindowTheme(pcwp->hwnd, L"", L"");
             }
-            //if (isStatic(pcwp->hwnd))
-            //{
-            //    SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, static_wndproc16);
-            //}
+            if (isStatic(pcwp->hwnd))
+            {
+                SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, static_wndproc16);
+            }
             //if (isListBox(pcwp->hwnd))
             //{
             //    //SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, listbox_wndproc16);
