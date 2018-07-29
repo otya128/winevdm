@@ -289,6 +289,7 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
     int index = winproc_to_index( func );
     CONTEXT context;
     size_t size = 0;
+#include <pshpack1.h>
     struct
     {
         WORD params[5];
@@ -299,6 +300,7 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
             COMPAREITEMSTRUCT16 cis16;
         } u;
     } args;
+#include <poppack.h>
 
     if (index >= MAX_WINPROCS32) func = winproc16_array[index - MAX_WINPROCS32];
 
@@ -333,12 +335,11 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
         }
         if (size)
         {
-            //some programs crash??
-            //size = 0;
             memcpy( &args.u, MapSL(lParam), size );
             lParam = PtrToUlong(getWOW32Reserved()) - size;
         }
     }
+    PVOID old = getWOW32Reserved();
 
     args.params[4] = hwnd;
     args.params[3] = msg;
@@ -346,6 +347,8 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
     args.params[1] = HIWORD(lParam);
     args.params[0] = LOWORD(lParam);
     WOWCallback16Ex( 0, WCB16_REGS, sizeof(args.params) + size, &args, (DWORD *)&context );
+    PVOID now = getWOW32Reserved();
+    setWOW32Reserved(old);
     *result = MAKELONG( LOWORD(context.Eax), LOWORD(context.Edx) );
     return *result;
 }
