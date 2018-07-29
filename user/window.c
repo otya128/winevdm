@@ -815,7 +815,7 @@ WORD WINAPI SetClassWord16( HWND16 hwnd, INT16 offset, WORD newval )
         icon = (HICON)SetClassLongPtrW( WIN_Handle32(hwnd), offset, (ULONG_PTR)get_icon_32(newval) );
         return get_icon_16( icon );
     case GCLP_HBRBACKGROUND:
-        return HBRUSH_16(SetClassLongPtrW(WIN_Handle32(hwnd), offset, HBRUSH_16(newval)));
+        return HBRUSH_16(SetClassLongPtrW(WIN_Handle32(hwnd), offset, HBRUSH_32(newval)));
     }
     return SetClassWord( WIN_Handle32(hwnd), offset, newval );
 }
@@ -2070,6 +2070,10 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
 }
 
 
+LRESULT def_frame_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT *result, void *arg)
+{
+    return *result = DefFrameProcA(hwnd, (HWND)arg, msg, wp, lp);
+}
 /***********************************************************************
  *		DefFrameProc (USER.445)
  */
@@ -2098,7 +2102,11 @@ LRESULT WINAPI DefFrameProc16( HWND16 hwnd, HWND16 hwndMDIClient,
             return MAKELONG( HMENU_16(next_menu.hmenuNext), HWND_16(next_menu.hwndNext) );
         }
     default:
-        return DefWindowProc16(hwnd, message, wParam, lParam);
+    {
+        LRESULT result;
+        WINPROC_CallProc16To32A(def_frame_proc_callback, hwnd, message, wParam, lParam, &result, HWND_32(hwndMDIClient));
+        return result;
+    }
     }
 }
 

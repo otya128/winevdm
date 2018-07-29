@@ -1178,6 +1178,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             ret = HBRUSH_16(callback( hwnd32, WM_CTLCOLORMSGBOX + HIWORD(lParam),
                             (WPARAM)HDC_32(wParam), (LPARAM)WIN_Handle32( LOWORD(lParam) ),
                             result, arg ));
+        *result = HBRUSH_16(*result);
         break;
     case WM_GETTEXT:
     case WM_SETTEXT:
@@ -1594,8 +1595,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
-        ret = callback( HWND_16(hwnd), WM_CTLCOLOR, wParam,
-                        MAKELPARAM( HWND_16(lParam), msg - WM_CTLCOLORMSGBOX ), result, arg );
+        ret = HBRUSH_32(callback( HWND_16(hwnd), WM_CTLCOLOR, wParam,
+                        MAKELPARAM( HWND_16(lParam), msg - WM_CTLCOLORMSGBOX ), result, arg ));
+        *result = HBRUSH_32(*result);
         break;
     case WM_MENUSELECT:
         if(HIWORD(wParam) & MF_POPUP)
