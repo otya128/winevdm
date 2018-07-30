@@ -1,50 +1,34 @@
 # winevdm on windows (64bit)
+
 <img src="screenshot.PNG">
 
-[Download](https://github.com/otya128/winevdm/releases)
+[Download stable version](https://github.com/otya128/winevdm/releases)
 
-winevdm on windows (64bit)
+[Download latest version(unstable, slower then stable version)](https://ci.appveyor.com/project/otya128/winevdm/build/artifacts)
+
+16-bit Windows(Windows 3.1,3.0,1.x,2.x,...) on Windows (64bit)
 
 An altered version of winevdm (a 16-bit Windows emulator), ported to 64-bit Windows.
 
-# Requirements (likely)
+# How to compile
 
-+ VC++
-+ gas
++ Install Visual Studio 2017
++ Install binutils
++ Edit PropertySheet.props
++ Compile
+
+# How to install
+
++ Download or compile
++ Edit install.reg
++ Register install.reg
++ You can execute Win16 binaries directly!
 
 # winevdm
-
 ```bat
 winevdm.exe [--app-name app.exe] command line
-
 winevdm.exe CALC.EXE
 ```
-
 It can also run DOS executables (DOS emulator-like).
 You can set the DOS version by the VDMDOSVER environment variable.
 
-# convspec
-
-convspec is a tool to convert wine spec files for extracting from winebuild and using assembly in VC++.
-
-```bat
-convspec .specfile modulename > asm
-convspec .specfile -DEF > def
-
-convspec commdlg.dll16.spec COMMDLG > commdlg.dll16.asm
-convspec commdlg.dll16.spec -DEF > commdlg.def
-as --32 -o commdlg.dll16.obj commdlg.dll16.asm
-```
-
-# gdi
-GDI.EXE
-# krnl386
-KRNL386.EXE
-# user
-USER.EXE
-# vm86
-CPU emulator
-# wine
-libwine
-# wow32
-wow32.dll
