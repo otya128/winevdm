@@ -36,7 +36,7 @@ WORD get_handle16_data(HANDLE h, HANDLE_DATA handles[], HANDLE_DATA **o);
 BOOL is_reserved_handle32(HANDLE h)
 {
     SSIZE_T signedh = (SSIZE_T)h;
-    if (signedh <= HANDLE_RESERVED && signedh >= -HANDLE_RESERVED)
+    if (signedh < HANDLE_RESERVED && signedh > -HANDLE_RESERVED)
     {
         return TRUE;
     }
@@ -45,7 +45,7 @@ BOOL is_reserved_handle32(HANDLE h)
 BOOL is_reserved_handle16(HANDLE16 h)
 {
     INT16 signedh = (INT16)h;
-    if (signedh <= HANDLE_RESERVED && signedh >= -HANDLE_RESERVED)
+    if (signedh < HANDLE_RESERVED && signedh > -HANDLE_RESERVED)
     {
         return TRUE;
     }
@@ -111,12 +111,10 @@ HANDLE get_handle32(WORD h, HANDLE_DATA handles[])
 {
 	if (is_reserved_handle16(h))
 	{
-		return h;
+		return (INT16)h;
 	}
 	return handles[h].handle32 ? handles[h].handle32 : h;
 }
-HANDLE WINAPI K32WOWHandle16HWND(WORD handle);
-HANDLE WINAPI K32WOWHandle32HWND(WORD handle);
 //handle16 -> wow64 handle32
 HANDLE WINAPI K32WOWHandle32HWND(WORD handle)
 {
@@ -125,9 +123,9 @@ HANDLE WINAPI K32WOWHandle32HWND(WORD handle)
 	return h32;
 }
 //handle16 <- wow64 handle32
-HANDLE WINAPI K32WOWHandle16HWND(HANDLE handle)
+HANDLE16 WINAPI K32WOWHandle16HWND(HANDLE handle)
 {
-	HANDLE h16 = get_handle16(handle, handle_hwnd);
+    HANDLE16 h16 = get_handle16(handle, handle_hwnd);
 	TRACE("handle32 0x%X->handle16 0x%04X\n", handle, h16);
 	return h16;
 }
