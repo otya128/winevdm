@@ -24,6 +24,16 @@ An altered version of winevdm (a 16-bit Windows emulator), ported to 64-bit Wind
 + Register install.reg
 + You can execute Win16 binaries directly!
 
+**If you install v0.4.x, you should add these to install.reg and register install.reg again.**
+```ini
+[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM]
+"CommandLine"="\"%m\" %c"
+"InternalName"="*"
+"MappedExeName"="C:\\PATH\\TO\\otvdm.exe"
+"ProductName"="*"
+"ProductVersion"="*"
+```
+
 # winevdm
 ```bat
 winevdm.exe [--app-name app.exe] command line
