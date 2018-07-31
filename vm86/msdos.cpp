@@ -85,7 +85,7 @@ void change_console_size_to_80x25();
 #endif
 #define U64(v) UINT64(v)
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
 void logerror(const char *format, ...)
 {
 	va_list arg;
@@ -94,9 +94,9 @@ void logerror(const char *format, ...)
 	vfprintf(stderr, format, arg);
 	va_end(arg);
 }
-#else
-#define logerror(...)
-#endif
+//#else
+//#define logerror(...)
+//#endif
 //#define logerror(...) fprintf(stderr, __VA_ARGS__)
 //#define logerror(...)
 //#define popmessage(...) fprintf(stderr, __VA_ARGS__)
@@ -879,7 +879,7 @@ extern "C"
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
 		void(*__wine_call_to_16_ret)(void),
-		bool dasm,
+        int dasm,
         pm_interrupt_handler pih
 		);
 	//__declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler);void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_RECORD handler,
@@ -888,7 +888,7 @@ extern "C"
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
 		void(*__wine_call_to_16_ret)(void),
-		bool dasm,
+        int dasm,
         bool vm86,
         void *memory_base, 
         pm_interrupt_handler pih
@@ -904,7 +904,7 @@ extern "C"
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
 		void(*__wine_call_to_16_ret)(void),
-		bool dasm,
+        int dasm,
         bool vm86,
         void *memory_base
 		)
@@ -1046,7 +1046,7 @@ extern "C"
 		LONG(*__wine_call_from_16)(void),
 		int(*relay_call_from_16)(void *entry_point,	unsigned char *args16, CONTEXT *context),
 		void(*__wine_call_to_16_ret)(void),
-		bool dasm, 
+		int dasm, 
         pm_interrupt_handler pih
 		)
 	{
