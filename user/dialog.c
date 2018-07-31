@@ -702,6 +702,8 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		*((LPARAM*)paramd + 1) = 0;
 	}
 	paramd = (LPBYTE)paramd - sizeof(CREATESTRUCTA);
+    DWORD count;
+    ReleaseThunkLock(&count);
 	if (modal)
 	{
 		INT_PTR ret = DialogBoxIndirectParamA(
@@ -709,6 +711,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 			(DLGTEMPLATE*)template32,
 			owner,
 			hasclass ? DlgProc : DlgProc, paramd);
+        RestoreThunkLock(count);
 		return ret;
 	}
 	else
@@ -717,6 +720,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		(DLGTEMPLATE*)template32,
 		owner,
 		hasclass ? DlgProc : DlgProc, paramd);
+    RestoreThunkLock(count);
 	//SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
 	//SetWindowTheme(hwnd, "", "");
     //SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
