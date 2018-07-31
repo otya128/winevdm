@@ -185,3 +185,6 @@ EXPORTS
   __wine_vxd_get_proc @180 PRIVATE
   IsWinOldApTask @181
   GetProcessFlags @182
+
+  krnl386_get_config_string
+  krnl386_get_config_int

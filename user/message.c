@@ -3376,6 +3376,7 @@ LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 {
     return edit_proc16(hwnd, msg, wParam, lParam, FALSE);
 }
+BOOL aero_diasble;
 LRESULT CALLBACK CBTHook(
     int nCode,
     WPARAM wParam,
@@ -3389,8 +3390,11 @@ LRESULT CALLBACK CBTHook(
     if (nCode == HCBT_CREATEWND)
     {
         HWND hWnd = (HWND)wParam;
-        SetThemeAppProperties(0);
-        SetWindowTheme(hWnd, L"", L"");
+        if (aero_diasble)
+        {
+            SetThemeAppProperties(0);
+            SetWindowTheme(hWnd, L"", L"");
+        }
         if (isEdit(hWnd))
         {
             SetWindowLongPtrA(hWnd, GWLP_WNDPROC, edit_wndproc16);
@@ -3412,7 +3416,10 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
             {
                 //see 42353ecbadd096358f250a9dd931d4cf0981b417 reactos win32ss/user/ntuser/winpos.c:2551
                 SendMessageA(pcwp->hwnd, WM_SETVISIBLE, pcwp->wParam, 0);
-                SetWindowTheme(pcwp->hwnd, L"", L"");
+                if (aero_diasble)
+                {
+                    SetWindowTheme(pcwp->hwnd, L"", L"");
+                }
             }
             if (isStatic(pcwp->hwnd))
             {
@@ -3482,12 +3489,18 @@ void InitNewThreadHook()
     SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
     SetWindowsHookExA(WH_CBT, CBTHook, GetModuleHandle(NULL), GetCurrentThreadId());
 }
+
+#include "wine/winbase16.h"
 BOOL WINAPI DllMain(
     HINSTANCE hinstDLL,
     DWORD fdwReason,
     LPVOID lpvReserved
 )
 {
+    if (fdwReason == DLL_PROCESS_ATTACH)
+    {
+        aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", FALSE);
+    }
     if (fdwReason == DLL_THREAD_ATTACH)
     {
         InitNewThreadHook();

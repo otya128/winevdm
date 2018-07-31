@@ -153,6 +153,9 @@
     <ClCompile Include="wow_handle.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="conf.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vga.h">

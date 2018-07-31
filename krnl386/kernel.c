@@ -243,14 +243,17 @@ BOOL WINAPI KERNEL_DllEntryPoint( DWORD reasion, HINSTANCE16 inst, WORD ds,
 
 WORD get_env_dos_version()
 {
+    char buffer1[100];
     char buffer[100];
+    krnl386_get_config_string("otvdm", "VDMDOSVER", "", buffer1, sizeof(buffer1));
     DWORD result = GetEnvironmentVariableA("VDMDOSVER", buffer, sizeof(buffer));
-    if (result > sizeof(buffer))
-        return 0;
-    if (result == 0)
+    LPSTR version = buffer;
+    if (result == 0 || result > sizeof(buffer))
+        version = buffer1;
+    if (version[0] == 0)
         return 0;
     int v1 = 0, v2 = 0;
-    sscanf(buffer, "%d.%d", &v1, &v2);
+    sscanf(version, "%d.%d", &v1, &v2);
     if (v2 <= 9)
         v2 *= 10;
     return v1 << 8 | v2;

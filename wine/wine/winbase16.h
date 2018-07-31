@@ -560,4 +560,8 @@ BOOL16      WINAPI WritePrivateProfileSection16(LPCSTR,LPCSTR,LPCSTR);
 BOOL16      WINAPI WritePrivateProfileStruct16(LPCSTR,LPCSTR,LPVOID,UINT16,LPCSTR);
 BOOL16      WINAPI WriteProfileSection16(LPCSTR,LPCSTR);
 
+//config
+
+DWORD WINAPI krnl386_get_config_string(LPCSTR appname, LPCSTR keyname, LPCSTR def, LPSTR ret, DWORD size);
+DWORD WINAPI krnl386_get_config_int(LPCSTR appname, LPCSTR keyname, INT def);
 #endif /* __WINE_WINE_WINBASE16_H */
