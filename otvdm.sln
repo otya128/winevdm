@@ -302,6 +302,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ole2thx", "ole2thx\ole2thx.
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "winhlp32", "winhlp32\winhlp32.vcxproj", "{37F4B5BE-FB3C-44E7-BA9B-6D0E0C7709F2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C978A6C2-F788-4F5E-8E14-73C1B6B521CE} = {C978A6C2-F788-4F5E-8E14-73C1B6B521CE}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
