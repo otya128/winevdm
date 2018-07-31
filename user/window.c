@@ -117,6 +117,7 @@ INT16 WINAPI MessageBox16( HWND16 hwnd, LPCSTR text, LPCSTR title, UINT16 type )
     ReleaseThunkLock(&count);
     int ret = MessageBoxA( WIN_Handle32(hwnd), text, title, type );
     RestoreThunkLock(count);
+    return ret;
 }
 
 
