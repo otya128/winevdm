@@ -301,6 +301,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ole2thx", "ole2thx\ole2thx.
 		{D3F34C25-272C-4E4F-9B6F-BE7ABB472966} = {D3F34C25-272C-4E4F-9B6F-BE7ABB472966}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "winhlp32", "winhlp32\winhlp32.vcxproj", "{37F4B5BE-FB3C-44E7-BA9B-6D0E0C7709F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -573,6 +575,12 @@ Global
 		{94C8AE24-778A-4FEB-B3E1-457BDCCE06DF}.Release|Win32.ActiveCfg = Release|Win32
 		{94C8AE24-778A-4FEB-B3E1-457BDCCE06DF}.Release|Win32.Build.0 = Release|Win32
 		{94C8AE24-778A-4FEB-B3E1-457BDCCE06DF}.Release|x64.ActiveCfg = Release|Win32
+		{37F4B5BE-FB3C-44E7-BA9B-6D0E0C7709F2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{37F4B5BE-FB3C-44E7-BA9B-6D0E0C7709F2}.Debug|Win32.Build.0 = Debug|Win32
+		{37F4B5BE-FB3C-44E7-BA9B-6D0E0C7709F2}.Debug|x64.ActiveCfg = Debug|Win32
+		{37F4B5BE-FB3C-44E7-BA9B-6D0E0C7709F2}.Release|Win32.ActiveCfg = Release|Win32
+		{37F4B5BE-FB3C-44E7-BA9B-6D0E0C7709F2}.Release|Win32.Build.0 = Release|Win32
+		{37F4B5BE-FB3C-44E7-BA9B-6D0E0C7709F2}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
