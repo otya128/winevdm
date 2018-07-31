@@ -3743,3 +3743,58 @@ void register_wow_handlers(void)
     InitHook();
 	//
 }
+
+LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+    HWND16 hWnd16 = HWND_16(hDlg);
+    if (!GetWndProc16(hWnd16))
+    {
+        InitWndProc16(hDlg, hWnd16);
+    }
+    //if ()
+    //return DefWindowProcA(hDlg, Msg, wParam, lParam);
+    //return TRUE;
+    /*
+    GetDlgItem(hDlg, 0);
+    int err = GetLastError();
+    if (err == ERROR_WINDOW_NOT_DIALOG)
+    return DefWindowProcA(hDlg, Msg, wParam, lParam);
+    SetLastError(ERROR_SUCCESS);
+    */ LONG exstyle = GetWindowLong(hDlg, GWL_EXSTYLE);
+
+    //	if (exstyle & WS_EX_DLGMODALFRAME)
+    char cbuf[512];
+    GetClassNameA(hDlg, cbuf, sizeof(cbuf));
+    if (!stricmp(cbuf, "_____DIALOGCLASS_____")) //GetWindowLongPtrA(hDlg, DWLP_DLGPROC))
+    {
+        WNDCLASSEXA wc;
+        GetClassInfoExA(NULL, "#32770", &wc);
+        return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
+    }
+    if (Msg == WM_INITDIALOG)
+    {
+        WNDCLASSEXA wc;
+        GetClassInfoExA(NULL, "#32770", &wc);
+        return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
+    }
+    WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
+    if (wndproc16)
+    {
+        MSG msg;
+        msg.hwnd = hDlg;
+        msg.message = Msg;
+        msg.wParam = wParam;
+        msg.lParam = lParam;
+        MSG16 msg16;
+        LRESULT unused;
+        if (WINPROC_IsNativeProc(wndproc16))
+        {
+            int index = winproc_to_index((WNDPROC16)wndproc16);
+            return CallWindowProcA(winproc16_array[index], hDlg, Msg, wParam, lParam);
+        }
+        WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+            &unused, wndproc16/*&msg16*/);
+        return unused;//DispatchMessage16(&msg16);
+    }
+    return DefWindowProcA(hDlg, Msg, wParam, lParam);
+}
