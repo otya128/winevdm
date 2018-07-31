@@ -662,7 +662,9 @@ const char *GetRedirectWindowsDir()
 #ifdef ENABLEREDIRECTSYSTEMDIR
     GetModuleFileNameA(GetModuleHandleA("krnl386.exe16"), windowsPath, MAX_PATH);
     PathRemoveFileSpecA(windowsPath);
-    PathCombineA(windowsPath, windowsPath, "WINDOWS");
+    char ini[MAX_PATH];
+    krnl386_get_config_string("otvdm", "WINDIR", "WINDOWS", ini, sizeof(ini));
+    PathCombineA(windowsPath, windowsPath, ini);
     GetShortPathNameA(windowsPath, windowsPath, sizeof(windowsPath));
     return windowsPath;
 #else
