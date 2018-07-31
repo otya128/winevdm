@@ -1,12 +1,12 @@
-# winevdm on windows (64bit)
+# winevdm on 64-bit Windows
 
 <img src="screenshot.PNG">
 
 [Download stable version](https://github.com/otya128/winevdm/releases)
 
-[Download latest version(unstable, slower then stable version)](https://ci.appveyor.com/project/otya128/winevdm/build/artifacts)
+[Download latest version (unstable, slower than stable version)](https://ci.appveyor.com/project/otya128/winevdm/build/artifacts)
 
-16-bit Windows(Windows 3.1,3.0,1.x,2.x,...) on Windows (64bit)
+16-bit Windows (Windows 1.x, 2.x, 3.0, 3.1, etc.) on 64-bit Windows
 
 An altered version of winevdm (a 16-bit Windows emulator), ported to 64-bit Windows.
 
@@ -40,5 +40,5 @@ winevdm.exe [--app-name app.exe] command line
 winevdm.exe CALC.EXE
 ```
 It can also run DOS executables (DOS emulator-like).
-You can set the DOS version by the VDMDOSVER environment variable.
+You can set the DOS version with the VDMDOSVER environment variable.
 
