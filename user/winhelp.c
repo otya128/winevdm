@@ -206,7 +206,8 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
             return FALSE;
         }
     }
-
+    MULTIKEYHELPA multikey32;
+    HELPWININFOA info32;
     switch (wCommand)
     {
     case HELP_CONTEXT:
@@ -225,11 +226,33 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
         dsize = dwData ? strlen((LPSTR)dwData) + 1 : 0;
         break;
     case HELP_MULTIKEY:
+    {
+        //this conversion is not tested.
+        MESSAGE("HELP_MULTIKEY\n");
+        LPMULTIKEYHELP16 multikey16 = (LPMULTIKEYHELP16)dwData;
+        multikey32.mkKeylist = multikey16->mkKeylist;
+        multikey32.mkSize = multikey16->mkSize - (sizeof(MULTIKEYHELPA) - sizeof(MULTIKEYHELP16));
+        memcpy(&multikey32.szKeyphrase, multikey16->szKeyphrase, sizeof(MULTIKEYHELP16) - offsetof(MULTIKEYHELP16, szKeyphrase));
+        dwData = &multikey32;
         dsize = ((LPMULTIKEYHELPA)dwData)->mkSize;
-        break;
+    }
+    break;
     case HELP_SETWINPOS:
+    {
+        //this conversion is not tested.
+        MESSAGE("HELP_SETWINPOS\n");
+        LPHELPWININFO16 info16 = (LPHELPWININFO16)dwData;
+        info32.dx = info16->dx;
+        info32.dy = info16->dy;
+        info32.x = info16->x;
+        info32.y = info16->y;
+        info32.wStructSize = info16->wStructSize - (sizeof(HELPWININFOA) - sizeof(HELPWININFO16));
+        info32.rgchMember[0] = info16->rgchMember[0];
+        info32.rgchMember[2] = info16->rgchMember[1];
+        dwData = &info32;
         dsize = ((LPHELPWININFOA)dwData)->wStructSize;
-        break;
+    }
+    break;
     default:
         FIXME("Unknown help command %d\n", wCommand);
         return FALSE;
