@@ -95,6 +95,7 @@
     </ClCompile>
     <ClCompile Include="user.c" />
     <ClCompile Include="window.c" />
+    <ClCompile Include="winhelp.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="message_table.h" />

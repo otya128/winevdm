@@ -1809,7 +1809,7 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
         lstrcpynA( buffer, name, sizeof(buffer) );
         if (strlen( buffer ) < sizeof(buffer) - 4 && !strchr( buffer, '.' )) strcat( buffer, ".exe" );
         ret = LoadModule16( buffer, &params );
-        if (ret == ERROR_FILE_NOT_FOUND) ret = 21;  /* it might be a 32-bit builtin too */
+        //if (ret == ERROR_FILE_NOT_FOUND) ret = 21;  /* it might be a 32-bit builtin too */
     }
     else ret = ERROR_FILE_NOT_FOUND;
 
