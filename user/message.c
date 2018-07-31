@@ -2208,6 +2208,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
                 msg32.time = msg->time;
                 msg32.pt.x = msg->pt.x;
                 msg32.pt.y = msg->pt.y;
+                msg32.message = msg->message;
                 return DispatchMessageA(&msg32);
             }
             return CallWindowProc16((WNDPROC16)msg->lParam, msg->hwnd,
@@ -3499,7 +3500,7 @@ BOOL WINAPI DllMain(
 {
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
-        aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", FALSE);
+        aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", TRUE);
     }
     if (fdwReason == DLL_THREAD_ATTACH)
     {
