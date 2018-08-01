@@ -279,7 +279,7 @@ BOOL16 WINAPI WriteProfileString16( LPCSTR section, LPCSTR entry,
 
 
 /* get the search path for the current module; helper for OpenFile16 */
-static char *get_search_path(void)
+/*static */char *get_search_path(void)
 {
     UINT len;
     char *ret, *p, module[OFS_MAXPATHNAME];
@@ -295,15 +295,24 @@ static char *get_search_path(void)
     char *windir3;
     GetWindowsDirectoryA(windir, MAX_PATH);
     windir3 = RedirectSystemDir(windir, windir2, MAX_PATH);
+    char vdmpath[MAX_PATH];
+    GetModuleFileNameA(GetModuleHandleA(NULL), vdmpath, MAX_PATH);
+    PathRemoveFileSpecA(vdmpath);
+    GetShortPathNameA(vdmpath, vdmpath, MAX_PATH);
 
-    len = (2 +                                              /* search order: first current dir */
+    len = (strlen(vdmpath) + 1 + 2 +                                              /* search order: first current dir */
            GetSystemDirectory16( NULL, 0 ) + 1 +            /* then system dir */
            strlen(windir3) + 1 +            /* then windows dir */
            strlen( module ) + 1 +                           /* then module path */
            GetEnvironmentVariableA( "PATH16", NULL, 0 ) + 1); /* then look in PATH */
     if (!(ret = HeapAlloc( GetProcessHeap(), 0, len ))) return NULL;
-    strcpy( ret, ".;" );
-    p = ret + 2;
+    p = ret;
+    strcpy(p, vdmpath);
+    p += strlen(vdmpath);
+    *p++ = ';';
+
+    *p++ = '.';
+    *p++ = ';';
     GetSystemDirectory16( p, ret + len - p );
     p += strlen( p );
     *p++ = ';';

@@ -1734,7 +1734,7 @@ WORD WINAPI GetExpWinVer16( HMODULE16 hModule )
 /***********************************************************************
  *           WinExec     (KERNEL.166)
  */
-HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
+HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
 {
     LPCSTR p, args = NULL;
     LPCSTR name_beg, name_end;
@@ -1747,21 +1747,21 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
 
     if (*lpCmdLine == '"') /* has to be only one and only at beginning ! */
     {
-        name_beg = lpCmdLine+1;
-        p = strchr ( lpCmdLine+1, '"' );
+        name_beg = lpCmdLine + 1;
+        p = strchr(lpCmdLine + 1, '"');
         if (p)
         {
             name_end = p;
-            args = strchr ( p, ' ' );
+            args = strchr(p, ' ');
         }
         else /* yes, even valid with trailing '"' missing */
-            name_end = lpCmdLine+strlen(lpCmdLine);
+            name_end = lpCmdLine + strlen(lpCmdLine);
     }
     else
     {
         name_beg = lpCmdLine;
-        args = strchr( lpCmdLine, ' ' );
-        name_end = args ? args : lpCmdLine+strlen(lpCmdLine);
+        args = strchr(lpCmdLine, ' ');
+        name_end = args ? args : lpCmdLine + strlen(lpCmdLine);
     }
 
     if ((name_beg == lpCmdLine) && (!args))
@@ -1770,9 +1770,9 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
     }
     else
     {
-        if (!(name = HeapAlloc( GetProcessHeap(), 0, name_end - name_beg + 1 )))
+        if (!(name = HeapAlloc(GetProcessHeap(), 0, name_end - name_beg + 1)))
             return ERROR_NOT_ENOUGH_MEMORY;
-        memcpy( name, name_beg, name_end - name_beg );
+        memcpy(name, name_beg, name_end - name_beg);
         name[name_end - name_beg] = '\0';
     }
 
@@ -1780,13 +1780,13 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
     {
         args++;
         arglen = strlen(args);
-        cmdline = HeapAlloc( GetProcessHeap(), 0, 2 + arglen );
+        cmdline = HeapAlloc(GetProcessHeap(), 0, 2 + arglen);
         cmdline[0] = (BYTE)arglen;
-        strcpy( cmdline + 1, args );
+        strcpy(cmdline + 1, args);
     }
     else
     {
-        cmdline = HeapAlloc( GetProcessHeap(), 0, 2 );
+        cmdline = HeapAlloc(GetProcessHeap(), 0, 2);
         cmdline[0] = cmdline[1] = 0;
     }
 
@@ -1796,11 +1796,34 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
     showCmd[1] = nCmdShow;
 
     params.hEnvironment = 0;
-    params.cmdLine = MapLS( cmdline );
-    params.showCmd = MapLS( showCmd );
+    params.cmdLine = MapLS(cmdline);
+    params.showCmd = MapLS(showCmd);
     params.reserved = 0;
 
-    if (SearchPathA( NULL, name, ".exe", sizeof(buffer), buffer, NULL ))
+    char *path = get_search_path();
+    char builtinbuffer[MAX_PATH];
+    //first, search built-in modules
+    BOOL enough_buffer = FALSE;
+    if (strlen(name) + 7 < MAX_PATH)
+    {
+        enough_buffer = TRUE;
+    }
+    if (enough_buffer)
+    {
+        strcpy(builtinbuffer, name);
+        char *q = strrchr(builtinbuffer, '.');
+        if (!q) strcat(builtinbuffer, ".exe");
+        for (q = builtinbuffer; *q; q++) if (*q >= 'A' && *q <= 'Z') *q += 32;
+
+        strcpy(q, "16");
+    }
+    if (enough_buffer && SearchPathA(path, builtinbuffer, "", sizeof(buffer), buffer, NULL))
+    {
+        //remove 16
+        buffer[strlen(buffer) - 2] = 0;
+        ret = LoadModule16(buffer, &params);
+    }
+    else if (SearchPathA( path, name, ".exe", sizeof(buffer), buffer, NULL ))
     {
         ret = LoadModule16( buffer, &params );
     }
@@ -1813,6 +1836,7 @@ HINSTANCE16 WINAPI WinExec16( LPCSTR lpCmdLine, UINT16 nCmdShow )
     }
     else ret = ERROR_FILE_NOT_FOUND;
 
+    HeapFree(GetProcessHeap(), 0, path);
     UnMapLS( params.cmdLine );
     UnMapLS( params.showCmd );
 

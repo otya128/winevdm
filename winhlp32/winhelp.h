@@ -33,6 +33,7 @@
 #define RICHEDIT_CLASS20A	"RichEdit20A"
 # define strncasecmp _strnicmp
 # define strcasecmp _stricmp
+#define EE_CHARSET 0xEE
 
 #ifndef RC_INVOKED
 

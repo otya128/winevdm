@@ -1257,7 +1257,9 @@ __declspec(dllexport) HICON NE_ExtractIcon(LPCSTR lpszExeFileName,
 	WCHAR		szExePath[MAX_PATH];
 	DWORD		dwSearchReturn;
 
+    char *path = get_search_path();
 	dwSearchReturn = SearchPathA(NULL, lpszExeFileName, NULL, sizeof(szExePath) / sizeof(szExePath[0]), szExePath, NULL);
+    HeapFree(GetProcessHeap(), 0, path);
 	if ((dwSearchReturn == 0) || (dwSearchReturn > sizeof(szExePath) / sizeof(szExePath[0])))
 	{
 		WARN("File %s not found or path too long\n", debugstr_a(lpszExeFileName));

@@ -886,4 +886,6 @@ NTSYSAPI NTSTATUS  WINAPI LdrFindEntryForAddress(const void*, PLDR_MODULE*);
 //vm
 
 typedef SEGPTR(*pm_interrupt_handler)(WORD num);
+
+char *get_search_path(void);
 #endif  /* __WINE_KERNEL16_PRIVATE_H */
