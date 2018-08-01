@@ -675,6 +675,14 @@ static LRESULT CALLBACK WINHELP_RicheditWndProc(HWND hWnd, UINT msg,
     LRESULT result;
     switch(msg)
     {
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        case WM_LBUTTONDOWN:
+        case WM_MOUSEMOVE:
+        case WM_SETFOCUS:
+            result = CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
+            HideCaret(hWnd);
+            return result;
         case WM_SETCURSOR:
             messagePos = GetMessagePos();
             pt.x = (short)LOWORD(messagePos);
@@ -687,9 +695,7 @@ static LRESULT CALLBACK WINHELP_RicheditWndProc(HWND hWnd, UINT msg,
             }
             /* fall through */
         default:
-            result = CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
-            HideCaret(hWnd);
-            return result;
+            return CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
     }
 }
 
