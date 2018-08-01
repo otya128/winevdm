@@ -2203,7 +2203,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     {
         cs.style &= ~(WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
     }
-    hwnd = create_window16((CREATESTRUCTW *)&cs, (LPCWSTR)className, HINSTANCE_32(instance), FALSE);
+    hwnd = create_window16((CREATESTRUCTW *)&cs, (LPCWSTR)cs.lpszClass, HINSTANCE_32(instance), FALSE);
 	HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);
