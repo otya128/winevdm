@@ -198,6 +198,7 @@ struct RtfData {
     BOOL        force_color;
     unsigned    relative;       /* offset within page to lookup for */
     unsigned    char_pos_rel;   /* char_pos correspondinf to relative */
+    unsigned    code_page;
 };
 
 BOOL          HLPFILE_BrowsePage(HLPFILE_PAGE*, struct RtfData* rd,

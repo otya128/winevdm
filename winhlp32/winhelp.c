@@ -639,7 +639,6 @@ static HLPFILE_LINK* WINHELP_FindLink(WINHELP_WINDOW* win, LPARAM pos)
     mouse_ptl.y = (short)HIWORD(pos);
     cp = SendMessageW(GetDlgItem(win->hMainWnd, CTL_ID_TEXT), EM_CHARFROMPOS,
                       0, (LPARAM)&mouse_ptl);
-
     for (link = win->page->first_link; link; link = link->next)
     {
         if (link->cpMin <= cp && cp <= link->cpMax)

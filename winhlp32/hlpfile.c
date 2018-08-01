@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "windows.h"
 #include "windef.h"
 #include "winbase.h"
 #include "wingdi.h"
@@ -1447,7 +1448,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 }
                 if (!HLPFILE_RtfAddText(rd, text)) goto done;
                 if (rd->force_color && !HLPFILE_RtfAddControl(rd, "}")) goto done;
-                rd->char_pos += textsize;
+                rd->char_pos += MultiByteToWideChar(rd->code_page, 0, text, textsize, NULL, 0);
             }
             /* else: null text, keep on storing attributes */
             text += textsize + 1;
@@ -1745,11 +1746,20 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     }
     if (ck)
     {
+        rd->code_page = CP_MACCP;
         sprintf(tmp, "{\\rtf1\\%s\\deff0", ck);
         if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     }
     else
     {
+        if (hlpfile->charset == DEFAULT_CHARSET)
+        {
+            rd->code_page = CP_ACP;
+        }
+        else
+        {
+            rd->code_page = cpg;
+        }
         sprintf(tmp, "{\\rtf1\\ansi\\ansicpg%d\\deff0", cpg);
         if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     }
