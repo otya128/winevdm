@@ -672,6 +672,7 @@ static LRESULT CALLBACK WINHELP_RicheditWndProc(HWND hWnd, UINT msg,
     WINHELP_WINDOW *win = (WINHELP_WINDOW*) GetWindowLongPtrW(GetParent(hWnd), 0);
     DWORD messagePos;
     POINT pt;
+    LRESULT result;
     switch(msg)
     {
         case WM_SETCURSOR:
@@ -686,7 +687,9 @@ static LRESULT CALLBACK WINHELP_RicheditWndProc(HWND hWnd, UINT msg,
             }
             /* fall through */
         default:
-            return CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
+            result = CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
+            HideCaret(hWnd);
+            return result;
     }
 }
 
