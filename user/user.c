@@ -1145,8 +1145,8 @@ INT16 WINAPI GetMenuString16( HMENU16 hMenu, UINT16 wItemID,
 
 
 //winhelp.c
-BOOL WINAPI wine_WinHelp16A(HWND16 hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_PTR dwData);
-BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_PTR dwData);
+BOOL WINAPI wine_WinHelp16A(HWND16 hWnd, LPCSTR lpHelpFile, UINT wCommand, DWORD_PTR dwData, BOOL *success_exec);
+BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_PTR dwData, BOOL *success_exec);
 /**********************************************************************
  *		WinHelp (USER.171)
  */
@@ -1159,12 +1159,13 @@ BOOL16 WINAPI WinHelp16( HWND16 hWnd, LPCSTR lpHelpFile, UINT16 wCommand,
     /* We might call WinExec() */
     ReleaseThunkLock(&mutex_count);
 
+    BOOL success_exec = FALSE;
     //trying to 16bit WINHELP.EXE
-    ret = wine_WinHelp16A(hWnd, lpHelpFile, wCommand, (DWORD)MapSL(dwData));
-    if (!ret)
+    ret = wine_WinHelp16A(hWnd, lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
+    if (!success_exec)
     {
-        ret = wine_WinHelp32A(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData));
-        if (!ret)
+        ret = wine_WinHelp32A(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
+        if (!success_exec)
         {
             ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData));
         }

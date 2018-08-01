@@ -73,13 +73,14 @@ typedef struct {
 //16bit WINHELP.EXE
 BOOL
 WINAPI
-wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData)
+wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, BOOL *success_exec)
 {
     static WORD WM_WINHELP = 0;
     HWND hDest;
     LPWINHELP lpwh;
     HGLOBAL16 hwh;
     int size, dsize, nlen;
+    *success_exec = FALSE;
 
     if (!WM_WINHELP) {
         WM_WINHELP = RegisterWindowMessageA("WM_WINHELP");
@@ -107,6 +108,7 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData)
             return FALSE;
         }
     }
+    *success_exec = TRUE;
     switch (uCommand) {
     case HELP_CONTEXT:
     case HELP_SETCONTENTS:
@@ -160,7 +162,15 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData)
         lpwh->ofsData = 0;
     }
     GlobalUnlock16(hwh);
-    return SendMessageA(hDest, WM_WINHELP, (WPARAM)hWnd, (LPARAM)hwh);
+    LRESULT result = SendMessageA(hDest, WM_WINHELP, (WPARAM)hWnd, (LPARAM)hwh);
+    if (!result)
+    {
+        //failure
+        //maybe winhlp32 launcher?
+        GlobalFree16(hwh);
+        *success_exec = FALSE;
+    }
+    return result;
 }
 
 
@@ -175,7 +185,7 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData)
 /**********************************************************************
 *		WinHelpA (USER32.@)
 */
-BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_PTR dwData)
+BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_PTR dwData, BOOL *success_exec)
 {
     COPYDATASTRUCT      cds;
     HWND                hDest;
@@ -184,6 +194,7 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
     LRESULT             ret;
 
     hDest = FindWindowA("MS_WINHELP", NULL);
+    *success_exec = FALSE;
     if (!hDest)
     {
         if (wCommand == HELP_QUIT) return TRUE;
@@ -206,6 +217,7 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
             return FALSE;
         }
     }
+    *success_exec = TRUE;
     MULTIKEYHELPA multikey32;
     HELPWININFOA info32;
     switch (wCommand)
