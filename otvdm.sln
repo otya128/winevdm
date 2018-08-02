@@ -312,6 +312,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msvideo", "msvideo\msvideo.
 		{D3F34C25-272C-4E4F-9B6F-BE7ABB472966} = {D3F34C25-272C-4E4F-9B6F-BE7ABB472966}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "avifile", "avifile\avifile.vcxproj", "{3825B17A-681F-48CF-B9AD-5337B1F521C8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -596,6 +598,12 @@ Global
 		{0DCF5163-4049-4850-92BE-5D6A2444C51D}.Release|Win32.ActiveCfg = Release|Win32
 		{0DCF5163-4049-4850-92BE-5D6A2444C51D}.Release|Win32.Build.0 = Release|Win32
 		{0DCF5163-4049-4850-92BE-5D6A2444C51D}.Release|x64.ActiveCfg = Release|Win32
+		{3825B17A-681F-48CF-B9AD-5337B1F521C8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3825B17A-681F-48CF-B9AD-5337B1F521C8}.Debug|Win32.Build.0 = Debug|Win32
+		{3825B17A-681F-48CF-B9AD-5337B1F521C8}.Debug|x64.ActiveCfg = Debug|Win32
+		{3825B17A-681F-48CF-B9AD-5337B1F521C8}.Release|Win32.ActiveCfg = Release|Win32
+		{3825B17A-681F-48CF-B9AD-5337B1F521C8}.Release|Win32.Build.0 = Release|Win32
+		{3825B17A-681F-48CF-B9AD-5337B1F521C8}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
