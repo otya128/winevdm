@@ -159,7 +159,7 @@ static HANDLE open_vxd_handle( LPCWSTR name )
 }
 
 /* retrieve the DeviceIoControl function for a Vxd given a file handle */
-DeviceIoProc WINAPI __wine_vxd_get_proc( HANDLE handle )
+DeviceIoProc __wine_vxd_get_proc( HANDLE handle )
 {
     DeviceIoProc ret = NULL;
     int status, i;
@@ -196,7 +196,7 @@ done:
 
 
 /* load a VxD and return a file handle to it */
-HANDLE WINAPI __wine_vxd_open( LPCWSTR filenameW, DWORD access, SECURITY_ATTRIBUTES *sa )
+HANDLE __wine_vxd_open( LPCWSTR filenameW, DWORD access, SECURITY_ATTRIBUTES *sa )
 {
     static const WCHAR dotVxDW[] = {'.','v','x','d',0};
     int i;
