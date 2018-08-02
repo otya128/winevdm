@@ -1636,7 +1636,7 @@ extern "C"
         }
         char buf[2048];
         sprintf(buf,
-            "Access violation\naddress=%p\naccess address=%p\n\
+            "address=%p\naccess address=%p\n\
 %dbit\n\
 16bit context\n\
 AX:%04X,CX:%04X,DX:%04X,BX:%04X\n\
@@ -1666,6 +1666,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, 
                     context.SegSs = SREG(SS);
                     context.SegDs = SREG(DS);*/
         fprintf(stderr, "%s", buf);
+        fflush(stderr);
 
         DWORD threadId;
         //same thread:
