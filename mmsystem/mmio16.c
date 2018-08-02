@@ -474,7 +474,7 @@ MMRESULT16 WINAPI mmioFlush16(HMMIO16 hmmio, UINT16 uFlags)
  */
 MMRESULT16 WINAPI mmioAdvance16(HMMIO16 hmmio, MMIOINFO16* lpmmioinfo, UINT16 uFlags)
 {
-    MMIOINFO    mmioinfo;
+    MMIOINFO    mmioinfo = { 0 };
     LRESULT     ret;
 
     /* WARNING: this heavily relies on mmioAdvance implementation (for choosing which
