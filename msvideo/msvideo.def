@@ -1,0 +1,6 @@
+; File generated automatically from msvideo\msvideo.dll16.spec; do not edit!
+
+LIBRARY msvideo.dll16
+
+EXPORTS
+  _wine_spec_dos_header @1 DATA
