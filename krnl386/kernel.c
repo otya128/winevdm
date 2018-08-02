@@ -727,14 +727,11 @@ void WINAPI ExitProcess16( WORD status )
     ReleaseThunkLock( &count );
     ExitProcess( status );
 }
-#define EXPORT comment(linker, "/EXPORT:_"__FUNCTION__"="__FUNCDNAME__)
-#pragma comment(linker, "/EXPORT:_GetVersion16=_GetVersion16@0")
 /***********************************************************************
  *		GetCurrentProcessId (KERNEL.471)
  */
 DWORD WINAPI GetCurrentProcessId16(void)
 {
-#pragma EXPORT
     return GetCurrentProcessId();
 }
 
@@ -743,7 +740,6 @@ DWORD WINAPI GetCurrentProcessId16(void)
  */
 BOOL WINAPI CloseW32Handle( HANDLE handle )
 {
-#pragma EXPORT
     return CloseHandle( handle );
 }
 
