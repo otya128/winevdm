@@ -86,15 +86,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="build.h" />
+    <ClInclude Include="main.c.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="convspec.c" />
     <ClCompile Include="import.c" />
-    <ClInclude Include="main.c.h">
-      <FileType>CppCode</FileType>
-    </ClInclude>
     <ClCompile Include="parser.c" />
     <ClCompile Include="relay.c" />
     <ClCompile Include="res16.c" />

@@ -110,12 +110,10 @@ static void output_entries( DLLSPEC *spec, int first, int count )
         case TYPE_PASCAL:
         case TYPE_VARARGS:
         case TYPE_STUB:
-            output( "\t.short .L__wine_%s_%u-.L__wine_spec_code_segment\n",
-                     make_c_identifier(spec->dll_name), first + i );
+            output( "\t.short .L__wine_%s_%u-.L__wine_spec_code_segment\n", spec->c_name, first + i );
             break;
         case TYPE_VARIABLE:
-            output( "\t.short .L__wine_%s_%u-.L__wine_spec_data_segment\n",
-                     make_c_identifier(spec->dll_name), first + i );
+            output( "\t.short .L__wine_%s_%u-.L__wine_spec_data_segment\n", spec->c_name, first + i );
             break;
         case TYPE_ABS:
             output( "\t.short 0x%04x  /* %s */\n",
@@ -358,9 +356,10 @@ static void output_call16_function( ORDDEF *odp )
         {
             output( "\tcall %s\n", asm_name("__wine_spec_get_pc_thunk_eax") );
             output( "1:\tmovl wine_ldt_copy_ptr-1b(%%eax),%%esi\n" );
+            needs_get_pc_thunk = 1;
         }
         else
-            output( "\tmovl $%s,%%esi\n", asm_name("_imp__wine_ldt_copy") );
+            output( "\tmovl $%s,%%esi\n", asm_name("wine_ldt_copy") );
     }
 
     /* preserve 16-byte stack alignment */
@@ -567,10 +566,6 @@ static void output_module16( DLLSPEC *spec )
     output( "\n/* module data */\n\n" );
     output( "\t.data\n" );
     output( "\t.align %d\n", get_alignment(4) );
-	output("\t.globl __wine_spec_dos_header\n");
-	output("__wine_spec_dos_header:\n");
-	output("\t.globl _wine_spec_dos_header\n");
-	output("_wine_spec_dos_header:\n");
     output( ".L__wine_spec_dos_header:\n" );
     output( "\t.short 0x5a4d\n" );                                         /* e_magic */
     output( "\t.short 0\n" );                                              /* e_cblp */
@@ -605,8 +600,7 @@ static void output_module16( DLLSPEC *spec )
     output( "\t.short %u\n", spec->heap_size );                            /* ne_heap */
     output( "\t.short 0\n" );                                              /* ne_stack */
     if (!entry_point) output( "\t.long 0\n" );                             /* ne_csip */
-    else output( "\t.short .L__wine_%s_0-.L__wine_spec_code_segment,1\n",
-                 make_c_identifier(spec->dll_name) );
+    else output( "\t.short .L__wine_%s_0-.L__wine_spec_code_segment,1\n", spec->c_name );
     output( "\t.short 0,2\n" );                                            /* ne_sssp */
     output( "\t.short 2\n" );                                              /* ne_cseg */
     output( "\t.short 0\n" );                                              /* ne_cmod */
@@ -758,10 +752,10 @@ static void output_module16( DLLSPEC *spec )
     {
         ORDDEF *odp = spec->ordinals[i];
         if (!odp || !is_function( odp )) continue;
-        output( ".L__wine_%s_%u:\n", make_c_identifier(spec->dll_name), i );
+        output( ".L__wine_%s_%u:\n", spec->c_name, i );
         output( "\tpushw %%bp\n" );
         output( "\tpushl $%s\n",
-                 asm_name_stdcall16( odp->type == TYPE_STUB ? get_stub_name( odp, spec ) : odp->link_name , odp));
+                 asm_name( odp->type == TYPE_STUB ? get_stub_name( odp, spec ) : odp->link_name ));
         output( "\tcallw .L__wine_spec_callfrom16_%s\n", get_callfrom16_name( odp ) );
     }
     output( ".L__wine_spec_code_segment_end:\n" );
@@ -774,7 +768,7 @@ static void output_module16( DLLSPEC *spec )
     {
         ORDDEF *odp = spec->ordinals[i];
         if (!odp || odp->type != TYPE_VARIABLE) continue;
-        output( ".L__wine_%s_%u:\n", make_c_identifier(spec->dll_name), i );
+        output( ".L__wine_%s_%u:\n", spec->c_name, i );
         output( "\t.long " );
         for (j = 0; j < odp->u.var.n_values-1; j++)
             output( "0x%08x,", odp->u.var.values[j] );
@@ -802,7 +796,7 @@ static void output_module16( DLLSPEC *spec )
         for ( i = 0; i < nb_funcs; i++ ) output_call16_function( typelist[i] );
         output( "\t.data\n" );
         output( "wine_ldt_copy_ptr:\n" );
-        output( "\t.long %s\n", asm_name("_imp__wine_ldt_copy") );
+        output( "\t.long %s\n", asm_name("wine_ldt_copy") );
     }
 
     free( typelist );
@@ -821,6 +815,7 @@ void output_spec16_file( DLLSPEC *spec16 )
     resolve_imports( spec16 );
     add_16bit_exports( spec32, spec16 );
 
+    needs_get_pc_thunk = 0;
     output_standard_file_header();
     output_module( spec32 );
     output_module16( spec16 );
@@ -828,6 +823,7 @@ void output_spec16_file( DLLSPEC *spec16 )
     output_exports( spec32 );
     output_imports( spec16 );
     if (is_undefined( "__wine_call_from_16" )) output_asm_relays16();
+    if (needs_get_pc_thunk) output_get_pc_thunk();
     if (spec16->main_module)
     {
         output( "\n\t%s\n", get_asm_string_section() );
@@ -836,7 +832,6 @@ void output_spec16_file( DLLSPEC *spec16 )
     }
     output_gnu_stack_note();
     free_dll_spec( spec32 );
-	output("%s:/*?*/\n", asm_name("_end"));
 }
 
 /*******************************************************************

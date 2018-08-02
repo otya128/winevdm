@@ -1,9 +1,39 @@
-// convspec.cpp : コンソール アプリケーションのエントリ ポイントを定義します。
-//
-
 #include "stdafx.h"
-
+static char *optarg;
+static int optind;
+static int opterr;
+static int optopt;
+struct option;
+struct option
+{
+    const char *name;
+    int has_arg;
+    int *flag;
+    int val;
+};
+static int getopt_long(int ___argc, char *const *___argv,
+    const char *__shortopts,
+    const struct option *__longopts, int *__longind)
+{
+    fprintf(stderr, "getopt_long: stub\n");
+    return 0;
+}
+static int getopt_long_only(int ___argc, char *const *___argv,
+    const char *__shortopts,
+    const struct option *__longopts, int *__longind)
+{
+    fprintf(stderr, "getopt_long_only: stub\n");
+    return 0;
+}
+int mkstemps(char *template, int suffix_len)
+{
+    fprintf(stderr, "mkstemps: stub\n");
+    return 0;
+}
+#define main __main
 #include "main.c.h"
+char *nb_lib_paths;
+#undef main
 static int parse_input_file(DLLSPEC *spec);
 int main(int argc, char* argv[])
 {

@@ -182,7 +182,7 @@ static ORDDEF *add_entry_point( DLLSPEC *spec )
 static int parse_spec_variable( ORDDEF *odp, DLLSPEC *spec )
 {
     char *endptr;
-    int *value_array;
+    unsigned int *value_array;
     int n_values;
     int value_array_size;
     const char *token;
@@ -214,7 +214,7 @@ static int parse_spec_variable( ORDDEF *odp, DLLSPEC *spec )
 	if (*token == ')')
 	    break;
 
-	value_array[n_values++] = strtol(token, &endptr, 0);
+	value_array[n_values++] = strtoul(token, &endptr, 0);
 	if (n_values == value_array_size)
 	{
 	    value_array_size += 25;
@@ -403,9 +403,9 @@ static int parse_spec_stub( ORDDEF *odp, DLLSPEC *spec )
     odp->link_name = xstrdup("");
     /* don't bother generating stubs for Winelib */
     if (odp->flags & FLAG_CPU_MASK)
-        odp->flags &= FLAG_CPU(CPU_x86) | FLAG_CPU(CPU_x86_64) | FLAG_CPU(CPU_ARM);
+        odp->flags &= FLAG_CPU(CPU_x86) | FLAG_CPU(CPU_x86_64) | FLAG_CPU(CPU_ARM) | FLAG_CPU(CPU_ARM64);
     else
-        odp->flags |= FLAG_CPU(CPU_x86) | FLAG_CPU(CPU_x86_64) | FLAG_CPU(CPU_ARM);
+        odp->flags |= FLAG_CPU(CPU_x86) | FLAG_CPU(CPU_x86_64) | FLAG_CPU(CPU_ARM) | FLAG_CPU(CPU_ARM64);
 
     return parse_spec_arguments( odp, spec, 1 );
 }
@@ -473,7 +473,7 @@ static const char *parse_spec_flags( DLLSPEC *spec, ORDDEF *odp )
                     odp->flags |= FLAG_CPU_WIN64;
                 else
                 {
-                    enum target_cpu cpu = get_cpu_from_name( cpu_name );
+                    int cpu = get_cpu_from_name( cpu_name );
                     if (cpu == -1)
                     {
                         error( "Unknown architecture '%s'\n", cpu_name );
@@ -497,6 +497,18 @@ static const char *parse_spec_flags( DLLSPEC *spec, ORDDEF *odp )
             {
                 error( "Unknown flag '%s'\n", token );
                 return NULL;
+            }
+            switch (1 << i)
+            {
+            case FLAG_RET16:
+            case FLAG_REGISTER:
+                if (spec->type == SPEC_WIN32)
+                    error( "Flag '%s' is not supported in Win32\n", FlagNames[i] );
+                break;
+            case FLAG_RET64:
+                if (spec->type == SPEC_WIN16)
+                    error( "Flag '%s' is not supported in Win16\n", FlagNames[i] );
+                break;
             }
             odp->flags |= 1 << i;
         }
@@ -603,6 +615,7 @@ static int parse_spec_ordinal( int ordinal, DLLSPEC *spec )
     {
         if (!strcmp( odp->name, "DllRegisterServer" ) ||
             !strcmp( odp->name, "DllUnregisterServer" ) ||
+            !strcmp( odp->name, "DllMain" ) ||
             !strcmp( odp->name, "DllGetClassObject" ) ||
             !strcmp( odp->name, "DllGetVersion" ) ||
             !strcmp( odp->name, "DllInstall" ) ||

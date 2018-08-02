@@ -33,11 +33,9 @@
 /* offset of the stack pointer relative to %fs:(0) */
 #define STACKOFFSET 0xc0  /* FIELD_OFFSET(TEB,WOW32Reserved) */
 
-/* fix this if the ntdll_thread_regs structure is changed */
-#define GS_OFFSET  0x1d8  /* FIELD_OFFSET(TEB,SystemReserved2) + FIELD_OFFSET(ntdll_thread_data,gs) */
+/* fix this if the x86_thread_data structure is changed */
+#define GS_OFFSET  0x1d8  /* FIELD_OFFSET(TEB,SystemReserved2) + FIELD_OFFSET(struct x86_thread_data,gs) */
 
-#define DPMI_VIF_OFFSET      (0x1fc + 0) /* FIELD_OFFSET(TEB,GdiTebBatch) + FIELD_OFFSET(WINE_VM86_TEB_INFO,dpmi_vif) */
-#define VM86_PENDING_OFFSET  (0x1fc + 4) /* FIELD_OFFSET(TEB,GdiTebBatch) + FIELD_OFFSET(WINE_VM86_TEB_INFO,vm86_pending) */
 
 static void function_header( const char *name )
 {
@@ -163,7 +161,7 @@ static void BuildCallFrom16Core( int reg_func, int thunk )
         output( "\tmovl (%%edx), %%edx\n" );
     }
     else
-        output( "\tmovl %s(%%edx), %%edx\n", asm_name("_imp__wine_ldt_copy") );
+        output( "\tmovl %s(%%edx), %%edx\n", asm_name("wine_ldt_copy") );
     output( "\tmovzwl %%sp, %%ebp\n" );
     output( "\tleal %d(%%ebp,%%edx), %%edx\n", reg_func ? 0 : -4 );
 
@@ -749,195 +747,6 @@ static void BuildCallTo32CBClient( int isEx )
 
 
 /*******************************************************************
- *         build_call_from_regs_x86
- *
- * Build a 32-bit-to-Wine call-back function for a 'register' function.
- * 'args' is the number of dword arguments.
- *
- * Stack layout:
- *   ...
- * (ebp+20)  first arg
- * (ebp+16)  ret addr to user code
- * (ebp+12)  func to call (relative to relay code ret addr)
- * (ebp+8)   number of args
- * (ebp+4)   ret addr to relay code
- * (ebp+0)   saved ebp
- * (ebp-128) buffer area to allow stack frame manipulation
- * (ebp-332) CONTEXT86 struct
- * (ebp-336) padding for stack alignment
- * (ebp-336-n) CONTEXT86 *argument
- *  ....     other arguments copied from (ebp+12)
- *
- * The entry point routine is called with a CONTEXT* extra argument,
- * following the normal args. In this context structure, EIP_reg
- * contains the return address to user code, and ESP_reg the stack
- * pointer on return (with the return address and arguments already
- * removed).
- */
-static void build_call_from_regs_x86(void)
-{
-    static const int STACK_SPACE = 128 + 0x2cc /* sizeof(CONTEXT86) */;
-
-    /* Function header */
-
-    output( "\t.text\n" );
-    function_header( "__wine_call_from_regs" );
-
-    /* Allocate some buffer space on the stack */
-
-    output_cfi( ".cfi_startproc" );
-    output( "\tpushl %%ebp\n" );
-    output_cfi( ".cfi_adjust_cfa_offset 4" );
-    output_cfi( ".cfi_rel_offset %%ebp,0" );
-    output( "\tmovl %%esp,%%ebp\n" );
-    output_cfi( ".cfi_def_cfa_register %%ebp" );
-    output( "\tleal -%d(%%esp),%%esp\n", STACK_SPACE );
-
-    /* Build the context structure */
-
-    output( "\tmovl %%eax,0xb0(%%esp)\n" );  /* Eax */
-    output( "\tpushfl\n" );
-    output( "\tpopl %%eax\n" );
-    output( "\tmovl %%eax,0xc0(%%esp)\n");  /* EFlags */
-    output( "\tmovl 0(%%ebp),%%eax\n" );
-    output( "\tmovl %%eax,0xb4(%%esp)\n");  /* Ebp */
-    output( "\tmovl %%ebx,0xa4(%%esp)\n");  /* Ebx */
-    output( "\tmovl %%ecx,0xac(%%esp)\n");  /* Ecx */
-    output( "\tmovl %%edx,0xa8(%%esp)\n");  /* Edx */
-    output( "\tmovl %%esi,0xa0(%%esp)\n");  /* Esi */
-    output( "\tmovl %%edi,0x9c(%%esp)\n");  /* Edi */
-
-    output( "\txorl %%eax,%%eax\n" );
-    output( "\tmovw %%cs,%%ax\n" );
-    output( "\tmovl %%eax,0xbc(%%esp)\n");  /* SegCs */
-    output( "\tmovw %%es,%%ax\n" );
-    output( "\tmovl %%eax,0x94(%%esp)\n");  /* SegEs */
-    output( "\tmovw %%fs,%%ax\n" );
-    output( "\tmovl %%eax,0x90(%%esp)\n");  /* SegFs */
-    output( "\tmovw %%gs,%%ax\n" );
-    output( "\tmovl %%eax,0x8c(%%esp)\n");  /* SegGs */
-    output( "\tmovw %%ss,%%ax\n" );
-    output( "\tmovl %%eax,0xc8(%%esp)\n");  /* SegSs */
-    output( "\tmovw %%ds,%%ax\n" );
-    output( "\tmovl %%eax,0x98(%%esp)\n");  /* SegDs */
-    output( "\tmovw %%ax,%%es\n" );  /* set %es equal to %ds just in case */
-
-    output( "\tmovl $0x10007,0(%%esp)\n");  /* ContextFlags */
-
-    output( "\tmovl 16(%%ebp),%%eax\n" ); /* Get %eip at time of call */
-    output( "\tmovl %%eax,0xb8(%%esp)\n");  /* Eip */
-
-    /* Transfer the arguments */
-
-    output( "\tmovl 8(%%ebp),%%ecx\n" );    /* fetch number of args to copy */
-    output( "\tleal 4(,%%ecx,4),%%edx\n" ); /* add 4 for context arg */
-    output( "\tsubl %%edx,%%esp\n" );
-    output( "\tandl $~15,%%esp\n" );
-    output( "\tleal 20(%%ebp),%%esi\n" );  /* get %esp at time of call */
-    output( "\tmovl %%esp,%%edi\n" );
-    output( "\ttest %%ecx,%%ecx\n" );
-    output( "\tjz 1f\n" );
-    output( "\tcld\n" );
-    output( "\trep\n\tmovsl\n" );  /* copy args */
-    output( "1:\tleal %d(%%ebp),%%eax\n", -STACK_SPACE );  /* get addr of context struct */
-    output( "\tmovl %%eax,(%%edi)\n" );    /* and pass it as extra arg */
-    output( "\tmovl %%esi,%d(%%ebp)\n", 0xc4 /* Esp */ - STACK_SPACE );
-
-    /* Call the entry point */
-
-    output( "\tmovl 4(%%ebp),%%eax\n" );   /* get relay code addr */
-    output( "\taddl 12(%%ebp),%%eax\n" );
-    output( "\tcall *%%eax\n" );
-    output( "\tleal -%d(%%ebp),%%ecx\n", STACK_SPACE );
-
-    /* Restore the context structure */
-
-    output( "2:\tpushl 0x94(%%ecx)\n");     /* SegEs */
-    output( "\tpopl %%es\n" );
-    output( "\tpushl 0x90(%%ecx)\n");       /* SegFs */
-    output( "\tpopl %%fs\n" );
-    output( "\tpushl 0x8c(%%ecx)\n");       /* SegGs */
-    output( "\tpopl %%gs\n" );
-
-    output( "\tmovl 0x9c(%%ecx),%%edi\n");  /* Edi */
-    output( "\tmovl 0xa0(%%ecx),%%esi\n");  /* Esi */
-    output( "\tmovl 0xa8(%%ecx),%%edx\n");  /* Edx */
-    output( "\tmovl 0xa4(%%ecx),%%ebx\n");  /* Ebx */
-    output( "\tmovl 0xb0(%%ecx),%%eax\n");  /* Eax */
-    output( "\tmovl 0xb4(%%ecx),%%ebp\n");  /* Ebp */
-
-    output( "\tpushl 0xc8(%%ecx)\n");       /* SegSs */
-    output( "\tpopl %%ss\n" );
-    output( "\tmovl 0xc4(%%ecx),%%esp\n");  /* Esp */
-
-    output( "\tpushl 0xc0(%%ecx)\n");       /* EFlags */
-    output( "\tpushl 0xbc(%%ecx)\n");       /* SegCs */
-    output( "\tpushl 0xb8(%%ecx)\n");       /* Eip */
-    output( "\tpushl 0x98(%%ecx)\n");       /* SegDs */
-    output( "\tmovl 0xac(%%ecx),%%ecx\n");  /* Ecx */
-
-    output( "\tpopl %%ds\n" );
-    output( "\tiret\n" );
-    output_cfi( ".cfi_endproc" );
-    output_function_size( "__wine_call_from_regs" );
-
-    function_header( "__wine_restore_regs" );
-    output_cfi( ".cfi_startproc" );
-    output( "\tmovl 4(%%esp),%%ecx\n" );
-    output( "\tjmp 2b\n" );
-    output_cfi( ".cfi_endproc" );
-    output_function_size( "__wine_restore_regs" );
-}
-
-
-/*******************************************************************
- *         BuildPendingEventCheck
- *
- * Build a function that checks whether there are any
- * pending DPMI events.
- *
- * Stack layout:
- *   
- * (sp+12) long   eflags
- * (sp+6)  long   cs
- * (sp+2)  long   ip
- * (sp)    word   fs
- *
- * On entry to function, fs register points to a valid TEB.
- * On exit from function, stack will be popped.
- */
-static void BuildPendingEventCheck(void)
-{
-    /* Function header */
-
-    function_header( "DPMI_PendingEventCheck" );
-
-    /* Check for pending events. */
-
-    output( "\t.byte 0x64\n\ttestl $0xffffffff,(%d)\n", VM86_PENDING_OFFSET );
-    output( "\tje %s\n", asm_name("DPMI_PendingEventCheck_Cleanup") );
-    output( "\t.byte 0x64\n\ttestl $0xffffffff,(%d)\n", DPMI_VIF_OFFSET );
-    output( "\tje %s\n", asm_name("DPMI_PendingEventCheck_Cleanup") );
-
-    /* Process pending events. */
-
-    output( "\tsti\n" );
-
-    /* Start cleanup. Restore fs register. */
-
-    output( "%s\n", asm_globl("DPMI_PendingEventCheck_Cleanup") );
-    output( "\tpopw %%fs\n" );
-
-    /* Return from function. */
-
-    output( "%s\n", asm_globl("DPMI_PendingEventCheck_Return") );
-    output( "\tiret\n" );
-
-    output_function_size( "DPMI_PendingEventCheck" );
-}
-
-
-/*******************************************************************
  *         output_asm_relays16
  *
  * Build all the 16-bit relay callbacks
@@ -975,9 +784,6 @@ void output_asm_relays16(void)
     /* CBClientThunkSLEx routine */
     BuildCallTo32CBClient( 1  );
 
-    /* Pending DPMI events check stub */
-    BuildPendingEventCheck();
-
     output( "%s\n", asm_globl("__wine_call16_end") );
     output_function_size( "__wine_spec_thunk_text_16" );
 
@@ -985,27 +791,4 @@ void output_asm_relays16(void)
     output( "\n\t.data\n\t.align %d\n", get_alignment(4) );
     output( "%s\n\t.long 0\n", asm_globl("CallTo16_DataSelector") );
     output( "%s\n\t.long 0\n", asm_globl("CallTo16_TebSelector") );
-
-    output( "\t.text\n" );
-    output( "%s:\n", asm_name("__wine_spec_thunk_text_32") );
-    build_call_from_regs_x86();
-    output_function_size( "__wine_spec_thunk_text_32" );
-}
-
-
-/*******************************************************************
- *         output_asm_relays
- *
- * Build all the assembly relay callbacks
- */
-void output_asm_relays(void)
-{
-    switch (target_cpu)
-    {
-    case CPU_x86:
-        build_call_from_regs_x86();
-        break;
-    default:
-        break;
-    }
 }

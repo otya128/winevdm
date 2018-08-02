@@ -80,12 +80,13 @@ enum arg_type
 typedef struct
 {
     int n_values;
-    int *values;
+    unsigned int *values;
 } ORD_VARIABLE;
 
 typedef struct
 {
     int           nb_args;
+    int           args_str_offset;
     enum arg_type args[MAX_ARGUMENTS];
 } ORD_FUNCTION;
 
@@ -116,6 +117,7 @@ typedef struct
     char            *src_name;           /* file name of the source spec file */
     char            *file_name;          /* file name of the dll */
     char            *dll_name;           /* internal name of the dll */
+    char            *c_name;             /* internal name of the dll, as a C-compatible identifier */
     char            *init_func;          /* initialization routine */
     char            *main_module;        /* main Win32 module for Win16 specs */
     SPEC_TYPE        type;               /* type of dll (Win16/Win32) */
@@ -229,10 +231,10 @@ extern char *xstrdup( const char *str );
 extern char *strupper(char *s);
 extern int strendswith(const char* str, const char* end);
 extern char *strmake(const char* fmt, ...) __attribute__((__format__ (__printf__, 1, 2 )));
-extern struct strarray *strarray_fromstring( const char *str, const char *delim );
+extern struct strarray strarray_fromstring( const char *str, const char *delim );
 extern void strarray_add( struct strarray *array, ... );
 extern void strarray_addv( struct strarray *array, char * const *argv );
-extern void strarray_free( struct strarray *array );
+extern void strarray_addall( struct strarray *array, struct strarray args );
 extern DECLSPEC_NORETURN void fatal_error( const char *msg, ... )
    __attribute__ ((__format__ (__printf__, 1, 2)));
 extern DECLSPEC_NORETURN void fatal_perror( const char *msg, ... )
@@ -245,10 +247,10 @@ extern int output( const char *format, ... )
    __attribute__ ((__format__ (__printf__, 1, 2)));
 extern void output_cfi( const char *format, ... )
    __attribute__ ((__format__ (__printf__, 1, 2)));
-extern void spawn( struct strarray *array );
-extern struct strarray *find_tool( const char *name, const char * const *names );
-extern struct strarray *get_as_command(void);
-extern struct strarray *get_ld_command(void);
+extern void spawn( struct strarray array );
+extern struct strarray find_tool( const char *name, const char * const *names );
+extern struct strarray get_as_command(void);
+extern struct strarray get_ld_command(void);
 extern const char *get_nm_command(void);
 extern void cleanup_tmp_files(void);
 extern char *get_temp_file_name( const char *prefix, const char *suffix );
@@ -260,9 +262,9 @@ extern int remove_stdcall_decoration( char *name );
 extern void assemble_file( const char *src_file, const char *obj_file );
 extern DLLSPEC *alloc_dll_spec(void);
 extern void free_dll_spec( DLLSPEC *spec );
-extern const char *make_c_identifier( const char *str );
+extern char *make_c_identifier( const char *str );
 extern const char *get_stub_name( const ORDDEF *odp, const DLLSPEC *spec );
-extern enum target_cpu get_cpu_from_name( const char *name );
+extern int get_cpu_from_name( const char *name );
 extern unsigned int get_alignment(unsigned int align);
 extern unsigned int get_page_size(void);
 extern unsigned int get_ptr_size(void);
@@ -284,7 +286,6 @@ extern void read_undef_symbols( DLLSPEC *spec, char **argv );
 extern void resolve_imports( DLLSPEC *spec );
 extern int is_undefined( const char *name );
 extern int has_imports(void);
-extern int has_relays( DLLSPEC *spec );
 extern void output_get_pc_thunk(void);
 extern void output_module( DLLSPEC *spec );
 extern void output_stubs( DLLSPEC *spec );
@@ -304,7 +305,6 @@ extern void output_bin_res16_directory( DLLSPEC *spec, unsigned int data_offset 
 extern void output_spec16_file( DLLSPEC *spec );
 extern void output_fake_module16( DLLSPEC *spec16 );
 extern void output_res_o_file( DLLSPEC *spec );
-extern void output_asm_relays(void);
 extern void output_asm_relays16(void);
 
 extern void BuildSpec32File( DLLSPEC *spec );
@@ -342,7 +342,6 @@ extern void align_output( unsigned int align );
 
 extern int current_line;
 extern int UsePIC;
-extern int nb_lib_paths;
 extern int nb_errors;
 extern int display_warnings;
 extern int kill_at;
@@ -355,13 +354,16 @@ extern char *input_file_name;
 extern char *spec_file_name;
 extern FILE *output_file;
 extern const char *output_file_name;
-extern char **lib_path;
 
-extern struct strarray *as_command;
-extern struct strarray *cc_command;
-extern struct strarray *ld_command;
-extern struct strarray *nm_command;
+extern struct strarray lib_path;
+extern struct strarray as_command;
+extern struct strarray cc_command;
+extern struct strarray ld_command;
+extern struct strarray nm_command;
 extern char *cpu_option;
+extern char *arch_option;
+extern const char *float_abi_option;
 extern int thumb_mode;
+extern int needs_get_pc_thunk;
 
 #endif  /* __WINE_BUILD_H */

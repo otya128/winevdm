@@ -39,7 +39,6 @@
 #include "build.h"
 
 int UsePIC = 0;
-int nb_lib_paths = 0;
 int nb_errors = 0;
 int display_warnings = 0;
 int kill_at = 0;
@@ -75,7 +74,6 @@ enum target_platform target_platform = PLATFORM_UNSPECIFIED;
 #endif
 
 char *target_alias = NULL;
-char **lib_path = NULL;
 
 char *input_file_name = NULL;
 char *spec_file_name = NULL;
@@ -84,11 +82,18 @@ const char *output_file_name = NULL;
 static const char *output_file_source_name;
 static int fake_module;
 
-struct strarray *as_command = NULL;
-struct strarray *cc_command = NULL;
-struct strarray *ld_command = NULL;
-struct strarray *nm_command = NULL;
+struct strarray lib_path = { 0 };
+struct strarray as_command = { 0 };
+struct strarray cc_command = { 0 };
+struct strarray ld_command = { 0 };
+struct strarray nm_command = { 0 };
 char *cpu_option = NULL;
+char *arch_option = NULL;
+#ifdef __SOFTFP__
+const char *float_abi_option = "soft";
+#else
+const char *float_abi_option = "softfp";
+#endif
 
 #ifdef __thumb__
 int thumb_mode = 1;
@@ -96,8 +101,7 @@ int thumb_mode = 1;
 int thumb_mode = 0;
 #endif
 
-static int nb_res_files;
-static char **res_files;
+static struct strarray res_files;
 
 /* execution mode */
 enum exec_mode_values
@@ -159,6 +163,7 @@ static void init_dll_name( DLLSPEC *spec )
         spec->dll_name = xstrdup( spec->file_name );
         if ((p = strrchr( spec->dll_name, '.' ))) *p = 0;
     }
+    spec->c_name = make_c_identifier( spec->dll_name );
 }
 
 /* set the dll subsystem */
@@ -199,9 +204,12 @@ static void set_target( const char *target )
 
     if ((p = strchr( spec, '-' )))
     {
+        int cpu;
+
         *p++ = 0;
-        if ((target_cpu = get_cpu_from_name( spec )) == -1)
-            fatal_error( "Unrecognized CPU '%s'\n", spec );
+        cpu = get_cpu_from_name( spec );
+        if (cpu == -1) fatal_error( "Unrecognized CPU '%s'\n", spec );
+        target_cpu = cpu;
         platform = p;
         if ((p = strrchr( p, '-' ))) platform = p + 1;
     }
@@ -308,7 +316,7 @@ enum long_options_values
 };
 
 static const char short_options[] = "C:D:E:F:H:I:K:L:M:N:b:d:e:f:hkl:m:o:r:u:vw";
-#ifdef HAVE_GETOPT_H
+
 static const struct option long_options[] =
 {
     { "dll",           0, 0, LONG_OPT_DLL },
@@ -347,7 +355,6 @@ static const struct option long_options[] =
     { "warnings",      0, 0, 'w' },
     { NULL,            0, 0, 0 }
 };
-#endif
 
 static void usage( int exit_code )
 {
@@ -360,7 +367,7 @@ static void set_exec_mode( enum exec_mode_values mode )
     if (exec_mode != MODE_NONE) usage(1);
     exec_mode = mode;
 }
-#ifdef HAVE_GETOPT_H
+
 /* parse options from the argv array and remove all the recognized ones */
 static char **parse_options( int argc, char **argv, DLLSPEC *spec )
 {
@@ -396,8 +403,7 @@ static char **parse_options( int argc, char **argv, DLLSPEC *spec )
             /* ignored, because cc generates correct code. */
             break;
         case 'L':
-            lib_path = xrealloc( lib_path, (nb_lib_paths+1) * sizeof(*lib_path) );
-            lib_path[nb_lib_paths++] = xstrdup( optarg );
+            strarray_add( &lib_path, xstrdup( optarg ), NULL );
             break;
         case 'm':
             if (!strcmp( optarg, "16" )) spec->type = SPEC_WIN16;
@@ -406,6 +412,8 @@ static char **parse_options( int argc, char **argv, DLLSPEC *spec )
             else if (!strcmp( optarg, "arm" )) thumb_mode = 0;
             else if (!strcmp( optarg, "thumb" )) thumb_mode = 1;
             else if (!strncmp( optarg, "cpu=", 4 )) cpu_option = xstrdup( optarg + 4 );
+            else if (!strncmp( optarg, "arch=", 5 )) arch_option = xstrdup( optarg + 5 );
+            else if (!strncmp( optarg, "float-abi=", 10 )) float_abi_option = xstrdup( optarg + 10 );
             else fatal_error( "Unknown -m option '%s'\n", optarg );
             break;
         case 'M':
@@ -461,8 +469,7 @@ static char **parse_options( int argc, char **argv, DLLSPEC *spec )
             }
             break;
         case 'r':
-            res_files = xrealloc( res_files, (nb_res_files+1) * sizeof(*res_files) );
-            res_files[nb_res_files++] = xstrdup( optarg );
+            strarray_add( &res_files, xstrdup( optarg ), NULL );
             break;
         case 'u':
             add_extra_ld_symbol( optarg );
@@ -551,7 +558,7 @@ static char **parse_options( int argc, char **argv, DLLSPEC *spec )
 
     return &argv[optind];
 }
-#endif
+
 
 /* load all specified resource files */
 static void load_resources( char *argv[], DLLSPEC *spec )
@@ -562,14 +569,14 @@ static void load_resources( char *argv[], DLLSPEC *spec )
     switch (spec->type)
     {
     case SPEC_WIN16:
-        for (i = 0; i < nb_res_files; i++) load_res16_file( res_files[i], spec );
+        for (i = 0; i < res_files.count; i++) load_res16_file( res_files.str[i], spec );
         break;
 
     case SPEC_WIN32:
-        for (i = 0; i < nb_res_files; i++)
+        for (i = 0; i < res_files.count; i++)
         {
-            if (!load_res32_file( res_files[i], spec ))
-                fatal_error( "%s is not a valid Win32 resource file\n", res_files[i] );
+            if (!load_res32_file( res_files.str[i], spec ))
+                fatal_error( "%s is not a valid Win32 resource file\n", res_files.str[i] );
         }
 
         /* load any resource file found in the remaining arguments */
@@ -617,7 +624,6 @@ static int parse_input_file( DLLSPEC *spec )
 /*******************************************************************
  *         main
  */
-#ifdef HAVE_GETOPT_H
 int main(int argc, char **argv)
 {
     DLLSPEC *spec = alloc_dll_spec();
@@ -687,4 +693,3 @@ int main(int argc, char **argv)
     }
     return 0;
 }
-#endif
