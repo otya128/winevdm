@@ -48,7 +48,8 @@ int main(int argc, char* argv[])
 	spec->type = SPEC_WIN16;
 	spec->file_name = spec_file_name;
 	output_file = stdout;
-	//	init_dll_name(spec);
+    target_cpu = CPU_x86;
+    init_dll_name(spec);
 	if (argc > 2)
 	{
 		if (!strcmp(argv[2], "-DEF"))

@@ -969,6 +969,81 @@ unsigned int get_args_size( const ORDDEF *odp )
     }
     return size;
 }
+static int get_function_argsize16(const ORDDEF *odp)
+{
+    int i, argsize = 0;
+    for (i = 0; i < odp->u.func.nb_args; i++)
+    {
+        switch (odp->u.func.args[i])
+        {
+        case ARG_WORD:
+        case ARG_SWORD:
+            argsize += 2 + 2;
+            break;
+        case ARG_SEGPTR:
+        case ARG_SEGSTR:
+        case ARG_LONG:
+        case ARG_PTR:
+        case ARG_STR:
+        case ARG_WSTR:
+        case ARG_FLOAT:
+        case ARG_INT128:
+            argsize += 4;
+            break;
+        case ARG_INT64:
+        case ARG_DOUBLE:
+            argsize += 8;
+            break;
+        }
+    }
+    if (odp->flags & FLAG_REGISTER)
+        return argsize + 4;//ARG_PTR
+    return argsize;
+}
+const char *asm_name_stdcall16(const char *sym, ORDDEF *ord)
+{
+    static char *buffer;
+    switch (target_platform)
+    {
+    case PLATFORM_APPLE:
+    case PLATFORM_WINDOWS:
+        if (sym[0] == '.' && sym[1] == 'L') return sym;
+        free(buffer);
+        if (ord->type == TYPE_VARARGS || strstr(sym, "__wine_stub") == sym)
+        {
+            buffer = strmake("_%s", sym);
+        }
+        else
+        {
+            buffer = strmake("_%s@%d", sym, get_function_argsize16(ord));
+        }
+        return buffer;
+    default:
+        return sym;
+    }
+}
+const char *asm_name_stdcall32(const char *sym, ORDDEF *ord)
+{
+    static char *buffer;
+    switch (target_platform)
+    {
+    case PLATFORM_APPLE:
+    case PLATFORM_WINDOWS:
+        if (sym[0] == '.' && sym[1] == 'L') return sym;
+        free(buffer);
+        if (ord->type == TYPE_VARARGS || strstr(sym, "__wine_stub") == sym)
+        {
+            buffer = strmake("_%s", sym);
+        }
+        else
+        {
+            buffer = strmake("_%s@%d", sym, get_function_argsize16(ord));
+        }
+        return buffer;
+    default:
+        return sym;
+    }
+}
 
 /* return the assembly name for a C symbol */
 const char *asm_name( const char *sym )
@@ -999,7 +1074,7 @@ const char *func_declaration( const char *func )
         return "";
     case PLATFORM_WINDOWS:
         free( buffer );
-        buffer = strmake( ".def _%s; .scl 2; .type 32; .endef", func );
+        buffer = strmake( ".def %s; .scl 2; .type 32; .endef", func );
         break;
     default:
         free( buffer );

@@ -359,7 +359,7 @@ static void output_call16_function( ORDDEF *odp )
             needs_get_pc_thunk = 1;
         }
         else
-            output( "\tmovl $%s,%%esi\n", asm_name("wine_ldt_copy") );
+            output( "\tmovl $%s,%%esi\n", asm_name("_imp__wine_ldt_copy") );
     }
 
     /* preserve 16-byte stack alignment */
@@ -586,7 +586,10 @@ static void output_module16( DLLSPEC *spec )
     output( "\t.short 0\n" );                                              /* e_oeminfo */
     output( "\t.short 0,0,0,0,0,0,0,0,0,0\n" );                            /* e_res2 */
     output( "\t.long .L__wine_spec_ne_header-.L__wine_spec_dos_header\n" );/* e_lfanew */
-
+    output("\t.globl __wine_spec_dos_header\n");
+    output("__wine_spec_dos_header:\n");
+    output("\t.globl _wine_spec_dos_header\n");
+    output("_wine_spec_dos_header:\n");
     output( ".L__wine_spec_ne_header:\n" );
     output( "\t.short 0x454e\n" );                                         /* ne_magic */
     output( "\t.byte 0\n" );                                               /* ne_ver */
@@ -755,7 +758,7 @@ static void output_module16( DLLSPEC *spec )
         output( ".L__wine_%s_%u:\n", spec->c_name, i );
         output( "\tpushw %%bp\n" );
         output( "\tpushl $%s\n",
-                 asm_name( odp->type == TYPE_STUB ? get_stub_name( odp, spec ) : odp->link_name ));
+            odp->type == TYPE_PASCAL ? asm_name_stdcall16(odp->link_name, odp) : (odp->type == TYPE_STUB ? get_stub_name(odp, spec) : asm_name( odp->link_name )));
         output( "\tcallw .L__wine_spec_callfrom16_%s\n", get_callfrom16_name( odp ) );
     }
     output( ".L__wine_spec_code_segment_end:\n" );
@@ -796,7 +799,7 @@ static void output_module16( DLLSPEC *spec )
         for ( i = 0; i < nb_funcs; i++ ) output_call16_function( typelist[i] );
         output( "\t.data\n" );
         output( "wine_ldt_copy_ptr:\n" );
-        output( "\t.long %s\n", asm_name("wine_ldt_copy") );
+        output( "\t.long %s\n", asm_name("_imp__wine_ldt_copy") );
     }
 
     free( typelist );
@@ -832,6 +835,7 @@ void output_spec16_file( DLLSPEC *spec16 )
     }
     output_gnu_stack_note();
     free_dll_spec( spec32 );
+    output("%s:/*?*/\n", asm_name("_end"));
 }
 
 /*******************************************************************

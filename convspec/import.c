@@ -1206,7 +1206,7 @@ void output_stubs( DLLSPEC *spec )
         exp_name = odp->name ? odp->name : odp->export_name;
         output( "\t.align %d\n", get_alignment(4) );
         output( "\t%s\n", func_declaration(name) );
-        output( "%s:\n", asm_name(name) );
+        output( "%s:\n", (name) );
         output_cfi( ".cfi_startproc" );
 
         switch (target_cpu)
