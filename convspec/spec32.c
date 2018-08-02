@@ -405,7 +405,7 @@ void output_exports( DLLSPEC *spec )
             }
             else
             {
-                output( "\t%s %s\n", get_asm_ptr_keyword(), asm_name(odp->link_name) );
+                output( "\t%s %s\n", get_asm_ptr_keyword(), odp->type == TYPE_STDCALL ? asm_name_stdcall32(odp->link_name, odp) : asm_name(odp->link_name) );
             }
             break;
         case TYPE_STUB:

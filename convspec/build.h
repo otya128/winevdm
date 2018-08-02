@@ -367,4 +367,5 @@ extern int thumb_mode;
 extern int needs_get_pc_thunk;
 
 extern const char *asm_name_stdcall16(const char *sym, ORDDEF *ord);
+const char *asm_name_stdcall32(const char *sym, ORDDEF *ord);
 #endif  /* __WINE_BUILD_H */
