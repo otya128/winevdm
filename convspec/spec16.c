@@ -566,6 +566,8 @@ static void output_module16( DLLSPEC *spec )
     output( "\n/* module data */\n\n" );
     output( "\t.data\n" );
     output( "\t.align %d\n", get_alignment(4) );
+    output( "__wine_spec_dos_header:\n" );
+    output( "\t.globl __wine_spec_dos_header\n" );
     output( ".L__wine_spec_dos_header:\n" );
     output( "\t.short 0x5a4d\n" );                                         /* e_magic */
     output( "\t.short 0\n" );                                              /* e_cblp */
@@ -586,10 +588,6 @@ static void output_module16( DLLSPEC *spec )
     output( "\t.short 0\n" );                                              /* e_oeminfo */
     output( "\t.short 0,0,0,0,0,0,0,0,0,0\n" );                            /* e_res2 */
     output( "\t.long .L__wine_spec_ne_header-.L__wine_spec_dos_header\n" );/* e_lfanew */
-    output("\t.globl __wine_spec_dos_header\n");
-    output("__wine_spec_dos_header:\n");
-    output("\t.globl _wine_spec_dos_header\n");
-    output("_wine_spec_dos_header:\n");
     output( ".L__wine_spec_ne_header:\n" );
     output( "\t.short 0x454e\n" );                                         /* ne_magic */
     output( "\t.byte 0\n" );                                               /* ne_ver */
