@@ -660,15 +660,15 @@ extern "C"
 	}
 	void save_context(CONTEXT *context)
 	{
-		context->Eax = REG16(AX);
-		context->Ecx = REG16(CX);
-		context->Edx = REG16(DX);
-		context->Ebx = REG16(BX);
-		context->Esp = REG16(SP);
-		context->Ebp = REG16(BP);
-		context->Esi = REG16(SI);
-		context->Edi = REG16(DI);
-		context->Ebp = REG16(BP);
+		context->Eax = REG32(EAX);
+		context->Ecx = REG32(ECX);
+		context->Edx = REG32(EDX);
+		context->Ebx = REG32(EBX);
+		context->Esp = REG32(ESP);
+		context->Ebp = REG32(EBP);
+		context->Esi = REG32(ESI);
+		context->Edi = REG32(EDI);
+		context->Ebp = REG32(EBP);
 		context->Eip = m_eip;
 		context->SegEs = SREG(ES);
 		context->SegCs = SREG(CS);
@@ -681,15 +681,15 @@ extern "C"
 	}
 	void load_context(CONTEXT *context)
 	{
-		REG16(AX) = (WORD)context->Eax;
-		REG16(CX) = (WORD)context->Ecx;
-		REG16(DX) = (WORD)context->Edx;
-		REG16(BX) = (WORD)context->Ebx;
-		REG16(SP) = (WORD)context->Esp;
-		REG16(BP) = (WORD)context->Ebp;
-		REG16(SI) = (WORD)context->Esi;
-		REG16(DI) = (WORD)context->Edi;
-		REG16(BP) = (WORD)context->Ebp;
+		REG32(EAX) = (DWORD)context->Eax;
+		REG32(ECX) = (DWORD)context->Ecx;
+		REG32(EDX) = (DWORD)context->Edx;
+		REG32(EBX) = (DWORD)context->Ebx;
+		REG32(ESP) = (DWORD)context->Esp;
+		REG32(EBP) = (DWORD)context->Ebp;
+		REG32(ESI) = (DWORD)context->Esi;
+		REG32(EDI) = (DWORD)context->Edi;
+		REG32(EBP) = (DWORD)context->Ebp;
 		SREG(ES) = (WORD)context->SegEs;
 		SREG(CS) = (WORD)context->SegCs;
 		SREG(SS) = (WORD)context->SegSs;
@@ -1067,14 +1067,14 @@ extern "C"
 			if (!initflag)
 				initflag = init_vm86(false);
 			//wine_ldt_copy.base[0] = iret;
-			REG16(AX) = (WORD)context->Eax;
-			REG16(CX) = (WORD)context->Ecx;
-			REG16(DX) = (WORD)context->Edx;
-			REG16(BX) = (WORD)context->Ebx;
-			REG16(SP) = (WORD)context->Esp - cbArgs;
-			REG16(BP) = (WORD)context->Ebp;
-			REG16(SI) = (WORD)context->Esi;
-			REG16(DI) = (WORD)context->Edi;
+			REG32(EAX) = (DWORD)context->Eax;
+			REG32(ECX) = (DWORD)context->Ecx;
+			REG32(EDX) = (DWORD)context->Edx;
+			REG32(EBX) = (DWORD)context->Ebx;
+			REG32(ESP) = (DWORD)context->Esp - cbArgs;
+			REG32(EBP) = (DWORD)context->Ebp;
+			REG32(ESI) = (DWORD)context->Esi;
+			REG32(EDI) = (DWORD)context->Edi;
 			SREG(ES) = (WORD)context->SegEs;
 			SREG(CS) = (WORD)context->SegCs;
 			SREG(SS) = (WORD)context->SegSs;
@@ -1353,16 +1353,16 @@ extern "C"
 							REG32(EAX) = fret;
 						}
                         oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
-						if (reg) REG16(AX) = (WORD)context.Eax;
-						REG16(CX) = reg ? (WORD)context.Ecx : (WORD)oa->ecx;
-						if (reg) REG16(DX) = (WORD)context.Edx;
+						if (reg) REG32(EAX) = (DWORD)context.Eax;
+						REG32(ECX) = reg ? (DWORD)context.Ecx : (DWORD)oa->ecx;
+						if (reg) REG32(EDX) = (DWORD)context.Edx;
                         else
-                            REG16(DX) = (WORD)oa->edx;
-						REG16(BX) = (WORD)context.Ebx;
-						REG16(SP) = (WORD)context.Esp;
-						REG16(BP) = (WORD)context.Ebp;
-						REG16(SI) = (WORD)context.Esi;
-						REG16(DI) = (WORD)context.Edi;
+                            REG32(EDX) = (DWORD)oa->edx;
+						REG32(EBX) = (DWORD)context.Ebx;
+						REG32(ESP) = (DWORD)context.Esp;
+						REG32(EBP) = (DWORD)context.Ebp;
+						REG32(ESI) = (DWORD)context.Esi;
+						REG32(EDI) = (DWORD)context.Edi;
                         SREG(ES) = reg ? (WORD)context.SegEs : (WORD)oa->es;
 						SREG(CS) = (WORD)context.SegCs;
 						SREG(SS) = (WORD)context.SegSs;
@@ -1387,23 +1387,14 @@ extern "C"
 				{
 					m_VM = 0;
 					m_eflags &= ~0x20000;
-					//????
-					m_sreg[CS].d = 1;
-					m_operand_size = 1;
 				}
 				else
 				{
-					if (dasm && !m_VM)
-					{
-						//printf("==ENTER 16BIT CODE==\n");
-					}
                     if (isVM86mode)
                     {
                         m_VM = 1;
                         m_eflags |= 0x20000;
                     }
-                    m_sreg[CS].d = 0;
-					m_operand_size = 0;
 				}
 #ifdef SUPPORT_DISASSEMBLER
 				if (dasm) {
