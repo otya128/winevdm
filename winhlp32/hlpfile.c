@@ -954,9 +954,8 @@ static BOOL HLPFILE_RtfAddTransparentBitmap(struct RtfData* rd, const BITMAPINFO
 
     return ret;
 }
-
 /******************************************************************
- *		HLPFILE_RtfAddBitmap
+ *             HLPFILE_RtfAddBitmap
  *
  */
 static BOOL HLPFILE_RtfAddBitmap(struct RtfData* rd, HLPFILE* file, const BYTE* beg, BYTE type, BYTE pack)
@@ -1033,16 +1032,20 @@ static BOOL HLPFILE_RtfAddBitmap(struct RtfData* rd, HLPFILE* file, const BYTE* 
     if (!HLPFILE_RtfAddControl(rd, "{\\pict")) goto done;
     if (type == 0x06)
     {
-        sprintf(tmp, "\\dibitmap0\\picw%d\\pich%d",
-                bi->bmiHeader.biWidth, bi->bmiHeader.biHeight);
+        /* 96dpi: 15twips = 1px */
+        sprintf(tmp, "\\dibitmap0\\picw%d\\pich%d\\picwgoal%d\\pichgoal%d",
+                bi->bmiHeader.biWidth, bi->bmiHeader.biHeight,
+                bi->bmiHeader.biWidth * 15, bi->bmiHeader.biHeight * 15);
         if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
-        if (!HLPFILE_RtfAddHexBytes(rd, bi, sizeof(*bi) + nc * sizeof(RGBQUAD))) goto done;
+        if (!HLPFILE_RtfAddHexBytes(rd, bi, sizeof(bi->bmiHeader) + nc * sizeof(RGBQUAD))) goto done;
     }
     else
     {
-        sprintf(tmp, "\\wbitmap0\\wbmbitspixel%d\\wbmplanes%d\\picw%d\\pich%d",
+        /* 96dpi: 15twips = 1px */
+        sprintf(tmp, "\\wbitmap0\\wbmbitspixel%d\\wbmplanes%d\\picw%d\\pich%d\\picwgoal%d\\pichgoal%d",
                 bi->bmiHeader.biBitCount, bi->bmiHeader.biPlanes,
-                bi->bmiHeader.biWidth, bi->bmiHeader.biHeight);
+                bi->bmiHeader.biWidth, bi->bmiHeader.biHeight,
+                bi->bmiHeader.biWidth * 15, bi->bmiHeader.biHeight * 15);
         if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
     }
     if (!HLPFILE_RtfAddHexBytes(rd, pict_beg, bi->bmiHeader.biSizeImage)) goto done;

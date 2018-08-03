@@ -39,6 +39,7 @@
 #include "winhelp_res.h"
 #include "shellapi.h"
 #include "richedit.h"
+#include "richole.h"
 #include "commctrl.h"
 
 #include "wine/debug.h"
@@ -699,6 +700,91 @@ static LRESULT CALLBACK WINHELP_RicheditWndProc(HWND hWnd, UINT msg,
     }
 }
 
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_QueryInterface(IRichEditOleCallback *This, REFIID riid, LPVOID FAR * lplpObj)
+{
+    return S_OK;
+}
+ULONG STDMETHODCALLTYPE WINHELP_OLE_Callback_AddRef(IRichEditOleCallback *This)
+{
+    return 0;
+}
+ULONG STDMETHODCALLTYPE WINHELP_OLE_Callback_Release (IRichEditOleCallback *This)
+{
+    return 0;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_GetNewStorage (IRichEditOleCallback *This, LPSTORAGE *lplpstg)
+{
+    LPLOCKBYTES lpLockBytes = NULL;
+    HRESULT result = CreateILockBytesOnHGlobal(NULL, TRUE, &lpLockBytes);
+    if (result != S_OK)
+        return result;
+    result = StgCreateDocfileOnILockBytes(lpLockBytes, STGM_SHARE_EXCLUSIVE | STGM_CREATE | STGM_READWRITE, 0, lplpstg);
+    if (result != S_OK)
+        lpLockBytes->lpVtbl->Release(lpLockBytes);
+    return result;
+
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_GetInPlaceContext (IRichEditOleCallback *This, LPOLEINPLACEFRAME FAR * lplpFrame,
+    LPOLEINPLACEUIWINDOW FAR * lplpDoc,
+    LPOLEINPLACEFRAMEINFO lpFrameInfo)
+{
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_ShowContainerUI (IRichEditOleCallback *This, BOOL fShow)
+{
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_QueryInsertObject (IRichEditOleCallback *This, LPCLSID lpclsid, LPSTORAGE lpstg,
+    LONG cp)
+{
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_DeleteObject (IRichEditOleCallback *This, LPOLEOBJECT lpoleobj)
+{
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_QueryAcceptData (IRichEditOleCallback *This, LPDATAOBJECT lpdataobj,
+    CLIPFORMAT FAR * lpcfFormat, DWORD reco,
+    BOOL fReally, HGLOBAL hMetaPict)
+{
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_ContextSensitiveHelp  (IRichEditOleCallback *This, BOOL fEnterMode)
+{
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_GetClipboardData (IRichEditOleCallback *This, CHARRANGE FAR * lpchrg, DWORD reco, LPDATAOBJECT FAR * lplpdataobj)
+{
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_GetDragDropEffect (IRichEditOleCallback *This, BOOL fDrag, DWORD grfKeyState,
+    LPDWORD pdwEffect)
+{
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_GetContextMenu (IRichEditOleCallback *This, WORD seltype, LPOLEOBJECT lpoleobj,
+    CHARRANGE FAR * lpchrg,
+    HMENU FAR * lphmenu)
+{
+    return S_OK;
+}
+IRichEditOleCallbackVtbl callbackv =
+{
+    WINHELP_OLE_Callback_QueryInterface,
+    WINHELP_OLE_Callback_AddRef,
+    WINHELP_OLE_Callback_Release,
+    WINHELP_OLE_Callback_GetNewStorage,
+    WINHELP_OLE_Callback_GetInPlaceContext,
+    WINHELP_OLE_Callback_ShowContainerUI,
+    WINHELP_OLE_Callback_QueryInsertObject,
+    WINHELP_OLE_Callback_DeleteObject,
+    WINHELP_OLE_Callback_QueryAcceptData,
+    WINHELP_OLE_Callback_ContextSensitiveHelp,
+    WINHELP_OLE_Callback_GetClipboardData,
+    WINHELP_OLE_Callback_GetDragDropEffect,
+    WINHELP_OLE_Callback_GetContextMenu
+};
+IRichEditOleCallback callback = { &callbackv };
 /***********************************************************************
  *
  *           WINHELP_CreateHelpWindow
@@ -827,6 +913,8 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
         hTextWnd = CreateWindowA(RICHEDIT_CLASS20A, NULL,
                                 ES_MULTILINE | ES_READONLY | WS_CHILD | WS_HSCROLL | WS_VSCROLL | WS_VISIBLE,
                                 0, 0, 0, 0, win->hMainWnd, (HMENU)CTL_ID_TEXT, Globals.hInstance, NULL);
+        /* set ole callback for showing bitmaps */
+        SendMessageW(hTextWnd, EM_SETOLECALLBACK, NULL, &callback);
         SendMessageW(hTextWnd, EM_SETEVENTMASK, 0,
                     SendMessageW(hTextWnd, EM_GETEVENTMASK, 0, 0) | ENM_MOUSEEVENTS);
         win->origRicheditWndProc = (WNDPROC)SetWindowLongPtrA(hTextWnd, GWLP_WNDPROC,
