@@ -200,17 +200,7 @@ LRESULT WINAPI SendIMEMessageEx16(
         switch (lpime->wParam)
         {
         case MCW_WINDOW:
-        {
             ERR("MCW_WINDOW(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
-            COMPOSITIONFORM c = { 0 };
-            c.dwStyle = CFS_FORCE_POSITION;
-            c.ptCurrentPos.x = (lpime->lParam1 >> 16) & ~0x800;
-            c.ptCurrentPos.y = (short)lpime->lParam1;
-            HIMC hi = ImmGetContext(hwnd32);
-            BOOL a = ImmSetCompositionWindow(hi, &c);
-            ImmReleaseContext(hwnd32, hi);
-            return a;
-        }
             break;
         case MCW_DEFAULT:
             ERR("MCW_DEFAULT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
@@ -234,6 +224,7 @@ LRESULT WINAPI SendIMEMessageEx16(
             ERR("MCW_SCREEN | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         default:
+            ERR("IME_SETCONVERSIONWINDOW unknwon %04x (%p, %p, %p)\n", lpime->wParam, lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         }
     }
