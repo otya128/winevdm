@@ -258,6 +258,23 @@ WORD get_env_dos_version()
         v2 *= 10;
     return v1 << 8 | v2;
 }
+WORD get_env_win_version()
+{
+    char buffer1[100];
+    char buffer[100];
+    krnl386_get_config_string("otvdm", "WINVER", "", buffer1, sizeof(buffer1));
+    DWORD result = GetEnvironmentVariableA("WINVER", buffer, sizeof(buffer));
+    LPSTR version = buffer;
+    if (result == 0 || result > sizeof(buffer))
+        version = buffer1;
+    if (version[0] == 0)
+        return 0;
+    int v1 = 0, v2 = 0;
+    sscanf(version, "%d.%d", &v1, &v2);
+    if (v2 <= 9)
+        v2 *= 10;
+    return v2 << 8 | v1;
+}
 /***********************************************************************
  *         GetVersion   (KERNEL.3)
  */
@@ -265,10 +282,6 @@ DWORD WINAPI GetVersion16(void)
 {
     static WORD dosver, winver;
 
-    if (!dosver)
-    {
-        dosver = get_env_dos_version();
-    }
     if (!dosver)  /* not determined yet */
     {
         RTL_OSVERSIONINFOEXW info;
@@ -308,6 +321,18 @@ DWORD WINAPI GetVersion16(void)
         }
         TRACE( "DOS %d.%02d Win %d.%02d\n",
                HIBYTE(dosver), LOBYTE(dosver), LOBYTE(winver), HIBYTE(winver) );
+        WORD dosver_env = get_env_dos_version();
+        WORD winver_env = get_env_win_version();
+        if (dosver_env)
+        {
+            dosver = dosver_env;
+        }
+        if (winver_env)
+        {
+            winver = winver_env;
+        }
+        ERR("DOS %d.%02d Win %d.%02d\n",
+            HIBYTE(dosver_env), LOBYTE(dosver_env), LOBYTE(winver_env), HIBYTE(winver_env));
     }
     return MAKELONG( winver, dosver );
 }
