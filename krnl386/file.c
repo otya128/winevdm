@@ -53,6 +53,7 @@ BOOL EnableRedirectSystemDir = TRUE;
 BOOL EnableRedirectSystemDir = FALSE;
 #endif
 const char *GetRedirectWindowsDir();
+void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output);
 __declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL is_dir)
 {
     if (!(path[0] && path[1] == ':' && (path[2] == 0 || path[2] == '\\' || path[2] == '/')))
@@ -659,7 +660,9 @@ UINT16 WINAPI GetPrivateProfileInt16( LPCSTR section, LPCSTR entry,
     /* we used to have some elaborate return value limitation (<= -32768 etc.)
      * here, but Win98SE doesn't care about this at all, so I deleted it.
      * AFAIR versions prior to Win9x had these limits, though. */
-    return (INT16)GetPrivateProfileIntA(section,entry,def_val,filename);
+    char ini[MAX_PATH];
+    RedirectPrivateProfileStringWindowsDir(filename,ini);
+    return (INT16)GetPrivateProfileIntA(section,entry,def_val,ini);
 }
 
 
