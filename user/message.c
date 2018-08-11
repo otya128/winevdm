@@ -1912,6 +1912,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
         *result = get_icon_32(*result);
         break;
+    //some applications (afx?) crash when processing this message
+    //case WM_THEMECHANGED:
+    //    break;
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
