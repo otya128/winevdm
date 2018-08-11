@@ -220,6 +220,8 @@ WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
     int index = winproc_to_index((WNDPROC16)ret);
     if (index == -1)
         return ret;
+    if (index >= MAX_WINPROCS32)
+        index -= MAX_WINPROCS32;
     winproc16_native[index] = TRUE;
     return ret;
 }
@@ -228,6 +230,8 @@ BOOL WINPROC_IsNativeProc(WNDPROC16 func)
     int index = winproc_to_index(func);
     if (index == -1)
         return FALSE;
+    if (index >= MAX_WINPROCS32)
+        index -= MAX_WINPROCS32;
     return winproc16_native[index];
 }
 /**********************************************************************
@@ -3793,6 +3797,8 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
         if (WINPROC_IsNativeProc(wndproc16))
         {
             int index = winproc_to_index((WNDPROC16)wndproc16);
+            if (index >= MAX_WINPROCS32)
+                index -= MAX_WINPROCS32;
             return CallWindowProcA(winproc16_array[index], hDlg, Msg, wParam, lParam);
         }
         WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,

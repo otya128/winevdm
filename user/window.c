@@ -1894,6 +1894,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.lpszClassName = MapSL(wc->lpszClassName);
 	wc32.hIconSm = get_icon_32(wc->hIconSm);
     atom = RegisterClassExA( &wc32 );
+    TRACE("(%08x,%08x,%04x,%04x,%04x,%04x,%04x,%04x,%s,%s,%04x) Ret:%04x\n", wc->style, wc->lpfnWndProc, wc->cbClsExtra, wc->cbWndExtra, wc->hInstance, wc->hIcon, wc->hCursor, wc->hbrBackground, debugstr_a(wc32.lpszMenuName), debugstr_a(wc32.lpszClassName), wc->hIconSm, atom);
 	if (atom)
 	{
 		WNDCLASS16Info[atom].wndproc = (DWORD)WINPROC_AllocProc16(wc->lpfnWndProc);
