@@ -331,7 +331,7 @@ DWORD WINAPI GetVersion16(void)
         {
             winver = winver_env;
         }
-        ERR("DOS %d.%02d Win %d.%02d\n",
+        TRACE("DOS %d.%02d Win %d.%02d\n",
             HIBYTE(dosver_env), LOBYTE(dosver_env), LOBYTE(winver_env), HIBYTE(winver_env));
     }
     return MAKELONG( winver, dosver );

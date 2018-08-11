@@ -74,7 +74,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libwine.lib;krnl386.lib;user.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>krnl386.exe16;libwine.dll;user32.dll;kernel32.dll;</DelayLoadDLLs>
+      <DelayLoadDLLs>krnl386.exe16;libwine.dll;user32.dll;kernel32.dll;gdi32.dll;</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(SolutionDir)$(Configuration)\WINDOWS\SYSTEM" 2&gt; NUL || ver &gt; NUL</Command>

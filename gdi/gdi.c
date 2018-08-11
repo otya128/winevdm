@@ -1822,7 +1822,7 @@ LONG WINAPI SetBitmapBits16( HBITMAP16 hbitmap, LONG count, LPCVOID buffer )
 INT16 WINAPI AddFontResource16( LPCSTR filename )
 {
     ERR("(%s)\n", debugstr_a(filename));
-    return 0;// AddFontResourceA(filename);
+    return AddFontResourceA(filename);
 }
 
 

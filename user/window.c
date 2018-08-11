@@ -778,6 +778,26 @@ void WINAPI ValidateRgn16( HWND16 hwnd, HRGN16 hrgn )
     RedrawWindow16( hwnd, NULL, hrgn, RDW_VALIDATE | RDW_NOCHILDREN );
 }
 
+
+static WORD get_system_window_class_wndextra(const char *cls, BOOL *f)
+{
+    *f = TRUE;
+    if (!strncasecmp(cls, "EDIT", sizeof(cls)))
+        return 6;
+    if (!strncasecmp(cls, "LISTBOX", sizeof(cls)))
+        return 2;
+    if (!strncasecmp(cls, "SCROLLBAR", sizeof(cls)))
+        return 12;
+    if (!strncasecmp(cls, "COMBOBOX", sizeof(cls)))
+        return 2;
+    if (!strncasecmp(cls, "STATIC", sizeof(cls)))
+        return 6;
+    if (!strncasecmp(cls, "BUTTON", sizeof(cls)))
+        return 4;
+    *f = FALSE;
+    return 0;
+}
+
 /**************************************************************************
  *              GetClassWord   (USER.129)
  */
@@ -788,7 +808,15 @@ WORD WINAPI GetClassWord16( HWND16 hwnd, INT16 offset )
     switch (offset)
     {
     case GCL_CBWNDEXTRA:
+    {
+        char cls[1000];
+        GetClassNameA(HWND_32(hwnd), cls, sizeof(cls));
+        BOOL f;
+        WORD cb = get_system_window_class_wndextra(cls, &f);
+        if (f)
+            return cb;
         return (WORD)GetClassLongA(WIN_Handle32(hwnd), offset);
+    }
     case GCLP_HCURSOR:
     case GCLP_HICON:
     case GCLP_HICONSM:
@@ -1904,7 +1932,9 @@ BOOL16 WINAPI GetClassInfoEx16( HINSTANCE16 hInst16, SEGPTR name, WNDCLASSEX16 *
         wc->lpfnWndProc = WNDCLASS16Info[ret].wndproc ? WNDCLASS16Info[ret].wndproc : WINPROC_AllocNativeProc(wc32.lpfnWndProc);//WINPROC_GetProc16( wc32.lpfnWndProc, FALSE );
         wc->style         = wc32.style;
         wc->cbClsExtra    = wc32.cbClsExtra;
-        wc->cbWndExtra    = wc32.cbWndExtra;
+        BOOL f;
+        WORD cb = get_system_window_class_wndextra(wc32.lpszClassName, &f);
+        wc->cbWndExtra    = f ? cb : wc32.cbWndExtra;
         wc->hInstance     = (wc32.hInstance == user32_module) ? GetModuleHandle16("user") : HINSTANCE_16(wc32.hInstance);
         wc->hIcon         = get_icon_16( wc32.hIcon );
         wc->hIconSm       = get_icon_16( wc32.hIconSm );
