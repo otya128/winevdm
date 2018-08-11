@@ -1024,6 +1024,8 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
 
     selflags = (pSeg->flags & NE_SEGFLAGS_DATA) ? WINE_LDT_FLAGS_DATA : WINE_LDT_FLAGS_CODE;
     if (pSeg->flags & NE_SEGFLAGS_32BIT) selflags |= WINE_LDT_FLAGS_32BIT;
+    if (pModule->ne_expver < 0x300 && !(pModule->ne_flags & NE_FFLAGS_BUILTIN))
+        selflags &= ~WINE_LDT_FLAGS_32BIT;
     pSeg->hSeg = GLOBAL_Alloc( NE_Ne2MemFlags(pSeg->flags), minsize, pModule->self, selflags );
     if (!pSeg->hSeg) return FALSE;
 

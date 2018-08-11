@@ -1486,6 +1486,47 @@ static LPCSTR parse_menu_resource( LPCSTR res, HMENU hMenu )
     return res;
 }
 
+HMENU WINAPI LoadOldMenuIndirect16(LPCVOID *template)
+{
+    HMENU hMenu;
+    LPCSTR p = *template;
+    if (!(hMenu = CreateMenu())) return 0;
+    while (TRUE)
+    {
+        UINT flag = (UINT)((BYTE)*p++);
+        BOOL end = flag & MF_END;
+        WORD id = 0;
+        if (!(flag & MF_POPUP))
+        {
+            id = GET_WORD(p);
+            p += 2;
+        }
+        SIZE_T len = strlen(p);
+        LPCSTR name = p;
+        p += len + 1;
+        if (len == 0)
+        {
+            flag |= MF_SEPARATOR;
+        }
+        if (flag & MF_POPUP)
+        {
+            AppendMenuA(hMenu, flag & ~MF_END, LoadOldMenuIndirect16(&p), name);
+            if (end)
+            {
+                break;
+            }
+            continue;
+        }
+        AppendMenuA(hMenu, flag & ~MF_END, id, name);
+        if (end)
+        {
+            break;
+        }
+    }
+    *template = p;
+    return hMenu;
+
+}
 /**********************************************************************
  *	    LoadMenuIndirect    (USER.220)
  */
@@ -1496,6 +1537,12 @@ HMENU16 WINAPI LoadMenuIndirect16( LPCVOID template )
     LPCSTR p = template;
 
     TRACE("(%p)\n", template );
+
+    BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst);
+    if (IsWinOldApTask(GetCurrentTask()))
+    {
+        return HMENU_16(LoadOldMenuIndirect16(&template));
+    }
     version = GET_WORD(p);
     p += sizeof(WORD);
     if (version)

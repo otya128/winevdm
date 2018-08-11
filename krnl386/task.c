@@ -1338,7 +1338,7 @@ BOOL16 WINAPI IsWinOldApTask16( HTASK16 hTask )
 }
 BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst)
 {
-	if (!NE_GetPtr(GetExePtr(hInst))->ne_expver)
+	if (NE_GetPtr(GetExePtr(hInst))->ne_expver < 0x300)
 		return TRUE;
 	return FALSE;
 }
