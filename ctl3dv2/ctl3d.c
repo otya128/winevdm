@@ -20,6 +20,7 @@
 
 #include "wine/winbase16.h"
 #include "wine/winuser16.h"
+#include <WowNT32.h>
 
 static BOOL16 CTL3D16_is_auto_subclass = FALSE;
 
@@ -110,7 +111,15 @@ BOOL16 WINAPI Ctl3dRegister16(HINSTANCE16 hInst)
  */
 BOOL16 WINAPI Ctl3dSubclassCtl16(HWND16 hwnd)
 {
-    return FALSE;
+    HWND hwnd32 = HWND_32(hwnd);
+    char buf[200] = { 0 };
+    GetClassNameA(hwnd32, buf, sizeof(buf));
+    if (!strcmpi(buf, "EDIT") || !strcmpi(buf, "LISTBOX"))
+    {
+        SetWindowLongA(hwnd32, GWL_EXSTYLE, GetWindowLongA(HWND_32(hwnd), GWL_EXSTYLE) | WS_EX_CLIENTEDGE);
+        SetWindowPos(hwnd32, 0, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_DRAWFRAME);
+    }
+    return TRUE;
 }
 
 /***********************************************************************
@@ -118,7 +127,7 @@ BOOL16 WINAPI Ctl3dSubclassCtl16(HWND16 hwnd)
  */
 BOOL16 WINAPI Ctl3dSubclassCtlEx16(HWND16 hwnd, INT16 type)
 {
-    return FALSE;
+    return Ctl3dSubclassCtl16(hwnd);
 }
 
 /***********************************************************************
