@@ -2206,39 +2206,39 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
     DWORD size;
 
     if (!hinst || (flags & LR_LOADFROMFILE))
-	{
-		//OEMRESOURCE
-		WORD n = (WORD)name;
-		HANDLE h = LoadImageA(0, n, type, cx, cy, flags);
-		if (!h)
-		{
-			//OBM_OLD_XXXX->OBM_XXXX
-			switch (n)
-			{
-			case OBM_OLD_CLOSE:
-				n = OBM_CLOSE;
-				break;
-			case OBM_OLD_DNARROW:
-				n = OBM_DNARROW;
-				break;
-			case OBM_OLD_LFARROW:
-				n = OBM_LFARROW;
-				break;
-			case OBM_OLD_REDUCE:
-				n = OBM_REDUCE;
-				break;
-			case OBM_OLD_RESTORE:
-				n = OBM_RESTORE;
-				break;
-			case OBM_OLD_RGARROW:
-				n = OBM_RGARROW;
-				break;
-			case OBM_OLD_UPARROW:
-				n = OBM_UPARROW;
-				break;
-			case OBM_OLD_ZOOM:
-				n = OBM_ZOOM;
-				break;
+    {
+        //OEMRESOURCE
+        WORD n = (WORD)name;
+        HANDLE h = LoadImageA(0, n, type, cx, cy, flags);
+        if (!h)
+        {
+            //OBM_OLD_XXXX->OBM_XXXX
+            switch (n)
+            {
+            case OBM_OLD_CLOSE:
+                n = OBM_CLOSE;
+                break;
+            case OBM_OLD_DNARROW:
+                n = OBM_DNARROW;
+                break;
+            case OBM_OLD_LFARROW:
+                n = OBM_LFARROW;
+                break;
+            case OBM_OLD_REDUCE:
+                n = OBM_REDUCE;
+                break;
+            case OBM_OLD_RESTORE:
+                n = OBM_RESTORE;
+                break;
+            case OBM_OLD_RGARROW:
+                n = OBM_RGARROW;
+                break;
+            case OBM_OLD_UPARROW:
+                n = OBM_UPARROW;
+                break;
+            case OBM_OLD_ZOOM:
+                n = OBM_ZOOM;
+                break;
             case OCR_SIZE:
                 n = OCR_SIZEALL;
                 break;
@@ -2248,27 +2248,31 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
             case OCR_ICOCUR:
                 n = OIC_WINLOGO;
                 break;
-			default:
+            default:
                 break;
-			}
-			h = LoadImageA(0, n, type, cx, cy, flags);
+            }
+            h = LoadImageA(0, n, type, cx, cy, flags);
             if (h == 0)
             {
                 ERR("LoadImageA(%d, %d, %d, %d, %d, %d)\n", 0, n, type, cx, cy, flags);
             }
-		}
-		//OBM_OLD_CLOSE
-		//OBM_OLD_DNARROW
-		//OBM_OLD_LFARROW
-		//OBM_OLD_REDUCE
-		//OBM_OLD_RESTORE
-		//OBM_OLD_RGARROW
-		//OBM_OLD_UPARROW
-		//OBM_OLD_ZOOM
+        }
+        //OBM_OLD_CLOSE
+        //OBM_OLD_DNARROW
+        //OBM_OLD_LFARROW
+        //OBM_OLD_REDUCE
+        //OBM_OLD_RESTORE
+        //OBM_OLD_RGARROW
+        //OBM_OLD_UPARROW
+        //OBM_OLD_ZOOM
         if (type == IMAGE_BITMAP)
-			return HBITMAP_16(h);
+            return HBITMAP_16(h);
         else
-			return get_icon_16(h);
+        {
+            HICON16 hIcon = get_icon_16(h);
+            add_shared_icon(hinst, NULL, NULL, hIcon);
+            return hIcon;
+        }
     }
 
     hinst = GetExePtr( hinst );
