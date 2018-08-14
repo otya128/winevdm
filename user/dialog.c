@@ -352,7 +352,15 @@ LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam
 	return 0;//DefWindowProcA(hDlg, Msg, wParam, lParam);
 }
 LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
-	LRESULT *result, void *arg);
+    LRESULT *result, void *arg);
+LRESULT call_dialog_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
+    LRESULT *result, void *arg)
+{
+    call_window_proc16(hwnd, msg, wParam, lParam, result, arg);
+    LRESULT r = *result;
+    *result = GetWindowLong16(hwnd, DWL_MSGRESULT);
+    return r;
+}
 BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	HWND16 hWnd16 = HWND_16(hDlg);
@@ -366,17 +374,18 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		msg.wParam = wParam;
 		msg.lParam = lParam;
 		MSG16 msg16;
-		switch (msg.message)
-		{
+        switch (msg.message)
+        {
         case WM_INITDIALOG:
             break;
         default:
-			WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
-				&ret, wndproc16);
-            if (ret)
-                return ret;
-            break;
-		}
+        {
+            BOOL16 result = WINPROC_CallProc32ATo16(call_dialog_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+                &ret, wndproc16);
+            SetWindowLongA(hDlg, DWL_MSGRESULT, ret);
+            return result;
+        }
+        }
 	}
 	switch (Msg) {
 	case WM_INITDIALOG:
