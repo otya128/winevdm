@@ -815,7 +815,15 @@ WORD WINAPI GetClassWord16( HWND16 hwnd, INT16 offset )
         WORD cb = get_system_window_class_wndextra(cls, &f);
         if (f)
             return cb;
-        return (WORD)GetClassLongA(WIN_Handle32(hwnd), offset);
+        ATOM atom = GetClassWord(HWND_32(hwnd), GCW_ATOM);
+        if (WNDCLASS16Info[atom].allocated)
+        {
+            return WNDCLASS16Info[atom].cbWndExtra;
+        }
+        else
+        {
+            return (WORD)GetClassLongA(WIN_Handle32(hwnd), offset);
+        }
     }
     case GCLP_HCURSOR:
     case GCLP_HICON:
@@ -939,6 +947,16 @@ HINSTANCE16 GetWindowHInst16(WORD hWnd16);
 void SetWindowHMenu16(WORD hWnd16, HMENU16 hinst16);
 //__declspec(dllexport) 
 HMENU16 GetWindowHMenu16(WORD hWnd16);
+static WORD get_actual_cbwndextra(HWND hwnd)
+{
+    SIZE_T siz = GetClassLongA(hwnd, GCL_CBWNDEXTRA);
+    if (siz >= 65536)
+        return 65535;
+    WORD w = (WORD)siz;
+    if (w < DLGWINDOWEXTRA)
+        return DLGWINDOWEXTRA;
+    return w;
+}
 /**************************************************************************
  *              GetWindowWord   (USER.133)
  */
@@ -946,7 +964,7 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
 {
     if (offset >= 0)
     {
-        size_t siz = GetClassLongA(WIN_Handle32(hwnd), GCL_CBWNDEXTRA);
+        size_t siz = get_actual_cbwndextra(WIN_Handle32(hwnd));
         if (siz + sizeof(WORD) < offset)
         {
             ERR("(0x%04X, %d) Out of range\n", hwnd, offset);
@@ -992,7 +1010,7 @@ WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
 {
     if (offset >= 0)
     {
-        size_t siz = GetClassLongA(WIN_Handle32(hwnd), GCL_CBWNDEXTRA);
+        size_t siz = get_actual_cbwndextra(WIN_Handle32(hwnd));
         if (siz + sizeof(WORD) < offset)
         {
             ERR("(0x%04X, %d, 0x%04X) Out of range\n", hwnd, offset, newval);
@@ -1041,7 +1059,7 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
 
     if (offset >= 0)
     {
-        int cbWndExtra = GetClassLongA( hwnd, GCL_CBWNDEXTRA );
+        int cbWndExtra = get_actual_cbwndextra( hwnd );
 
         if (offset > (int)(cbWndExtra - sizeof(LONG)))
         {
@@ -1078,9 +1096,11 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
     //if (is_winproc) retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
     if (offset >= 0)
     {
-        size_t siz = GetClassLongA(hwnd, GCL_CBWNDEXTRA);
+        size_t siz = get_actual_cbwndextra(hwnd);
         if (siz + sizeof(LONG) < offset)
         {
+            ERR("(0x%04X, %d) Out of range\n", hwnd, offset);
+            SetLastError(ERROR_INVALID_INDEX);
             return 0;
         }
         if (!hwndwordbuf[hwnd16])
@@ -1167,9 +1187,11 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     }
     if (offset >= 0)
     {
-        size_t siz = GetClassLongA(hwnd, GCL_CBWNDEXTRA);
+        size_t siz = get_actual_cbwndextra(hwnd);
         if (siz + sizeof(LONG) < offset)
         {
+            ERR("(0x%04X, %d) Out of range\n", hwnd, offset);
+            SetLastError(ERROR_INVALID_INDEX);
             return 0;
         }
         if (!hwndwordbuf[hwnd16])
@@ -1881,23 +1903,27 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     inst = GetExePtr( wc->hInstance );
     if (!inst) inst = GetModuleHandle16( NULL );
 
+    //FIXME:global class implementation?(CS_GLOBALCLASS)
+    //FIXME:could not register a local class
     wc32.cbSize        = sizeof(wc32);
     wc32.style         = wc->style;
     wc32.lpfnWndProc   = DefWndProca;//WINPROC_AllocProc16( wc->lpfnWndProc );
     wc32.cbClsExtra    = wc->cbClsExtra;
-    wc32.cbWndExtra    = wc->cbWndExtra;
+    wc32.cbWndExtra    = 100;
     wc32.hInstance     = HINSTANCE_32(inst);
     wc32.hIcon         = get_icon_32(wc->hIcon);
     wc32.hCursor       = get_icon_32( wc->hCursor );
     wc32.hbrBackground = HBRUSH_32(wc->hbrBackground);
     wc32.lpszMenuName  = MapSL(wc->lpszMenuName);
     wc32.lpszClassName = MapSL(wc->lpszClassName);
-	wc32.hIconSm = get_icon_32(wc->hIconSm);
+    wc32.hIconSm       = get_icon_32(wc->hIconSm);
     atom = RegisterClassExA( &wc32 );
     TRACE("(%08x,%08x,%04x,%04x,%04x,%04x,%04x,%04x,%s,%s,%04x) Ret:%04x\n", wc->style, wc->lpfnWndProc, wc->cbClsExtra, wc->cbWndExtra, wc->hInstance, wc->hIcon, wc->hCursor, wc->hbrBackground, debugstr_a(wc32.lpszMenuName), debugstr_a(wc32.lpszClassName), wc->hIconSm, atom);
 	if (atom)
 	{
-		WNDCLASS16Info[atom].wndproc = (DWORD)WINPROC_AllocProc16(wc->lpfnWndProc);
+        WNDCLASS16Info[atom].allocated = TRUE;
+        WNDCLASS16Info[atom].wndproc = (DWORD)WINPROC_AllocProc16(wc->lpfnWndProc);
+        WNDCLASS16Info[atom].cbWndExtra = wc->cbWndExtra;
 	}
 	if (atom && (class = HeapAlloc(GetProcessHeap(), 0, sizeof(*class))))
     {
@@ -1986,6 +2012,7 @@ BOOL16 WINAPI UnregisterClass16( LPCSTR className, HINSTANCE16 hInstance )
 
     if ((atom = GlobalFindAtomA( className )))
     {
+        WNDCLASS16Info[atom].allocated = FALSE;
         struct class_entry *class;
         LIST_FOR_EACH_ENTRY( class, &class_list, struct class_entry, entry )
         {
