@@ -39,6 +39,14 @@ DWORD USER16_AlertableWait = 0;
 
 struct wow_handlers32 wow_handlers32;
 
+struct mousewheel_buf
+{
+    WPARAM wParam;
+    BOOL unprocessed;
+};
+#define MOUSEWHEEL_BUF_SIZE 40
+static struct mousewheel_buf mousewheel_buf[MOUSEWHEEL_BUF_SIZE];
+
 static void dump_hmenu(HMENU menu)
 {
     int count = GetMenuItemCount(menu);
@@ -1318,6 +1326,19 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
         *result = get_icon_16(*result);
         break;
+    case WM_MOUSEWHEEL:
+    {
+        if (wParam < MOUSEWHEEL_BUF_SIZE)
+        {
+            ret = callback(hwnd32, msg, mousewheel_buf[wParam].wParam, lParam, result, arg);
+            mousewheel_buf[wParam].unprocessed = FALSE;
+        }
+        else
+        {
+            ret = callback(hwnd32, msg, wParam, lParam, result, arg);
+        }
+        break;
+    }
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1927,6 +1948,28 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case MM_WOM_DONE:
     {
         ret = callback(HWND_16(hwnd), msg, HDRVR_16(wParam), lParam, result, arg);
+        break;
+    }
+    case WM_MOUSEWHEEL:
+    {
+        int index = -1;
+        for (int i = 0; i < MOUSEWHEEL_BUF_SIZE; i++)
+        {
+            if (!mousewheel_buf[i].unprocessed)
+            {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1)
+        {
+            ERR("could not allocate WM_MOUSEWHEEL buffer\n");
+            ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
+            break;
+        }
+        mousewheel_buf[index].unprocessed = TRUE;
+        mousewheel_buf[index].wParam = wParam;
+        ret = callback(HWND_16(hwnd), msg, index, lParam, result, arg);
         break;
     }
     default:
