@@ -1885,7 +1885,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.style         = wc->style;
     wc32.lpfnWndProc   = DefWndProca;//WINPROC_AllocProc16( wc->lpfnWndProc );
     wc32.cbClsExtra    = wc->cbClsExtra;
-    wc32.cbWndExtra    = wc->cbWndExtra | DLGWINDOWEXTRA;
+    wc32.cbWndExtra    = wc->cbWndExtra;
     wc32.hInstance     = HINSTANCE_32(inst);
     wc32.hIcon         = get_icon_32(wc->hIcon);
     wc32.hCursor       = get_icon_32( wc->hCursor );
