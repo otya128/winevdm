@@ -43,16 +43,11 @@ static DWORD process_dword;
 static void thread_attach(void)
 {
     /* allocate the 16-bit stack (FIXME: should be done lazily) */
-	//DPRINTF("AA");
 	HGLOBAL16 hstack = WOWGlobalAlloc16(GMEM_FIXED, 0x10000);
-	//DPRINTF("AA");
 	kernel_get_thread_data()->stack_sel = GlobalHandleToSel16(hstack);
-	//DPRINTF("AA");
 	setWOW32Reserved((void *)MAKESEGPTR(kernel_get_thread_data()->stack_sel,
                                                         0x10000 - sizeof(STACK16FRAME) ));
-	//DPRINTF("AA");
 	memset((char *)GlobalLock16(hstack) + 0x10000 - sizeof(STACK16FRAME), 0, sizeof(STACK16FRAME));
-	//DPRINTF("AA");
 }
 
 
