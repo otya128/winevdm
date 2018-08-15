@@ -838,7 +838,7 @@ static LRESULT CALLBACK MMSYSTDRV_Callback3216(struct mmsystdrv_thunk* thunk, HD
         break;
     case CALLBACK_WINDOW:
         TRACE("Window(%04X) handle=%p!\n", thunk->callback, hDev);
-        PostMessageA((HWND)thunk->callback, wMsg, (WPARAM)hDev, dwParam1);
+        PostMessageA(HWND_32(thunk->callback), wMsg, (WPARAM)hDev, dwParam1);
         break;
     case CALLBACK_TASK: /* aka CALLBACK_THREAD */
         TRACE("Task(%04x) !\n", thunk->callback);

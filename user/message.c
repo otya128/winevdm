@@ -1327,6 +1327,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 
 #include <uxtheme.h>
 #include <vssym32.h>
+#include "../mmsystem/winemm16.h"
 
 void InitWndProc16(HWND hWnd, HWND16 hWnd16);
 /**********************************************************************
@@ -1919,6 +1920,15 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     //some applications (afx?) crash when processing this message
     //case WM_THEMECHANGED:
     //    break;
+    case MM_WOM_OPEN:
+    case MM_WOM_CLOSE:
+        ret = callback(HWND_16(hwnd), msg, HDRVR_16(wParam), lParam, result, arg);
+        break;
+    case MM_WOM_DONE:
+    {
+        ret = callback(HWND_16(hwnd), msg, HDRVR_16(wParam), lParam, result, arg);
+        break;
+    }
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
