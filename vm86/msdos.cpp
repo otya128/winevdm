@@ -1102,69 +1102,6 @@ extern "C"
             bool isVM86mode = false;
 			//dasm = true;
 			while (!m_halted) {
-                //merge_vm86_pending_flags
-                if (dynamic_getGdiTebBatch()->vm86_pending & 0x100000)//VIP flag
-                {
-                    if (!V8086_MODE)
-                    {
-
-                    }
-                    else
-                    {
-                        //dlls/ntdll/signal_i386.c merge_vm86_pending_flags
-                        BOOL check_pending = TRUE;
-                        /*
-                        * In order to prevent a race when SIGUSR2 occurs while
-                        * we are returning from exception handler, pending events
-                        * will be rechecked after each raised exception.
-                        */
-                        while (check_pending && dynamic_getGdiTebBatch()->vm86_pending)
-                        {
-                            check_pending = FALSE;
-
-                            //x86_thread_data()->vm86_ptr = NULL;
-
-                            /*
-                            * If VIF is set, throw exception.
-                            * Note that SIGUSR2 may turn VIF flag off so
-                            * VIF check must occur only when TEB.vm86_ptr is NULL.
-                            */
-                            if (1||m_VIF)
-                            {
-                                CONTEXT vcontext = {};
-                                save_context(&vcontext);
-
-                                EXCEPTION_RECORD reca, *rec = &reca;
-                                rec->ExceptionCode = 0x80000111;
-                                rec->ExceptionFlags = 0;
-                                rec->ExceptionRecord = NULL;
-                                rec->NumberParameters = 0;
-                                rec->ExceptionAddress = (LPVOID)vcontext.Eip;
-
-                                vcontext.EFlags &= ~0x100000;
-                                dynamic_getGdiTebBatch()->vm86_pending = 0;
-                                //dosvm.c exception_handler
-                                CONTEXT *ppcontext = &vcontext;
-                                ULONG exception_args[1 + sizeof(CONTEXT*) / sizeof(ULONG)] = {};
-                                *(CONTEXT**)(&exception_args[1]) = ppcontext;
-                                RaiseException(0x80000111, 0, sizeof(exception_args) / sizeof(ULONG), (ULONG_PTR*)exception_args);
-                                //NTSTATUS a = NtRaiseException(rec, &vcontext, TRUE);
-
-                                load_context(&vcontext);
-                                check_pending = TRUE;
-                            }
-
-                            //x86_thread_data()->vm86_ptr = vm86;
-                        }
-
-                        /*
-                        * Merge VIP flags in a signal safe way. This requires
-                        * that the following operation compiles into atomic
-                        * instruction.
-                        */
-                        set_flags(get_flags() | dynamic_getGdiTebBatch()->vm86_pending);
-                    }
-                }
 				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
 				{
 					__wine_call_to_16_ret();
@@ -1383,19 +1320,100 @@ extern "C"
 						i386_jmp_far(SREG(CS), context.Eip);
 					}
 				}
-				if (is_32bit_segment(CS))
-				{
-					m_VM = 0;
-					m_eflags &= ~0x20000;
-				}
-				else
-				{
-                    if (isVM86mode)
+                //merge_vm86_pending_flags
+                if (V8086_MODE)
+                {
+                    if (dynamic_getGdiTebBatch()->vm86_pending & 0x100000)//VIP flag
                     {
-                        m_VM = 1;
-                        m_eflags |= 0x20000;
+                        //dlls/ntdll/signal_i386.c merge_vm86_pending_flags
+                        BOOL check_pending = TRUE;
+                        /*
+                        * In order to prevent a race when SIGUSR2 occurs while
+                        * we are returning from exception handler, pending events
+                        * will be rechecked after each raised exception.
+                        */
+                        while (check_pending && dynamic_getGdiTebBatch()->vm86_pending)
+                        {
+                            check_pending = FALSE;
+
+                            //x86_thread_data()->vm86_ptr = NULL;
+
+                            /*
+                            * If VIF is set, throw exception.
+                            * Note that SIGUSR2 may turn VIF flag off so
+                            * VIF check must occur only when TEB.vm86_ptr is NULL.
+                            */
+                            if (1 || m_VIF)
+                            {
+                                CONTEXT vcontext = {};
+                                save_context(&vcontext);
+
+                                EXCEPTION_RECORD reca, *rec = &reca;
+                                rec->ExceptionCode = 0x80000111;
+                                rec->ExceptionFlags = 0;
+                                rec->ExceptionRecord = NULL;
+                                rec->NumberParameters = 0;
+                                rec->ExceptionAddress = (LPVOID)vcontext.Eip;
+
+                                vcontext.EFlags &= ~0x100000;
+                                dynamic_getGdiTebBatch()->vm86_pending = 0;
+                                //dosvm.c exception_handler
+                                CONTEXT *ppcontext = &vcontext;
+                                ULONG exception_args[1 + sizeof(CONTEXT*) / sizeof(ULONG)] = {};
+                                *(CONTEXT**)(&exception_args[1]) = ppcontext;
+                                RaiseException(0x80000111, 0, sizeof(exception_args) / sizeof(ULONG), (ULONG_PTR*)exception_args);
+                                //NTSTATUS a = NtRaiseException(rec, &vcontext, TRUE);
+
+                                load_context(&vcontext);
+                                check_pending = TRUE;
+                            }
+
+                            //x86_thread_data()->vm86_ptr = vm86;
+                        }
+
+                        /*
+                        * Merge VIP flags in a signal safe way. This requires
+                        * that the following operation compiles into atomic
+                        * instruction.
+                        */
+                        set_flags(get_flags() | dynamic_getGdiTebBatch()->vm86_pending);
                     }
-				}
+                    UINT8 *op = mem + SREG_BASE(CS) + m_eip;
+                    UINT8 vec;
+                    if (*op == 0xCD)//INT imm8
+                    {
+
+                        vec = *(op + 1);
+
+                        CONTEXT context;
+                        WORD ip = m_eip;
+                        WORD cs = SREG(CS);
+                        PUSH16(cs);
+                        PUSH16(ip);
+                        save_context(&context);
+                        DWORD cs2 = context.SegCs;
+                        DWORD eip2 = context.Eip;
+                        context.Eip = ip;
+                        context.SegCs = cs;
+                        //Sometimes wine_int_handler modifies CS:IP
+                        dynamic__wine_call_int_handler(&context, vec);
+                        WORD ip3 = context.Eip;
+                        WORD cs3 = context.SegCs;
+                        context.SegCs = cs2;
+                        context.Eip = eip2;
+                        load_context(&context);
+                        WORD a = POP16();
+                        WORD b = POP16();
+                        m_eip += 2;
+                        continue;
+                    }
+                    else if (*op == 0xCC)
+                    {
+                        vec = 0x03;
+                        m_eip += 1;
+                        continue;
+                    }
+                }
 #ifdef SUPPORT_DISASSEMBLER
 				if (dasm) {
 					char buffer[256];
@@ -1457,44 +1475,6 @@ extern "C"
 						fprintf(stderr, "\t%s\n", buffer);
 				}
 #endif
-                if (V8086_MODE)
-                {
-                    UINT8 *op = mem + SREG_BASE(CS) + m_eip;
-                    UINT8 vec;
-                    if (*op == 0xCD)//INT imm8
-                    {
-
-                        vec = *(op + 1);
-
-                        CONTEXT context;
-                        WORD ip = m_eip;
-                        WORD cs = SREG(CS);
-                        PUSH16(cs);
-                        PUSH16(ip);
-                        save_context(&context);
-                        DWORD cs2 = context.SegCs;
-                        DWORD eip2 = context.Eip;
-                        context.Eip = ip;
-                        context.SegCs = cs;
-                        //wine int handler ÇÕCS:IPÇÇ¢Ç∂ÇÈèÍçáÇ™Ç†ÇÈ
-                        dynamic__wine_call_int_handler(&context, vec);
-                        WORD ip3 = context.Eip;
-                        WORD cs3 = context.SegCs;
-                        context.SegCs = cs2;
-                        context.Eip = eip2;
-                        load_context(&context);
-                        WORD a = POP16();
-                        WORD b = POP16();
-                        m_eip += 2;
-                        continue;
-                    }
-                    else if (*op == 0xCC)
-                    {
-                        vec = 0x03;
-                        m_eip += 1;
-                        continue;
-                    }
-                }
 #if defined(HAS_I386)
 				m_cycles = 1;
 				CPU_EXECUTE_CALL(i386);
