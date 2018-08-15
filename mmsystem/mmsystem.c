@@ -1259,6 +1259,13 @@ UINT16 WINAPI waveOutOpen16(HWAVEOUT16* lphWaveOut, UINT16 uDeviceID,
     {
         return MMSYSERR_NOMEM;
     }
+    if (dwFlags & CALLBACK_WINDOW)
+    {
+        if (!IsWindow(HWND_32(dwCallback)))
+        {
+            return MMSYSERR_INVALHANDLE;
+        }
+    }
     dwFlags = (dwFlags & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
     /* since layout of WAVEFORMATEX is the same for 16/32 bits, we directly
      * call the 32 bit version
