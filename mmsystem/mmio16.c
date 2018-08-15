@@ -70,6 +70,7 @@ static struct mmio_thunk
     DWORD       callback;
     HMMIO       hMmio;          /* Handle to 32bit mmio object */
     SEGPTR      segbuffer;      /* actual segmented ptr to buffer */
+    HGLOBAL16   allocbuf;       /* MMIO_ALLOCBUF */
 } *MMIO_Thunks;
 
 #include <poppack.h>
@@ -206,6 +207,7 @@ static struct mmio_thunk*       MMIO_AddThunk(LPMMIOPROC16 pfn16, HPSTR segbuf)
             thunk->callback     = (char *)MMIO_Callback3216 - (char *)(&thunk->callback + 1);
             thunk->hMmio        = NULL;
             thunk->segbuffer    = 0;
+            thunk->allocbuf     = NULL;
         }
     }
     for (thunk = MMIO_Thunks; thunk < &MMIO_Thunks[MMIO_MAX_THUNKS]; thunk++)
@@ -244,7 +246,17 @@ static struct mmio_thunk*    MMIO_HasThunk(HMMIO hmmio)
  */
 static void     MMIO_SetSegmentedBuffer(struct mmio_thunk* thunk, SEGPTR ptr, BOOL release)
 {
-    if (release) UnMapLS(thunk->segbuffer);
+    if (release)
+    {
+        if (thunk->allocbuf)
+        {
+            GlobalFree16(thunk->allocbuf);
+        }
+        else
+        {
+            UnMapLS(thunk->segbuffer);
+        }
+    }
     thunk->segbuffer = ptr;
 }
 
@@ -281,7 +293,7 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
 	mmioinfo.adwInfo[1]  = lpmmioinfo16->adwInfo[1];
 	mmioinfo.adwInfo[2]  = lpmmioinfo16->adwInfo[2];
 
-	ret = mmioOpenA(szFileName, &mmioinfo, dwOpenFlags);
+	ret = mmioOpenA(szFileName, &mmioinfo, dwOpenFlags & ~MMIO_ALLOCBUF);
         if (!ret || (dwOpenFlags & (MMIO_PARSE|MMIO_EXIST)))
         {
             thunk->pfn16 = NULL;
@@ -290,11 +302,13 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
         else thunk->hMmio = ret;
         if (ret && (dwOpenFlags & MMIO_ALLOCBUF))
         {
-            MMIOINFO    m;
             if (lpmmioinfo16->pchBuffer) FIXME("ooch\n");
             /* FIXME: check whether mmioOpen should set pchBuffer */
-            mmioGetInfo(ret, &m, 0);
-            thunk->segbuffer = MapLS(m.pchBuffer);
+            HGLOBAL hg = GlobalAlloc16(0, lpmmioinfo16->cchBuffer);
+            mmioSetBuffer(ret, GlobalLock16(hg), lpmmioinfo16->cchBuffer, 0);
+            /* OFFSETOF(segbuffer) must be 0x0000 */
+            thunk->segbuffer = WOWGlobalLock16(hg);
+            thunk->allocbuf = hg;
         }
         LeaveCriticalSection(&mmio_cs);
 
@@ -379,6 +393,10 @@ MMRESULT16 WINAPI mmioGetInfo16(HMMIO16 hmmio, MMIOINFO16* lpmmioinfo, UINT16 uF
         return ret;
     }
 
+    if (thunk->allocbuf)
+    {
+        mmioinfo.dwFlags |= MMIO_ALLOCBUF;
+    }
     lpmmioinfo->dwFlags     = mmioinfo.dwFlags;
     lpmmioinfo->fccIOProc   = mmioinfo.fccIOProc;
     lpmmioinfo->pIOProc     = thunk->pfn16;
@@ -454,6 +472,7 @@ MMRESULT16 WINAPI mmioSetBuffer16(HMMIO16 hmmio, SEGPTR pchBuffer,
             FIXME("really ?\n");
             return MMSYSERR_INVALHANDLE;
         }
+        thunk->allocbuf = NULL;
         MMIO_SetSegmentedBuffer(thunk, pchBuffer, TRUE);
     }
     else
