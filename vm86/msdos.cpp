@@ -906,7 +906,8 @@ extern "C"
 		void(*__wine_call_to_16_ret)(void),
         int dasm,
         bool vm86,
-        void *memory_base
+        void *memory_base,
+        pm_interrupt_handler pih
 		)
 	{
         mem = vm86 ? (UINT8*)memory_base : NULL;
@@ -921,7 +922,7 @@ extern "C"
 		context.Esp = ((size_t)dynamic_getWOW32Reserved()) & 0xFFFF;
 		context.SegCs = target >> 16;
 		context.Eip = target & 0xFFFF;//i386_jmp_far(target >> 16, target & 0xFFFF);
-		vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, NULL);
+		vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih);
 		return context.Eax | context.Edx << 16;
 	}
 	UINT old_eip = 0;
