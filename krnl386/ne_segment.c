@@ -964,9 +964,9 @@ DWORD WINAPI MyAlloc16( WORD wFlags, WORD wSize, WORD wElem )
 {
     WORD size = wSize << wElem;
     HANDLE16 hMem = 0;
+    WORD gflags = NE_Ne2MemFlags(wFlags);
 
-    if (wSize || (wFlags & NE_SEGFLAGS_MOVEABLE))
-        hMem = GlobalAlloc16( NE_Ne2MemFlags(wFlags), size);
+    hMem = GlobalAlloc16(gflags, size);
 
     if ( ((wFlags & 0x7) != 0x1) && /* DATA */
          ((wFlags & 0x7) != 0x7) ) /* DATA|ALLOCATED|LOADED */
@@ -974,13 +974,10 @@ DWORD WINAPI MyAlloc16( WORD wFlags, WORD wSize, WORD wElem )
         WORD hSel = SEL(hMem);
         WORD access = SelectorAccessRights16(hSel,0,0);
 
-	access |= 2<<2; /* SEGMENT_CODE */
-	SelectorAccessRights16(hSel,1,access);
+        access |= 2<<2; /* SEGMENT_CODE */
+        SelectorAccessRights16(hSel,1,access);
     }
-    if (size)
-	return MAKELONG( hMem, SEL(hMem) );
-    else
-	return MAKELONG( 0, hMem );
+    return MAKELONG(SEL(hMem), hMem);
 }
 
 /***********************************************************************

@@ -50,7 +50,7 @@
 47  pascal   GetModuleHandle(segstr) WIN16_GetModuleHandle
 48  pascal -ret16 GetModuleUsage(word) GetModuleUsage16
 49  pascal -ret16 GetModuleFileName(word ptr s_word) GetModuleFileName16
-50  pascal GetProcAddress(word str) GetProcAddress16
+50  pascal GetProcAddress(word str) WIN16_GetProcAddress16
 51  pascal MakeProcInstance(segptr word) MakeProcInstance16
 52  pascal -ret16 FreeProcInstance(segptr) FreeProcInstance16
 53  stub CallProcInstance

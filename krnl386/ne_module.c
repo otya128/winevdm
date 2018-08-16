@@ -1867,6 +1867,13 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
     return ret;
 }
 
+FARPROC16 WINAPI WIN16_GetProcAddress16(HMODULE16 hModule, LPCSTR name)
+{
+    FARPROC16 proc16 = GetProcAddress16(hModule, name);
+    //proc16 = 0000:0000 (fail) => cx = 0
+    CURRENT_STACK16->ecx = (CURRENT_STACK16->ecx & 0xffff0000) | SELECTOROF(proc16) | OFFSETOF(proc16);
+    return proc16;
+}
 /***********************************************************************
  *           GetProcAddress   (KERNEL.50)
  */
