@@ -582,7 +582,7 @@ static void CREATESTRUCT16to32A( const CREATESTRUCT16* from, CREATESTRUCTA *to )
     to->x              = from->x;
     to->style          = from->style;
     to->dwExStyle      = from->dwExStyle;
-    to->lpszName       = MapSL(from->lpszName);
+    to->lpszName       = win32classname(from->hInstance, MapSL(from->lpszName));
     to->lpszClass      = MapSL(from->lpszClass);
 }
 
@@ -609,7 +609,7 @@ static void MDICREATESTRUCT16to32A( const MDICREATESTRUCT16* from, MDICREATESTRU
     to->style  = from->style;
     to->lParam = from->lParam;
     to->szTitle = MapSL(from->szTitle);
-    to->szClass = MapSL(from->szClass);
+    to->szClass = win32classname(from->hOwner, MapSL(from->szClass));
 }
 
 static UINT_PTR convert_handle_16_to_32(HANDLE16 src, unsigned int flags)
@@ -1376,13 +1376,13 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 
             CREATESTRUCT32Ato16( cs32, &cs );
             cs.lpszName  = MapLS( cs32->lpszName );
-            cs.lpszClass = MapLS( cs32->lpszClass );
+            cs.lpszClass = MapLS( win16classname(cs32->lpszClass) );
             if (mdi_child)
             {
                 MDICREATESTRUCTA *mdi_cs = cs32->lpCreateParams;
                 MDICREATESTRUCT32Ato16( mdi_cs, &mdi_cs16 );
                 mdi_cs16.szTitle = MapLS( mdi_cs->szTitle );
-                mdi_cs16.szClass = MapLS( mdi_cs->szClass );
+                mdi_cs16.szClass = MapLS( win16classname(mdi_cs->szClass) );
                 cs.lpCreateParams = MapLS( &mdi_cs16 );
             }
             lParam = MapLS( &cs );
@@ -1405,7 +1405,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 
             MDICREATESTRUCT32Ato16( cs32, &cs );
             cs.szTitle = MapLS( cs32->szTitle );
-            cs.szClass = MapLS( cs32->szClass );
+            cs.szClass = MapLS( win16classname(cs32->szClass) );
             lParam = MapLS( &cs );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
@@ -1939,8 +1939,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         *result = get_icon_32(*result);
         break;
     //some applications (afx?) crash when processing this message
-    //case WM_THEMECHANGED:
-    //    break;
+    case WM_THEMECHANGED:
+        break;
     case MM_WOM_OPEN:
     case MM_WOM_CLOSE:
         ret = callback(HWND_16(hwnd), msg, HDRVR_16(wParam), lParam, result, arg);
@@ -3852,7 +3852,8 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
             int index = winproc_to_index((WNDPROC16)wndproc16);
             if (index >= MAX_WINPROCS32)
                 index -= MAX_WINPROCS32;
-            return CallWindowProcA(winproc16_array[index], hDlg, Msg, wParam, lParam);
+            WNDPROC wndproc32 = winproc16_array[index];
+            return CallWindowProcA(wndproc32, hDlg, Msg, wParam, lParam);
         }
         WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
             &unused, wndproc16/*&msg16*/);

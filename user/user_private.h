@@ -268,4 +268,22 @@ struct WNDCLASS16Info
 };
 extern struct WNDCLASS16Info WNDCLASS16Info[65536];
 extern struct WNDCLASS16Info *WNDCLASS16InfoStringAtom[65536];
+#include "wine/list.h"
+
+struct class_entry
+{
+    struct list entry;
+    ATOM        atom;
+    HINSTANCE16 inst;
+    DWORD wndproc16;
+
+
+    WNDCLASSEXA classInfo;
+    LPCSTR win32_classname;
+};
+struct class_entry *find_win16_class(HINSTANCE16 hInst16, LPCSTR name);
+struct class_entry *find_win32_class(LPCSTR name);
+LPCSTR win16classname(LPCSTR name);
+LPCSTR win32classname(HINSTANCE16 hInst16, LPCSTR name);
+
 #endif /* __WINE_USER_PRIVATE_H */

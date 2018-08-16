@@ -21,7 +21,6 @@
 #include "wine/winuser16.h"
 #include "wownt32.h"
 #include "user_private.h"
-#include "wine/list.h"
 #include "wine/server.h"
 #include "wine/debug.h"
 
@@ -36,13 +35,6 @@ WINE_DEFAULT_DEBUG_CHANNEL(win);
 
 static HWND16 hwndSysModal;
 
-struct class_entry
-{
-    struct list entry;
-    ATOM        atom;
-    HINSTANCE16 inst;
-	DWORD wndproc16;
-};
 
 static struct list class_list = LIST_INIT( class_list );
 
@@ -598,7 +590,22 @@ ATOM WINAPI RegisterClass16( const WNDCLASS16 *wc )
  */
 INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
 {
-    return GetClassNameA( WIN_Handle32(hwnd), buffer, count );
+    char className[500];
+    INT16 ret = (INT16)GetClassNameA( WIN_Handle32(hwnd), className, sizeof(className));
+    if (ret == 0)
+        return 0;
+    /* FIXME: truncated */
+    struct class_entry *entry = find_win32_class(className);
+    if (!entry)
+    {
+        memcpy(buffer, className, min(sizeof(className), count));
+        buffer[count - 1] = 0;
+    }
+    else
+    {
+        memcpy(buffer, entry->classInfo.lpszClassName, min(strlen(entry->classInfo.lpszClassName) + 1, count));
+        buffer[count - 1] = 0;
+    }
 }
 
 
@@ -1911,6 +1918,17 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     WNDCLASSEXA wc32;
     HINSTANCE16 inst;
     ATOM atom;
+    SIZE_T class_len;
+    SIZE_T menu_len;
+    SIZE_T buf_len;
+    struct A
+    {
+        DWORD hInst;
+        LPCSTR name;
+    } a;
+    va_list arg;
+    LPCSTR buf = NULL;
+    LPCSTR classname32 = MapSL(wc->lpszClassName);
 
     inst = GetExePtr( wc->hInstance );
     if (!inst) inst = GetModuleHandle16( NULL );
@@ -1927,8 +1945,15 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.hCursor       = get_icon_32( wc->hCursor );
     wc32.hbrBackground = HBRUSH_32(wc->hbrBackground);
     wc32.lpszMenuName  = MapSL(wc->lpszMenuName);
-    wc32.lpszClassName = MapSL(wc->lpszClassName);
+    wc32.lpszClassName = classname32;
     wc32.hIconSm       = get_icon_32(wc->hIconSm);
+    a.hInst = wc->hInstance;
+    a.name = wc32.lpszClassName;
+    arg = (va_list)&a;
+    if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING, "WIN16CLASS%1!04X!:%2!s!", NULL, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &buf, 0, &arg))
+    {
+        wc32.lpszClassName = buf;
+    }
     atom = RegisterClassExA( &wc32 );
     TRACE("(%08x,%08x,%04x,%04x,%04x,%04x,%04x,%04x,%s,%s,%04x) Ret:%04x\n", wc->style, wc->lpfnWndProc, wc->cbClsExtra, wc->cbWndExtra, wc->hInstance, wc->hIcon, wc->hCursor, wc->hbrBackground, debugstr_a(wc32.lpszMenuName), debugstr_a(wc32.lpszClassName), wc->hIconSm, atom);
 	if (atom)
@@ -1937,14 +1962,94 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
         WNDCLASS16Info[atom].wndproc = (DWORD)WINPROC_AllocProc16(wc->lpfnWndProc);
         WNDCLASS16Info[atom].cbWndExtra = wc->cbWndExtra;
 	}
-	if (atom && (class = HeapAlloc(GetProcessHeap(), 0, sizeof(*class))))
+    class_len = strlen(a.name) + 1;
+    menu_len = !IS_INTRESOURCE(wc->lpszMenuName) ? strlen(wc32.lpszMenuName) + 1 : 0;
+    buf_len = strlen(buf) + 1;
+
+	if (atom && (class = HeapAlloc(GetProcessHeap(), 0, sizeof(*class) + class_len + menu_len + buf_len)))
     {
 		class->atom = atom;
         class->inst = inst;
 		class->wndproc16 = WNDCLASS16Info[atom].wndproc;
+        class->classInfo = wc32;
+        class->classInfo.lpszClassName = (LPBYTE)class + sizeof(*class);
+        memcpy(class->classInfo.lpszClassName, a.name, class_len);
+        if (menu_len)
+        {
+            class->classInfo.lpszMenuName = (LPBYTE)class + sizeof(*class) + class_len;
+            memcpy(class->classInfo.lpszMenuName, wc32.lpszMenuName, menu_len);
+        }
+        class->win32_classname = (LPBYTE)class + sizeof(*class) + class_len + menu_len;
+        memcpy(class->win32_classname, buf, buf_len);
         list_add_tail( &class_list, &class->entry );
     }
+    LocalFree(buf);
     return atom;
+}
+
+struct class_entry *find_win32_class(LPCSTR name)
+{
+    struct class_entry *clazz;
+    ATOM class_atom = LOWORD(name);
+    BOOL is_atom = IS_INTRESOURCE(name);
+    LIST_FOR_EACH_ENTRY(clazz, &class_list, struct class_entry, entry)
+    {
+        if (is_atom)
+        {
+            if (class_atom == clazz->atom)
+            {
+                return clazz;
+            }
+            continue;
+        }
+        if (!strcmpi(name, clazz->win32_classname))
+        {
+            return clazz;
+        }
+    }
+    return NULL;
+}
+
+struct class_entry *find_win16_class(HINSTANCE16 hInst16, LPCSTR name)
+{
+    struct class_entry *clazz;
+    ATOM class_atom = LOWORD(name);
+    BOOL is_atom = IS_INTRESOURCE(name);
+    hInst16 = GetExePtr(hInst16);
+    LIST_FOR_EACH_ENTRY(clazz, &class_list, struct class_entry, entry)
+    {
+        if ((clazz->inst == hInst16 || (clazz->classInfo.style & CS_GLOBALCLASS)))
+        {
+            if (is_atom)
+            {
+                if (class_atom == clazz->atom)
+                {
+                    return clazz;
+                }
+                continue;
+            }
+            if (!strcmpi(name, clazz->classInfo.lpszClassName))
+            {
+                return clazz;
+            }
+        }
+    }
+    return NULL;
+}
+
+LPCSTR win16classname(LPCSTR name)
+{
+    struct class_entry *entry = find_win32_class(name);
+    if (entry)
+        return entry->classInfo.lpszClassName;
+    return name;
+}
+LPCSTR win32classname(HINSTANCE16 hInst16, LPCSTR name)
+{
+    struct class_entry *entry = find_win16_class(hInst16, name);
+    if (entry)
+        return entry->win32_classname;
+    return name;
 }
 
 /***********************************************************************
@@ -1958,13 +2063,25 @@ BOOL16 WINAPI GetClassInfoEx16( HINSTANCE16 hInst16, SEGPTR name, WNDCLASSEX16 *
     static HMODULE user32_module;
     WNDCLASSEXA wc32;
     HINSTANCE hInstance;
-    BOOL ret;
+    ATOM ret = 0;
+    struct class_entry *class;
+    LPCSTR name32 = MapSL(name);
+    ATOM class_atom = LOWORD(name);
+    BOOL is_atom = IS_INTRESOURCE(name);
 
     if (!user32_module) user32_module = GetModuleHandleA( "user32.dll" );
     if (hInst16 == GetModuleHandle16("user")) hInstance = user32_module;
     else hInstance = HINSTANCE_32(GetExePtr( hInst16 ));
 
-    ret = GetClassInfoExA( hInstance, MapSL(name), &wc32 );
+    class = find_win16_class(hInst16, name32);
+    if (class)
+    {
+        wc32 = class->classInfo;
+        ret = class->atom;
+    }
+    /* win32 class */
+    if (!ret)
+        ret = GetClassInfoExA( hInstance, name32, &wc32 );
 
     if (ret)
     {
@@ -2267,6 +2384,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         if (!GlobalGetAtomNameA( LOWORD(className), buffer, sizeof(buffer) )) return 0;
         cs.lpszClass = buffer;
     }
+    cs.lpszClass = win32classname(cs.lpszClass);
     WNDCLASSEXA wndclass;
     //reactos win32ss/user/ntuser/window.c
     if (GetClassInfoExA(cs.hInstance, cs.lpszClass, &wndclass) && cs.hwndParent && (wndclass.style & CS_PARENTDC) && !(GetWindowLongA(cs.hwndParent, GWL_STYLE)  & WS_CLIPCHILDREN))
