@@ -1890,6 +1890,18 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 struct WNDCLASS16Info WNDCLASS16Info[65536];
 struct WNDCLASS16Info *WNDCLASS16InfoStringAtom[65536];
+#include "../toolhelp/toolhelp.h"
+
+__declspec(dllexport) BOOL16 WINAPI USER_ClassFirst16(CLASSENTRY *pClassEntry)
+{
+    FIXME("\n");
+    return FALSE;
+}
+__declspec(dllexport) BOOL16 WINAPI USER_ClassNext16(CLASSENTRY *pClassEntry)
+{
+    FIXME("\n");
+    return FALSE;
+}
 /***********************************************************************
  *		RegisterClassEx (USER.397)
  */

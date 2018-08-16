@@ -679,3 +679,13 @@ BOOL16 WINAPI Local32Next16( LOCAL32ENTRY *pLocal32Entry )
     FIXME( "Call Local32Next16 in kernel\n" );
     return FALSE;
 }
+__declspec(dllimport) BOOL16 WINAPI USER_ClassFirst16(CLASSENTRY *pClassEntry);
+__declspec(dllimport) BOOL16 WINAPI USER_ClassNext16(CLASSENTRY *pClassEntry);
+BOOL16 WINAPI ClassFirst16(CLASSENTRY *pClassEntry)
+{
+    return USER_ClassFirst16(pClassEntry);
+}
+BOOL16 WINAPI ClassNext16(CLASSENTRY *pClassEntry)
+{
+    return USER_ClassNext16(pClassEntry);
+}
