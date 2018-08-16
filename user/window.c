@@ -2384,7 +2384,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         if (!GlobalGetAtomNameA( LOWORD(className), buffer, sizeof(buffer) )) return 0;
         cs.lpszClass = buffer;
     }
-    cs.lpszClass = win32classname(cs.lpszClass);
+    cs.lpszClass = win32classname(cs.hInstance, cs.lpszClass);
     WNDCLASSEXA wndclass;
     //reactos win32ss/user/ntuser/window.c
     if (GetClassInfoExA(cs.hInstance, cs.lpszClass, &wndclass) && cs.hwndParent && (wndclass.style & CS_PARENTDC) && !(GetWindowLongA(cs.hwndParent, GWL_STYLE)  & WS_CLIPCHILDREN))
