@@ -189,6 +189,7 @@ static BOOL DIALOG_CreateControls16( HWND hwnd, LPCSTR template,
         SEGPTR segptr;
 
         template = DIALOG_GetControl16( template, &info );
+        info.className = win32classname(hInst, info.className);
         segptr = MapLS( info.data );
         hwndCtrl = WIN_Handle32( CreateWindowEx16( WS_EX_NOPARENTNOTIFY,
                                                    info.className, info.windowName,
@@ -651,6 +652,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	else
 	{
 		//WNDclass
+        template.className = win32classname(hInst, template.className);
 		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
 			* 2;
 		if (len)

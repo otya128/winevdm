@@ -582,8 +582,8 @@ static void CREATESTRUCT16to32A( const CREATESTRUCT16* from, CREATESTRUCTA *to )
     to->x              = from->x;
     to->style          = from->style;
     to->dwExStyle      = from->dwExStyle;
-    to->lpszName       = win32classname(from->hInstance, MapSL(from->lpszName));
-    to->lpszClass      = MapSL(from->lpszClass);
+    to->lpszName       = MapSL(from->lpszName);
+    to->lpszClass      = win32classname(from->hInstance, MapSL(from->lpszClass));
 }
 
 /* The strings are not copied */
