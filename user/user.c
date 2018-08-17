@@ -2257,20 +2257,16 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
                 ERR("LoadImageA(%d, %d, %d, %d, %d, %d)\n", 0, n, type, cx, cy, flags);
             }
         }
-        //OBM_OLD_CLOSE
-        //OBM_OLD_DNARROW
-        //OBM_OLD_LFARROW
-        //OBM_OLD_REDUCE
-        //OBM_OLD_RESTORE
-        //OBM_OLD_RGARROW
-        //OBM_OLD_UPARROW
-        //OBM_OLD_ZOOM
         if (type == IMAGE_BITMAP)
             return HBITMAP_16(h);
         else
         {
-            HICON16 hIcon = get_icon_16(h);
-            add_shared_icon(hinst, NULL, NULL, hIcon);
+            HICON16 hIcon;
+            if ((flags & LR_SHARED) && (hIcon = find_shared_icon(hinst, hRsrc)) != 0)
+                return hIcon;
+            hIcon = get_icon_16(h);
+            if (flags & LR_SHARED)
+                add_shared_icon(hinst, NULL, NULL, hIcon);
             return hIcon;
         }
     }
