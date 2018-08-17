@@ -2305,7 +2305,7 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
         //is win16 local class
         if (!memicmp(sbuf, LOCAL_CLASS_PREFIX, lcprefix_len))
         {
-            LPCSTR win16cls = sbuf + lcprefix_len;
+            LPCSTR win16cls = win16classname(sbuf);
             if (!strcmpi(win16cls, sbuf))
             {
                 break;
