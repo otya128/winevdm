@@ -591,21 +591,55 @@ ATOM WINAPI RegisterClass16( const WNDCLASS16 *wc )
  */
 INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
 {
-    char className[500];
-    INT16 ret = (INT16)GetClassNameA( WIN_Handle32(hwnd), className, sizeof(className));
-    if (ret == 0)
-        return 0;
-    /* FIXME: truncated */
-    struct class_entry *entry = find_win32_class(className);
-    if (!entry)
+    char sclassName[200];
+    SIZE_T len = sizeof(sclassName) / sizeof(sclassName[0]);
+    LPSTR className = sclassName;
+    SIZE_T clen;
+    while (TRUE)
     {
-        memcpy(buffer, className, min(sizeof(className), count));
-        buffer[count - 1] = 0;
+        clen = GetClassNameA(WIN_Handle32(hwnd), className, len);
+        //className is truncated
+        if (len - 1 == clen)
+        {
+            LPVOID heap;
+            if (className != sclassName)
+            {
+                heap = HeapReAlloc(GetProcessHeap(), 0, className, len * 2);
+            }
+            else
+            {
+                heap = HeapAlloc(GetProcessHeap(), 0, len * 2);
+            }
+            if (!heap)
+                break;
+            className = (LPCSTR)heap;
+            len *= 2;
+            continue;
+        }
+        break;
     }
-    else
+    if (clen >= 65535)
     {
-        memcpy(buffer, entry->classInfo.lpszClassName, min(strlen(entry->classInfo.lpszClassName) + 1, count));
-        buffer[count - 1] = 0;
+        className[65535] = '\0';
+        clen = 65534;
+    }
+    if (clen != 0)
+    {
+        struct class_entry *entry = find_win32_class(className);
+        if (!entry)
+        {
+            memcpy(buffer, className, min(clen + 1, count));
+            buffer[count - 1] = 0;
+        }
+        else
+        {
+            memcpy(buffer, entry->classInfo.lpszClassName, min(strlen(entry->classInfo.lpszClassName) + 1, count));
+            buffer[count - 1] = 0;
+        }
+    }
+    if (className != sclassName)
+    {
+        HeapFree(GetProcessHeap(), 0, className);
     }
 }
 
@@ -2245,11 +2279,10 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
                 {
                     heap = HeapAlloc(GetProcessHeap(), 0, buf_size * 2);
                 }
-                if (heap)
-                {
-                    buf = (LPCSTR)heap;
-                    buf_size *= 2;
-                }
+                if (!heap)
+                    break;
+                buf = (LPCSTR)heap;
+                buf_size *= 2;
                 continue;
             }
             break;
