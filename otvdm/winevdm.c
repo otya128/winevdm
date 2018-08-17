@@ -777,7 +777,8 @@ static void set_peb_compatible_flag()
     HMODULE user32 = GetModuleHandleA("user32.dll");
     if (user32 != NULL)
     {
-        WINE_ERR("user32.dll has already been loaded.\n");
+        WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");
+        WINE_ERR("Some compatibility flags can not be applied.\n");
     }
     //ExtractAssociatedIcon
     APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;
@@ -803,7 +804,115 @@ int main( int argc, char *argv[] )
     char *cmdline, *appname, **first_arg;
     char *p;
     DWORD pid;
+    const char *cmdline1 = strstr(argv[0], "  --ntvdm64:");
+    char **argv_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*argv) * (argc + 1));
     set_peb_compatible_flag();
+    memcpy(argv_copy, argv, argc * sizeof(*argv));
+    argv = argv_copy;
+    /*
+    NtVdm64 command line handling is buggy.
+    Can not be handled if the extension is omitted
+    CommandLine = "%c"
+
+    >A.EXE
+    GetCommandLineA()="A.EXE "
+    >"A.EXE"
+    GetCommandLineA()="\"A.EXE\" "
+    >A.EXE a b c d
+    GetCommandLineA()="A.EXE a b c d"
+
+    >A
+    GetCommandLineA()="A "
+    >"A"
+    GetCommandLineA()="\"A \""
+                          ^????????????
+    >A a b c d
+    GetCommandLineA()="A a b c d"
+    >"A" a b c d
+    GetCommandLineA()="\"A \"  a b c d"
+
+
+    CommandLine = "aaaa%cbbbb"
+
+    >A.EXE
+    GetCommandLineA()="A.EXE aaaabbbb"
+    >A.EXE 1 2 3 4
+    GetCommandLineA()="A.EXE aaaa1 2 3 4bbbb"
+    >"A.EXE"
+    GetCommandLineA()="\"A\" aaaabbbb"
+    >"A.EXE" 1 2 3 4
+    GetCommandLineA()="\"A.EXE\" aaaa1 2 3 4bbbb"
+
+    >A
+    GetCommandLineA()="A aaaabbbb"
+    >A 1 2 3 4
+    GetCommandLineA()="A aaaa1 2 3 4bbbb"
+    >"A"
+    GetCommandLineA()="\"A aaaa\"bbbb"
+    >"A" 1 2 3 4
+    GetCommandLineA()="\"A aaaa\"  1 2 3 4bbbb~"
+    Workaround
+    :--ntvdm64:%m:%c
+    " --ntvdm64: "%m" --ntvdm64-args %c
+
+    if argv[0] contains " --ntvdm64:"
+       "\"A  --ntvdm64: \"full-dos-path\A.EXE\" --ntvdm64-args \"  1 2 3 4"
+    =>"\"A\"            \"full-dos-path\A.EXE\" --ntvdm64-args    1 2 3 4"
+    */
+    if (cmdline1)
+    {
+        LPWSTR raw = GetCommandLineW();
+        if (raw[0] == L'"')
+        {
+            LPWSTR new_cmdline = HeapAlloc(GetProcessHeap(), 0, (wcslen(raw) + 1) * sizeof(WCHAR));
+            memcpy(new_cmdline, raw, (wcslen(raw) + 1) * sizeof(WCHAR));
+            LPWSTR magic = wcsstr(new_cmdline, L"  --ntvdm64:");
+            if (magic)
+            {
+                magic[0] = L'\"';
+            }
+            LPWSTR magic2 = wcsstr(new_cmdline, L"--ntvdm64-args: \"");
+            if (magic2)
+            {
+                *wcschr(magic2, L'\"') = L' ';
+            }
+            LPWSTR *argvw = CommandLineToArgvW(new_cmdline, &argc);
+            HeapFree(GetProcessHeap(), 0, argv_copy);
+            argv_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*argv) * (argc + 1));
+            for (int i = 0; i < argc; i++)
+            {
+                int length = WideCharToMultiByte(CP_ACP, 0, argvw[i], -1, NULL, 0, NULL, NULL);
+                LPSTR arg = HeapAlloc(GetProcessHeap(), NULL, (length + 1) * sizeof(CHAR));
+                WideCharToMultiByte(CP_ACP, 0, argvw[i], -1, arg, length, NULL, NULL);
+                arg[length] = '\0';
+                argv_copy[i] = arg;
+            }
+            LocalFree(argvw);
+            argv = argv_copy;
+        }
+    }
+    if (argc > 1 && !strcmp(argv[1], "--ntvdm64:"))
+    {
+        //remove argv[1]
+        for (int i = 1; i < argc - 1; i++)
+        {
+            argv[i] = argv[i + 1];
+        }
+        argc--;
+    }
+    if (argc > 2 && !strcmp(argv[2], "--ntvdm64-args:"))
+    {
+        //remove argv[2]
+        for (int i = 2; i < argc - 1; i++)
+        {
+            argv[i] = argv[i + 1];
+        }
+        argc--;
+    }
+    /* argv must be null-terminated */
+    argv[argc] = NULL;
+
+
     if (!strcmp(argv[0], "--fix-compat-mode"))
     {
         pid = atoi(argv[1]);
