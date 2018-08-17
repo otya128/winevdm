@@ -1,14 +1,14 @@
 Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM]
-"CommandLine"="\"%m\" %c"
+"CommandLine"=" --ntvdm64: \"%m\" --ntvdm64-args: %c"
 "InternalName"="*"
 "MappedExeName"="C:\\PATH\\TO\\otvdm.exe"
 "ProductName"="*"
 "ProductVersion"="*"
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM]
-"CommandLine"="\"%m\" %c"
+"CommandLine"=" --ntvdm64: \"%m\" --ntvdm64-args: %c"
 "InternalName"="*"
 "MappedExeName"="C:\\PATH\\TO\\otvdm.exe"
 "ProductName"="*"

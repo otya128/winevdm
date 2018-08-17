@@ -852,8 +852,7 @@ int main( int argc, char *argv[] )
     >"A" 1 2 3 4
     GetCommandLineA()="\"A aaaa\"  1 2 3 4bbbb~"
     Workaround
-    :--ntvdm64:%m:%c
-    " --ntvdm64: "%m" --ntvdm64-args %c
+    " --ntvdm64: "%m" --ntvdm64-args: %c"
 
     if argv[0] contains " --ntvdm64:"
        "\"A  --ntvdm64: \"full-dos-path\A.EXE\" --ntvdm64-args \"  1 2 3 4"
