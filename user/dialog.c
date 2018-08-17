@@ -513,6 +513,7 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		dlgItemTemplate32->cy = info.cy;
 		dlgItemTemplate32->id = info.id;
 		dlgItemTemplatew = (WORD*)(dlgItemTemplate32 + 1);
+        info.className = win32classname(hInst, info.className);
 		copy_widestr(info.className, &dlgItemTemplatew);
         if (!HIWORD(info.windowName))
         {
