@@ -2276,7 +2276,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
         }
 	}
 
-    if (!(winproc = (WNDPROC16)GetWndProc16( msg->hwnd )))
+    if (!msg->hwnd || !(winproc = (WNDPROC16)GetWndProc16( msg->hwnd )))
 	{
 		LRESULT result;
 		WNDPROC wndproc32 = GetWindowLong(HWND_32(msg->hwnd), GWLP_WNDPROC);

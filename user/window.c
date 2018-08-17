@@ -509,12 +509,13 @@ BOOL16 WINAPI IsWindowVisible16( HWND16 hwnd )
 }
 
 
+HWND16 WINAPI FindWindowEx16(HWND16 parent, HWND16 child, LPCSTR className, LPCSTR title);
 /**************************************************************************
  *              FindWindow   (USER.50)
  */
 HWND16 WINAPI FindWindow16( LPCSTR className, LPCSTR title )
 {
-    return HWND_16( FindWindowA( className, title ));
+    return FindWindowEx16( NULL, NULL, className, title );
 }
 
 
@@ -1923,6 +1924,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     SIZE_T buf_len;
     struct A
     {
+        LPCSTR local_class_prefix;
         DWORD hInst;
         LPCSTR name;
     } a;
@@ -1949,8 +1951,9 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.hIconSm       = get_icon_32(wc->hIconSm);
     a.hInst = wc->hInstance;
     a.name = wc32.lpszClassName;
+    a.local_class_prefix = LOCAL_CLASS_PREFIX;
     arg = (va_list)&a;
-    if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING, "WIN16%1!04X!%2!s!%0", NULL, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &buf, 0, &arg))
+    if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING, "%1!s!%2!04X!%3!s!%0", NULL, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &buf, 0, &arg))
     {
         wc32.lpszClassName = buf;
     }
@@ -2205,8 +2208,79 @@ BOOL16 WINAPI TrackPopupMenu16( HMENU16 hMenu, UINT16 wFlags, INT16 x, INT16 y,
  */
 HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPCSTR title )
 {
-    return HWND_16( FindWindowExA( WIN_Handle32(parent), WIN_Handle32(child),
-                                        className, title ));
+    char sbuf[200];
+    char *buf = sbuf;
+    SIZE_T buf_size = sizeof(sbuf) / sizeof(char);
+    HWND child32 = WIN_Handle32(child);
+    HWND parent32 = WIN_Handle32(parent);
+    LPCSTR lcprefix = LOCAL_CLASS_PREFIX;
+    SIZE_T lcprefix_len = strlen(lcprefix);
+
+    while (TRUE)
+    {
+        child32 = FindWindowExA(NULL, child32, NULL, title);
+        if (!child32)
+            break;
+        int classname_len = 0;
+        while (TRUE)
+        {
+            classname_len = GetClassNameA(child32, buf, buf_size);
+            if (!classname_len)
+            {
+                if (buf_size != 0)
+                {
+                    sbuf[0] = '\0';
+                }
+                break;
+            }
+            //truncated
+            if (classname_len == buf_size - 1)
+            {
+                LPVOID heap;
+                if (buf != sbuf)
+                {
+                    heap = HeapReAlloc(GetProcessHeap(), 0, buf, buf_size * 2);
+                }
+                else
+                {
+                    heap = HeapAlloc(GetProcessHeap(), 0, buf_size * 2);
+                }
+                if (heap)
+                {
+                    buf = (LPCSTR)heap;
+                    buf_size *= 2;
+                }
+                continue;
+            }
+            break;
+        }
+        if (classname_len <= lcprefix_len)
+        {
+            if (!strcmpi(sbuf, className))
+            {
+                break;
+            }
+            continue;
+        }
+        //is win16 local class
+        if (!memicmp(sbuf, LOCAL_CLASS_PREFIX, lcprefix_len))
+        {
+            LPCSTR win16cls = sbuf + lcprefix_len;
+            if (!strcmpi(win16cls, sbuf))
+            {
+                break;
+            }
+        }
+        if (!strcmpi(sbuf, className))
+        {
+            break;
+        }
+    }
+    if (buf != sbuf)
+    {
+        HeapFree(GetProcessHeap(), 0, buf);
+    }
+    return HWND_32(child);
 }
 
 
@@ -2392,6 +2466,11 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         cs.style &= ~(WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
     }
     hwnd = create_window16((CREATESTRUCTW *)&cs, (LPCWSTR)cs.lpszClass, HINSTANCE_32(instance), FALSE);
+    if (hwnd == NULL)
+    {
+        ERR("Could not create window(%08x,\"%s\"(\"%s\"),\"%s\",%08x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%08x)\n", exStyle, className, cs.lpszClass, windowName, style, x, y, width, height, parent, menu, instance, data);
+        return NULL;
+    }
 	HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);

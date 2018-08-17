@@ -285,5 +285,6 @@ struct class_entry *find_win16_class(HINSTANCE16 hInst16, LPCSTR name);
 struct class_entry *find_win32_class(LPCSTR name);
 LPCSTR win16classname(LPCSTR name);
 LPCSTR win32classname(HINSTANCE16 hInst16, LPCSTR name);
+#define LOCAL_CLASS_PREFIX "WIN16"
 
 #endif /* __WINE_USER_PRIVATE_H */
