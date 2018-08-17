@@ -155,7 +155,7 @@
 163 pascal   SetBitmapDimension(word s_word s_word) SetBitmapDimension16
 164 stub PixToLine # W1.1, W2.0
 #165 - 200 not in W1.1
-169 stub IsDCDirty
+169 pascal -ret16 IsDCDirty(word segptr) IsDCDirty16
 170 stub SetDCStatus
 171 stub LVBUNION # W2.0 (only ?)
 172 pascal -ret16 SetRectRgn(word s_word s_word s_word s_word) SetRectRgn16
@@ -179,7 +179,7 @@
 192 pascal -ret16 SetHookFlags(word word) SetHookFlags16
 193 pascal -ret16 SetBoundsRect(word ptr word) SetBoundsRect16
 194 pascal -ret16 GetBoundsRect(word ptr word) GetBoundsRect16
-195 stub SelectBitmap
+195 pascal -ret16 SelectBitmap(word word) SelectBitmap16
 196 pascal -ret16 SetMetaFileBitsBetter(word) SetMetaFileBitsBetter16
 201 stub DMBITBLT
 202 stub DMCOLORINFO
@@ -254,9 +254,9 @@
 349 pascal   SetMapperFlags(word long) SetMapperFlags16
 350 pascal -ret16 GetCharWidth(word word word ptr) GetCharWidth16
 351 pascal -ret16 ExtTextOut(word s_word s_word word ptr str word ptr) ExtTextOut16
-352 stub GetPhysicalFontHandle
-353 stub GetAspectRatioFilter
-354 stub ShrinkGDIHeap
+352 pascal -ret16 GetPhysicalFontHandle(word) GetPhysicalFontHandle16
+353 pascal GetAspectRatioFilter(word) GetAspectRatioFilter16
+354 pascal -ret16 ShrinkGDIHeap() ShrinkGdiHeap16
 355 stub FTrapping0
 360 pascal -ret16 CreatePalette(ptr) CreatePalette16
 361 pascal -ret16 GDISelectPalette(word word word) GDISelectPalette16
@@ -280,7 +280,7 @@
 381 pascal -ret16 SetAbortProc(word segptr) SetAbortProc16
 382 pascal -ret16 AbortDoc(word) AbortDoc16
 400 pascal -ret16 FastWindowFrame(word ptr s_word s_word long) FastWindowFrame16
-401 stub GDIMOVEBITMAP
+401 pascal -ret16 GdiMoveBitmap(word) GdiMoveBitmap16
 402 stub GDIGETBITSGLOBAL # W2.0 (only ?)
 403 pascal -ret16 GdiInit2(word word) GdiInit216
 404 stub GetTTGlyphIndexMap
@@ -303,14 +303,14 @@
 450 pascal -ret16 PolyPolygon(word ptr ptr word) PolyPolygon16
 451 pascal -ret16 CreatePolyPolygonRgn(ptr ptr word word) CreatePolyPolygonRgn16
 452 pascal   GdiSeeGdiDo(word word word word) GdiSeeGdiDo16
-460 stub GDITASKTERMINATION
+460 pascal -ret16 GdiTaskTermination(word) GdiTaskTermination16
 461 pascal -ret16 SetObjectOwner(word word) SetObjectOwner16
 462 pascal -ret16 IsGDIObject(word) IsGDIObject16
 463 pascal -ret16 MakeObjectPrivate(word word) MakeObjectPrivate16
 464 stub FIXUPBOGUSPUBLISHERMETAFILE
 465 pascal -ret16 RectVisible(word ptr) RectVisible16 # RECTVISIBLE_EHH ??
 466 pascal -ret16 RectInRegion(word ptr) RectInRegion16 # RECTINREGION_EHH ??
-467 stub UNICODETOANSI
+467 pascal -ret16 UnicodeToAnsi(segptr segptr) UnicodeToAnsi16
 468 pascal -ret16 GetBitmapDimensionEx(word ptr) GetBitmapDimensionEx16
 469 pascal -ret16 GetBrushOrgEx(word ptr) GetBrushOrgEx16
 470 pascal -ret16 GetCurrentPositionEx(word ptr) GetCurrentPositionEx16

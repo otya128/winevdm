@@ -3788,18 +3788,41 @@ HBITMAP16 WINAPI CreateDIBSection16 (HDC16 hdc, const BITMAPINFO *bmi, UINT16 us
     return HBITMAP_16(hbitmap);
 }
 
-
-void __wine_spec_init_ctor()
+void WINAPI GdiTaskTermination16(WORD arg1)
 {
-	DPRINTF("NOTIMPL:__wine_spec_init_ctor()\n");
+    FIXME("(%04x)\n", arg1);
 }
-void __wine_spec_unimplemented_stub(const char *module, const char *function)
+WORD WINAPI GetPhysicalFontHandle16(WORD arg1/* dc? */)
 {
-	DPRINTF("NOTIMPL:__wine_spec_unimplemented_stub(%s, %s)\n", module, function);
+    FIXME("(%04x)\n", arg1);
+    return 0;
 }
-void __wine_spec_dll_entry()
+WORD WINAPI GdiMoveBitmap16(WORD arg1)
 {
-	DPRINTF("NOTIMPL:__wine_spec_dll_entry(?)\n");
+    FIXME("(%04x)\n", arg1);
+    return 0;
 }
-
-
+BOOL16 WINAPI IsDCDirty16(WORD arg1, SEGPTR arg2)
+{
+    FIXME("(%04x,%08x)\n", arg1, arg2);
+    return 0;
+}
+void WINAPI UnicodeToAnsi16(SEGPTR arg1, SEGPTR arg2)
+{
+    FIXME("(%08x,%08x)\n", arg1, arg2);
+    return 0;
+}
+void WINAPI ShrinkGdiHeap16()
+{
+    FIXME("()\n");
+}
+DWORD WINAPI GetAspectRatioFilter16(WORD arg1)
+{
+    FIXME("(%04x)\n", arg1);
+    return 0;
+}
+WORD WINAPI SelectBitmap16(WORD arg1, WORD arg2)
+{
+    FIXME("(%04x)\n", arg1);
+    return SelectObject16(arg1, arg2);
+}
