@@ -595,6 +595,13 @@ INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
     SIZE_T len = sizeof(sclassName) / sizeof(sclassName[0]);
     LPSTR className = sclassName;
     SIZE_T clen;
+    if (count == 0)
+        return 0;
+    if (count == 1)
+    {
+        buffer[0] = '\0';
+        return 0;
+    }
     while (TRUE)
     {
         clen = GetClassNameA(WIN_Handle32(hwnd), className, len);
@@ -618,10 +625,9 @@ INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
         }
         break;
     }
-    if (clen >= 65535)
+    if (clen >= 32767)
     {
-        className[65535] = '\0';
-        clen = 65534;
+        clen = 32766;
     }
     if (clen != 0)
     {
@@ -641,6 +647,7 @@ INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
     {
         HeapFree(GetProcessHeap(), 0, className);
     }
+    return (INT16)clen;
 }
 
 
