@@ -789,20 +789,130 @@ static void set_peb_compatible_flag()
     //teb->Peb->AppCompatFlagsUser.HighPart = -1;
     //teb->Peb->AppCompatFlags.LowPart = -1;
 }
-//
+static void exec16(LOADPARAMS16 params, LPCSTR appname, LPCSTR cmdline, BOOL exit)
+{
+    char *p;
+    HINSTANCE16 instance;
+    if ((instance = LoadModule16(appname, &params)) < 32)
+    {
+        if (instance == 11)
+        {
+#ifdef SUPPORT_DOS
+            /* first see if it is a .pif file */
+            if ((p = strrchr(appname, '.')) && !_stricmp(p, ".pif"))
+                pif_cmd(appname, cmdline + 1);
+            else
+            {
+                /* try DOS format */
+                /* loader expects arguments to be regular C strings */
+                start_dos_exe(appname, cmdline + 1);
+            }
+#else
+            __wine_load_dos_exe(appname, cmdline + 1);
+#endif
+            /* if we get back here it failed */
+            instance = GetLastError();
+        }
+
+        WINE_MESSAGE("winevdm: can't exec '%s': ", appname);
+        switch (instance)
+        {
+        case  2: WINE_MESSAGE("file not found\n"); break;
+        case 11: WINE_MESSAGE("invalid program file\n"); break;
+        default: WINE_MESSAGE("error=%d\n", instance); break;
+        }
+        if (exit)
+            ExitProcess(instance);
+    }
+
+}
+#include <pshpack1.h>
+typedef struct {
+    WORD header;
+    WORD showCmd;
+    CHAR appname[MAX_PATH];
+    CHAR cmdline[MAX_PATH];
+} shared_wow_exec;
+#include <poppack.h>
+DWORD exec16_thread(LPVOID args)
+{
+    shared_wow_exec exec_data = *(shared_wow_exec*)args;
+    HeapFree(GetProcessHeap(), 0, args);
+    LOADPARAMS16 params;
+    WORD showCmd[2];
+    showCmd[0] = 2;
+    showCmd[1] = SW_SHOW;
+
+    params.hEnvironment = 0;
+
+    params.cmdLine = MapLS(exec_data.cmdline);
+    params.showCmd = MapLS(showCmd);
+    params.reserved = 0;
+    exec16(params, exec_data.appname, exec_data.cmdline, FALSE);
+    return 0;
+}
+/* \\.\pipe\otvdmpipe */
+HANDLE run_shared_wow_server()
+{
+    WINE_ERR("start server.\n");
+    HANDLE server = CreateNamedPipeA("\\\\.\\pipe\\otvdmpipe", PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 10, 0, 0, 1000, NULL);
+    while (TRUE)
+    {
+        ConnectNamedPipe(server, NULL);
+        WINE_ERR("connected to client.\n");
+        WINE_TRACE("client connected.\n");
+        DWORD read;
+        shared_wow_exec exec_data = { 0 };
+        BOOL r = ReadFile(server, &exec_data, sizeof(exec_data), &read, NULL);
+        DisconnectNamedPipe(server);
+        if (r)
+        {
+            if (read == sizeof(exec_data))
+            {
+                WINE_TRACE("%s %s\n", exec_data.appname, exec_data.cmdline);
+                DWORD threadId;
+                LPVOID data = HeapAlloc(GetProcessHeap(), 0, sizeof(exec_data));
+                memcpy(data, &exec_data, sizeof(exec_data));
+                /* LoadModule16 blocks thread */
+                HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)exec16_thread, data, 0, &threadId);
+                CloseHandle(hThread);
+            }
+        }
+    }
+}
+BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
+{
+    HANDLE client = CreateFileA("\\\\.\\pipe\\otvdmpipe", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    if (client == INVALID_HANDLE_VALUE)
+    {
+        return FALSE;
+    }
+    WINE_ERR("connected to server.\n");
+    /* This magic brings the window to the front. */
+    FreeConsole();
+    shared_wow_exec exec_data = { 0 };
+    exec_data.showCmd = showCmd;
+    strcpy_s(exec_data.cmdline, MAX_PATH, cmdline);
+    strcpy_s(exec_data.appname, MAX_PATH, appname);
+    DWORD w;
+    WriteFile(client, &exec_data, sizeof(exec_data), &w, NULL);
+    CloseHandle(client);
+    return TRUE;
+
+}
+
+
 /***********************************************************************
  *           main
  */
 int main( int argc, char *argv[] )
 {
     DWORD count;
-    HINSTANCE16 instance;
     LOADPARAMS16 params;
     WORD showCmd[2];
     char buffer[MAX_PATH];
     STARTUPINFOA info;
     char *cmdline, *appname, **first_arg;
-    char *p;
     DWORD pid;
     const char *cmdline1 = strstr(argv[0], "  --ntvdm64:");
     char **argv_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*argv) * (argc + 1));
@@ -966,6 +1076,11 @@ int main( int argc, char *argv[] )
 
     params.hEnvironment = 0;
 
+    if (run_shared_wow(appname, showCmd[1], cmdline))
+    {
+        return 0;
+    }
+
     params.cmdLine = MapLS( cmdline );
     params.showCmd = MapLS( showCmd );
     params.reserved = 0;
@@ -989,39 +1104,12 @@ int main( int argc, char *argv[] )
         ULONG_PTR lpCookie;
         BOOL res = ActivateActCtx(result, &lpCookie);
     }
-    if ((instance = LoadModule16( appname, &params )) < 32)
-    {
-        if (instance == 11)
-        {
-#ifdef SUPPORT_DOS
-            /* first see if it is a .pif file */
-            if( ( p = strrchr( appname, '.' )) && !_stricmp( p, ".pif"))
-                pif_cmd( appname, cmdline + 1);
-            else
-            {
-                /* try DOS format */
-                /* loader expects arguments to be regular C strings */
-                start_dos_exe( appname, cmdline + 1 );
-            }
-#else
-            __wine_load_dos_exe(appname, cmdline + 1);
-#endif
-            /* if we get back here it failed */
-            instance = GetLastError();
-        }
 
-        WINE_MESSAGE( "winevdm: can't exec '%s': ", appname );
-        switch (instance)
-        {
-        case  2: WINE_MESSAGE("file not found\n" ); break;
-        case 11: WINE_MESSAGE("invalid program file\n" ); break;
-        default: WINE_MESSAGE("error=%d\n", instance ); break;
-        }
-        ExitProcess(instance);
-    }
-
+    exec16(params, appname, cmdline, TRUE);
     /* wait forever; the process will be killed when the last task exits */
-    ReleaseThunkLock( &count );
+    ReleaseThunkLock(&count);
+    if (krnl386_get_config_int("otvdm", "SeparateWOWVDM", FALSE))
+        run_shared_wow_server();
     Sleep( INFINITE );
     return 0;
 }
