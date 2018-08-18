@@ -854,13 +854,10 @@ DWORD exec16_thread(LPVOID args)
 /* \\.\pipe\otvdmpipe */
 HANDLE run_shared_wow_server()
 {
-    WINE_ERR("start server.\n");
     HANDLE server = CreateNamedPipeA("\\\\.\\pipe\\otvdmpipe", PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 10, 0, 0, 1000, NULL);
     while (TRUE)
     {
         ConnectNamedPipe(server, NULL);
-        WINE_ERR("connected to client.\n");
-        WINE_TRACE("client connected.\n");
         DWORD read;
         shared_wow_exec exec_data = { 0 };
         BOOL r = ReadFile(server, &exec_data, sizeof(exec_data), &read, NULL);
@@ -887,7 +884,6 @@ BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
     {
         return FALSE;
     }
-    WINE_ERR("connected to server.\n");
     /* This magic brings the window to the front. */
     FreeConsole();
     shared_wow_exec exec_data = { 0 };
