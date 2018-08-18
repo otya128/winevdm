@@ -2276,7 +2276,6 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
     {
         if (msg->lParam)
         {
-            DPRINTF("%d\n", timer32_count);
             WPARAM wp = (WPARAM)msg->wParam;
             LPARAM lp = msg->lParam;
             if (msg->lParam == TIMER32_LPARAM)

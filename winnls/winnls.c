@@ -200,76 +200,76 @@ LRESULT WINAPI SendIMEMessageEx16(
         switch (lpime->wParam)
         {
         case MCW_WINDOW:
-            ERR("MCW_WINDOW(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("MCW_WINDOW(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_DEFAULT:
-            ERR("MCW_DEFAULT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("MCW_DEFAULT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_RECT:
-            ERR("MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_SCREEN:
-            ERR("MCW_SCREEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("MCW_SCREEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_VERTICAL:
-            ERR("MCW_VERTICAL(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("MCW_VERTICAL(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_HIDDEN:
-            ERR("MCW_HIDDEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("MCW_HIDDEN(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_WINDOW | MCW_RECT:
-            ERR("MCW_WINDOW | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("MCW_WINDOW | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         case MCW_SCREEN | MCW_RECT:
-            ERR("MCW_SCREEN | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("MCW_SCREEN | MCW_RECT(%p, %p, %p)\n", lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         default:
-            ERR("IME_SETCONVERSIONWINDOW unknwon %04x (%p, %p, %p)\n", lpime->wParam, lpime->lParam1, lpime->lParam2, lpime->lParam3);
+            TRACE("IME_SETCONVERSIONWINDOW unknwon %04x (%p, %p, %p)\n", lpime->wParam, lpime->lParam1, lpime->lParam2, lpime->lParam3);
             break;
         }
     }
         break;
     case IME_ENTERWORDREGISTERMODE:
-        ERR("IME_ENTERWORDREGISTERMODE\n");
+        TRACE("IME_ENTERWORDREGISTERMODE\n");
         break;
     case IME_GETCONVERSIONMODE:
-        ERR("IME_GETCONVERSIONMODE\n");
+        TRACE("IME_GETCONVERSIONMODE\n");
         break;
     case IME_SETCONVERSIONFONTEX:
-        ERR("IME_SETCONVERSIONFONTEX\n");
+        TRACE("IME_SETCONVERSIONFONTEX\n");
         break;
     case IME_SETCONVERSIONMODE:
-        ERR("IME_SETCONVERSIONMODE\n");
+        TRACE("IME_SETCONVERSIONMODE\n");
         break;
     //case IME_SETLEVEL:
     //    ERR("IME_SETLEVEL\n");
     //    break;
     case IME_GETOPEN:
-        ERR("IME_GETOPEN\n");
+        TRACE("IME_GETOPEN\n");
         break;
     case IME_SETOPEN:
-        ERR("IME_SETOPEN\n");
+        TRACE("IME_SETOPEN\n");
         break;
     case IME_GETVERSION:
-        ERR("IME_GETVERSION\n");
+        TRACE("IME_GETVERSION\n");
         break;
     case IME_SET_MODE:
-        ERR("IME_SET_MODE\n");
+        TRACE("IME_SET_MODE\n");
         break;
     case IME_GETIMECAPS:
-        ERR("IME_GETIMECAPS\n");
+        TRACE("IME_GETIMECAPS\n");
         break;
     case IME_SENDVKEY:
-        ERR("IME_SENDVKEY\n");
+        TRACE("IME_SENDVKEY\n");
         break;
     //case IME_SET_MODEK:
     //    ERR("IME_SET_MODEK\n");
     //  break;
     default:
-        ERR("unknown %04x\n", lpime->fnc);
+        TRACE("unknown %04x\n", lpime->fnc);
         break;
     }
-    ERR("(%04x,%04x,%04x,%04x,%04x,%08x,%08x,%08x)\n", lpime->fnc, lpime->wParam, lpime->wCount, lpime->dchSource, lpime->dchDest, lpime->lParam1, lpime->lParam2, lpime->lParam3);
+    TRACE("(%04x,%04x,%04x,%04x,%04x,%08x,%08x,%08x)\n", lpime->fnc, lpime->wParam, lpime->wCount, lpime->dchSource, lpime->dchDest, lpime->lParam1, lpime->lParam2, lpime->lParam3);
     LRESULT ret = SendIMEMessageExA(hwnd32, (LPARAM)hglobal32);
     lpime->fnc = lpime32->fnc;
     lpime->wParam = lpime32->wParam;
@@ -279,7 +279,7 @@ LRESULT WINAPI SendIMEMessageEx16(
     lpime->lParam1 = lpime32->lParam1;
     lpime->lParam2 = lpime32->lParam2;
     lpime->lParam3 = lpime32->lParam3;
-    ERR("(%04x,%04x,%04x,%04x,%04x,%08x,%08x,%08x) retval=%08x\n", lpime->fnc, lpime->wParam, lpime->wCount, lpime->dchSource, lpime->dchDest, lpime->lParam1, lpime->lParam2, lpime->lParam3, ret);
+    TRACE("(%04x,%04x,%04x,%04x,%04x,%08x,%08x,%08x) retval=%08x\n", lpime->fnc, lpime->wParam, lpime->wCount, lpime->dchSource, lpime->dchDest, lpime->lParam1, lpime->lParam2, lpime->lParam3, ret);
     lpime->wParam = 0;
     GlobalUnlock(hglobal32);
     GlobalUnlock16(hglobal);
