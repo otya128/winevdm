@@ -188,3 +188,5 @@ EXPORTS
 
   krnl386_get_config_string
   krnl386_get_config_int
+
+  GetModuleFileName16

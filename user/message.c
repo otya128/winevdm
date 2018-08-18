@@ -3437,7 +3437,47 @@ LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 {
     return edit_proc16(hwnd, msg, wParam, lParam, FALSE);
 }
+
+/* set taskbar id */
+#include <shlobj.h>
+#include <propkey.h>
+#include <propvarutil.h>
+void set_app_id(HWND hWnd, LPCWSTR name)
+{
+    IPropertyStore *propstore;
+    HRESULT hr = SHGetPropertyStoreForWindow(hWnd, &IID_IPropertyStore, &propstore);
+    if (SUCCEEDED(hr))
+    {
+        PROPVARIANT pv;
+        SIZE_T len = (wcslen(name) + 1) * sizeof(*name);
+        LPWSTR id2 = CoTaskMemAlloc(len);
+        if (id2)
+        {
+            memcpy(id2, name, len);
+            V_UNION(&pv, pwszVal) = id2;
+            V_VT(&pv) = VT_LPWSTR;
+            hr = propstore->lpVtbl->SetValue(propstore, &PKEY_AppUserModel_ID, &pv);
+            PropVariantClear(&pv);
+        }
+        propstore->lpVtbl->Release(propstore);
+    }
+}
+void set_window_app_id(HWND hwnd)
+{
+    /* OTVDM.{PID}.{module path} */
+    WCHAR buffer[1024];
+    CHAR a[MAX_PATH];
+    INT16 len = GetModuleFileName16(GetCurrentTask(), a, MAX_PATH);
+    /* tiny canonicalize */
+    for (int i = 0; i < len; i++)
+    {
+        a[i] = (char)toupper(a[i]);
+    }
+    wsprintfW(buffer, L"OTVDM.%d.%S", GetCurrentProcessId(), a);
+    set_app_id(hwnd, buffer);
+}
 BOOL aero_diasble;
+BOOL separate_taskbar;
 LRESULT CALLBACK CBTHook(
     int nCode,
     WPARAM wParam,
@@ -3455,6 +3495,10 @@ LRESULT CALLBACK CBTHook(
         {
             SetThemeAppProperties(0);
             SetWindowTheme(hWnd, L"", L"");
+        }
+        if (separate_taskbar)
+        {
+            set_window_app_id(hWnd);
         }
         if (isEdit(hWnd))
         {
@@ -3561,6 +3605,7 @@ BOOL WINAPI DllMain(
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
         aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", TRUE);
+        separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", TRUE);
     }
     if (fdwReason == DLL_THREAD_ATTACH)
     {
