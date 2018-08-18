@@ -771,14 +771,16 @@ typedef enum _APPCOMPAT_USERFLAGS_HIGHPART
 } APPCOMPAT_USERFLAGS_HIGHPART;
 //===reactos/sdk/include/ndk/pstypes.h==
 
-static void set_peb_compatible_flag()
+static BOOL set_peb_compatible_flag()
 {
+    BOOL success = TRUE;
     TEB2 *teb = (TEB2*)NtCurrentTeb();
     HMODULE user32 = GetModuleHandleA("user32.dll");
     if (user32 != NULL)
     {
         WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");
         WINE_ERR("Some compatibility flags can not be applied.\n");
+        success = FALSE;
     }
     //ExtractAssociatedIcon
     APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;
@@ -788,6 +790,7 @@ static void set_peb_compatible_flag()
     //teb->Peb->AppCompatFlagsUser.LowPart = -1;
     //teb->Peb->AppCompatFlagsUser.HighPart = -1;
     //teb->Peb->AppCompatFlags.LowPart = -1;
+    return success;
 }
 static void exec16(LOADPARAMS16 params, LPCSTR appname, LPCSTR cmdline, BOOL exit)
 {
@@ -912,7 +915,7 @@ int main( int argc, char *argv[] )
     DWORD pid;
     const char *cmdline1 = strstr(argv[0], "  --ntvdm64:");
     char **argv_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*argv) * (argc + 1));
-    set_peb_compatible_flag();
+    BOOL compat_success = set_peb_compatible_flag();
     memcpy(argv_copy, argv, argc * sizeof(*argv));
     argv = argv_copy;
     /*
@@ -1026,15 +1029,18 @@ int main( int argc, char *argv[] )
         argv += 2;
         argc -= 2;
     }
-#ifdef FIX_COMPAT_MODE
     //compatible mode
-    else if (getenv("__COMPAT_LAYER") == NULL)
+    else if ((!compat_success
+
+#ifdef FIX_COMPAT_MODE
+            || 1
+#endif
+            ) && getenv("__COMPAT_LAYER") == NULL)
     {
         printf("set compatible mode to VistaRTM\n");
         fix_compatible(argc, argv);
         return 0;
     }
-#endif
 
     if (!argv[1]) usage();
 
