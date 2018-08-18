@@ -3438,6 +3438,14 @@ LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     return edit_proc16(hwnd, msg, wParam, lParam, FALSE);
 }
 
+BOOL aero_diasble;
+enum SEPARATE_TASKBAR {
+    SEPARATE_TASKBAR_DONT_SEPARATE = 0,
+    SEPARATE_TASKBAR_SEPARATE_FOR_EACH_WOW = 1,
+    SEPARATE_TASKBAR_SEPARATE = 2,
+};
+enum SEPARATE_TASKBAR separate_taskbar;
+
 /* set taskbar id */
 #include <shlobj.h>
 #include <propkey.h>
@@ -3473,11 +3481,16 @@ void set_window_app_id(HWND hwnd)
     {
         a[i] = (char)toupper(a[i]);
     }
-    wsprintfW(buffer, L"OTVDM.%d.%S", GetCurrentProcessId(), a);
+    if (separate_taskbar == SEPARATE_TASKBAR_SEPARATE_FOR_EACH_WOW)
+    {
+        wsprintfW(buffer, L"OTVDM.%d.%S", GetCurrentProcessId(), a);
+    }
+    else
+    {
+        wsprintfW(buffer, L"OTVDM.%S", a);
+    }
     set_app_id(hwnd, buffer);
 }
-BOOL aero_diasble;
-BOOL separate_taskbar;
 LRESULT CALLBACK CBTHook(
     int nCode,
     WPARAM wParam,
@@ -3605,7 +3618,7 @@ BOOL WINAPI DllMain(
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
         aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", TRUE);
-        separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", TRUE);
+        separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE_FOR_EACH_WOW);
     }
     if (fdwReason == DLL_THREAD_ATTACH)
     {
