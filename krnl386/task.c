@@ -478,7 +478,14 @@ static DWORD CALLBACK task_start( LPVOID p )
     _EnterWin16Lock();
     TASK_LinkTask( pTask->hSelf );
     pTask->teb = NtCurrentTeb();
-    ret = NE_StartTask();
+    __try
+    {
+        ret = NE_StartTask();
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+
+    }
     _LeaveWin16Lock();
     return ret;
 }

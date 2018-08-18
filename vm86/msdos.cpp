@@ -758,7 +758,6 @@ extern "C"
 	}
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
-
 		AddVectoredExceptionHandler(TRUE, vm86_vectored_exception_handler);
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
 		CPU_INIT_CALL(CPU_MODEL);
@@ -997,7 +996,7 @@ extern "C"
             i386_jmp_far((ret >> 16) & 0xFFFF, ret & 0xFFFF);
             return;
         }
-        PSTR dasm = (PSTR)calloc(256, 1);
+        PSTR dasm = (PSTR)calloc(10000, 1);
         ULONG_PTR arguments[7] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags, (ULONG_PTR)dasm };
         m_eip = ip;
         m_sreg[CS].selector = cs;
@@ -1036,7 +1035,7 @@ extern "C"
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
-
+            dasm[0] = '\0';
         }
         set_flags(flags);
         RaiseException(EXCEPTION_PROTECTED_MODE, 0, sizeof(arguments) / sizeof(ULONG_PTR), arguments);
@@ -1474,6 +1473,18 @@ extern "C"
 						dbuf += sprintf(dbuf, "\t%s\n", buffer);
 					else
 						fprintf(stderr, "\t%s\n", buffer);
+#if defined(TRACE_REGS)
+                    fprintf(stderr,
+                        "\
+EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X,\
+ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X,\
+ES:%04X,CS:%04X,SS:%04X,DS:%04X,\
+IP:%04X,address:%08X,\
+EFLAGS:%08X\
+\n",
+REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG32(EBP), REG32(ESI), REG32(EDI),
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
+#endif
 				}
 #endif
 #if defined(HAS_I386)
@@ -1543,7 +1554,7 @@ extern "C"
                 NE_DumpAllModules();
                 fprintf(stderr, "=====dump all modules=====\n");
             }
-            __except (EXCEPTION_CONTINUE_EXECUTION)
+            __except (EXCEPTION_EXECUTE_HANDLER)
             {
 
             }
@@ -1623,20 +1634,6 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, 
         dump_stack_trace();
         fprintf(stderr, "========================\n");
         print_stack();
-        /*
-
-                    context.Eax = REG16(AX);
-                    context.Ecx = REG16(CX);
-                    context.Edx = REG16(DX);
-                    context.Ebx = REG16(BX);
-                    context.Esp = REG16(SP);
-                    context.Ebp = REG16(BP);
-                    context.Esi = REG16(SI);
-                    context.Edi = REG16(DI);
-                    context.SegEs = SREG(ES);
-                    context.SegCs = SREG(CS);
-                    context.SegSs = SREG(SS);
-                    context.SegDs = SREG(DS);*/
         fprintf(stderr, "%s", buf);
         fflush(stderr);
 
@@ -1648,7 +1645,15 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, 
         a[1] = buf_pre;
         auto lam = [](void *lpThreadParameter)
         {
-            return (DWORD)MessageBoxA(NULL, ((const char**)lpThreadParameter)[0], ((const char**)lpThreadParameter)[1], MB_RETRYCANCEL | MB_ICONERROR);
+            DWORD result = 0;
+            __try
+            {
+                result = (DWORD)MessageBoxA(NULL, ((const char**)lpThreadParameter)[0], ((const char**)lpThreadParameter)[1], MB_RETRYCANCEL | MB_ICONERROR);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+            }
+            return result;
         };
         LPTHREAD_START_ROUTINE routine = lam;
         HANDLE hThread = CreateThread(NULL, 0, routine, a, 0, &threadId);
@@ -1660,7 +1665,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, 
         {
             if (exitcode == IDCANCEL)
             {
-                return EXCEPTION_CONTINUE_SEARCH;
+                ExitThread(rec->ExceptionCode);
             }
             if (exitcode == IDRETRY)
             {
