@@ -2149,7 +2149,10 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
 static LRESULT defwindow_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
     LRESULT *result, void *arg)
 {
+    DWORD count;
+    ReleaseThunkLock(&count);
     *result = DefWindowProcA(hwnd, msg, wp, lp);
+    RestoreThunkLock(count);
     return *result;
 }
 /***********************************************************************

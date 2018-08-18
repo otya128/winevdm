@@ -439,12 +439,16 @@ HWND16 WINAPI CreateWindow16( LPCSTR className, LPCSTR windowName,
  */
 BOOL16 WINAPI ShowWindow16( HWND16 hwnd, INT16 cmd )
 {
+    DWORD count;
+
+    ReleaseThunkLock(&count);
     DWORD foregroundID = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
     //Attach
     AttachThreadInput(GetCurrentThreadId(), foregroundID, TRUE);
     BOOL ret = ShowWindow( WIN_Handle32(hwnd), cmd );
     //Dettach
     AttachThreadInput(GetCurrentThreadId(), foregroundID, FALSE);
+    RestoreThunkLock(count);
     return ret;
 }
 
