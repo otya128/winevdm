@@ -1326,6 +1326,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
         *result = get_icon_16(*result);
         break;
+    case WM_TIMER:
     case WM_MOUSEWHEEL:
     {
         if (wParam < MOUSEWHEEL_BUF_SIZE)
@@ -1950,6 +1951,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback(HWND_16(hwnd), msg, HDRVR_16(wParam), lParam, result, arg);
         break;
     }
+    case WM_TIMER:
     case WM_MOUSEWHEEL:
     {
         int index = -1;
@@ -2269,6 +2271,11 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
                 msg32.pt.x = msg->pt.x;
                 msg32.pt.y = msg->pt.y;
                 msg32.message = msg->message;
+                if (msg32.wParam < MOUSEWHEEL_BUF_SIZE)
+                {
+                    mousewheel_buf[msg32.wParam].unprocessed = FALSE;
+                    msg32.wParam = mousewheel_buf[msg32.wParam].wParam;
+                }
                 return DispatchMessageA(&msg32);
             }
             return CallWindowProc16((WNDPROC16)msg->lParam, msg->hwnd,
