@@ -1110,7 +1110,7 @@ int main( int argc, char *argv[] )
     exec16(params, appname, cmdline, TRUE);
     /* wait forever; the process will be killed when the last task exits */
     ReleaseThunkLock(&count);
-    if (krnl386_get_config_int("otvdm", "SeparateWOWVDM", FALSE))
+    if (!krnl386_get_config_int("otvdm", "SeparateWOWVDM", TRUE))
         run_shared_wow_server();
     Sleep( INFINITE );
     return 0;
