@@ -3,7 +3,7 @@
 #3   stub ___EXPORTEDSTUB
 4   stub ENUMGETFONTTYPE
 5   stub ENUMFACENOTTT
-6   pascal -ret16 SendIMEMessage(word word word) SendIMEMessage16
+6   pascal SendIMEMessage(word long) SendIMEMessageEx16
 7   pascal SendIMEMessageEx(word long) SendIMEMessageEx16
 9   stub SENDIMEMESSAGEINTERNAL
 10  stub WINNLSSETKEYBOARDHOOK

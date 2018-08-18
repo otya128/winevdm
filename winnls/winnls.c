@@ -21,6 +21,7 @@
 #include "windef.h"
 #include "winbase.h"
 #include "winnls32.h"
+#include <windows.h>
 #include <imm.h>
 #include "wownt32.h"
 #include "wine/winuser16.h"
@@ -139,25 +140,6 @@ BOOL WINAPI WINNLSSendControl16(WORD arg1, WORD arg2)
 	ERR("NOTIMPL:WINNLSSendControl16(%d, %d)\n", arg1, arg2);
 	return 0;
 }
-typedef struct tagIMEMESSAGE16 {
-    WORD unknown1;
-    WORD unknown2;
-    WORD unknown3;
-    WORD unknown4;
-    WORD unknown5;
-    WORD unknown6;
-    WORD unknown7;
-    WORD unknown8;
-} IMEMESSAGE16, FAR *LPIMEMESSAGE16;
-LRESULT WINAPI SendIMEMessageEx16(
-    _In_ HWND16   hwnd,
-    _In_ LPARAM lParam
-);
-LRESULT WINAPI SendIMEMessage16(HWND16 a1, WPARAM16 a2, WPARAM16 a3)
-{
-    ERR("NOTIMPL:SendIMEMessage16(%04X, %04X, %04X)\n", a1, a2, a3);
-    return SendIMEMessageEx16(a1, a2 << 16 | a3);
-}
 #include <pshpack1.h>
 typedef struct tagIMESTRUCT16 {
     UINT16   fnc;        // function code
@@ -170,7 +152,21 @@ typedef struct tagIMESTRUCT16 {
     LPARAM   lParam3;
 } IMESTRUCT16, *PIMESTRUCT16, NEAR *NPIMESTRUCT16, FAR *LPIMESTRUCT16;
 C_ASSERT(sizeof(IMESTRUCT16) == 0x16);
+typedef struct tagIMEMESSAGE16 {
+    WORD unknown1;
+    WORD unknown2;
+    WORD unknown3;
+    WORD unknown4;
+    WORD unknown5;
+    WORD unknown6;
+    WORD unknown7;
+    WORD unknown8;
+} IMEMESSAGE16, FAR *LPIMEMESSAGE16;
 #include <poppack.h>
+LRESULT WINAPI SendIMEMessageEx16(
+    _In_ HWND16   hwnd,
+    _In_ LPARAM lParam
+);
 LRESULT WINAPI SendIMEMessageEx16(
     _In_ HWND16   hwnd,
     _In_ LPARAM lParam
@@ -181,6 +177,8 @@ LRESULT WINAPI SendIMEMessageEx16(
     LPIMESTRUCT16 lpime = (LPIMESTRUCT16)(GlobalLock16(hglobal));
     HGLOBAL hglobal32 = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE, sizeof(IMESTRUCT));
     LPIMESTRUCT lpime32 = (LPIMESTRUCT)(GlobalLock(hglobal32));
+    LRESULT ret = 0;
+    LOGFONTA lfont;
     lpime32->fnc = lpime->fnc;
     lpime32->wParam = lpime->wParam;
     lpime32->wCount = lpime->wCount;
@@ -189,11 +187,16 @@ LRESULT WINAPI SendIMEMessageEx16(
     lpime32->lParam1 = lpime->lParam1;
     lpime32->lParam2 = lpime->lParam2;
     lpime32->lParam3 = lpime->lParam3;
+    /* PBRUSH.EXE(windows 3.1, JP) calls 0x12*/
+    if (lpime->fnc == 0x12/*IME_SETCONVERSIONFONT?*/)
+    {
+        lpime32->fnc = IME_SETCONVERSIONFONTEX;
+    }
     //const char *a = GlobalLock16(lpime->lParam1);
     //const char *b = GlobalLock16(lpime->lParam2);
     //GlobalUnlock16(lpime->lParam1);
     //GlobalUnlock16(lpime->lParam2);
-    switch (lpime->fnc)
+    switch (lpime32->fnc)
     {
     case IME_SETCONVERSIONWINDOW:
     {
@@ -236,8 +239,23 @@ LRESULT WINAPI SendIMEMessageEx16(
         TRACE("IME_GETCONVERSIONMODE\n");
         break;
     case IME_SETCONVERSIONFONTEX:
+    {
         TRACE("IME_SETCONVERSIONFONTEX\n");
-        break;
+
+        HFONT hFont32 = HFONT_32(lpime->wParam);
+        LPLOGFONTA lplogfont = &lfont;
+        if (!hFont32 || !GetObjectA(hFont32, sizeof(LOGFONTA), lplogfont))
+        {
+            ret = 0;
+            goto done;
+        }
+        lpime32->wParam = 0;
+        /*lpime32->wParam = lpime32->wCount = lpime32->dchSource = lpime32->dchDest = */lpime32->lParam1 = /*lpime32->lParam2 = lpime32->lParam3 = */lplogfont;
+        HIMC himc = ImmGetContext(hwnd32);
+        //IME_SETCONVERSIONFONTEX doesnt work well
+        ImmSetCompositionFontA(himc, lplogfont);
+    }
+    break;
     case IME_SETCONVERSIONMODE:
         TRACE("IME_SETCONVERSIONMODE\n");
         break;
@@ -270,7 +288,7 @@ LRESULT WINAPI SendIMEMessageEx16(
         break;
     }
     TRACE("(%04x,%04x,%04x,%04x,%04x,%08x,%08x,%08x)\n", lpime->fnc, lpime->wParam, lpime->wCount, lpime->dchSource, lpime->dchDest, lpime->lParam1, lpime->lParam2, lpime->lParam3);
-    LRESULT ret = SendIMEMessageExA(hwnd32, (LPARAM)hglobal32);
+    ret = SendIMEMessageExA(hwnd32, (LPARAM)hglobal32);
     lpime->fnc = lpime32->fnc;
     lpime->wParam = lpime32->wParam;
     lpime->wCount = lpime32->wCount;
@@ -281,6 +299,7 @@ LRESULT WINAPI SendIMEMessageEx16(
     lpime->lParam3 = lpime32->lParam3;
     TRACE("(%04x,%04x,%04x,%04x,%04x,%08x,%08x,%08x) retval=%08x\n", lpime->fnc, lpime->wParam, lpime->wCount, lpime->dchSource, lpime->dchDest, lpime->lParam1, lpime->lParam2, lpime->lParam3, ret);
     lpime->wParam = 0;
+done:
     GlobalUnlock(hglobal32);
     GlobalUnlock16(hglobal);
     GlobalFree(hglobal32);
