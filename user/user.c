@@ -2262,8 +2262,6 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
         else
         {
             HICON16 hIcon;
-            if ((flags & LR_SHARED) && (hIcon = find_shared_icon(hinst, NULL)) != 0)
-                return hIcon;
             hIcon = get_icon_16(h);
             if (flags & LR_SHARED)
                 add_shared_icon(hinst, NULL, NULL, hIcon);

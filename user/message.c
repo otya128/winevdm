@@ -38,14 +38,17 @@ WINE_DECLARE_DEBUG_CHANNEL(message);
 DWORD USER16_AlertableWait = 0;
 
 struct wow_handlers32 wow_handlers32;
+#define TIMER32_LPARAM 0x42137460
 
-struct mousewheel_buf
+struct timer32_wrapper
 {
     WPARAM wParam;
-    BOOL unprocessed;
+    LPARAM lParam;
+    BOOL ref;
 };
-#define MOUSEWHEEL_BUF_SIZE 40
-static struct mousewheel_buf mousewheel_buf[MOUSEWHEEL_BUF_SIZE];
+#define TIMER32_WRAP_SIZE 40
+static int timer32_count;
+static struct timer32_wrapper timer32[TIMER32_WRAP_SIZE];
 
 static void dump_hmenu(HMENU menu)
 {
@@ -1326,20 +1329,28 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
         *result = get_icon_16(*result);
         break;
-    case WM_TIMER:
     case WM_MOUSEWHEEL:
-    {
-        if (wParam < MOUSEWHEEL_BUF_SIZE)
+    case WM_SYSTIMER:
+    case WM_TIMER:
+        if (lParam != TIMER32_LPARAM)
         {
-            ret = callback(hwnd32, msg, mousewheel_buf[wParam].wParam, lParam, result, arg);
-            mousewheel_buf[wParam].unprocessed = FALSE;
+            ret = callback(hwnd32, msg, wParam, lParam, result, arg);
+            break;
         }
         else
         {
-            ret = callback(hwnd32, msg, wParam, lParam, result, arg);
+            if (wParam < TIMER32_WRAP_SIZE)
+            {
+                ret = callback(hwnd32, msg, timer32[wParam].wParam, timer32[wParam].lParam, result, arg);
+                timer32[wParam].ref = FALSE;
+                timer32_count--;
+            }
+            else
+            {
+                ret = callback(hwnd32, msg, wParam, lParam, result, arg);
+            }
+            break;
         }
-        break;
-    }
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -1951,29 +1962,38 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback(HWND_16(hwnd), msg, HDRVR_16(wParam), lParam, result, arg);
         break;
     }
-    case WM_TIMER:
     case WM_MOUSEWHEEL:
-    {
-        int index = -1;
-        for (int i = 0; i < MOUSEWHEEL_BUF_SIZE; i++)
+    case WM_SYSTIMER:
+    case WM_TIMER:
+        if (!HIWORD(wParam))
         {
-            if (!mousewheel_buf[i].unprocessed)
-            {
-                index = i;
-                break;
-            }
-        }
-        if (index == -1)
-        {
-            ERR("could not allocate WM_MOUSEWHEEL buffer\n");
             ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
             break;
         }
-        mousewheel_buf[index].unprocessed = TRUE;
-        mousewheel_buf[index].wParam = wParam;
-        ret = callback(HWND_16(hwnd), msg, index, lParam, result, arg);
-        break;
-    }
+        else
+        {
+            int index = -1;
+            for (int i = 0; i < TIMER32_WRAP_SIZE; i++)
+            {
+                if (!timer32[i].ref)
+                {
+                    index = i;
+                    break;
+                }
+            }
+            if (index == -1)
+            {
+                ERR("could not allocate TIMER32(%s)\n", message_to_str(msg));
+                ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
+                break;
+            }
+            timer32_count++;
+            timer32[index].ref = TRUE;
+            timer32[index].wParam = wParam;
+            timer32[index].lParam = lParam;
+            ret = callback(HWND_16(hwnd), msg, index, TIMER32_LPARAM, result, arg);
+            break;
+        }
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
@@ -2251,35 +2271,36 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
     WNDPROC16 winproc;
     LRESULT retval;
 
-	if (msg->message == WM_LBUTTONDOWN)
-	{
-		retval=0;// = WM_LBUTTONDOWN;
-	}
       /* Process timer messages */
     if ((msg->message == WM_TIMER) || (msg->message == WM_SYSTIMER))
     {
         if (msg->lParam)
         {
-            if ((msg->lParam & 0xFFFF0000) != 0xFFFF0000)
+            DPRINTF("%d\n", timer32_count);
+            WPARAM wp = (WPARAM)msg->wParam;
+            LPARAM lp = msg->lParam;
+            if (msg->lParam == TIMER32_LPARAM)
+            {
+                timer32[msg->wParam].ref = FALSE;
+                wp = timer32[msg->wParam].wParam;
+                lp = timer32[msg->wParam].lParam;
+                timer32_count--;
+            }
+            if (msg->lParam == TIMER32_LPARAM || (msg->lParam & 0xFFFF0000) != 0xFFFF0000)
             {
                 MSG msg32;
 
                 msg32.hwnd = WIN_Handle32(msg->hwnd);
-                msg32.wParam = msg->wParam;
-                msg32.lParam = msg->lParam;
+                msg32.wParam = wp;
+                msg32.lParam = lp;
                 msg32.time = msg->time;
                 msg32.pt.x = msg->pt.x;
                 msg32.pt.y = msg->pt.y;
                 msg32.message = msg->message;
-                if (msg32.wParam < MOUSEWHEEL_BUF_SIZE)
-                {
-                    mousewheel_buf[msg32.wParam].unprocessed = FALSE;
-                    msg32.wParam = mousewheel_buf[msg32.wParam].wParam;
-                }
                 return DispatchMessageA(&msg32);
             }
             return CallWindowProc16((WNDPROC16)msg->lParam, msg->hwnd,
-                msg->message, msg->wParam, GetTickCount());
+                msg->message, (WPARAM16)wp, GetTickCount());
         }
 	}
 
@@ -2309,10 +2330,6 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
 
 		msg32.hwnd = WIN_Handle32(msg->hwnd);
 		msg32.message = msg->message;
-		if (msg32.message == WM_LBUTTONDOWN)
-		{
-			msg32.message = WM_LBUTTONDOWN;
-		}
 		msg32.wParam = msg->wParam;
 		msg32.lParam = msg->lParam;
 		msg32.time = msg->time;
