@@ -546,13 +546,13 @@ extern "C"
     }
 	void dynamic__wine_call_int_handler(CONTEXT *context, BYTE intnum)
 	{
-		static void(*WINAPI __wine_call_int_handler)(CONTEXT *context, BYTE intnum);
+		static void(*__wine_call_int_handler)(CONTEXT *context, BYTE intnum);
 		if (!__wine_call_int_handler)
 		{
 			HMODULE krnl386 = LoadLibraryA(KRNL386);
 			__wine_call_int_handler = (void(*)(CONTEXT *context, BYTE intnum))GetProcAddress(krnl386, "__wine_call_int_handler");
 		}
-		return __wine_call_int_handler(context, intnum);
+		__wine_call_int_handler(context, intnum);
 	}
     _declspec(dllimport) LDT_ENTRY wine_ldt[8192];
 	/***********************************************************************
@@ -1006,7 +1006,6 @@ extern "C"
         {
 			if (!initflag)
 				initflag = init_vm86(false);
-			//wine_ldt_copy.base[0] = iret;
 			REG32(EAX) = (DWORD)context->Eax;
 			REG32(ECX) = (DWORD)context->Ecx;
 			REG32(EDX) = (DWORD)context->Edx;
@@ -1018,8 +1017,7 @@ extern "C"
 			SREG(ES) = (WORD)context->SegEs;
 			SREG(CS) = (WORD)context->SegCs;
 			SREG(SS) = (WORD)context->SegSs;
-			SREG(DS) = (WORD)context->SegDs;//ES, CS, SS, DS
-			//ES, CS, SS, DS, FS, GS
+			SREG(DS) = (WORD)context->SegDs;
 			SREG(FS) = (WORD)context->SegFs;
 			SREG(GS) = (WORD)context->SegGs;
 			i386_load_segment_descriptor(ES);
@@ -1048,29 +1046,9 @@ extern "C"
 					break;//return VM
 				}
 				bool reg = false;
-				if (m_pc >= (UINT)/*ptr!*/iret && m_pc <= (UINT)/*ptr!*/iret + 255)
+				if (m_pc >= (UINT)iret && m_pc <= (UINT)iret + 255)
 				{
 					CONTEXT context;
-                    //GP
-                    /*if (m_pc - (UINT)iret == 0x0d)
-                    {
-                        WORD err = POP16();
-                        WORD ip = POP16();
-                        WORD cs = POP16();
-                        WORD oldflags = POP16();
-                        EXCEPTION_RECORD rec = {};
-                        rec.ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
-                        save_context(&context);
-                        context.SegCs = cs;
-                        context.Eip = ip;
-                        EXCEPTION_DISPOSITION result = handler(&rec, NULL, &context, NULL);
-                        if (result == ExceptionContinueExecution)
-                        {
-                            load_context(&context);
-                            continue;
-                        }
-                    }
-                    else*/
                     {
                         int num = m_pc - (UINT)iret;
                         const char *name = NULL;
@@ -1186,7 +1164,7 @@ extern "C"
                         } STACK16FRAME;
 #include <poppack.h>
 						CONTEXT context;
-						WORD osp = REG16(SP);
+						DWORD osp = REG32(ESP);
 						PUSH16(SREG(GS));
 						PUSH16(SREG(FS));
 						PUSH16(SREG(ES));
@@ -1194,7 +1172,7 @@ extern "C"
 						PUSH32(REG32(EBP));
 						PUSH32(REG32(ECX));
 						PUSH32(REG32(EDX));
-						PUSH32(/*context.Esp*/osp);
+						PUSH32(osp);
 						save_context(&context);
                         STACK16FRAME *oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
 						DWORD ooo = (WORD)context.Esp;
@@ -1618,12 +1596,6 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, 
 
 	void *wine_ldt_get_ptr(unsigned short sel, unsigned long offset);
 	void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry);
-	/*static inline unsigned char wine_ldt_get_flags(const LDT_ENTRY *ent)
-	{
-		unsigned char ret = ent->HighWord.Bits.Type;
-		if (ent->HighWord.Bits.Default_Big) ret |= WINE_LDT_FLAGS_32BIT;
-		return ret;
-	}*/
 }
 BOOL is_32bit_segment(int sreg)
 {
@@ -1639,23 +1611,13 @@ UINT get_segment_descriptor_wine(int sreg)
 {
 	LDT_ENTRY entry;
 	wine_ldt_get_entry(SREG(sreg), &entry);
-	if (wine_ldt_get_flags(&entry) & WINE_LDT_FLAGS_32BIT)
-	{
-		//printf("WINE_LDT_FLAGS_32BIT\n");
-	}
 	void *ptr = wine_ldt_get_ptr(SREG(sreg), 0);
 	return (UINT)ptr;
-	//m_base[sreg] = SegBase(sreg);
 }
 void load_segment_descriptor_wine(int sreg)
 {
 	LDT_ENTRY entry;
 	wine_ldt_get_entry(SREG(sreg), &entry);
-	if (wine_ldt_get_flags(&entry) & WINE_LDT_FLAGS_32BIT)
-	{
-		//printf("WINE_LDT_FLAGS_32BIT\n");
-	}
 	void *ptr = wine_ldt_get_ptr(SREG(sreg), 0);
 	SREG_BASE(sreg) = (UINT)ptr;
-	//m_base[sreg] = SegBase(sreg);
 }
