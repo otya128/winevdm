@@ -107,7 +107,11 @@ INT16 WINAPI MessageBox16( HWND16 hwnd, LPCSTR text, LPCSTR title, UINT16 type )
 {
     DWORD count;
     ReleaseThunkLock(&count);
+    //Force to set window to foreground.
+    DWORD foregroundID = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+    AttachThreadInput(GetCurrentThreadId(), foregroundID, TRUE);
     int ret = MessageBoxA( WIN_Handle32(hwnd), text, title, type );
+    AttachThreadInput(GetCurrentThreadId(), foregroundID, FALSE);
     RestoreThunkLock(count);
     return ret;
 }
