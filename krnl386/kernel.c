@@ -233,6 +233,11 @@ BOOL WINAPI KERNEL_DllEntryPoint( DWORD reasion, HINSTANCE16 inst, WORD ds,
     LoadLibrary16( "system.drv" );
     LoadLibrary16( "comm.drv" );
 
+    char dllname[MAX_PATH];
+    krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
+    HMODULE vm = LoadLibraryA(dllname);
+    func_wine_call_to_16_vm86 = (wine_call_to_16_vm86_t)GetProcAddress(vm, "wine_call_to_16_vm86");
+    func_wine_call_to_16_regs_vm86 = (wine_call_to_16_regs_vm86_t)GetProcAddress(vm, "wine_call_to_16_regs_vm86");
     return TRUE;
 }
 

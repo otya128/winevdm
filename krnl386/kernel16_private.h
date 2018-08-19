@@ -887,5 +887,27 @@ NTSYSAPI NTSTATUS  WINAPI LdrFindEntryForAddress(const void*, PLDR_MODULE*);
 
 typedef SEGPTR(*pm_interrupt_handler)(WORD num);
 
+typedef DWORD(*wine_call_to_16_vm86_t)(DWORD target, DWORD cbArgs, PEXCEPTION_HANDLER handler,
+    void(*from16_reg)(void),
+    LONG(*__wine_call_from_16)(void),
+    int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
+    void(*__wine_call_to_16_ret)(void),
+    int dasm,
+    BOOL vm86,
+    void *memory_base,
+    pm_interrupt_handler pih);
+typedef void(*wine_call_to_16_regs_vm86_t)(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
+    void(*from16_reg)(void),
+    LONG(*__wine_call_from_16)(void),
+    int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
+    void(*__wine_call_to_16_ret)(void),
+    int dasm,
+    BOOL vm86,
+    void *memory_base,
+    pm_interrupt_handler pih
+    );
+extern wine_call_to_16_vm86_t func_wine_call_to_16_vm86;
+extern wine_call_to_16_regs_vm86_t func_wine_call_to_16_regs_vm86;
+
 char *get_search_path(void);
 #endif  /* __WINE_KERNEL16_PRIVATE_H */

@@ -78,6 +78,7 @@
       <ModuleDefinitionFile>wine.def</ModuleDefinitionFile>
       <GenerateMapFile>true</GenerateMapFile>
       <AdditionalDependencies>shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>shlwapi.dll;user32.lib;</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -97,6 +98,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>wine.def</ModuleDefinitionFile>
       <AdditionalDependencies>shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>shlwapi.dll;user32.lib;</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
