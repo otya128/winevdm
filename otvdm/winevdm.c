@@ -775,27 +775,56 @@ static BOOL set_peb_compatible_flag()
 {
     BOOL success = TRUE;
     TEB2 *teb = (TEB2*)NtCurrentTeb();
+    APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;
+    APPCOMPAT_USERFLAGS flags2 = (APPCOMPAT_USERFLAGS)teb->Peb->AppCompatFlagsUser.LowPart;
+    APPCOMPAT_USERFLAGS_HIGHPART flags3 = (APPCOMPAT_USERFLAGS_HIGHPART)teb->Peb->AppCompatFlagsUser.HighPart;
+    APPCOMPAT_FLAGS f = NoPaddedBorder | NoGhost;
     HMODULE user32 = GetModuleHandleA("user32.dll");
-    if (user32 != NULL)
+    if ((flags2 & f) != f  && user32 != NULL)
     {
         WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");
         WINE_ERR("Some compatibility flags can not be applied.\n");
         success = FALSE;
     }
     //ExtractAssociatedIcon
-    APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;
-    APPCOMPAT_USERFLAGS flags2 = (APPCOMPAT_USERFLAGS)teb->Peb->AppCompatFlagsUser.LowPart;
-    APPCOMPAT_USERFLAGS_HIGHPART flags3 = (APPCOMPAT_USERFLAGS_HIGHPART)teb->Peb->AppCompatFlagsUser.HighPart;
-    teb->Peb->AppCompatFlagsUser.LowPart |= NoPaddedBorder | NoGhost;
+    teb->Peb->AppCompatFlagsUser.LowPart |= f;
     //teb->Peb->AppCompatFlagsUser.LowPart = -1;
     //teb->Peb->AppCompatFlagsUser.HighPart = -1;
     //teb->Peb->AppCompatFlags.LowPart = -1;
     return success;
 }
+static BOOL is_win32_exe(LPCSTR appname)
+{
+    HANDLE file = CreateFileA(appname, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    IMAGE_DOS_HEADER header;
+    DWORD read = 0;
+    ReadFile(file, &header, sizeof(header), &read, NULL);
+    if (read == sizeof(header) && header.e_lfanew >= sizeof(header))
+    {
+        SetFilePointer(file, header.e_lfanew, 0, FILE_BEGIN);
+        WORD magic;
+        ReadFile(file, &magic, sizeof(WORD), &read, NULL);
+        if (read == sizeof(WORD))
+        {
+            if (magic == IMAGE_NT_SIGNATURE)
+            {
+                CloseHandle(file);
+                return TRUE;
+            }
+        }
+    }
+    CloseHandle(file);
+    return FALSE;
+}
 static void exec16(LOADPARAMS16 params, LPCSTR appname, LPCSTR cmdline, BOOL exit)
 {
     char *p;
     HINSTANCE16 instance;
+
+    if (is_win32_exe(appname))
+    {
+        WINE_ERR("%s is a win32 executable file!\n", appname);
+    }
     if ((instance = LoadModule16(appname, &params)) < 32)
     {
         if (instance == 11)
@@ -899,7 +928,6 @@ BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
     return TRUE;
 
 }
-
 
 /***********************************************************************
  *           main
@@ -1114,4 +1142,42 @@ int main( int argc, char *argv[] )
         run_shared_wow_server();
     Sleep( INFINITE );
     return 0;
+}
+
+/* otvdmw.exe entry point */
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpszCmdLine, int nShowCmd)
+{
+    UNREFERENCED_PARAMETER(hInstance);
+    UNREFERENCED_PARAMETER(hPrevInst);
+    UNREFERENCED_PARAMETER(lpszCmdLine);
+    UNREFERENCED_PARAMETER(nShowCmd);
+    set_peb_compatible_flag();
+    if (__argc == 1)
+    {
+        OPENFILENAMEA ofn = { 0 };
+        char file[MAX_PATH] = { 0 };
+        ofn.lpstrFilter = "EXE(*.EXE)\0*.EXE\0";
+        ofn.nFilterIndex = 1;
+        ofn.lStructSize = sizeof(ofn);
+        ofn.lpstrFile = file;
+        ofn.nMaxFile = sizeof(file);
+        ofn.Flags = OFN_FILEMUSTEXIST;
+        ofn.lpstrDefExt = "EXE";
+        ofn.lpstrTitle = "";
+        if (!GetOpenFileNameA(&ofn))
+            return 1;
+        LPSTR *argv = HeapAlloc(GetProcessHeap(), 0, sizeof(char*) * 3);
+        argv[0] = __argv[0];
+        argv[1] = ofn.lpstrFile;
+        argv[2] = 0;
+        if (is_win32_exe(argv[1]))
+        {
+            char buf[1000];
+            snprintf(buf, sizeof(buf), "\"%s\" is a win32 executable file!\n", argv[1]);
+            WINE_ERR("%s is a win32 executable file!\n", argv[1]);
+            MessageBoxA(NULL, buf, NULL, MB_OK | MB_ICONWARNING);
+        }
+        return main(2, argv);
+    }
+    return main(__argc, __argv);
 }
