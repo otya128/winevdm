@@ -3644,7 +3644,7 @@ BOOL WINAPI DllMain(
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
         aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", TRUE);
-        separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE_FOR_EACH_WOW);
+        separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE);
     }
     if (fdwReason == DLL_THREAD_ATTACH)
     {
