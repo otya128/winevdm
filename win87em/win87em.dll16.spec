@@ -5,3 +5,4 @@
 3 pascal -ret16 __Win87EmInfo(ptr word) __WinEm87Info
 4 pascal -ret16 __Win87EmRestore(ptr word) __WinEm87Restore
 5 pascal -ret16 __Win87EmSave(ptr word) __WinEm87Save
+100 pascal -ret16 DllEntryPoint(long word word word long word) DllEntryPoint

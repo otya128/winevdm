@@ -29,12 +29,38 @@
 WINE_DEFAULT_DEBUG_CHANNEL(int);
 
 //VM86.DLL
-__declspec(dllimport) void fldcw(WORD cw);
-__declspec(dllimport) void wait();
-__declspec(dllimport) void fninit();
-__declspec(dllimport) void fstcw(WORD *ea);
-__declspec(dllimport) void frndint();
-__declspec(dllimport) void fclex();
+
+typedef void(*fldcw_t)(WORD);
+typedef void(*wait_t)();
+typedef void(*fninit_t)();
+typedef void(*fstcw_t)(WORD*);
+typedef void(*frndint_t)();
+typedef void(*fclex_t)();
+typedef void(*fsave_t)(char*);
+typedef void(*frstor_t)(const char*);
+typedef struct
+{
+    fldcw_t fldcw;
+    wait_t wait;
+    fninit_t fninit;
+    fstcw_t fstcw;
+    frndint_t frndint;
+    fclex_t fclex;
+    fsave_t fsave;
+    frstor_t frstor;
+} x87function;
+x87function x87;
+typedef void (*load_x87function_t)(x87function *func);
+BOOL WINAPI DllEntryPoint(DWORD reason, HINSTANCE16 inst, WORD ds, WORD heap, DWORD reserved1, WORD reserved2)
+{
+    char dllname[MAX_PATH];
+    load_x87function_t load_x87function;
+    krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
+    HMODULE vm = LoadLibraryA(dllname);
+    load_x87function = (load_x87function_t)GetProcAddress(vm, "load_x87function");
+    load_x87function(&x87);
+    return TRUE;
+}
 #define USE_VM86_DLL 1
 #include <pshpack1.h>
 struct Win87EmInfoStruct
@@ -79,7 +105,7 @@ static void WIN87_ClearCtrlWord( CONTEXT *context )
 	if (Installed)
 	{
 #if USE_VM86_DLL
-		fclex();
+        x87.fclex();
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
@@ -103,8 +129,8 @@ static void WIN87_SetCtrlWord( CONTEXT *context )
     if (Installed) {
 		CtrlWord_Internal = LOWORD(context->Eax);
 #if USE_VM86_DLL
-		wait();
-		fldcw(CtrlWord_Internal);
+        x87.wait();
+        x87.fldcw(CtrlWord_Internal);
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
@@ -127,8 +153,8 @@ static void WIN87_Init( CONTEXT *context )
 #if USE_VM86_DLL
 	if (Installed)
 	{
-		fninit();
-		fninit();
+        x87.fninit();
+        x87.fninit();
 	}
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
@@ -211,14 +237,14 @@ void WINAPI _fpMath( CONTEXT *context )
              * wrong.
              */
 #if USE_VM86_DLL
-			fstcw(&save);
-			wait();
-			fstcw(&mask);
-			wait();
+			x87.fstcw(&save);
+			x87.wait();
+			x87.fstcw(&mask);
+			x87.wait();
 			mask |= 0xC00;
-			fstcw(&mask);
-			wait();
-			frndint();
+			x87.fldcw(&mask);
+			x87.wait();
+			x87.frndint();
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
@@ -265,8 +291,8 @@ void WINAPI _fpMath( CONTEXT *context )
         context->Eax &= ~0xffff;  /* set AX to 0 */
 		if (Installed) {
 #if USE_VM86_DLL
-			fstcw(&StatusWord_1);
-			wait();
+            x87.fstcw(&StatusWord_1);
+            x87.wait();
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER

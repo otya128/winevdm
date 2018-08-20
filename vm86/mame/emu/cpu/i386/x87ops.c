@@ -4419,7 +4419,26 @@ void x87_fldcw(UINT8 modrm)
 
 extern "C"
 {
-	__declspec(dllexport) void fldcw(WORD cw)
+    typedef void(*fldcw_t)(WORD);
+    typedef void(*wait_t)();
+    typedef void(*fninit_t)();
+    typedef void(*fstcw_t)(WORD*);
+    typedef void(*frndint_t)();
+    typedef void(*fclex_t)();
+    typedef void(*fsave_t)(char*);
+    typedef void(*frstor_t)(const char*);
+    typedef struct
+    {
+        fldcw_t fldcw;
+        wait_t wait;
+        fninit_t fninit;
+        fstcw_t fstcw;
+        frndint_t frndint;
+        fclex_t fclex;
+        fsave_t fsave;
+        frstor_t frstor;
+    } x87function;
+    __declspec(dllexport) void fldcw(WORD cw)
 	{
 		x87_write_cw(cw);
 
@@ -4483,6 +4502,17 @@ extern "C"
         m_x87_tw = READ16(ea + 4);
         for (int i = 0; i < 8; ++i)
             x87_write_stack(i, READ80(ea + i * 10), FALSE);
+    }
+    __declspec(dllexport) void load_x87function(x87function *func)
+    {
+        func->fclex = fclex;
+        func->fldcw = fldcw;
+        func->fninit = fninit;
+        func->frndint = frndint;
+        func->frstor = frstor;
+        func->fsave = fsave;
+        func->fstcw = fstcw;
+        func->wait = wait;
     }
 }
 
