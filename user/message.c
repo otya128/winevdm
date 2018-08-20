@@ -3702,17 +3702,9 @@ typedef struct tagHWND16Data
 	struct tagHWND16Data *prev;
 } HWND16Data;
 
-HWND16Data wndhandle16[65536];
-HWND16Data *freehwnd;
 HWND get_win_handle(HWND hWnd16)
 {
 	return HWND_32(hWnd16);
-	//return wndhandle16[(int)hWnd16].hwnd;
-	/*
-	HWND16Data *hw = freehwnd;
-	freehwnd = freehwnd->next;
-	return hw->hwnd;
-	*/
 }
 HWND create_window(CREATESTRUCTW* cs, LPCWSTR className, HINSTANCE instance, BOOL unicode)
 {
@@ -3848,12 +3840,6 @@ INT dialog_box_loop(HWND hWnd, HWND owner)
 }
 void register_wow_handlers(void)
 {
-	for (int i = 0; i < 65536; i++)
-	{
-		if (i != 65535) wndhandle16[i].next = &wndhandle16[i + 1];
-		if (i != 0) wndhandle16[i].prev = &wndhandle16[i - 1];
-	}
-	freehwnd = &wndhandle16[1];
     static const struct wow_handlers16 handlers16 =
     {
         button_proc16,
