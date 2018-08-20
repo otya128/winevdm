@@ -507,6 +507,10 @@ static void usage(void)
 static void fix_compatible(int argc, char *argv[])
 {
     HKEY hkey;
+    /*
+       HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers
+       HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM
+    */
     LSTATUS stat = RegOpenKeyW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", &hkey);
     if (stat)
         return;

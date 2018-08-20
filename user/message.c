@@ -46,7 +46,7 @@ struct timer32_wrapper
     LPARAM lParam;
     BOOL ref;
 };
-#define TIMER32_WRAP_SIZE 40
+#define TIMER32_WRAP_SIZE 400
 static int timer32_count;
 static struct timer32_wrapper timer32[TIMER32_WRAP_SIZE];
 
