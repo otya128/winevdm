@@ -40,12 +40,6 @@
     <None Include="gdi.def">
       <Filter>ソース ファイル</Filter>
     </None>
-    <None Include="C:\MinGW\msys\1.0\home\naru\wine-git\dlls\commdlg.dll16\commdlg.dll16.spec" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="C:\MinGW\msys\1.0\home\naru\wine-git\dlls\commdlg.dll16\cdlg16.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="gdi.exe16.spec" />

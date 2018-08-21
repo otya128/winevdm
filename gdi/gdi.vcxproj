@@ -98,7 +98,6 @@
     <Object Include="gdi.exe16.obj" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\MinGW\msys\1.0\home\naru\wine-git\dlls\commdlg.dll16\commdlg.dll16.spec" />
     <None Include="gdi.def" />
     <CustomBuild Include="gdi.exe16.spec">
       <FileType>Document</FileType>
@@ -107,9 +106,6 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(OutDir)convspec" "%(Filename).spec" GDI &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).obj</Outputs>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="C:\MinGW\msys\1.0\home\naru\wine-git\dlls\commdlg.dll16\cdlg16.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

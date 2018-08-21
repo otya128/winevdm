@@ -569,3 +569,4 @@
 # 32-bit exports of the 16-bit functions needed by other dlls
 #
 @ stdcall -arch=win32 CreateIcon16(long long long long long ptr ptr)
+@ stdcall -arch=win32  CreateIconFromResourceEx16(ptr long long long long long long)

@@ -189,7 +189,7 @@ static BOOL DIALOG_CreateControls16( HWND hwnd, LPCSTR template,
         SEGPTR segptr;
 
         template = DIALOG_GetControl16( template, &info );
-        info.className = win32classname(hInst, info.className);
+        info.className = info.className;
         segptr = MapLS( info.data );
         hwndCtrl = WIN_Handle32( CreateWindowEx16( WS_EX_NOPARENTNOTIFY,
                                                    info.className, info.windowName,
@@ -439,6 +439,16 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 
 	return ret;
 }
+/* internal API for COMMDLG hooks */
+LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC proc)
+{
+    LRESULT ret;
+    BOOL16 result = WINPROC_CallProc32ATo16(call_dialog_proc16, hwnd, msg, wParam, lParam,
+        &ret, proc);
+    SetWindowLongA(hwnd, DWL_MSGRESULT, ret);
+    return result;
+}
+
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 void paddingDWORD(DWORD **d)
 {
@@ -579,6 +589,89 @@ static BOOL DIALOG_DumpControls32(HWND hwnd, LPCSTR template,
 }
 
 #include <stdio.h>
+
+/* internal API for COMMDLG hooks */
+DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size)
+{
+    HMENU16 hMenu = 0;
+    DLG_TEMPLATE template;
+    /* Parse dialog template */
+    dlgTemplate = DIALOG_ParseTemplate16(dlgTemplate, &template);
+    /* Load menu */
+    if (template.menuName) hMenu = LoadMenu16(hInst, template.menuName);
+    //FIXME:memory
+    DLGTEMPLATE *template32 = malloc(1024 + template.nbItems * 512);
+    *size = 1024 + template.nbItems * 512;
+    template32->style = template.style;
+    template32->dwExtendedStyle = 0;
+    template32->cdit = template.nbItems;
+    template32->x = template.x;
+    template32->y = template.y;
+    template32->cx = template.cx;
+    template32->cy = template.cy;
+    WORD *templatew = (WORD*)(template32 + 1);
+    //Menu
+    *templatew++ = 0;
+    int len;
+    HINSTANCE hInst32 = HINSTANCE_32(hInst);
+    init_dialog_class(hInst32);
+    BOOL hasclass = TRUE;
+    if (template.className == DIALOG_CLASS_ATOM)
+    {
+        hasclass = FALSE;
+        //Don't set __DIALOGCLASS__.
+        *templatew++ = 0;
+    }
+    else
+    {
+        //WNDclass
+        template.className = win32classname(hInst, template.className);
+        len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+            * 2;
+        if (len)
+        {
+            templatew = (WORD*)((BYTE*)templatew + len);
+        }
+        else
+        {
+            *templatew++ = 0;
+        }
+    }
+    //dialog title
+    len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, strlen(template.caption) * 4)
+        * 2;
+    if (len)
+    {
+        templatew = (WORD*)((BYTE*)templatew + len);
+    }
+    else
+    {
+        *templatew++ = 0;
+    }
+    if (template.style & DS_SETFONT)
+    {
+        *templatew++ = template.pointSize;
+        len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, strlen(template.faceName) * 4)
+            * 2;
+        if (len)
+        {
+            templatew = (WORD*)((BYTE*)templatew + len);
+        }
+        else
+        {
+            *templatew++ = 0;
+        }
+    }
+    DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
+    WNDCLASSEXA wc, wc2 = { 0 };
+    // Get the info for this class.
+    // #32770 is the default class name for dialogs boxes.
+    GetClassInfoExA(NULL, "#32770", &wc);
+    GetClassInfoExA(hInst32, template.className, &wc2);
+    if (!wc2.lpszClassName)
+        GetClassInfoExA(GetModuleHandle(NULL), template.className, &wc2);
+    return template32;
+}
 /***********************************************************************
 *           DIALOG_CreateIndirect16
 *
@@ -666,7 +759,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		}
 	}
 	//dialog title
-	len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+	len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, strlen(template.caption) * 4)
 		* 2;
 	if (len)
 	{
@@ -679,7 +772,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	if (template.style & DS_SETFONT)
 	{
 		*templatew++ = template.pointSize;
-		len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+		len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, strlen(template.faceName) * 4)
 			* 2;
 		if (len)
 		{

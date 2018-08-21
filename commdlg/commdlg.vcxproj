@@ -62,7 +62,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)user.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>commdlg.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -83,7 +83,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>commdlg.def</ModuleDefinitionFile>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)user.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
@@ -96,6 +96,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cdlg16.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="commdlg.def" />
@@ -109,6 +110,12 @@
   </ItemGroup>
   <ItemGroup>
     <Object Include="commdlg.dll16.obj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="commdlg.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="dummy.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
