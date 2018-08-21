@@ -2002,6 +2002,19 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 }
 
 
+static LRESULT send_message_timeout_callback( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
+                                      LRESULT *result, void *arg )
+{
+    LRESULT success = SendMessageTimeoutA( hwnd, msg, wp, lp, SMTO_BLOCK, 1000, result);
+    if (!success)
+    {
+        if (GetLastError() == ERROR_TIMEOUT)
+        {
+            ERR("SendMessage(%p,%s,%04x,%08x,uTimeout=1000ms) timed out.\n", hwnd, message_to_str(msg), wp, lp);
+        }
+    }
+    return *result;
+}
 /***********************************************************************
  *		SendMessage  (USER.111)
  */
@@ -2033,8 +2046,7 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
     }
     else  /* map to 32-bit unicode for inter-thread/process message */
     {
-        ERR("SendMessage(HWND_BROADCAST,)\n");
-        WINPROC_CallProc16To32A( post_message_callback, hwnd16, msg, wparam, lparam, &result, NULL );
+        WINPROC_CallProc16To32A( send_message_timeout_callback, hwnd16, msg, wparam, lparam, &result, NULL );
     }
     return result;
 }
