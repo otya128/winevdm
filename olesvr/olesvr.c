@@ -129,7 +129,7 @@ static OLESTATUS CALLBACK ole_create_from_template_callback(LPOLESERVER a, LHSER
 {
     return OLE_OK;
 }
-static OLESTATUS CALLBACK ole_edit_callback(LPOLESERVER a, LHSERVERDOC b, OLE_LPCSTR c, LPOLESERVERDOC FAR* d)
+static OLESTATUS CALLBACK ole_edit_callback(LPOLESERVER a, LHSERVERDOC b, OLE_LPCSTR c, OLE_LPCSTR d, LPOLESERVERDOC FAR* e)
 {
     return OLE_OK;
 }

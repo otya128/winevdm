@@ -149,7 +149,7 @@ static inline void wine_ldt_set_flags( LDT_ENTRY *ent, unsigned char flags )
 }
 static inline unsigned char wine_ldt_get_flags( const LDT_ENTRY *ent )
 {
-    unsigned char ret = ent->HighWord.Bits.Type;
+    unsigned char ret = (unsigned char)ent->HighWord.Bits.Type;
     if (ent->HighWord.Bits.Default_Big) ret |= WINE_LDT_FLAGS_32BIT;
     return ret;
 }
