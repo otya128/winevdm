@@ -506,7 +506,18 @@ void write_io_dword(offs_t addr, UINT32 val)
 	write_io_byte(addr + 2, (val >> 16) & 0xff);
 	write_io_byte(addr + 3, (val >> 24) & 0xff);
 }
+#ifdef _DEBUG
+#define __DEBUG
+#undef _DEBUG
+#define NDEBUG
+#endif
 #include <vector>
+#ifdef __DEBUG
+#undef __DEBUG
+#define _DEBUG
+#undef NDEBUG
+#endif
+
 BOOL is_32bit_segment(int sreg);
 extern "C"
 {
