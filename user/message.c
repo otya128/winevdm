@@ -1636,7 +1636,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
-        ret = HBRUSH_32(callback( HWND_16(hwnd), WM_CTLCOLOR, wParam,
+        ret = HBRUSH_32(callback( HWND_16(hwnd), WM_CTLCOLOR, HDC_16(wParam),
                         MAKELPARAM( HWND_16(lParam), msg - WM_CTLCOLORMSGBOX ), result, arg ));
         *result = HBRUSH_32(*result);
         break;
