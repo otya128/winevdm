@@ -25,5 +25,5 @@ WORD WINAPI MiscGetEUDCLeadByteRange16(WORD charaset /* 128: SHIFTJIS_CHARSET? *
 
 BOOL WINAPI MiscIsDBCSLeadByte16(CHAR c)
 {
-    return 0xF0 <= c && c <= 0xF9;
+    return IsDBCSLeadByte(c);
 }
