@@ -626,7 +626,7 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
     {
         //WNDclass
         template.className = win32classname(hInst, template.className);
-        len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+        len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, (1 + strlen(template.className)) * 4)
             * 2;
         if (len)
         {
@@ -638,7 +638,7 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
         }
     }
     //dialog title
-    len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, strlen(template.caption) * 4)
+    len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, (1 + strlen(template.caption)) * 4)
         * 2;
     if (len)
     {
@@ -651,7 +651,7 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
     if (template.style & DS_SETFONT)
     {
         *templatew++ = template.pointSize;
-        len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, strlen(template.faceName) * 4)
+        len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, (1 + strlen(template.faceName)) * 4)
             * 2;
         if (len)
         {
@@ -732,7 +732,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		template.className = DCLASS;//"#32770";
 		//*templatew++ = 0;
 		//WNDclass
-		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, (1 + strlen(template.className)) * 4)
 			* 2;
 		if (len)
 		{
@@ -747,7 +747,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	{
 		//WNDclass
         template.className = win32classname(hInst, template.className);
-		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, strlen(template.className) * 4)
+		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, (1 + strlen(template.className)) * 4)
 			* 2;
 		if (len)
 		{
@@ -759,7 +759,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		}
 	}
 	//dialog title
-	len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, strlen(template.caption) * 4)
+	len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, (1 + strlen(template.caption)) * 4)
 		* 2;
 	if (len)
 	{
@@ -772,7 +772,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	if (template.style & DS_SETFONT)
 	{
 		*templatew++ = template.pointSize;
-		len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, strlen(template.faceName) * 4)
+		len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, (1 + strlen(template.faceName)) * 4)
 			* 2;
 		if (len)
 		{
