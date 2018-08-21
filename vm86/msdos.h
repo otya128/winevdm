@@ -8,7 +8,17 @@
 #ifndef _MSDOS_H_
 #define _MSDOS_H_
 
+#ifdef _DEBUG
+#define __DEBUG
+#undef _DEBUG
+#define NDEBUG
+#endif
 #include <windows.h>
+#ifdef __DEBUG
+#undef __DEBUG
+#define _DEBUG
+#undef NDEBUG
+#endif
 #include <winioctl.h>
 #include <tchar.h>
 #include <stdlib.h>
