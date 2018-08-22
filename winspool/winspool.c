@@ -122,6 +122,54 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
     char devmode32[65536] = { 0 };
     if (pDevMode)
         DEVMODE16To32(pDevMode, (LPDEVMODEA)&devmode32[0], 0);
-    DWORD result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+    DWORD result = 0;
+    switch (fwCapability)
+    {
+    case DC_FIELDS:
+    case DC_PAPERS:
+    case DC_MINEXTENT:
+    case DC_MAXEXTENT:
+    case DC_BINS:
+    case DC_DUPLEX:
+    case DC_SIZE:
+    case DC_VERSION:
+    case DC_DRIVER:
+    case DC_BINNAMES:
+    case DC_ENUMRESOLUTIONS:
+    case DC_FILEDEPENDENCIES:
+    case DC_TRUETYPE:
+    case DC_PAPERNAMES:
+    case DC_ORIENTATION:
+    case DC_COPIES:
+        result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        break;
+    case DC_PAPERSIZE:
+    {
+        DWORD papers = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        LPPOINT points32 = (LPPOINT)HeapAlloc(GetProcessHeap(), 0, papers * sizeof(POINT));
+        result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, points32, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        LPPOINT16 points16 = (LPPOINT16)pOutput;
+        for (int i = 0; i < result; i++)
+        {
+            points16[i].x = points32[i].x;
+            points16[i].y = points32[i].y;
+        }
+        HeapFree(GetProcessHeap(), 0, points32);
+        break;
+    }
+    case DC_EXTRA:
+        result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        if (result > 65535)
+        {
+            ERR("DC_EXTRA(%d) > 65535\n", result);
+        }
+        break;
+    default:
+    {
+        ERR("unknown DeviceCapabilities %d\n", fwCapability);
+        result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        break;
+    }
+    }
     return result;
 }
