@@ -775,6 +775,19 @@ typedef enum _APPCOMPAT_USERFLAGS_HIGHPART
 } APPCOMPAT_USERFLAGS_HIGHPART;
 //===reactos/sdk/include/ndk/pstypes.h==
 
+void set_dll_path()
+{
+    WCHAR mod_path[MAX_PATH];
+    GetModuleFileNameW(NULL, mod_path, _countof(mod_path));
+    LPWSTR last = wcsrchr(mod_path, L'\\');
+    last[0] = 0;
+    LPCWSTR dir = L"\\dll";
+    if (wcslen(last) + wcslen(dir) + 1 >= MAX_PATH)
+        return;
+    memcpy(last, dir, (wcslen(dir) + 1) * sizeof(*dir));
+    SetDllDirectoryW(mod_path);
+}
+
 static BOOL set_peb_compatible_flag()
 {
     BOOL success = TRUE;
@@ -784,6 +797,7 @@ static BOOL set_peb_compatible_flag()
     APPCOMPAT_USERFLAGS_HIGHPART flags3 = (APPCOMPAT_USERFLAGS_HIGHPART)teb->Peb->AppCompatFlagsUser.HighPart;
     APPCOMPAT_FLAGS f = NoPaddedBorder | NoGhost;
     HMODULE user32 = GetModuleHandleA("user32.dll");
+    set_dll_path();
     if ((flags2 & f) != f  && user32 != NULL)
     {
         WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");
@@ -1121,7 +1135,6 @@ int main( int argc, char *argv[] )
 
     RestoreThunkLock(1);  /* grab the Win16 lock */
 
-    SetDllDirectoryA(argv[0]);
     /* some programs assume mmsystem is always present */
     LoadLibrary16( "gdi.exe" );
     LoadLibrary16( "user.exe" );
