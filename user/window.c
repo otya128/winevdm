@@ -480,7 +480,16 @@ BOOL16 WINAPI OpenIcon16( HWND16 hwnd )
  */
 BOOL16 WINAPI BringWindowToTop16( HWND16 hwnd )
 {
-    return BringWindowToTop( WIN_Handle32(hwnd) );
+    DWORD count;
+    BOOL16 result;
+    ReleaseThunkLock(&count);
+    //Force to set window to foreground.
+    DWORD foregroundID = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+    AttachThreadInput(GetCurrentThreadId(), foregroundID, TRUE);
+    result = (BOOL16)BringWindowToTop( WIN_Handle32(hwnd) );
+    AttachThreadInput(GetCurrentThreadId(), foregroundID, FALSE);
+    RestoreThunkLock(count);
+    return result;
 }
 
 
@@ -2340,7 +2349,11 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
 
 LRESULT def_frame_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT *result, void *arg)
 {
-    return *result = DefFrameProcA(hwnd, (HWND)arg, msg, wp, lp);
+    DWORD count;
+    ReleaseThunkLock(&count);
+    *result = DefFrameProcA(hwnd, (HWND)arg, msg, wp, lp);
+    RestoreThunkLock(count);
+    return *result;
 }
 /***********************************************************************
  *		DefFrameProc (USER.445)
