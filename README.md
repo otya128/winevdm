@@ -1,6 +1,6 @@
 # winevdm on 64-bit Windows
 
-<img src="screenshot.PNG">
+![screenshot](screenshot.PNG)
 
 [Download stable version](https://github.com/otya128/winevdm/releases)
 
@@ -16,6 +16,10 @@ An altered version of winevdm (a 16-bit Windows emulator), ported to 64-bit Wind
 + Install binutils
 + Edit PropertySheet.props
 + Compile
+
+# How to run
+
++ Drag and drop Win16 executable file to otvdm.exe or execute otvdmw.exe.
 
 # How to install
 

@@ -3,14 +3,17 @@ Windows Registry Editor Version 5.00
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM]
 "CommandLine"=" --ntvdm64: \"%m\" --ntvdm64-args: %c"
 "InternalName"="*"
-"MappedExeName"="C:\\PATH\\TO\\otvdm.exe"
 "ProductName"="*"
 "ProductVersion"="*"
+;If you want to hide the console window, change otvdm.exe to otvdmw.exe
+;Path separator must be \\ instead of \
+"MappedExeName"="C:\\PATH\\TO\\otvdm.exe"
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM]
 "CommandLine"=" --ntvdm64: \"%m\" --ntvdm64-args: %c"
 "InternalName"="*"
-"MappedExeName"="C:\\PATH\\TO\\otvdm.exe"
 "ProductName"="*"
 "ProductVersion"="*"
-
+;If you want to hide the console window, change otvdm.exe to otvdmw.exe
+;Path separator must be \\ instead of \
+"MappedExeName"="C:\\PATH\\TO\\otvdm.exe"
