@@ -40,6 +40,7 @@
 #include "wine/exception.h"
 #include "wine/debug.h"
 #include "winuser.h"
+#include "shellapi.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(module);
 WINE_DECLARE_DEBUG_CHANNEL(loaddll);
@@ -1214,6 +1215,7 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
     LPSTR cmdline, p;
     char filename[MAX_PATH];
     BYTE len;
+    DWORD error;
 
     if (!name) return ERROR_FILE_NOT_FOUND;
 
@@ -1251,10 +1253,31 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
         *result = info.hProcess;
         ret = 33;
     }
-    else if ((ret = GetLastError()) >= 32)
+    else if ((error = GetLastError()) >= 32)
     {
-        FIXME("Strange error set by CreateProcess: %u\n", ret);
+        FIXME("Strange error set by CreateProcess: %u\n", error);
         ret = 11;
+        /**/
+        if (error == ERROR_ELEVATION_REQUIRED)
+        {
+            SHELLEXECUTEINFOA sei = { 0 };
+            sei.cbSize = sizeof(sei);
+            sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+            sei.lpFile = filename;
+            sei.lpParameters = cmdline;
+            sei.nShow = startup.dwFlags ? startup.wShowWindow : SW_NORMAL;
+            sei.lpVerb = "open";
+            if (ShellExecuteExA(&sei))
+            {
+                /* Give 30 seconds to the app to come up */
+                if (WaitForInputIdle(info.hProcess, 30000) == WAIT_FAILED)
+                    WARN("WaitForInputIdle failed: Error %d\n", GetLastError());
+                ret = sei.hProcess;
+                *result = sei.hProcess;
+                ret = 33;
+            }
+        }
+        /**/
     }
 
     HeapFree(GetProcessHeap(), 0, cmdline);
@@ -1298,7 +1321,7 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
 
         if ((hModule = MODULE_LoadModule16(name, FALSE, lib_only)) < 32)
         {
-            if (hModule == 21/*win32*/)
+            if (hModule == 21/* win32 */)
             {
                 params = paramBlock;
                 LOADPARMS32 paramBlock32;
@@ -1308,7 +1331,7 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
                 paramBlock32.lpCmdShow = MapSL(params->showCmd);
                 paramBlock32.dwReserved = 0;
                 HANDLE hProcess = 0;
-                DWORD result = LoadModule_wine_implementation(name, &paramBlock32, &hProcess);/*win32 returns 33*/
+                DWORD result = LoadModule_wine_implementation(name, &paramBlock32, &hProcess);/* win32 returns 33 */
                 GlobalUnlock16(params->hEnvironment);
                 UnMapLS(params->showCmd);
                 UnMapLS(params->cmdLine);
@@ -1316,7 +1339,7 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
                     return result;
                 char cmdlineBuf[_countof("WINOLDAP.MOD -WoAWoW32XXXXXXXX")];
                 sprintf(cmdlineBuf, "WINOLDAP.MOD -WoAWoW32%x", (SIZE_T)hProcess);
-                return WinExec16(cmdlineBuf, 1);/*wow32 returns winoldap.mod hinstance*/
+                return WinExec16(cmdlineBuf, 1);/* wow32 returns winoldap.mod hinstance */
             }
             return hModule;
         }
@@ -1843,7 +1866,7 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
     HeapFree( GetProcessHeap(), 0, cmdline );
     if (name != lpCmdLine) HeapFree( GetProcessHeap(), 0, name );
 
-    if (ret == 21 || ret == ERROR_BAD_FORMAT)  /* 32-bit module or unknown executable*/
+    if (ret == 21)  /* 32-bit module or unknown executable*/
     {
         LOADPARAMS16 params;
         WORD showCmd[2];
