@@ -221,8 +221,21 @@ static WNDPROC16 alloc_win16_thunk( WNDPROC handle )
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK DefEditProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+/* Some bad behavior programs access native WNDPROC... */
+BYTE dummy_proc[MAX_WINPROCS16];
+BOOL dummy_proc_allocated;
 WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
 {
+    if (!dummy_proc_allocated)
+    {
+        memset(dummy_proc, 0x90, sizeof(dummy_proc));
+        dummy_proc_allocated = TRUE;
+        LDT_ENTRY dummy;
+        wine_ldt_set_base(&dummy, dummy_proc);
+        wine_ldt_set_limit(&dummy, MAX_WINPROCS16);
+        wine_ldt_set_flags(&dummy, WINE_LDT_FLAGS_CODE);
+        wine_ldt_set_entry(0xffff, &dummy);
+    }
     if (func == (WNDPROC16)DefWndProca)
         func = (WNDPROC16)DefWindowProcA;
     if (func == (WNDPROC16)DefEditProc)
@@ -288,11 +301,12 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
 
     if ((ULONG_PTR)winproc >> 16 != WINPROC_HANDLE) return (WNDPROC16)winproc;
     return alloc_win16_thunk( winproc );
-}DWORD TEST(WNDPROC16 func)
+}
+DWORD TEST(WNDPROC16 func)
 {
     int index = winproc_to_index(func);
     if (index == -1)
-        return winproc16_array[index - MAX_WINPROCS32];
+        return func;
     return winproc16_array[index - MAX_WINPROCS32];
 }
 
