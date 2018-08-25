@@ -482,7 +482,7 @@ static DWORD CALLBACK task_start( LPVOID p )
     {
         ret = NE_StartTask();
     }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+    __except (IsDebuggerPresent() ? EXCEPTION_CONTINUE_SEARCH : EXCEPTION_EXECUTE_HANDLER)
     {
 
     }

@@ -38,6 +38,39 @@ typedef void(*frndint_t)();
 typedef void(*fclex_t)();
 typedef void(*fsave_t)(char*);
 typedef void(*frstor_t)(const char*);
+
+void fldcw_stub(WORD a)
+{
+    FIXME("stub\n");
+}
+void wait_stub()
+{
+    FIXME("stub\n");
+}
+void fninit_stub()
+{
+    FIXME("stub\n");
+}
+void fstcw_stub(WORD* a)
+{
+    FIXME("stub\n");
+}
+void frndint_stub()
+{
+    FIXME("stub\n");
+}
+void fclex_stub()
+{
+    FIXME("stub\n");
+}
+void fsave_stub(char* a)
+{
+    FIXME("stub\n");
+}
+void frstor_stub(const char* a)
+{
+    FIXME("stub\n");
+}
 typedef struct
 {
     fldcw_t fldcw;
@@ -58,7 +91,25 @@ BOOL WINAPI DllEntryPoint(DWORD reason, HINSTANCE16 inst, WORD ds, WORD heap, DW
     krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
     HMODULE vm = LoadLibraryA(dllname);
     load_x87function = (load_x87function_t)GetProcAddress(vm, "load_x87function");
-    load_x87function(&x87);
+    if (load_x87function)
+        load_x87function(&x87);
+
+    if (!x87.fldcw)
+        x87.fldcw = fldcw_stub;
+    if (!x87.wait)
+        x87.wait = wait_stub;
+    if (!x87.fninit)
+        x87.fninit = fninit_stub;
+    if (!x87.fstcw)
+        x87.fstcw = fstcw_stub;
+    if (!x87.frndint)
+        x87.frndint = frndint_stub;
+    if (!x87.fclex)
+        x87.fclex = fclex_stub;
+    if (!x87.fsave)
+        x87.fsave = fsave_stub;
+    if (!x87.frstor)
+        x87.frstor = frstor_stub;
     return TRUE;
 }
 #define USE_VM86_DLL 1
