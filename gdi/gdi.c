@@ -911,12 +911,14 @@ INT16 WINAPI Escape16( HDC16 hdc, INT16 escape, INT16 in_count, SEGPTR in_data, 
     case SETLINECAP:
     case SETLINEJOIN:
     case SETMITERLIMIT:
+    case SETCHARSET:
     {
         INT16 *new = MapSL(in_data);
         INT16 *old = out_data;
         INT out, in = *new;
         ret = Escape( HDC_32(hdc), escape, sizeof(in), (LPCSTR)&in, &out );
-        *old = out;
+        if (old)
+            *old = out;
         return ret;
     }
 
