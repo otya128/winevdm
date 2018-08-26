@@ -3391,7 +3391,7 @@ static LRESULT scrollbar_proc_CallProc16To32A(winproc_callback_t callback, HWND 
     case SBM_GETRANGE16:
     {
         INT min, max;
-        callback(hwnd, msg, wParam, lParam, result, arg);
+        callback(hwnd, SBM_GETRANGE, (WPARAM)&min, (LPARAM)&max, result, arg);
         return *result = MAKELRESULT(min, max);
     }
     }
