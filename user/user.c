@@ -68,6 +68,8 @@ struct gray_string_info
     LPARAM           param;
     char             str[1];
 };
+/* KRNL386 */
+BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst);
 
 /* callback for 16-bit gray string proc with opaque pointer */
 static BOOL CALLBACK gray_string_callback( HDC hdc, LPARAM param, INT len )
@@ -2188,28 +2190,21 @@ struct WIN1XBITMAP
 	//
 	BYTE bits;//1byte 8 pixels
 };
+
 /***********************************************************************
  *		LoadImage (USER.389)
  */
-//OBM_OLD_CLOSE
-//OBM_OLD_DNARROW
-//OBM_OLD_LFARROW
-//OBM_OLD_REDUCE
-//OBM_OLD_RESTORE
-//OBM_OLD_RGARROW
-//OBM_OLD_UPARROW
-//OBM_OLD_ZOOM
 HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 cx, INT16 cy, UINT16 flags)
 {
     HGLOBAL16 handle;
     HRSRC16 hRsrc, hGroupRsrc;
     DWORD size;
 
-    if (!hinst || (flags & LR_LOADFROMFILE))
+    if (!hinst || (flags & LR_LOADFROMFILE) || (hinst && hinst == GetModuleHandle16("DISPLAY")))
     {
         //OEMRESOURCE
         WORD n = (WORD)name;
-        HANDLE h = LoadImageA(0, n, type, cx, cy, flags);
+        HANDLE h = LoadImageA(NULL, n, type, cx, cy, flags);
         if (!h)
         {
             //OBM_OLD_XXXX->OBM_XXXX
@@ -2302,13 +2297,11 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
         if (!(ptr = LockResource16( handle ))) goto done;
         size = SizeofResource16( hinst, hRsrc );
 
-		//
-		BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst);
 		if (IsWinOldApTask(hinst))
 		{
 			//old old bitmap
 			struct WIN1XBITMAP *win1xbitmap = ptr;
-			BITMAP winbitmap;
+            BITMAP winbitmap = { 0 };
 			//winbitmap.bmType = win1xbitmap->unknown1;
 			winbitmap.bmWidth = win1xbitmap->width;
 			winbitmap.bmHeight = win1xbitmap->height;
@@ -2319,16 +2312,10 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 			
 			HBITMAP ret = CreateBitmapIndirect(&winbitmap);
 			if(!ret)
-				ret = CreateBitmap(
-				win1xbitmap->width,         // ピクセル単位のビットマップの幅
-				win1xbitmap->height,        // ピクセル単位のビットマップの高さ
-				win1xbitmap->Planes,       // カラープレーンの数
-				win1xbitmap->BitsPerPixel,   // 色を識別するビット数
-				&win1xbitmap->bits// 色データからなる配列
-				);
+				ret = CreateBitmap(win1xbitmap->width, win1xbitmap->height, win1xbitmap->Planes, win1xbitmap->BitsPerPixel, &win1xbitmap->bits);
 			return HBITMAP_16(ret);
 		}
-		//
+
         header.bfType = 0x4d42; /* 'BM' */
         header.bfReserved1 = 0;
         header.bfReserved2 = 0;
@@ -2360,27 +2347,104 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
         HICON16 hIcon = 0;
         BYTE *dir, *bits;
         INT id = 0;
+        LPCSTR typer = (LPCSTR)(type == IMAGE_ICON ? RT_GROUP_ICON : RT_GROUP_CURSOR);
 
+        BOOL is_old = FALSE;
+        if (IsWinOldApTask(hinst))
+        {
+            is_old = TRUE;
+            typer = (LPCSTR)(type == IMAGE_ICON ? RT_ICON : RT_CURSOR);
+        }
         if (!(hRsrc = FindResource16( hinst, name,
-                                      (LPCSTR)(type == IMAGE_ICON ? RT_GROUP_ICON : RT_GROUP_CURSOR ))))
+                                      typer)))
             return 0;
         hGroupRsrc = hRsrc;
 
-        if (!(handle = LoadResource16( hinst, hRsrc ))) return 0;
-        if ((dir = LockResource16( handle ))) id = LookupIconIdFromDirectory( dir, type == IMAGE_ICON );
-        FreeResource16( handle );
-        if (!id) return 0;
-
-        if (!(hRsrc = FindResource16( hinst, MAKEINTRESOURCEA(id),
+        if (!is_old)
+        {
+            if (!(handle = LoadResource16(hinst, hRsrc))) return 0;
+            if ((dir = LockResource16(handle))) id = LookupIconIdFromDirectory(dir, type == IMAGE_ICON);
+            FreeResource16(handle);
+            if (!id) return 0;
+            if (!(hRsrc = FindResource16( hinst, MAKEINTRESOURCEA(id),
                                       (LPCSTR)(type == IMAGE_ICON ? RT_ICON : RT_CURSOR) ))) return 0;
+        }
 
         if ((flags & LR_SHARED) && (hIcon = find_shared_icon( hinst, hRsrc ) ) != 0) return hIcon;
 
         if (!(handle = LoadResource16( hinst, hRsrc ))) return 0;
         bits = LockResource16( handle );
         size = SizeofResource16( hinst, hRsrc );
-        hIcon = CreateIconFromResourceEx16( bits, size, type == IMAGE_ICON, 0x00030000, cx, cy, flags );
-        FreeResource16( handle );
+        if (is_old)
+        {
+#include <pshpack1.h>
+            typedef struct
+            {
+                BYTE unknown1[2];
+                WORD x;
+                WORD y;
+                WORD size1;
+                WORD size2;
+                BYTE unknown3[4];
+                BYTE bits[0];
+            } OLDICON, *LPOLDICON;
+            typedef struct {
+                SHORT x;
+                SHORT y;
+                BITMAPINFOHEADER   header;
+                RGBQUAD         colors[1];
+            } CURSOR, *LPCURSOR;
+#include <poppack.h>
+            /* FIXME: padding? */
+            LPOLDICON old = bits;
+            SIZE_T size16 = sizeof(OLDICON) + old->size1 / 8 * old->size2 * 2;
+            if (size16 > size)
+            {
+                FreeResource16(handle);
+                return 0;
+            }
+            SIZE_T size32 = sizeof(CURSOR) + old->size1 / 8 * old->size2 * 2 + sizeof(RGBQUAD) * 2;
+            LPCURSOR b32 = (LPCURSOR)HeapAlloc(GetProcessHeap(), 0, size32);
+            memset(b32, 0xff, size32);
+            b32->x = old->x;
+            b32->y = old->y;
+            b32->header.biBitCount = 1;
+            b32->header.biWidth = old->size1;
+            b32->header.biHeight = old->size2 * 2;
+            b32->header.biSize = sizeof(BITMAPINFOHEADER);
+            b32->header.biPlanes = 1;
+            b32->header.biCompression = BI_RGB;
+            b32->header.biSizeImage = 0;
+            b32->header.biXPelsPerMeter = 0;
+            b32->header.biYPelsPerMeter = 0;
+            b32->header.biClrUsed = 2;
+            b32->header.biClrImportant = 0;
+            b32->colors[0].rgbBlue = 0;
+            b32->colors[0].rgbGreen = 0;
+            b32->colors[0].rgbRed = 0;
+            b32->colors[1].rgbBlue = 255;
+            b32->colors[1].rgbGreen = 255;
+            b32->colors[1].rgbRed = 255;
+            SIZE_T img_size = (old->size2 * old->size1) / 8;
+            for (int y = 0; y < old->size2; y++)
+            {
+                memcpy((LPBYTE)&b32->colors[2] + (old->size2 - y - 1) * (b32->header.biWidth / 8), (LPBYTE)(old + 1) + img_size + y * (b32->header.biWidth / 8), b32->header.biWidth / 8);
+                memcpy((LPBYTE)&b32->colors[2] + img_size + (old->size2 - y - 1) * (b32->header.biWidth / 8), (LPBYTE)(old + 1) + y * (b32->header.biWidth / 8), b32->header.biWidth / 8);
+            }
+            /*
+            if (type == IMAGE_ICON)
+                hIcon = get_icon_16(CreateIcon(GetModuleHandle(NULL), old->size1, old->size2, 1, 1, (LPBYTE)(old + 1), (LPBYTE)(old + 1) + img_size));
+            else
+                hIcon = get_icon_16(CreateCursor(GetModuleHandle(NULL), old->x, old->y, old->size1, old->size2, (LPBYTE)(old + 1), (LPBYTE)(old + 1) + img_size));
+            */
+            hIcon = CreateIconFromResourceEx16(type == IMAGE_ICON ? &b32->header : b32, size32 - (type == IMAGE_ICON ? 2 : 0), type == IMAGE_ICON, 0x00030000, cx, cy, flags);
+            HeapFree(GetProcessHeap(), 0, b32);
+        }
+        else
+        {
+            hIcon = CreateIconFromResourceEx16(bits, size, type == IMAGE_ICON, 0x00030000, cx, cy, flags);
+        }
+        FreeResource16(handle);
 
         if (hIcon && (flags & LR_SHARED)) add_shared_icon( hinst, hRsrc, hGroupRsrc, hIcon );
         return hIcon;
