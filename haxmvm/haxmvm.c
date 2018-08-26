@@ -614,8 +614,8 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
     DWORD ooo = (WORD)context.Esp;
     int fret;
     DWORD bytes;
-    if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, state, sizeof(*state), NULL, 0, &bytes, NULL))
-        HAXMVM_ERRF("SET_REGS");
+    /*if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, state, sizeof(*state), NULL, 0, &bytes, NULL))
+        HAXMVM_ERRF("SET_REGS");*/
     /*
     typedef void(*vm_debug_get_entry_point_t)(char *module, char *func, WORD *ordinal);
     static vm_debug_get_entry_point_t vm_debug_get_entry_point;
@@ -663,6 +663,9 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
     state->_eip = context.Eip;
     load_seg(&state->_cs, (WORD)context.SegCs);
 }
+
+BOOL syscall_init = FALSE;
+LPBYTE syscall_trap = FALSE;
 #define dprintf(...)// printf(__VA_ARGS__)
 void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     void(*from16_reg)(void),
@@ -680,6 +683,62 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     if (tunnel->_exit_status == HAX_EXIT_STATECHANGE)
     {
         haxmvm_panic("hypervisor is panicked!!!");
+    }
+    if (!syscall_init)
+    {
+        SIZE_T page1 = (SIZE_T)from16_reg / 4096 * 4096;
+        SIZE_T page2 = (SIZE_T)__wine_call_from_16 / 4096 * 4096;
+        LPBYTE trap = syscall_trap = (LPBYTE)VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_READWRITE);
+        memset(trap, 0xCC, 4096);
+        /* CPUID */
+        trap[(SIZE_T)from16_reg - page1] = 0x0F;
+        trap[(SIZE_T)from16_reg - page1 + 1] = 0xA2;
+        trap[(SIZE_T)from16_reg - page1 + 2] = 0xCC;
+        trap[(SIZE_T)__wine_call_from_16 - page2] = 0x0F;
+        trap[(SIZE_T)__wine_call_from_16 - page2 + 1] = 0xA2;
+        trap[(SIZE_T)__wine_call_from_16 - page2 + 2] = 0xCC;/* int 3h */
+        trap[(SIZE_T)__wine_call_from_16 - page2] = 0x0F3;
+        trap[(SIZE_T)__wine_call_from_16 - page2 + 1] = 0x90;
+
+        trap[(SIZE_T)from16_reg - page1] = 0x0F;
+        trap[(SIZE_T)from16_reg - page1 + 1] = 0x22;
+        trap[(SIZE_T)from16_reg - page1 + 2] = 0xC0;
+        trap[(SIZE_T)__wine_call_from_16 - page2] = 0x0F;
+        trap[(SIZE_T)__wine_call_from_16 - page2 + 1] = 0x22;
+        trap[(SIZE_T)__wine_call_from_16 - page2 + 2] = 0xC0;/* int 3h */
+        trap[(SIZE_T)__wine_call_from_16 - page2] = 0x0F3;
+        trap[(SIZE_T)__wine_call_from_16 - page2 + 1] = 0x90;
+        memset(trap, 0xFB, 4096);
+
+
+        //memset(trap, 0xF4, 4096);
+        struct hax_alloc_ram_info alloc_ram = { 0 };
+        struct hax_set_ram_info ram = { 0 };
+        alloc_ram.size = 4096;
+        alloc_ram.va = trap;
+        DWORD bytes;
+        if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
+        {
+            HAXMVM_ERRF("ALLOC_RAM");
+        }
+        if (page1 != page2)
+        {
+            ram.pa_start = (SIZE_T)page2;
+            ram.size = (SIZE_T)4096;
+            ram.va = (SIZE_T)trap;
+            if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
+            {
+                HAXMVM_ERRF("SET_RAM\n");
+            }
+        }
+        ram.pa_start = (SIZE_T)page1;
+        ram.size = (SIZE_T)4096;
+        ram.va = (SIZE_T)trap;
+        if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
+        {
+            HAXMVM_ERRF("SET_RAM\n");
+        }
+        syscall_init = TRUE;
     }
     //is_single_step = TRUE;
     MEMORY_BASIC_INFORMATION mbi;
@@ -719,9 +778,10 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     struct hax_alloc_ram_info alloc_ram = { 0 };
     struct hax_set_ram_info ram = { 0 };
     struct vcpu_state_t state2;
+    DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state2, sizeof(state2), &bytes, NULL);
     while (TRUE)
     {
-        DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state2, sizeof(state2), &bytes, NULL);
+        //DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state2, sizeof(state2), &bytes, NULL);
         dprintf("%04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
         if (state2._cs.selector == (ret_addr >> 16) && state2._eip == (ret_addr & 0xFFFF))
         {
@@ -758,6 +818,19 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
             LPBYTE bstack = (LPBYTE)stack;
             if (tunnel->_exit_reason == EXIT_INTERRUPT_WIN)
             {
+                LPBYTE ptr2 = (LPBYTE)ptr - 2;
+                BOOL is_reg = ptr2 == from16_reg;
+                if (is_reg || ptr2 == __wine_call_from_16)
+                {
+                    state2._eflags &= ~0x10200;
+                    tunnel->_exit_reason = 0;
+                    relay(relay_call_from_16, is_reg, &state2);
+                    if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
+                    {
+                        HAXMVM_ERRF("SET_REGS");
+                    }
+                    continue;
+                }
                 HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
                 HAXMVM_ERRF("tunnel->_exit_reason == EXIT_INTERRUPT_WIN");
             }
