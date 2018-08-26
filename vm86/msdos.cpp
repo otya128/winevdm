@@ -1079,7 +1079,7 @@ extern "C"
                         case FAULT_PF:name = "#PF"; break;
                         case FAULT_MF:name = "#MF"; break;
                         }
-                        if (name)
+                        if (name && num != FAULT_MF)
                         {
                             protected_mode_exception_handler(num, name, pih);
                             continue;
