@@ -213,6 +213,7 @@ void save_context(CONTEXT *context)
     if (!DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL))
         return;
     save_context_from_state(context, &state);
+    context->EFlags &= ~0x200;
 }
 #include <pshpack1.h>
 typedef enum
@@ -684,34 +685,14 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     {
         haxmvm_panic("hypervisor is panicked!!!");
     }
+    /* call cs:relay_call_from_16 => HAX_EXIT_MMIO => switch to win32 */
+    /* call cs:relay_call_from_16 => STI instr => Interrupt window VMExit(7) => switch to win32 (faster than above)*/
     if (!syscall_init)
     {
         SIZE_T page1 = (SIZE_T)from16_reg / 4096 * 4096;
         SIZE_T page2 = (SIZE_T)__wine_call_from_16 / 4096 * 4096;
         LPBYTE trap = syscall_trap = (LPBYTE)VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_READWRITE);
-        memset(trap, 0xCC, 4096);
-        /* CPUID */
-        trap[(SIZE_T)from16_reg - page1] = 0x0F;
-        trap[(SIZE_T)from16_reg - page1 + 1] = 0xA2;
-        trap[(SIZE_T)from16_reg - page1 + 2] = 0xCC;
-        trap[(SIZE_T)__wine_call_from_16 - page2] = 0x0F;
-        trap[(SIZE_T)__wine_call_from_16 - page2 + 1] = 0xA2;
-        trap[(SIZE_T)__wine_call_from_16 - page2 + 2] = 0xCC;/* int 3h */
-        trap[(SIZE_T)__wine_call_from_16 - page2] = 0x0F3;
-        trap[(SIZE_T)__wine_call_from_16 - page2 + 1] = 0x90;
-
-        trap[(SIZE_T)from16_reg - page1] = 0x0F;
-        trap[(SIZE_T)from16_reg - page1 + 1] = 0x22;
-        trap[(SIZE_T)from16_reg - page1 + 2] = 0xC0;
-        trap[(SIZE_T)__wine_call_from_16 - page2] = 0x0F;
-        trap[(SIZE_T)__wine_call_from_16 - page2 + 1] = 0x22;
-        trap[(SIZE_T)__wine_call_from_16 - page2 + 2] = 0xC0;/* int 3h */
-        trap[(SIZE_T)__wine_call_from_16 - page2] = 0x0F3;
-        trap[(SIZE_T)__wine_call_from_16 - page2 + 1] = 0x90;
-        memset(trap, 0xFB, 4096);
-
-
-        //memset(trap, 0xF4, 4096);
+        memset(trap, 0xFB, 4096); /* STI */
         struct hax_alloc_ram_info alloc_ram = { 0 };
         struct hax_set_ram_info ram = { 0 };
         alloc_ram.size = 4096;
@@ -795,8 +776,8 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         if (is_single_step)
         {
             /* Debug exception */
-            fprintf(stderr, "%04x:%04x EAX:%04x EDX:%04x EF:%04x\n", state2._cs.selector, state2._eip,
-                state2._eax, state2._edx, state2._eflags);
+            fprintf(stderr, "%04x:%04x EAX:%04x EDX:%04x EF:%04x %p\n", state2._cs.selector, state2._eip,
+                state2._eax, state2._edx, state2._eflags, (LPBYTE)state2._cs.base + state2._eip);
         }
         if (!DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_RUN, NULL, 0, NULL, 0, &bytes, NULL))
             return;
@@ -825,14 +806,16 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                     state2._eflags &= ~0x10200;
                     tunnel->_exit_reason = 0;
                     relay(relay_call_from_16, is_reg, &state2);
+                    state2._eflags &= ~0x10200;
                     if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
                     {
                         HAXMVM_ERRF("SET_REGS");
                     }
                     continue;
                 }
-                HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
+                HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X F:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
                 HAXMVM_ERRF("tunnel->_exit_reason == EXIT_INTERRUPT_WIN");
+                haxmvm_panic("tunnel->_exit_reason == EXIT_INTERRUPT_WIN %04X:%04X(base:%04llX) ESP:%08X F:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
             }
             state2._eflags &= ~0x10000;
             LPBYTE byte = (LPBYTE)ptr;
@@ -873,7 +856,6 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                 load_seg(&state2._cs, (WORD)cs);
                 state2._eip = eip;
                 state2._eflags = eflags & ~0x10000;
-                state2._eflags = 0;
                 BYTE num = (SIZE_T)ptr - (SIZE_T)trap_int;
                 if (is_single_step && num == 1)
                 {
@@ -893,7 +875,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                 PUSH16(&state2, (WORD)eip);
                 CONTEXT ctx;
                 save_context_from_state(&ctx, &state2);
-                if (num < 32)
+                if (num != 0x10 &&  num < 32)
                 {
                     /* fixme */
                     HAXMVM_ERRF("int %02Xh handler is not implemented yet.", num);

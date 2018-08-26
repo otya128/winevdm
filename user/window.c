@@ -853,7 +853,13 @@ void WINAPI ValidateRgn16( HWND16 hwnd, HRGN16 hrgn )
 
 static WORD get_system_window_class_wndextra(const char *cls, BOOL *f)
 {
+    char buf[100];
     *f = TRUE;
+    if (IS_INTRESOURCE(cls))
+    {
+        GlobalGetAtomNameA(cls, buf, 100);
+        cls = buf;
+    }
     if (!strncasecmp(cls, "EDIT", sizeof(cls)))
         return 6;
     if (!strncasecmp(cls, "LISTBOX", sizeof(cls)))

@@ -357,12 +357,20 @@ LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lPar
 LRESULT call_dialog_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
     LRESULT *result, void *arg)
 {
+    SetWindowLong16(hwnd, DWL_MSGRESULT, 0xdeadbeef);
     call_window_proc16(hwnd, msg, wParam, lParam, result, arg);
     LRESULT r = *result;
-    *result = GetWindowLong16(hwnd, DWL_MSGRESULT);
+    if (GetWindowLong16(hwnd, DWL_MSGRESULT) == 0xdeadbeef)
+    {
+        return r;
+    }
+    else
+    {
+        *result = GetWindowLong16(hwnd, DWL_MSGRESULT);
+    }
     return r;
 }
-BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	HWND16 hWnd16 = HWND_16(hDlg);
 	WNDPROC16 wndproc16 = GetDlgProc16(hWnd16);
@@ -381,7 +389,7 @@ BOOL CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
             break;
         default:
         {
-            BOOL16 result = WINPROC_CallProc32ATo16(call_dialog_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
+            INT_PTR result = WINPROC_CallProc32ATo16(call_dialog_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
                 &ret, wndproc16);
             SetWindowLongA(hDlg, DWL_MSGRESULT, ret);
             return result;
