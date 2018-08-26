@@ -1,0 +1,6 @@
+; File generated automatically from display\display.drv16.spec; do not edit!
+
+LIBRARY display.drv16
+
+EXPORTS
+  _wine_spec_dos_header @1 DATA
