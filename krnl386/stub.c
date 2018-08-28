@@ -136,15 +136,6 @@ DWORD CallTo16_DataSelector DECLSPEC_HIDDEN;
 DWORD CallTo16_TebSelector DECLSPEC_HIDDEN;
 SEGPTR CALL32_CBClient_RetAddr DECLSPEC_HIDDEN;
 SEGPTR CALL32_CBClientEx_RetAddr DECLSPEC_HIDDEN;
-
-void CALL32_CBClient_Ret(void)
-{
-    ERR("NOTIMPL:CALL32_CBClient_Ret()\n");
-}
-void CALL32_CBClientEx_Ret(void)
-{
-    ERR("NOTIMPL:CALL32_CBClientEx_Ret()\n");
-}
 WINE_DECLARE_DEBUG_CHANNEL(disasm);
 WINE_DECLARE_DEBUG_CHANNEL(disasmbuf);
 WINE_DECLARE_DEBUG_CHANNEL(disasmnobuf);
@@ -216,29 +207,6 @@ void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HAND
     context->Esp = OFFSETOF(getWOW32Reserved());
     func_wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
 }
-void __wine_call_from_16_thunk(void)
-{
-    ERR("NOTIMPL:__wine_call_from_16_thunk()\n");
-}
-LONG __wine_call_from_16(void)
-{
-    ERR("\n");
-    return 0;
-}
-void __wine_call_from_16_regs(void)
-{
-    ERR("\n");
-}
-DWORD CALL32_CBClient(FARPROC proc, LPWORD args, WORD *stackLin, DWORD *esi)
-{
-    ERR("NOTIMPL:CALL32_CBClient(%p, %p, %p, %p)\n", proc, args, stackLin, esi);
-    return 0;
-}
-DWORD CALL32_CBClientEx(FARPROC proc, LPWORD args, WORD *stackLin, DWORD *esi, INT *nArgs)
-{
-    ERR("NOTIMPL:CALL32_CBClientEx(%p, %p, %p, %p, %p)\n", proc, args, stackLin, esi, nArgs);
-    return 0;
-}
 void __wine_enter_vm86(CONTEXT *context)
 {
     func_wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), TRUE, DOSMEM_dosmem, wine_pm_interrupt_handler);
@@ -250,14 +218,22 @@ BOOL16 WINAPI IsDBCSLeadByte16(BYTE TestChar)
     return IsDBCSLeadByte(TestChar);
 }
 //TLS
-__declspec(thread) PVOID WOW32Reserved;
+extern DWORD WOW32ReservedTls;
+/* __declspec(thread) PVOID WOW32Reserved; */
 __declspec(dllexport) PVOID getWOW32Reserved()
 {
-    return WOW32Reserved;
+    __asm
+    {
+        mov eax, fs:[0e10h + WOW32RESERVED_TLS_INDEX * 4]
+    }
 }
 __declspec(dllexport) PVOID setWOW32Reserved(PVOID w)
 {
-    return WOW32Reserved = w;
+    __asm
+    {
+        mov eax, w
+        mov fs:[0e10h + WOW32RESERVED_TLS_INDEX * 4], eax
+    }
 }
 
 __declspec(thread) WINE_VM86_TEB_INFO GdiTebBatch;

@@ -816,7 +816,7 @@ static void WINAPI VGA_DoSetMode(ULONG_PTR arg)
             return;
         }
 
-        res=IDirectDraw_CreatePalette(lpddraw,DDPCAPS_8BIT,NULL,&lpddpal,NULL);
+        res=IDirectDraw_CreatePalette(lpddraw,DDPCAPS_8BIT,vga_fb_palette,&lpddpal,NULL);
         if (res != S_OK) {
 	    ERR("Could not create palette (res = 0x%x)\n",res);
             IDirectDraw_Release(lpddraw);
@@ -916,14 +916,14 @@ static BOOL VGA_SetGraphicMode(WORD mode)
     /* Setup window */
     if(vga_fb_depth >= 8)
     {
-      vga_fb_window_data = VGA_WINDOW_START;
+      vga_fb_window_data = (SIZE_T)DOSMEM_dosmem + VGA_WINDOW_START;
       vga_fb_window_size = VGA_WINDOW_SIZE;
       vga_fb_palette = vga_def_palette;
       vga_fb_palette_size = 256;
     }
     else
     {
-      vga_fb_window_data = CGA_WINDOW_START;
+      vga_fb_window_data = (SIZE_T)DOSMEM_dosmem + CGA_WINDOW_START;
       vga_fb_window_size = CGA_WINDOW_SIZE;
       if(vga_fb_depth == 2)
       {

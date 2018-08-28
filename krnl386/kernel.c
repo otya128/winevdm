@@ -160,6 +160,36 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
     switch(reason)
     {
     case DLL_PROCESS_ATTACH:
+    {
+        DWORD tls[TLS_MINIMUM_AVAILABLE];
+
+        for (int i = 0; i < TLS_MINIMUM_AVAILABLE; i++)
+        {
+            tls[i] = 0xffffffff;
+        }
+        BOOL allocated = FALSE;
+        for (int i = 0; i < TLS_MINIMUM_AVAILABLE; i++)
+        {
+            tls[i] = TlsAlloc();
+            if (tls[i] == WOW32RESERVED_TLS_INDEX)
+            {
+                allocated = TRUE;
+                break;
+            }
+        }
+        for (int i = 0; i < TLS_MINIMUM_AVAILABLE; i++)
+        {
+            if (tls[i] != 0xffffffff && tls[i] != WOW32RESERVED_TLS_INDEX)
+            {
+                TlsFree(tls[i]);
+            }
+        }
+
+        if (!allocated)
+        {
+            ERR("could not allocate WOW32RESERVED_TLS_INDEX!!\n");
+        }
+    }
 		//__wine_spec_dos_header = &_wine_spec_dos_header;
 		//PIMAGE_DOS_HEADER dosh = __wine_spec_dos_header;
 		//init__wine_spec_dos_header();

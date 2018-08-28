@@ -187,6 +187,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 	UNICODE_STRING      RuntimeInfo;
 	RTL_DRIVE_LETTER_CURDIR DLCurrentDirectory[0x20];
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
+#define WOW32RESERVED_TLS_INDEX 0x20
 __declspec(dllexport) PVOID getWOW32Reserved();
 __declspec(dllexport) PVOID setWOW32Reserved(PVOID);
 /*

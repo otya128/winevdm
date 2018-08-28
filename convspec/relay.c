@@ -31,7 +31,7 @@
 #include "build.h"
 
 /* offset of the stack pointer relative to %fs:(0) */
-#define STACKOFFSET 0xc0  /* FIELD_OFFSET(TEB,WOW32Reserved) */
+#define STACKOFFSET (0xe10 + 0x20 * 0x4) /* FIELD_OFFSET(TEB,TlsSlots) + WOW32RESERVED_TLS_INDEX * 4*/ /* 0xc0 */ /* FIELD_OFFSET(TEB,WOW32Reserved) */
 
 /* fix this if the x86_thread_data structure is changed */
 #define GS_OFFSET  0x1d8  /* FIELD_OFFSET(TEB,SystemReserved2) + FIELD_OFFSET(struct x86_thread_data,gs) */
@@ -40,7 +40,7 @@
 static void function_header( const char *name )
 {
     output( "\n\t.align %d\n", get_alignment(4) );
-    output( "\t%s\n", func_declaration(name) );
+    output( "\t%s\n", func_declaration(strmake("_%s", name)) );
     output( "%s\n", asm_globl(name) );
 }
 
@@ -161,7 +161,10 @@ static void BuildCallFrom16Core( int reg_func, int thunk )
         output( "\tmovl (%%edx), %%edx\n" );
     }
     else
-        output( "\tmovl %s(%%edx), %%edx\n", asm_name("wine_ldt_copy") );
+    {
+        output( "\tmovl %s, %%ecx\n", asm_name("_imp__wine_ldt_copy") );
+        output( "\tmovl 0(%%ecx,%%edx), %%edx\n" );
+    }
     output( "\tmovzwl %%sp, %%ebp\n" );
     output( "\tleal %d(%%ebp,%%edx), %%edx\n", reg_func ? 0 : -4 );
 
@@ -380,7 +383,7 @@ static void BuildCallFrom16Core( int reg_func, int thunk )
  */
 static void BuildCallTo16Core( int reg_func )
 {
-    const char *name = reg_func ? "wine_call_to_16_regs" : "wine_call_to_16";
+    const char *name = reg_func ? "__wine_call_to_16_regs" : "__wine_call_to_16";
 
     /* Function header */
     function_header( name );
