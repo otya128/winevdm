@@ -1288,6 +1288,29 @@ HACCEL16 WINAPI LoadAccelerators16(HINSTANCE16 instance, LPCSTR lpTableName)
  */
 INT16 WINAPI GetSystemMetrics16( INT16 index )
 {
+    static BOOL init_fix_screen_size;
+    static BOOL fix_screen_size;
+    if (!init_fix_screen_size)
+    {
+        init_fix_screen_size = TRUE;
+        fix_screen_size = krnl386_get_config_int("otvdm", "FixScreenSize", FALSE);
+    }
+    /* Fix the size of the screen to the value considering taskbar. */
+    if (index == SM_CXSCREEN || index == SM_CYSCREEN)
+    {
+        RECT point;
+        if (SystemParametersInfoA(SPI_GETWORKAREA, 0, &point, FALSE))
+        {
+            if (index == SM_CXSCREEN)
+            {
+                return point.right - point.left;
+            }
+            if (index == SM_CYSCREEN)
+            {
+                return point.bottom - point.top;
+            }
+        }
+    }
     return GetSystemMetrics( index );
 }
 
@@ -2309,7 +2332,7 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 			winbitmap.bmPlanes = win1xbitmap->Planes;
 			winbitmap.bmBitsPixel = win1xbitmap->BitsPerPixel;
 			winbitmap.bmBits = &win1xbitmap->bits;
-			
+
 			HBITMAP ret = CreateBitmapIndirect(&winbitmap);
 			if(!ret)
 				ret = CreateBitmap(win1xbitmap->width, win1xbitmap->height, win1xbitmap->Planes, win1xbitmap->BitsPerPixel, &win1xbitmap->bits);
