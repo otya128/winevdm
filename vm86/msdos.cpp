@@ -518,6 +518,8 @@ void write_io_dword(offs_t addr, UINT32 val)
 #undef NDEBUG
 #endif
 
+static HMODULE krnl386 = 0;
+
 BOOL is_32bit_segment(int sreg);
 extern "C"
 {
@@ -530,7 +532,8 @@ extern "C"
 		static PVOID(*setWOW32Reserved)(PVOID);
 		if (!setWOW32Reserved)
 		{
-			HMODULE krnl386 = LoadLibraryA(KRNL386);
+			if (!krnl386)
+				krnl386 = LoadLibraryA(KRNL386);
 			setWOW32Reserved = (PVOID(*)(PVOID))GetProcAddress(krnl386, "setWOW32Reserved");
 		}
 		return setWOW32Reserved(w);
@@ -540,7 +543,8 @@ extern "C"
 		static PVOID(*getWOW32Reserved)();
 		if (!getWOW32Reserved)
 		{
-			HMODULE krnl386 = LoadLibraryA(KRNL386);
+			if (!krnl386)
+				krnl386 = LoadLibraryA(KRNL386);
 			getWOW32Reserved = (PVOID(*)())GetProcAddress(krnl386, "getWOW32Reserved");
 		}
 		return getWOW32Reserved();
@@ -550,7 +554,8 @@ extern "C"
         static WINE_VM86_TEB_INFO*(*getGdiTebBatch)();
         if (!getGdiTebBatch)
         {
-            HMODULE krnl386 = LoadLibraryA(KRNL386);
+            if (!krnl386)
+                krnl386 = LoadLibraryA(KRNL386);
             getGdiTebBatch = (WINE_VM86_TEB_INFO*(*)())GetProcAddress(krnl386, "getGdiTebBatch");
         }
         return getGdiTebBatch();
@@ -560,7 +565,8 @@ extern "C"
 		static void(*__wine_call_int_handler)(CONTEXT *context, BYTE intnum);
 		if (!__wine_call_int_handler)
 		{
-			HMODULE krnl386 = LoadLibraryA(KRNL386);
+			if (!krnl386)
+				krnl386 = LoadLibraryA(KRNL386);
 			__wine_call_int_handler = (void(*)(CONTEXT *context, BYTE intnum))GetProcAddress(krnl386, "__wine_call_int_handler");
 		}
 		__wine_call_int_handler(context, intnum);
@@ -940,6 +946,25 @@ extern "C"
         WORD ip = POP16();
         WORD cs = POP16();
         WORD flags = POP16();
+        if ((num == FAULT_GP) && !err && !m_sreg[ES].selector)
+        {
+            // Some Windows 1.0 C startups try to access the IVT directly
+            static WORD dosmem_0000H = 0;
+            if (!dosmem_0000H)
+            {
+                DWORD(WINAPI *GetProcAddress16)(HMODULE16, LPCSTR);
+                HMODULE16(WINAPI *GetModuleHandle16)(LPCSTR);
+                if (!krnl386)
+                    krnl386 = LoadLibraryA(KRNL386);
+                GetProcAddress16 = (DWORD(WINAPI *)(HMODULE16, LPCSTR))GetProcAddress(krnl386, "GetProcAddress16");
+                GetModuleHandle16 = (HMODULE16(WINAPI *)(LPCSTR))GetProcAddress(krnl386, "GetModuleHandle16");
+                dosmem_0000H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)183);
+            }
+            m_sreg[ES].selector = dosmem_0000H;
+            i386_load_segment_descriptor(ES);
+            i386_jmp_far(cs, ip);
+            return;
+        }
         DWORD ret = pih(num);
         if (ret)
         {
