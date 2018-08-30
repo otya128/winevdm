@@ -1998,6 +1998,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
         DWORD hInst;
         LPCSTR name;
     } a;
+    char atombuf[256];
     va_list arg;
     LPCSTR buf = NULL;
     LPCSTR classname32 = MapSL(wc->lpszClassName);
@@ -2019,6 +2020,11 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.lpszMenuName  = MapSL(wc->lpszMenuName);
     wc32.lpszClassName = classname32;
     wc32.hIconSm       = get_icon_32(wc->hIconSm);
+    if (!HIWORD(wc32.lpszClassName))
+    {
+        GlobalGetAtomNameA(wc32.lpszClassName, atombuf, 256);
+        wc32.lpszClassName = atombuf;
+    }
     a.hInst = wc->hInstance;
     a.name = wc32.lpszClassName;
     a.local_class_prefix = LOCAL_CLASS_PREFIX;
@@ -2285,7 +2291,13 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
     HWND parent32 = WIN_Handle32(parent);
     LPCSTR lcprefix = LOCAL_CLASS_PREFIX;
     SIZE_T lcprefix_len = strlen(lcprefix);
+    char atomname[256];
 
+    if (!HIWORD(className))
+    {
+        GlobalGetAtomNameA(className, atomname, ARRAYSIZE(atomname));
+        className = atomname;
+    }
     while (TRUE)
     {
         child32 = FindWindowExA(NULL, child32, NULL, title);
@@ -2335,7 +2347,7 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
         if (!memicmp(sbuf, LOCAL_CLASS_PREFIX, lcprefix_len))
         {
             LPCSTR win16cls = win16classname(sbuf);
-            if (!strcmpi(win16cls, sbuf))
+            if (!strcmpi(win16cls, className))
             {
                 break;
             }
@@ -2349,7 +2361,7 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
     {
         HeapFree(GetProcessHeap(), 0, buf);
     }
-    return HWND_32(child);
+    return HWND_16(child32);
 }
 
 
@@ -2514,6 +2526,14 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     cs.dwExStyle      = exStyle;
 
     /* load the menu */
+    if (!IS_INTRESOURCE(className))
+    {
+    }
+    else
+    {
+        if (!GlobalGetAtomNameA(LOWORD(className), buffer, sizeof(buffer))) return 0;
+        cs.lpszClass = buffer;
+    }
     cs.lpszClass = win32classname(cs.hInstance, cs.lpszClass);
     if (!menu && (style & (WS_CHILD | WS_POPUP)) != WS_CHILD)
     {
@@ -2524,14 +2544,6 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
             cs.hMenu = HMENU_32( LoadMenu16( module, class.lpszMenuName ));
     }
 
-    if (!IS_INTRESOURCE(className))
-    {
-    }
-    else
-    {
-        if (!GlobalGetAtomNameA( LOWORD(className), buffer, sizeof(buffer) )) return 0;
-        cs.lpszClass = buffer;
-    }
     WNDCLASSEXA wndclass;
     //reactos win32ss/user/ntuser/window.c
     if (GetClassInfoExA(cs.hInstance, cs.lpszClass, &wndclass) && cs.hwndParent && (wndclass.style & CS_PARENTDC) && !(GetWindowLongA(cs.hwndParent, GWL_STYLE)  & WS_CLIPCHILDREN))
@@ -2539,6 +2551,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         cs.style &= ~(WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
     }
     hwnd = create_window16((CREATESTRUCTW *)&cs, (LPCWSTR)cs.lpszClass, HINSTANCE_32(instance), FALSE);
+
     if (hwnd == NULL)
     {
         ERR("Could not create window(%08x,\"%s\"(\"%s\"),\"%s\",%08x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%08x)\n", exStyle, className, cs.lpszClass, windowName, style, x, y, width, height, parent, menu, instance, data);
