@@ -794,4 +794,7 @@ void output_asm_relays16(void)
     output( "\n\t.data\n\t.align %d\n", get_alignment(4) );
     output( "%s\n\t.long 0\n", asm_globl("CallTo16_DataSelector") );
     output( "%s\n\t.long 0\n", asm_globl("CallTo16_TebSelector") );
+    output("%s\n\t.long %s\n", asm_globl("__wine_call16_start_p"), asm_name("__wine_call16_start") );
+    output("%s\n\t.long %s\n", asm_globl("__wine_call16_end_p"), asm_name("__wine_call16_end") );
+    output("%s\n\t.long %s\n", asm_globl("__wine_call_to_16_ret_p"), asm_name("__wine_call_to_16_ret") );
 }

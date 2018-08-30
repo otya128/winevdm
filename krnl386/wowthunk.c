@@ -43,14 +43,14 @@ WINE_DECLARE_DEBUG_CHANNEL(snoop);
 /* symbols exported from relay16.s */
 extern DWORD WINAPI wine_call_to_16( FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER handler );
 extern void WINAPI wine_call_to_16_regs( CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler );
-extern void __wine_call_to_16_ret(void);
+static void (*__wine_call_to_16_ret)(void);
 extern void CALL32_CBClient_Ret(void);
 extern void CALL32_CBClientEx_Ret(void);
 extern void DPMI_PendingEventCheck(void);
 extern void DPMI_PendingEventCheck_Cleanup(void);
 extern void DPMI_PendingEventCheck_Return(void);
-extern BYTE __wine_call16_start[];
-extern BYTE __wine_call16_end[];
+static LPBYTE __wine_call16_start;
+static LPBYTE __wine_call16_end;
 
 extern void RELAY16_InitDebugLists(void);
 
@@ -61,11 +61,17 @@ static DWORD dpmi_checker_offset_call;
 static DWORD dpmi_checker_offset_cleanup;
 static DWORD dpmi_checker_offset_return;
 
+extern LPVOID *__wine_call_to_16_ret_p;
+extern LPVOID *__wine_call16_start_p;
+extern LPVOID *__wine_call16_end_p;
 /***********************************************************************
  *           WOWTHUNK_Init
  */
 BOOL WOWTHUNK_Init(void)
 {
+    __wine_call_to_16_ret = __wine_call_to_16_ret_p;
+    __wine_call16_start = __wine_call16_start_p;
+    __wine_call16_end = __wine_call16_end_p;
     /* allocate the code selector for CallTo16 routines */
     LDT_ENTRY entry;
     WORD codesel = wine_ldt_alloc_entries(1);
@@ -79,6 +85,14 @@ BOOL WOWTHUNK_Init(void)
       /* Patch the return addresses for CallTo16 routines */
 
     CallTo16_DataSelector = wine_get_ds();
+    if (0 > (SSIZE_T)__wine_call_to_16_ret - (SSIZE_T)__wine_call16_start)
+    {
+        ERR("0 > (SSIZE_T)__wine_call_to_16_ret - (SSIZE_T)__wine_call16_start! %p %p %d\n", __wine_call_to_16_ret, __wine_call16_start, (SSIZE_T)__wine_call_to_16_ret - (SSIZE_T)__wine_call16_start);
+    }
+    if (0xffff < (SSIZE_T)__wine_call_to_16_ret - (SSIZE_T)__wine_call16_start)
+    {
+        ERR("0xffff > (SSIZE_T)__wine_call_to_16_ret - (SSIZE_T)__wine_call16_start! %p %p %d\n", __wine_call_to_16_ret, __wine_call16_start, (SSIZE_T)__wine_call_to_16_ret - (SSIZE_T)__wine_call16_start);
+    }
     call16_ret_addr = MAKESEGPTR( codesel, (BYTE *)__wine_call_to_16_ret - __wine_call16_start );
     CALL32_CBClient_RetAddr =
         MAKESEGPTR( codesel, (BYTE *)CALL32_CBClient_Ret - __wine_call16_start );
