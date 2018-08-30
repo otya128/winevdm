@@ -1053,7 +1053,6 @@ extern "C"
 			while (!m_halted) {
 				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
 				{
-					__wine_call_to_16_ret();
 					break;//return VM
 				}
 				bool reg = false;
