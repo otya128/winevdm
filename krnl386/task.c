@@ -1572,3 +1572,64 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
     }
     return WOWGlobalLock16( handle );
 }
+
+/*
+Emulate an independent current directory for each task
+*/
+void switch_directory(struct kernel_thread_data *thread_data)
+{
+    static HTASK16 old = NULL;
+    static struct kernel_thread_data *old_data = NULL;
+    if (!thread_data->htask16)
+        return;
+    if (old != thread_data->htask16)
+    {
+        TDB *tdb = TASK_GetCurrent();
+        if (!thread_data->curdir_len)
+        {
+            thread_data->curdir_len = 32768;
+            thread_data->true_curdir = HeapAlloc(GetProcessHeap(), 0, thread_data->curdir_len * 2);
+            thread_data->true_curdir[0] = (tdb->curdrive & ~0x80) + 'A';
+            thread_data->true_curdir[1] = ':';
+            thread_data->curdir_buf = thread_data->true_curdir + thread_data->curdir_len;
+
+            GetCurrentDirectoryA(thread_data->curdir_len, thread_data->true_curdir);
+            GetShortPathNameA(thread_data->true_curdir, thread_data->true_curdir, thread_data->curdir_len);
+            memcpy(thread_data->curdir_buf, thread_data->true_curdir, thread_data->curdir_len);
+            SetCurrentDirectory16(thread_data->true_curdir);
+        }
+        if (old)
+        {
+            /*
+            save current directory
+            curdir_buf -> new curdir
+            true_curdir-> old curdir
+            tdb->curdir-> old curdir
+            */
+            GetCurrentDirectoryA(old_data->curdir_len, old_data->curdir_buf);
+            if (strcmp(old_data->curdir_buf, old_data->true_curdir))
+            {
+                /* changed */
+                GetShortPathNameA(old_data->curdir_buf, old_data->curdir_buf, old_data->curdir_len);
+                strcpy(old_data->true_curdir, old_data->curdir_buf);
+                TDB *old = ((TDB*)GlobalLock16(old_data->htask16));
+                GetShortPathNameA(old_data->true_curdir + 2, old->curdir, sizeof(old->curdir));
+                GetShortPathNameA(old_data->true_curdir, old_data->true_curdir, old_data->curdir_len);
+                if (!thread_data->htask16)
+                    old = NULL;
+                old->curdrive = 0x80 | (old_data->true_curdir[0] - 'A');
+                GlobalUnlock16(old_data->htask16);
+                /*
+                curdir_buf -> new curdir
+                true_curdir-> new curdir
+                tdb->curdir-> new curdir
+                */
+                TRACE("%.*s %p save cur dir %s\n", 8, old->module_name, old, old_data->true_curdir);
+            }
+        }
+        /* restore current directory */
+        SetCurrentDirectoryA(thread_data->true_curdir);
+        old_data = thread_data;
+        old = thread_data->htask16;
+    }
+}

@@ -81,7 +81,6 @@ VOID WINAPI _CreateSysLevel(SYSLEVEL *lock, INT level)
                   lock, level, lock->crst.LockSemaphore );
 }
 
-#include <stdio.h>
 /************************************************************************
  *           _EnterSysLevel    (KERNEL32.97)
  *           _EnterSysLevel    (KERNEL.439)
@@ -102,7 +101,7 @@ VOID WINAPI _EnterSysLevel(SYSLEVEL *lock)
         }
 
     RtlEnterCriticalSection( &lock->crst );
-
+    switch_directory(thread_data);
     thread_data->sys_count[lock->level]++;
     thread_data->sys_mutex[lock->level] = lock;
 

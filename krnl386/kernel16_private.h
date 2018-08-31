@@ -722,7 +722,10 @@ struct kernel_thread_data
     WORD                htask16;        /* Win16 task handle */
     DWORD               sys_count[4];   /* syslevel mutex entry counters */
     struct tagSYSLEVEL *sys_mutex[4];   /* syslevel mutex pointers */
-    void               *pad[45];        /* change this if you add fields! */
+    int                 curdir_len;     /* current dir buffer length */
+    char               *true_curdir;    /* true current dir */
+    char               *curdir_buf;     /* current dir buffer */
+    void               *pad[33];        /* change this if you add fields! */
 };
 
 __declspec(dllexport) struct kernel_thread_data *tls_get_kernel_thread_data();
@@ -911,4 +914,6 @@ extern wine_call_to_16_vm86_t func_wine_call_to_16_vm86;
 extern wine_call_to_16_regs_vm86_t func_wine_call_to_16_regs_vm86;
 
 char *get_search_path(void);
+
+void switch_directory(struct kernel_thread_data *thread_data);
 #endif  /* __WINE_KERNEL16_PRIVATE_H */
