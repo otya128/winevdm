@@ -2006,8 +2006,6 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     inst = GetExePtr( wc->hInstance );
     if (!inst) inst = GetModuleHandle16( NULL );
 
-    //FIXME:global class implementation?(CS_GLOBALCLASS)
-    //FIXME:could not register a local class
     wc32.cbSize        = sizeof(wc32);
     wc32.style         = wc->style;
     wc32.lpfnWndProc   = DefWndProca;//WINPROC_AllocProc16( wc->lpfnWndProc );
@@ -2025,7 +2023,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
         GlobalGetAtomNameA(wc32.lpszClassName, atombuf, 256);
         wc32.lpszClassName = atombuf;
     }
-    a.hInst = wc->hInstance;
+    a.hInst = inst;
     a.name = wc32.lpszClassName;
     a.local_class_prefix = LOCAL_CLASS_PREFIX;
     arg = (va_list)&a;
@@ -2033,6 +2031,11 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     {
         wc32.lpszClassName = buf;
     }
+    /*
+    register same class:
+    Win3.1 returns 0
+    WOW returns same class atom
+    */
     atom = RegisterClassExA( &wc32 );
     TRACE("(%08x,%08x,%04x,%04x,%04x,%04x,%04x,%04x,%s,%s,%04x) Ret:%04x\n", wc->style, wc->lpfnWndProc, wc->cbClsExtra, wc->cbWndExtra, wc->hInstance, wc->hIcon, wc->hCursor, wc->hbrBackground, debugstr_a(wc32.lpszMenuName), debugstr_a(wc32.lpszClassName), wc->hIconSm, atom);
 	if (atom)
