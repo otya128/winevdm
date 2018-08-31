@@ -192,3 +192,4 @@ EXPORTS
   GetModuleFileName16
   _EnterWin16Lock
   _LeaveWin16Lock
+  IsRealModeTask

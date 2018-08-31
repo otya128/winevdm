@@ -1351,6 +1351,12 @@ BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst)
 	return FALSE;
 }
 
+/* FIXME: Windows 2.x/386 programs run in protected mode?? */
+BOOL WINAPI IsRealModeTask(HINSTANCE16 hInst)
+{
+    return IsOldWindowsTask(hInst);
+}
+
 /***********************************************************************
  *           SetTaskSignalProc   (KERNEL.38)
  */
