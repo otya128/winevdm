@@ -640,13 +640,13 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
 
     /* We now have a valid NE header */
 
-	if (ne_header->ne_exetyp)//WINDOWS 1.x
     /* check to be able to fall back to loading OS/2 programs as DOS
      * FIXME: should this check be reversed in order to be less strict?
      * (only fail for OS/2 ne_exetyp 0x01 here?) */
-    if ((ne_header->ne_exetyp != 0x02 /* Windows */)
-        && (ne_header->ne_exetyp != 0x04) /* Windows 386 */)
+    if (ne_header->ne_exetyp == NE_OSFLAGS_OS2 || ne_header->ne_exetyp == 3 /* DOS executable */)
+    {
         return ERROR_BAD_FORMAT;
+    }
 
     size = sizeof(NE_MODULE) +
              /* segment table */
@@ -678,6 +678,12 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
     FarSetOwner16( hModule, hModule );
     pModule = GlobalLock16( hModule );
     memcpy( pModule, ne_header, sizeof(*ne_header) );
+
+    if (pModule->ne_exetyp != 0x02 && pModule->ne_exetyp != 0x04)
+    {
+        WARN("exe type is not windows or windows/386. (typ:%02x, ver:%04x)\n", pModule->ne_exetyp, pModule->ne_expver);
+        pModule->ne_expver = 0;
+    }
     pModule->count = 0;
     /* check programs for default minimal stack size */
     if (!(pModule->ne_flags & NE_FFLAGS_LIBMODULE) && (pModule->ne_stack < 0x1400))

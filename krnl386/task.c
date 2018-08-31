@@ -1343,7 +1343,8 @@ BOOL16 WINAPI IsWinOldApTask16( HTASK16 hTask )
     /* should return bit 0 of byte 0x48 in PSP */
     return FALSE;
 }
-BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst)
+
+BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst)
 {
 	if (NE_GetPtr(GetExePtr(hInst))->ne_expver < 0x300)
 		return TRUE;

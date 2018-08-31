@@ -69,7 +69,7 @@ struct gray_string_info
     char             str[1];
 };
 /* KRNL386 */
-BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst);
+BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
 
 /* callback for 16-bit gray string proc with opaque pointer */
 static BOOL CALLBACK gray_string_callback( HDC hdc, LPARAM param, INT len )
@@ -1563,8 +1563,7 @@ HMENU16 WINAPI LoadMenuIndirect16( LPCVOID template )
 
     TRACE("(%p)\n", template );
 
-    BOOL16 WINAPI IsWinOldApTask(HINSTANCE16 hInst);
-    if (IsWinOldApTask(GetCurrentTask()))
+    if (IsOldWindowsTask(GetCurrentTask()))
     {
         return HMENU_16(LoadOldMenuIndirect16(&template));
     }
@@ -2320,7 +2319,7 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
         if (!(ptr = LockResource16( handle ))) goto done;
         size = SizeofResource16( hinst, hRsrc );
 
-		if (IsWinOldApTask(hinst))
+		if (IsOldWindowsTask(hinst))
 		{
 			//old old bitmap
 			struct WIN1XBITMAP *win1xbitmap = ptr;
@@ -2373,7 +2372,7 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
         LPCSTR typer = (LPCSTR)(type == IMAGE_ICON ? RT_GROUP_ICON : RT_GROUP_CURSOR);
 
         BOOL is_old = FALSE;
-        if (IsWinOldApTask(hinst))
+        if (IsOldWindowsTask(hinst))
         {
             is_old = TRUE;
             typer = (LPCSTR)(type == IMAGE_ICON ? RT_ICON : RT_CURSOR);
