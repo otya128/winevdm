@@ -844,13 +844,34 @@ static BOOL NE_LoadDLLs( NE_MODULE *pModule )
         {
             /* If the DLL is not loaded yet, load it and store */
             /* its handle in the list of DLLs to initialize.   */
-            HMODULE16 hDLL;
+            HMODULE16 hDLL = 0;
+            BOOL without_ext = FALSE;
 
             /* Append .DLL to name if no extension present */
-            if (!(p = strrchr( buffer, '.')) || strchr( p, '/' ) || strchr( p, '\\'))
-                    strcat( buffer, ".DLL" );
+            if (!(p = strrchr(buffer, '.')) || strchr(p, '/') || strchr(p, '\\'))
+            {
+                LPSTR buf = buffer + strlen(buffer);
+                without_ext = TRUE;
+                strcat(buffer, ".DLL");
+                hDLL = MODULE_LoadModule16(buffer, TRUE, TRUE);
+                if (hDLL < 32)
+                {
+                    HMODULE16 exe;
+                    buf[0] = 0;
+                    strcat(buffer, ".EXE");
+                    exe = MODULE_LoadModule16(buffer, TRUE, TRUE);
+                    if (exe >= 32)
+                    {
+                        hDLL = exe;
+                    }
+                }
+            }
+            else
+            {
+                hDLL = MODULE_LoadModule16(buffer, TRUE, TRUE);
+            }
 
-            if ((hDLL = MODULE_LoadModule16( buffer, TRUE, TRUE )) < 32)
+            if (hDLL < 32)
             {
                 /* FIXME: cleanup what was done */
 				char msg[256];
