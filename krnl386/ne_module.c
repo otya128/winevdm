@@ -1188,14 +1188,14 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
  *
  * Create the thread for a 16-bit module.
  */
-static HINSTANCE16 NE_CreateThread( NE_MODULE *pModule, WORD cmdShow, LPCSTR cmdline )
+static HINSTANCE16 NE_CreateThread( NE_MODULE *pModule, WORD cmdShow, LPCSTR cmdline, LPCSTR curdir )
 {
     HANDLE hThread;
     TDB *pTask;
     HTASK16 hTask;
     HINSTANCE16 instance = 0;
 
-    if (!(hTask = TASK_SpawnTask( pModule, cmdShow, cmdline + 1, *cmdline, &hThread )))
+    if (!(hTask = TASK_SpawnTask( pModule, cmdShow, cmdline + 1, *cmdline, &hThread, curdir )))
         return 0;
 
     /* Post event to start the task */
@@ -1392,7 +1392,13 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
     if (params->showCmd)
         cmdShow = ((WORD *)MapSL( params->showCmd ))[1];
     cmdline = MapSL( params->cmdLine );
-    return NE_CreateThread( pModule, cmdShow, cmdline );
+    LPCSTR curdir = NULL;
+    /* current directory */
+    if (params->hEnvironment == 0x0bef)
+    {
+        curdir = (LPCSTR)params->reserved;
+    }
+    return NE_CreateThread( pModule, cmdShow, cmdline, curdir);
 }
 
 

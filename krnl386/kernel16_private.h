@@ -698,7 +698,7 @@ extern VOID SYSLEVEL_CheckNotLevel( INT level );
 /* task.c */
 extern void TASK_CreateMainTask(void);
 extern HTASK16 TASK_SpawnTask( NE_MODULE *pModule, WORD cmdShow,
-                               LPCSTR cmdline, BYTE len, HANDLE *hThread );
+                               LPCSTR cmdline, BYTE len, HANDLE *hThread, LPCSTR curdir );
 extern void TASK_ExitTask(void);
 extern HTASK16 TASK_GetTaskFromThread( DWORD thread );
 extern TDB *TASK_GetCurrent(void);

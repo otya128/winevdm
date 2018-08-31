@@ -427,6 +427,7 @@ struct create_data
 {
     TDB                 *task;
     WIN16_SUBSYSTEM_TIB *tib;
+    LPCSTR               curdir;
 };
 
 /* allocate the win16 TIB for a new 16-bit task */
@@ -473,11 +474,13 @@ static DWORD CALLBACK task_start( LPVOID p )
 
     kernel_get_thread_data()->htask16 = pTask->hSelf;
     NtCurrentTeb()->Tib.SubSystemTib = data->tib;
-    HeapFree( GetProcessHeap(), 0, data );
 
     _EnterWin16Lock();
     TASK_LinkTask( pTask->hSelf );
     pTask->teb = NtCurrentTeb();
+    if (data->curdir)
+        SetCurrentDirectory16(data->curdir);
+    HeapFree(GetProcessHeap(), 0, data);
     __try
     {
         ret = NE_StartTask();
@@ -497,7 +500,7 @@ static DWORD CALLBACK task_start( LPVOID p )
  * Spawn a new 16-bit task.
  */
 HTASK16 TASK_SpawnTask( NE_MODULE *pModule, WORD cmdShow,
-                        LPCSTR cmdline, BYTE len, HANDLE *hThread )
+                        LPCSTR cmdline, BYTE len, HANDLE *hThread, LPCSTR curdir )
 {
     struct create_data *data = NULL;
     WIN16_SUBSYSTEM_TIB *tib;
@@ -508,6 +511,7 @@ HTASK16 TASK_SpawnTask( NE_MODULE *pModule, WORD cmdShow,
     if (!(data = HeapAlloc( GetProcessHeap(), 0, sizeof(*data)))) goto failed;
     data->task = pTask;
     data->tib = tib;
+    data->curdir = curdir;
     if (!(*hThread = CreateThread( NULL, 0, task_start, data, 0, NULL ))) goto failed;
     return pTask->hSelf;
 

@@ -877,11 +877,13 @@ static void exec16(LOADPARAMS16 params, LPCSTR appname, LPCSTR cmdline, BOOL exi
 
 }
 #include <pshpack1.h>
+#define SHARED_WOW_CURDIR_SUPPORTED 1
 typedef struct {
     WORD header;
     WORD showCmd;
     CHAR appname[MAX_PATH];
     CHAR cmdline[MAX_PATH];
+    CHAR curdir[MAX_PATH];
 } shared_wow_exec;
 #include <poppack.h>
 DWORD exec16_thread(LPVOID args)
@@ -890,14 +892,18 @@ DWORD exec16_thread(LPVOID args)
     HeapFree(GetProcessHeap(), 0, args);
     LOADPARAMS16 params;
     WORD showCmd[2];
+    params.hEnvironment = 0;
+    params.reserved = 0;
+    if (exec_data.header == SHARED_WOW_CURDIR_SUPPORTED)
+    {
+        params.hEnvironment = 0x0bef;
+        params.reserved = &exec_data.curdir;
+    }
     showCmd[0] = 2;
     showCmd[1] = SW_SHOW;
 
-    params.hEnvironment = 0;
-
     params.cmdLine = MapLS(exec_data.cmdline);
     params.showCmd = MapLS(showCmd);
-    params.reserved = 0;
     exec16(params, exec_data.appname, exec_data.cmdline, FALSE);
     return 0;
 }
@@ -914,16 +920,13 @@ HANDLE run_shared_wow_server()
         DisconnectNamedPipe(server);
         if (r)
         {
-            if (read == sizeof(exec_data))
-            {
-                WINE_TRACE("%s %s\n", exec_data.appname, exec_data.cmdline);
-                DWORD threadId;
-                LPVOID data = HeapAlloc(GetProcessHeap(), 0, sizeof(exec_data));
-                memcpy(data, &exec_data, sizeof(exec_data));
-                /* LoadModule16 blocks thread */
-                HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)exec16_thread, data, 0, &threadId);
-                CloseHandle(hThread);
-            }
+            WINE_TRACE("%s %s\n", exec_data.appname, exec_data.cmdline);
+            DWORD threadId;
+            LPVOID data = HeapAlloc(GetProcessHeap(), 0, sizeof(exec_data));
+            memcpy(data, &exec_data, sizeof(exec_data));
+            /* LoadModule16 blocks thread */
+            HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)exec16_thread, data, 0, &threadId);
+            CloseHandle(hThread);
         }
     }
 }
@@ -937,9 +940,11 @@ BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
     /* This magic brings the window to the front. */
     FreeConsole();
     shared_wow_exec exec_data = { 0 };
+    exec_data.header = SHARED_WOW_CURDIR_SUPPORTED;
     exec_data.showCmd = showCmd;
     strcpy_s(exec_data.cmdline, MAX_PATH, cmdline);
     strcpy_s(exec_data.appname, MAX_PATH, appname);
+    GetCurrentDirectoryA(MAX_PATH, exec_data.curdir);
     DWORD w;
     WriteFile(client, &exec_data, sizeof(exec_data), &w, NULL);
     CloseHandle(client);
