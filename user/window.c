@@ -2027,6 +2027,16 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     a.name = wc32.lpszClassName;
     a.local_class_prefix = LOCAL_CLASS_PREFIX;
     arg = (va_list)&a;
+    /*
+    WNDCLASS.hInstance behaviour is mysterious
+    RegisterClass(hInst=0xcafe,...)
+    GetClassInfoEx(hInst=0xcafe,...) success
+    CreateWindow(hInst=0x1234,...) success
+    GetClassInfoEx(hInst=0xbeef,...) success???
+    CreateWindow(hInst=0xbeef,...) fail???
+
+    add hModule prefix to classname
+    */
     if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING, "%1!s!%2!04X!%3!s!%0", NULL, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &buf, 0, &arg))
     {
         wc32.lpszClassName = buf;

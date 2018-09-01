@@ -2343,11 +2343,30 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
         }
         frame32 = ((STACK16FRAME *)MapSL(frame32->frame16))->frame32;
     }
+#if defined(_MSC_VER)
+    __asm
+    {
+        push        edi
+        push        ebx
+        push        esi
+        push        0
+        push        0
+        push        0
+        mov         eax, dword ptr[pFrame]
+        mov         ecx, dword ptr[eax]
+        add         ecx, 8
+        push        ecx
+        call        RtlUnwind
+        pop esi
+        pop ebx
+        pop edi
+    }
+#else
     RtlUnwind( &pFrame->frame32->frame, NULL, NULL, 0 );
-
+#endif
     context->Eip = lpbuf[0];
     context->SegCs  = lpbuf[1];
-    context->Esp = lpbuf[2] + 4 * sizeof(WORD) - sizeof(WORD) /*extra arg*/;
+    context->Esp = lpbuf[2] + 4 * sizeof(WORD) - sizeof(WORD) - sizeof(WORD) /*extra arg*/;
     context->Ebp = lpbuf[3];
     context->Esi = lpbuf[4];
     context->Edi = lpbuf[5];

@@ -1155,7 +1155,12 @@ HBRUSH16 WINAPI CreateBrushIndirect16( const LOGBRUSH16 * brush )
 
     brush32.lbStyle = brush->lbStyle;
     brush32.lbColor = brush->lbColor;
-    brush32.lbHatch = brush->lbHatch;
+    if (brush->lbStyle == BS_PATTERN)
+    {
+        brush32.lbHatch = HBITMAP_32(brush->lbHatch);
+    }
+    else
+        brush32.lbHatch = brush->lbHatch;
     return HBRUSH_16( CreateBrushIndirect(&brush32) );
 }
 
