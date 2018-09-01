@@ -359,7 +359,7 @@ LRESULT call_dialog_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lPar
 {
     SetWindowLong16(hwnd, DWL_MSGRESULT, 0xdeadbeef);
     call_window_proc16(hwnd, msg, wParam, lParam, result, arg);
-    LRESULT r = *result;
+    LRESULT r = (UINT16)*result;/* result: 16-bit */
     if (GetWindowLong16(hwnd, DWL_MSGRESULT) == 0xdeadbeef)
     {
         return r;
