@@ -1151,29 +1151,11 @@ extern "C"
 					CHANGE_PC(m_eip);
 					if (relay == (UINT)relay_call_from_16 || 1)
 					{
-#include <pshpack1.h>
-                        /* 16-bit stack layout after __wine_call_from_16() */
-                        typedef struct _STACK16FRAME
-                        {
-                            struct STACK32FRAME *frame32;        /* 00 32-bit frame from last CallTo16() */
-                            DWORD         edx;            /* 04 saved registers */
-                            DWORD         ecx;            /* 08 */
-                            DWORD         ebp;            /* 0c */
-                            WORD          ds;             /* 10 */
-                            WORD          es;             /* 12 */
-                            WORD          fs;             /* 14 */
-                            WORD          gs;             /* 16 */
-                            DWORD         callfrom_ip;    /* 18 callfrom tail IP */
-                            DWORD         module_cs;      /* 1c module code segment */
-                            DWORD         relay;          /* 20 relay function address */
-                            WORD          entry_ip;       /* 22 entry point IP */
-                            DWORD         entry_point;    /* 26 API entry point to call, reused as mutex count */
-                            WORD          bp;             /* 2a 16-bit stack frame chain */
-                            WORD          ip;             /* 2c return address */
-                            WORD          cs;             /* 2e */
-                        } STACK16FRAME;
-#include <poppack.h>
 						CONTEXT context;
+                        STACK32FRAME dummy_stack32 = { 0 };
+                        dummy_stack32.retaddr = ret_addr;
+                        dummy_stack32.nb_args = cbArgs;
+                        dummy_stack32.frame.Handler = handler;
 						DWORD osp = REG32(ESP);
 						PUSH16(SREG(GS));
 						PUSH16(SREG(FS));
@@ -1182,11 +1164,18 @@ extern "C"
 						PUSH32(REG32(EBP));
 						PUSH32(REG32(ECX));
 						PUSH32(REG32(EDX));
-						PUSH32(osp);
+						PUSH32((DWORD)&dummy_stack32);
 						save_context(&context);
                         STACK16FRAME *oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
 						DWORD ooo = (WORD)context.Esp;
-						int fret;
+                        if (reg)
+                        {
+                            context.Esp = osp + (SIZE_T)stack - (SIZE_T)stack1 - 4;
+                            context.Ebp = bp;
+                            context.Eip = ip19;
+                            context.SegCs = cs16;
+                        }
+                        int fret;
                         if (dasm_buffering)
                         {
                             char *dbuf = dasm_buffer.get_current();
@@ -1203,18 +1192,43 @@ extern "C"
                             vm_debug_get_entry_point(module, func, &ordinal);
                             sprintf(dbuf, "call built-in func %p %s.%d: %s\n", entry, module, ordinal, func);
                         }
-						if (relay != (UINT)relay_call_from_16)
-						{
-							fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
-						}
-						else
-							fret = ((int(*)(void *, unsigned char *, CONTEXT *))relay)((void*)entry, (unsigned char*)args, &context);
+                        LPVOID old;
+                        __asm
+                        {
+                            mov old, esp
+                            push cbArgs
+                            push 0 /* target */
+                            push 0 /* retaddr */
+                            push ebp
+                            push ebx
+                            push esi
+                            push edi
+                            push 0 /* frame16 */
+                            /* set up exception handler */
+                            push handler
+                            mov  eax, fs:[0]
+                            push eax
+                            mov dummy_stack32.frame.Next, eax
+                            mov  fs:[0], esp
+                            push cs
+                            push 0
+                            mov eax, [oa]
+                            mov[eax], esp
+                            lea eax, [context]
+                            push eax
+                            push args
+                            push entry
+                            call relay_call_from_16
+                            add esp, 12 + 8
+                            mov fret, eax
+                            pop dword ptr fs:[0]
+                            pop eax
+                            mov esp,old
+                        }
+					    //fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
 						//int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
 						if (!reg)
 						{
-							//REG16(AX) = fret & 0xFFFF;
-							//REG16(DX) = (fret >> 16) & 0xFFFF;
-							//shld‚³‚ê‚é
 							REG32(EAX) = fret;
 						}
                         oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
@@ -1229,16 +1243,34 @@ extern "C"
 						REG32(ESI) = (DWORD)context.Esi;
 						REG32(EDI) = (DWORD)context.Edi;
                         SREG(ES) = reg ? (WORD)context.SegEs : (WORD)oa->es;
-						SREG(CS) = (WORD)context.SegCs;
 						SREG(SS) = (WORD)context.SegSs;
 						SREG(DS) = reg ? (WORD)context.SegDs : (WORD)oa->ds;//ES, CS, SS, DS
 						//ES, CS, SS, DS, FS, GS
 						SREG(FS) = (WORD)context.SegFs;
 						SREG(GS) = (WORD)context.SegGs;
-						REG16(SP) = osp + 18 + 2;
-						REG16(SP) -= (ooo - context.Esp);
-						REG16(BP) = bp;
-						set_flags(context.EFlags);
+                        if (reg)
+                        {
+                            if (!(ip19 != context.Eip || cs16 != context.SegCs))
+                            {
+                                context.Eip = ip;
+                                context.SegCs = cs;
+                            }
+                            else
+                            {
+                                /* CS:IP changed! */
+                                context.Eip = context.Eip;
+                            }
+                            REG32(ESP) = context.Esp;
+                            REG32(EBP) = context.Ebp;
+                        }
+                        else
+                        {
+                            REG16(SP) = osp + 18 + 2;
+                            REG16(SP) -= (ooo - context.Esp);
+                            REG16(BP) = bp;
+                        }
+                        SREG(CS) = (WORD)context.SegCs;
+                        set_flags(context.EFlags);
 						i386_load_segment_descriptor(ES);
 						i386_load_segment_descriptor(SS);
 						i386_load_segment_descriptor(DS);
