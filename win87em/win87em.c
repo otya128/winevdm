@@ -84,8 +84,10 @@ typedef struct
 } x87function;
 x87function x87;
 typedef void (*load_x87function_t)(x87function *func);
-BOOL WINAPI DllEntryPoint(DWORD reason, HINSTANCE16 inst, WORD ds, WORD heap, DWORD reserved1, WORD reserved2)
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
+    if (fdwReason != DLL_PROCESS_ATTACH)
+        return TRUE;
     char dllname[MAX_PATH];
     load_x87function_t load_x87function;
     krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
