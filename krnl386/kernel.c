@@ -150,8 +150,7 @@ void init__wine_spec_dos_header()
 
 }
 #endif
-//extern void* _wine_spec_dos_header;
-//void** __wine_spec_dos_header;
+const char *GetRedirectWindowsDir();
 /**************************************************************************
  *		DllMain
  */
@@ -189,10 +188,9 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
         {
             ERR("could not allocate WOW32RESERVED_TLS_INDEX!!\n");
         }
+        /* init redirect dir */
+        GetRedirectWindowsDir();
     }
-		//__wine_spec_dos_header = &_wine_spec_dos_header;
-		//PIMAGE_DOS_HEADER dosh = __wine_spec_dos_header;
-		//init__wine_spec_dos_header();
         if (LoadLibrary16( "krnl386.exe" ) < 32) return FALSE;
         /* fall through */
     case DLL_THREAD_ATTACH:
