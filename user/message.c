@@ -2208,8 +2208,16 @@ LRESULT WINAPI DefDlgProc16( HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lP
 BOOL16 WINAPI PeekMessage16( MSG16 *msg, HWND16 hwnd,
                              UINT16 first, UINT16 last, UINT16 flags )
 {
-    WOWYield16();
-    return PeekMessage32_16( (MSG32_16 *)msg, hwnd, first, last, flags, FALSE );
+    BOOL ret = PeekMessage32_16( (MSG32_16 *)msg, hwnd, first, last, flags, FALSE );
+    if (!ret && first == 0 && 0 == last)
+    {
+        DWORD count;
+        ReleaseThunkLock(&count);
+        Sleep(0);
+        /* MsgWaitForMultipleObjects(0, NULL, FALSE, 10, QS_ALLEVENTS); */
+        RestoreThunkLock(count);
+    }
+    return ret;
 }
 
 
