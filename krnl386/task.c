@@ -1598,6 +1598,11 @@ void switch_directory(struct kernel_thread_data *thread_data)
             memcpy(thread_data->curdir_buf, thread_data->true_curdir, thread_data->curdir_len);
             SetCurrentDirectory16(thread_data->true_curdir);
         }
+        if (!old || !old_data || !old_data->curdir_buf)
+        {
+            old = NULL;
+            old_data = NULL;
+        }
         if (old)
         {
             /*
