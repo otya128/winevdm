@@ -393,9 +393,8 @@ BOOL16 WINAPI TaskNext16( TASKENTRY *lpte )
     lpte->hTaskParent   = pTask->hParent;
     lpte->hInst         = pTask->hInstance;
     lpte->hModule       = pTask->hModule;
-    ERR("TaskNext16");
-    lpte->wSS = 0;//SELECTOROF(pTask->teb->WOW32Reserved);
-    lpte->wSP = 0;//OFFSETOF(pTask->teb->WOW32Reserved);
+    lpte->wSS           = SELECTOROF(pTask->teb->TlsSlots[WOW32RESERVED_TLS_INDEX]);
+    lpte->wSP           = OFFSETOF(pTask->teb->TlsSlots[WOW32RESERVED_TLS_INDEX]);
     lpte->wStackTop     = pInstData->stacktop;
     lpte->wStackMinimum = pInstData->stackmin;
     lpte->wStackBottom  = pInstData->stackbottom;
