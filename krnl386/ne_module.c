@@ -864,6 +864,11 @@ static BOOL NE_LoadDLLs( NE_MODULE *pModule )
                     {
                         hDLL = exe;
                     }
+                    else
+                    {
+                        buf[0] = 0;
+                        strcat(buffer, ".DLL");
+                    }
                 }
             }
             else
