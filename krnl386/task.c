@@ -83,6 +83,48 @@ static UINT16 nTaskCount = 0;
 
 static HTASK16 initial_task, main_task;
 
+static BOOL WINAPI TebTlsSetValue(TEB *teb, DWORD index, LPVOID value)
+{
+    if (index < TLS_MINIMUM_AVAILABLE)
+    {
+        teb->TlsSlots[index] = value;
+    }
+    else
+    {
+        index -= TLS_MINIMUM_AVAILABLE;
+        if (index >= 8 * sizeof(teb->Peb->TlsExpansionBitmapBits))
+        {
+            return FALSE;
+        }
+        teb->TlsExpansionSlots[index] = value;
+    }
+    return TRUE;
+}
+
+static LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
+{
+    LPVOID ret;
+
+    if (index < TLS_MINIMUM_AVAILABLE)
+    {
+        ret = teb->TlsSlots[index];
+    }
+    else
+    {
+        index -= TLS_MINIMUM_AVAILABLE;
+        if (index >= 8 * sizeof(teb->Peb->TlsExpansionBitmapBits))
+        {
+            return NULL;
+        }
+        if (!teb->TlsExpansionSlots) ret = NULL;
+        else ret = teb->TlsExpansionSlots[index];
+    }
+    return ret;
+}
+static DWORD curdir_tls_index = -1;
+
+static HTASK16 task_old = NULL;
+static struct kernel_thread_data *task_old_data = NULL;
 /***********************************************************************
  *	     TASK_InstallTHHook
  */
@@ -367,6 +409,12 @@ static void TASK_DeleteTask( HTASK16 hTask )
     HGLOBAL16 hPDB;
 
     if (!(pTask = TASK_GetPtr( hTask ))) return;
+    HeapFree(GetProcessHeap(), 0, TebTlsGetValue(pTask->teb, curdir_tls_index));
+    if (task_old == hTask)
+    {
+        task_old = 0;
+        task_old_data = NULL;
+    }
     hPDB = pTask->hPDB;
 
     pTask->magic = 0xdead; /* invalidate signature */
@@ -1578,11 +1626,13 @@ Emulate an independent current directory for each task
 */
 void switch_directory(struct kernel_thread_data *thread_data)
 {
-    static HTASK16 old = NULL;
-    static struct kernel_thread_data *old_data = NULL;
     if (!thread_data->htask16)
         return;
-    if (old != thread_data->htask16)
+    if (curdir_tls_index == -1)
+    {
+        curdir_tls_index = TlsAlloc();
+    }
+    if (task_old != thread_data->htask16)
     {
         TDB *tdb = TASK_GetCurrent();
         if (!thread_data->curdir_len)
@@ -1592,18 +1642,19 @@ void switch_directory(struct kernel_thread_data *thread_data)
             thread_data->true_curdir[0] = (tdb->curdrive & ~0x80) + 'A';
             thread_data->true_curdir[1] = ':';
             thread_data->curdir_buf = thread_data->true_curdir + thread_data->curdir_len;
+            TebTlsSetValue(tdb->teb ? tdb->teb : NtCurrentTeb(), curdir_tls_index, thread_data->true_curdir);
 
             GetCurrentDirectoryA(thread_data->curdir_len, thread_data->true_curdir);
             GetShortPathNameA(thread_data->true_curdir, thread_data->true_curdir, thread_data->curdir_len);
             memcpy(thread_data->curdir_buf, thread_data->true_curdir, thread_data->curdir_len);
             SetCurrentDirectory16(thread_data->true_curdir);
         }
-        if (!old || !old_data || !old_data->curdir_buf)
+        if (!task_old || !task_old_data || !task_old_data->curdir_buf)
         {
-            old = NULL;
-            old_data = NULL;
+            task_old = NULL;
+            task_old_data = NULL;
         }
-        if (old)
+        if (task_old)
         {
             /*
             save current directory
@@ -1611,30 +1662,30 @@ void switch_directory(struct kernel_thread_data *thread_data)
             true_curdir-> old curdir
             tdb->curdir-> old curdir
             */
-            GetCurrentDirectoryA(old_data->curdir_len, old_data->curdir_buf);
-            if (strcmp(old_data->curdir_buf, old_data->true_curdir))
+            GetCurrentDirectoryA(task_old_data->curdir_len, task_old_data->curdir_buf);
+            if (strcmp(task_old_data->curdir_buf, task_old_data->true_curdir))
             {
                 /* changed */
-                GetShortPathNameA(old_data->curdir_buf, old_data->curdir_buf, old_data->curdir_len);
-                strcpy(old_data->true_curdir, old_data->curdir_buf);
-                TDB *old = ((TDB*)GlobalLock16(old_data->htask16));
-                GetShortPathNameA(old_data->true_curdir + 2, old->curdir, sizeof(old->curdir));
-                GetShortPathNameA(old_data->true_curdir, old_data->true_curdir, old_data->curdir_len);
+                GetShortPathNameA(task_old_data->curdir_buf, task_old_data->curdir_buf, task_old_data->curdir_len);
+                strcpy(task_old_data->true_curdir, task_old_data->curdir_buf);
+                TDB *old = ((TDB*)GlobalLock16(task_old_data->htask16));
+                GetShortPathNameA(task_old_data->true_curdir + 2, old->curdir, sizeof(old->curdir));
+                GetShortPathNameA(task_old_data->true_curdir, task_old_data->true_curdir, task_old_data->curdir_len);
                 if (!thread_data->htask16)
                     old = NULL;
-                old->curdrive = 0x80 | (old_data->true_curdir[0] - 'A');
-                GlobalUnlock16(old_data->htask16);
+                old->curdrive = 0x80 | (task_old_data->true_curdir[0] - 'A');
+                GlobalUnlock16(task_old_data->htask16);
                 /*
                 curdir_buf -> new curdir
                 true_curdir-> new curdir
                 tdb->curdir-> new curdir
                 */
-                TRACE("%.*s %p save cur dir %s\n", 8, old->module_name, old, old_data->true_curdir);
+                TRACE("%.*s %p save cur dir %s\n", 8, old->module_name, old, task_old_data->true_curdir);
             }
         }
         /* restore current directory */
         SetCurrentDirectoryA(thread_data->true_curdir);
-        old_data = thread_data;
-        old = thread_data->htask16;
+        task_old_data = thread_data;
+        task_old = thread_data->htask16;
     }
 }
