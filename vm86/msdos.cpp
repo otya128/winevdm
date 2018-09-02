@@ -698,7 +698,7 @@ extern "C"
 			DWORD d = 0;
 			auto success = SymGetLineFromAddr(process, (DWORD64)current_stack_frame[i], &d, &line);
 			SymFromAddr(process, (DWORD64)(current_stack_frame[i]), 0, symbol);
-			fprintf(stderr, "%i: %s - 0x%llx %s(%d)\n", current_stack_frame_size - i - 1, symbol->Name, symbol->Address, line.FileName, line.LineNumber);
+			fprintf(stderr, "%i: %s+0x%llx - 0x%llx %s(%d)\n", current_stack_frame_size - i - 1, symbol->Name, (ULONG64)current_stack_frame[i] - symbol->Address, symbol->Address, line.FileName, line.LineNumber);
 			if (!strcmp(symbol->Name, "KiUserExceptionDispatcher"))
 			{
 				fprintf(stderr, "=============================\n");
@@ -1518,7 +1518,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
         {
             SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 
-            fprintf(stderr, "%i: %s - 0x%p\n", frames - i - 1, symbol->Name, symbol->Address);
+            fprintf(stderr, "%i: %s+0x%llx - 0x%p\n", frames - i - 1, symbol->Name, (ULONG64)stack[i] - symbol->Address, symbol->Address);
         }
 
         free(symbol);
