@@ -838,6 +838,9 @@ static void exec16(LOADPARAMS16 params, LPCSTR appname, LPCSTR cmdline, BOOL exi
 {
     char *p;
     HINSTANCE16 instance;
+    char shortpath[MAX_PATH];
+    GetShortPathNameA(appname, shortpath, MAX_PATH);
+    appname = shortpath;
 
     if (is_win32_exe(appname))
     {
