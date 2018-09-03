@@ -480,27 +480,6 @@ void copy_widestr(LPCSTR name, LPWSTR *templatew)
 		(*templatew)++;
 	}
 }
-#define DCLASS "_____DIALOGCLASS_____"
-static BOOL init_dialog_class(HINSTANCE hInst)
-{/*
-	static BOOL init = 0;
-	static ATOM catom;
-	if (init) return catom;*/
-	WNDCLASSEXA wc;
-	if (GetClassInfoExA(hInst, DCLASS, &wc))
-	{
-		return 1;
-	}
-	// Get the info for this class.
-	// #32770 is the default class name for dialogs boxes.
-	GetClassInfoExA(hInst, "#32770", &wc);
-	wc.cbSize = sizeof(wc);
-	wc.lpfnWndProc = DefWndProca;
-	wc.lpszClassName = DCLASS;
-	if (RegisterClassExA(&wc))
-		return TRUE;//init = TRUE;
-	return 0;
-}
 /***********************************************************************
 *           DIALOG_CreateControls16
 *
@@ -622,7 +601,6 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
     *templatew++ = 0;
     int len;
     HINSTANCE hInst32 = HINSTANCE_32(hInst);
-    init_dialog_class(hInst32);
     BOOL hasclass = TRUE;
     if (template.className == DIALOG_CLASS_ATOM)
     {
@@ -731,13 +709,12 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	*templatew++ = 0;
 	int len;
 	HINSTANCE hInst32 = HINSTANCE_32(hInst);
-	init_dialog_class(hInst32);
 	BOOL hasclass = TRUE;
 	if (template.className == DIALOG_CLASS_ATOM)
 	{
 		hasclass = FALSE;
 		TRACE("\n");
-		template.className = DCLASS;//"#32770";
+        template.className = "#32770";
 		//*templatew++ = 0;
 		//WNDclass
 		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, (1 + strlen(template.className)) * 4)

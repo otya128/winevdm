@@ -3938,12 +3938,6 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
     //	if (exstyle & WS_EX_DLGMODALFRAME)
     char cbuf[512];
     GetClassNameA(hDlg, cbuf, sizeof(cbuf));
-    if (!stricmp(cbuf, "_____DIALOGCLASS_____")) //GetWindowLongPtrA(hDlg, DWLP_DLGPROC))
-    {
-        WNDCLASSEXA wc;
-        GetClassInfoExA(NULL, "#32770", &wc);
-        return wc.lpfnWndProc(hDlg, Msg, wParam, lParam);
-    }
     if (Msg == WM_INITDIALOG)
     {
         WNDCLASSEXA wc;
