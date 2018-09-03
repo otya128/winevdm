@@ -1278,9 +1278,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             UINT_PTR lo = LOWORD(lParam);
             UINT_PTR hi = HIWORD(lParam);
             int flag = 0;
-            char buf[2];
+            char buf[256];
 
-            if (GlobalGetAtomNameA(hi, buf, 2) > 0) flag |= 1;
+            if (GlobalGetAtomNameA(hi, buf, 256) > 0) flag |= 1;
             if (GlobalSize16(hi) != 0) flag |= 2;
             switch (flag)
             {
@@ -1732,9 +1732,13 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         {
             UINT_PTR lo, hi;
             int flag = 0;
-            char buf[2];
+            char buf[256];
 
-            UnpackDDElParam( msg, lParam, &lo, &hi );
+            if (!UnpackDDElParam( msg, lParam, &lo, &hi ))
+            {
+                lo = LOWORD(lParam);
+                hi = HIWORD(lParam);
+            }
 
             if (GlobalGetAtomNameA((ATOM)hi, buf, sizeof(buf)) > 0) flag |= 1;
             if (GlobalSize((HANDLE)hi) != 0) flag |= 2;
