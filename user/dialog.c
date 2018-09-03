@@ -33,6 +33,22 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(dialog);
 
+#include <pshpack1.h>
+typedef struct
+{
+    BYTE pop_eax; /* 58 */
+    BYTE push_imm; /* 68 */
+    LPVOID this_;
+    BYTE push_eax; /* 50 */
+    BYTE jmp; /* 0xEA */
+    LPVOID DlgProc;
+    WORD cs;
+    BOOL used;
+    HWND hDlg;
+    LPVOID param;
+} DLGPROCTHUNK;
+#include <poppack.h>
+
 /* Dialog control information */
 typedef struct
 {
@@ -359,7 +375,8 @@ LRESULT call_dialog_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lPar
 {
     SetWindowLong16(hwnd, DWL_MSGRESULT, 0xdeadbeef);
     call_window_proc16(hwnd, msg, wParam, lParam, result, arg);
-    LRESULT r = (UINT16)*result;/* result: 16-bit */
+    *result &= 0xffff;
+    LRESULT r = *result;/* result: 16-bit */
     if (GetWindowLong16(hwnd, DWL_MSGRESULT) == 0xdeadbeef)
     {
         return r;
@@ -369,6 +386,35 @@ LRESULT call_dialog_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lPar
         *result = GetWindowLong16(hwnd, DWL_MSGRESULT);
     }
     return r;
+}
+INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK DlgProc_Thunk(DLGPROCTHUNK *thunk_data, HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+    if (!thunk_data->hDlg)
+    {
+        thunk_data->hDlg = hDlg;
+        CREATESTRUCTA* cs = (CREATESTRUCTA*)thunk_data->param;
+        LPARAM *params = cs->lpCreateParams;
+        HMENU hMenu;
+        if (cs->hMenu)
+        {
+            BOOL ret = SetMenu(hDlg, HMENU_32(cs->hMenu));
+        }
+        ATOM classatom = GetClassLongA(hDlg, GCW_ATOM);//WNDPROC16
+        HWND16 hWnd16 = HWND_16(hDlg);
+        if (classatom)
+        {
+            if (params[1])
+            {
+                SetDlgProc16(hWnd16, params[1]);
+            }
+            else
+            {
+                SetDlgProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
+            }
+        }
+    }
+    return DlgProc(hDlg, Msg, wParam, lParam);
 }
 INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
@@ -391,7 +437,8 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
         {
             INT_PTR result = WINPROC_CallProc32ATo16(call_dialog_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
                 &ret, wndproc16);
-            SetWindowLongA(hDlg, DWL_MSGRESULT, ret);
+            if (GetWindowLong16(HWND_16(msg.hwnd), DWL_MSGRESULT) != 0xdeadbeef)
+                SetWindowLongA(hDlg, DWL_MSGRESULT, ret);
             return result;
         }
         }
@@ -401,24 +448,6 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 	{
 		CREATESTRUCTA* cs = (CREATESTRUCTA*)lParam;
 		LPARAM *params = cs->lpCreateParams;
-		HMENU hMenu;
-		if (cs->hMenu)
-		{
-			BOOL ret = SetMenu(hDlg, HMENU_32(cs->hMenu));
-		}
-		ATOM classatom = GetClassLongA(hDlg, GCW_ATOM);//WNDPROC16
-		HWND16 hWnd16 = HWND_16(hDlg);
-		if (classatom)
-		{
-			if (params[1])
-			{
-				SetDlgProc16(hWnd16, params[1]);
-			}
-			else
-			{
-				SetDlgProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
-			}
-		}
 		cs->lpCreateParams = params[0];
 		wndproc16 = GetDlgProc16(hWnd16);
 		if (wndproc16)
@@ -658,6 +687,55 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
         GetClassInfoExA(GetModuleHandle(NULL), template.className, &wc2);
     return template32;
 }
+static DLGPROCTHUNK *thunk_array;
+static int MAX_THUNK;
+static void init_thunk()
+{
+    MAX_THUNK = 4096 / sizeof(DLGPROCTHUNK);
+    thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(DLGPROCTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+}
+DLGPROCTHUNK *init_thunk_data(LPVOID param, int i)
+{
+    thunk_array[i].pop_eax = 0x58;
+    thunk_array[i].push_imm = 0x68;
+    thunk_array[i].this_ = thunk_array + i;
+    thunk_array[i].push_eax = 0x50;
+    thunk_array[i].jmp = 0xEA;
+    thunk_array[i].DlgProc = DlgProc_Thunk;
+    WORD seg_cs;
+    __asm
+    {
+        mov seg_cs, cs
+    }
+    thunk_array[i].cs = seg_cs;
+    thunk_array[i].used = TRUE;
+    thunk_array[i].hDlg = 0;
+    thunk_array[i].param = param;
+    return thunk_array + i;
+}
+DLGPROC allocate_thunk(LPVOID param)
+{
+    init_thunk();
+    for (int i = 0; i < MAX_THUNK; i++)
+    {
+        if (!thunk_array[i].used)
+        {
+            return (DLGPROC)init_thunk_data(param, i);
+        }
+    }
+    for (int i = 0; i < MAX_THUNK; i++)
+    {
+        if (!thunk_array[i].used && thunk_array[i].hDlg)
+        {
+            if (!IsWindow(thunk_array[i].hDlg))
+            {
+                return (DLGPROC)init_thunk_data(param, i);
+            }
+        }
+    }
+    ERR("could not allocate dialog thunk!\n");
+    return DlgProc;
+}
 /***********************************************************************
 *           DIALOG_CreateIndirect16
 *
@@ -793,6 +871,8 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	}
 	paramd = (LPBYTE)paramd - sizeof(CREATESTRUCTA);
     DWORD count;
+    init_thunk();
+    DLGPROC proc = allocate_thunk(paramd);
     ReleaseThunkLock(&count);
 	if (modal)
 	{
@@ -800,7 +880,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 			hInst32,
 			(DLGTEMPLATE*)template32,
 			owner,
-			hasclass ? DlgProc : DlgProc, paramd);
+            proc, paramd);
         RestoreThunkLock(count);
 		return ret;
 	}
@@ -809,7 +889,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		hInst32,
 		(DLGTEMPLATE*)template32,
 		owner,
-		hasclass ? DlgProc : DlgProc, paramd);
+        proc, paramd);
     RestoreThunkLock(count);
 	//SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
 	//SetWindowTheme(hwnd, "", "");
