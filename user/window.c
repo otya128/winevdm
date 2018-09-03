@@ -1602,7 +1602,16 @@ HWND16 WINAPI GetNextWindow16( HWND16 hwnd, WORD flag )
 BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
                               INT16 x, INT16 y, INT16 cx, INT16 cy, WORD flags)
 {
-    return SetWindowPos( WIN_Handle32(hwnd), full_insert_after_hwnd(hwndInsertAfter),
+    HWND hwnd32 = WIN_Handle32(hwnd);
+    if (hwnd == (WORD)HWND_TOPMOST)
+    {
+        hwnd = HWND_TOPMOST;
+    }
+    if (hwnd == (WORD)HWND_NOTOPMOST)
+    {
+        hwnd = HWND_NOTOPMOST;
+    }
+    return SetWindowPos( hwnd32, full_insert_after_hwnd(hwndInsertAfter),
                          x, y, cx, cy, flags );
 }
 

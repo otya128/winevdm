@@ -111,7 +111,7 @@ HANDLE get_handle32(WORD h, HANDLE_DATA handles[])
 {
 	if (is_reserved_handle16(h))
 	{
-		return (INT16)h;
+		return (UINT16)h;
 	}
 	return handles[h].handle32 ? handles[h].handle32 : h;
 }

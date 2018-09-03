@@ -2026,7 +2026,10 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 static LRESULT send_message_timeout_callback( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
                                       LRESULT *result, void *arg )
 {
-    LRESULT success = SendMessageTimeoutA( hwnd, msg, wp, lp, SMTO_BLOCK, 1000, result);
+    DWORD count;
+    ReleaseThunkLock(&count);
+    LRESULT success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_NORMAL, 1000, result);
+    RestoreThunkLock(count);
     if (!success)
     {
         if (GetLastError() == ERROR_TIMEOUT)
@@ -2067,7 +2070,10 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
     }
     else  /* map to 32-bit unicode for inter-thread/process message */
     {
+        TRACE_(message)("(0x%04x) to 32-bit [%04x] wp=%04x lp=%08lx\n", hwnd16, msg, wparam, lparam);
         WINPROC_CallProc16To32A( send_message_timeout_callback, hwnd16, msg, wparam, lparam, &result, NULL );
+        TRACE_(message)("(0x%04x) to 32-bit [%04x] wp=%04x lp=%08lx returned %08lx\n",
+            hwnd16, msg, wparam, lparam, result);
     }
     return result;
 }
