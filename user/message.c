@@ -2428,6 +2428,21 @@ LONG WINAPI DispatchMessage32_16( const MSG32_16 *msg16, BOOL16 wHaveParamHigh )
 }
 
 
+
+static LRESULT is_dialog_message_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
+    LRESULT *result, void *arg)
+{
+    MSG16 *msg16 = (MSG16*)arg;
+    MSG mesg;
+    mesg.message = msg;
+    mesg.wParam = wp;
+    mesg.lParam = lp;
+    mesg.time = msg16->time;
+    mesg.pt.x = msg16->pt.x;
+    mesg.pt.y = msg16->pt.y;
+    *result = IsDialogMessageA(hwnd, &mesg);
+    return *result;
+}
 /***********************************************************************
  *		IsDialogMessage (USER.90)
  */
@@ -2451,6 +2466,11 @@ BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, MSG16 *msg16 )
         msg.pt.x = msg16->pt.x;
         msg.pt.y = msg16->pt.y;
         return IsDialogMessageA( hwndDlg32, &msg );
+    default:
+    {
+        LPARAM result;
+        return WINPROC_CallProc16To32A(is_dialog_message_callback, msg16->hwnd, msg16->message, msg16->wParam, msg16->lParam, &result, msg16);
+    }
     }
 
     if ((hwndDlg32 != msg.hwnd) && !IsChild( hwndDlg32, msg.hwnd )) return FALSE;
