@@ -339,7 +339,8 @@ DWORD TEST(WNDPROC16 func)
     context.SegDs = context.SegEs = SELECTOROF(getWOW32Reserved());
     context.SegFs = wine_get_fs();
     context.SegGs = wine_get_gs();
-    if (!(context.Eax = GetWindowWord( HWND_32(hwnd), GWLP_HINSTANCE ))) context.Eax = context.SegDs;
+    context.Eax = GetWindowWord16(hwnd, GWLP_HINSTANCE) | 1; /* Handle To Sel */
+    if (!context.Eax) context.Eax = context.SegDs;
     context.SegCs = SELECTOROF(func);
     context.Eip   = OFFSETOF(func);
     context.Ebp   = OFFSETOF(getWOW32Reserved()) + FIELD_OFFSET(STACK16FRAME, bp);
@@ -3761,8 +3762,8 @@ static DWORD wait_message16( DWORD count, const HANDLE *handles, DWORD timeout, 
 HWND create_window16( CREATESTRUCTW *cs, LPCWSTR className, HINSTANCE instance, BOOL unicode )
 {
     /* map to module handle */
-    if (instance && !((ULONG_PTR)instance >> 16))
-        instance = HINSTANCE_32( GetExePtr( HINSTANCE_16(instance) ));
+    /*if (instance && !((ULONG_PTR)instance >> 16))
+        instance = HINSTANCE_32( GetExePtr( HINSTANCE_16(instance) ));*/
 
     return wow_handlers32.create_window( cs, className, instance, unicode );
 }

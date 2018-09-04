@@ -1065,7 +1065,7 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
             return h16;
         }
         HINSTANCE h = HINSTANCE_32(GetWindowLongPtrW(WIN_Handle32(hwnd), offset));
-        return h ? HINSTANCE_16(h) : hwnd;
+        return h ? HINSTANCE_16(h) : 0;
     }
     case GWL_ID:
     {
@@ -2527,6 +2527,14 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     CREATESTRUCTA cs;
     char buffer[256];
     HWND hwnd;
+
+    if (instance == NULL)
+    {
+        HTASK16 task = GetCurrentTask();
+        TDB *tdb = GlobalLock16(task);
+        instance = tdb->hInstance;
+        GlobalUnlock16(task);
+    }
 
     /* Fix the coordinates */
 
