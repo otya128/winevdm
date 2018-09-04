@@ -582,7 +582,7 @@ BOOL16 WINAPI EnumChildWindows16( HWND16 parent, WNDENUMPROC16 func, LPARAM lPar
  */
 BOOL16 WINAPI MoveWindow16( HWND16 hwnd, INT16 x, INT16 y, INT16 cx, INT16 cy, BOOL16 repaint )
 {
-    return MoveWindow( WIN_Handle32(hwnd), x, y, cx, cy, repaint );
+    return SetWindowPos16(hwnd, 0, x, y, cx, cy, SWP_NOZORDER | SWP_NOACTIVATE | (repaint ? 0 : SWP_NOREDRAW));
 }
 
 
@@ -1610,6 +1610,15 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
     if (hwnd == (WORD)HWND_NOTOPMOST)
     {
         hwnd = HWND_NOTOPMOST;
+    }
+    if (flags & SWP_NOREDRAW)
+    {
+        RECT rect;
+        GetWindowRect(hwnd32, &rect);
+        if (rect.left == rect.right || rect.bottom == rect.top)
+        {
+            flags &= ~SWP_NOREDRAW;
+        }
     }
     return SetWindowPos( hwnd32, full_insert_after_hwnd(hwndInsertAfter),
                          x, y, cx, cy, flags );
