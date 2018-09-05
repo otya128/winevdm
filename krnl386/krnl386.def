@@ -193,3 +193,16 @@ EXPORTS
   _EnterWin16Lock
   _LeaveWin16Lock
   IsRealModeTask
+
+  RegCloseKey16
+  RegCreateKey16
+  RegDeleteKey16
+  RegDeleteValue16
+  RegEnumKey16
+  RegEnumValue16
+  RegFlushKey16
+  RegOpenKey16
+  RegQueryValue16
+  RegQueryValueEx16
+  RegSetValue16
+  RegSetValueEx16
