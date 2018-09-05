@@ -207,12 +207,12 @@
 207 stub ADDAPPCOMPATFLAG
 
 # WINE internal relays (for Win16 interfaces)
-# 500 cdecl IMalloc16_QueryInterface(ptr ptr ptr) IMalloc16_fnQueryInterface
-# 501 cdecl IMalloc16_AddRef(ptr) IMalloc16_fnAddRef
-# 502 cdecl IMalloc16_Release(ptr) IMalloc16_fnRelease
-# 503 cdecl IMalloc16_Alloc(ptr long) IMalloc16_fnAlloc
-# 504 cdecl IMalloc16_Realloc(ptr segptr long) IMalloc16_fnRealloc
-# 505 cdecl IMalloc16_Free(ptr segptr) IMalloc16_fnFree
-# 506 cdecl IMalloc16_GetSize(ptr segptr) IMalloc16_fnGetSize
-# 507 cdecl IMalloc16_DidAlloc(ptr segptr) IMalloc16_fnDidAlloc
-# 508 cdecl IMalloc16_HeapMinimize(ptr) IMalloc16_fnHeapMinimize
+500 cdecl IMalloc16_QueryInterface(ptr ptr ptr) IMalloc16_fnQueryInterface
+501 cdecl IMalloc16_AddRef(ptr) IMalloc16_fnAddRef
+502 cdecl IMalloc16_Release(ptr) IMalloc16_fnRelease
+503 cdecl IMalloc16_Alloc(ptr long) IMalloc16_fnAlloc
+504 cdecl IMalloc16_Realloc(ptr segptr long) IMalloc16_fnRealloc
+505 cdecl IMalloc16_Free(ptr segptr) IMalloc16_fnFree
+506 cdecl IMalloc16_GetSize(ptr segptr) IMalloc16_fnGetSize
+507 cdecl IMalloc16_DidAlloc(ptr segptr) IMalloc16_fnDidAlloc
+508 cdecl IMalloc16_HeapMinimize(ptr) IMalloc16_fnHeapMinimize
