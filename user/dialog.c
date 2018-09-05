@@ -404,14 +404,7 @@ INT_PTR CALLBACK DlgProc_Thunk(DLGPROCTHUNK *thunk_data, HWND hDlg, UINT Msg, WP
         HWND16 hWnd16 = HWND_16(hDlg);
         if (classatom)
         {
-            if (params[1])
-            {
-                SetDlgProc16(hWnd16, params[1]);
-            }
-            else
-            {
-                SetDlgProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
-            }
+            SetDlgProc16(hWnd16, params[1]);
         }
     }
     return DlgProc(hDlg, Msg, wParam, lParam);
@@ -455,23 +448,15 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 			LRESULT unused;
 			call_window_proc16(hWnd16, WM_INITDIALOG, HWND_16(wParam), cs->lpCreateParams, &unused, wndproc16);
 		}
+        else
+        {
+            /* remove dialog proc */
+            SetWindowLongPtrA(hDlg, DWLP_DLGPROC, NULL);
+        }
 		free(cs);
         ret = 1;
 	}
 		break;
-	case WM_COMMAND:
-		switch (LOWORD(wParam)) {
-		case IDCANCEL:
-			EndDialog(hDlg, IDCANCEL);
-			return TRUE;
-		case IDOK:
-			EndDialog(hDlg, IDOK);
-			return TRUE;
-		}
-		return FALSE;
-	case WM_CLOSE:
-		EndDialog(hDlg, IDCANCEL);
-		return TRUE;
 	}
 
 	return ret;
