@@ -12,7 +12,7 @@
 13 stub OLECOPYTOCLIPBOARD
 14 pascal -ret16 OleQueryType(ptr segptr) OleQueryType16
 15 pascal OleSetHostNames(long str str) OleSetHostNames16
-16 stub OLESETTARGETDEVICE
+16 pascal OleSetTargetDevice(long word) OleSetTargetDevice16
 17 stub OLESETBOUNDS
 18 pascal OleQueryBounds(long ptr) OleQueryBounds16
 19 pascal OleDraw(long word ptr ptr word) OleDraw16

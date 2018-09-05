@@ -378,3 +378,37 @@ OLESTATUS WINAPI OleActivate16(LPOLEOBJECT oleobj, UINT uint, BOOL b1, BOOL b2, 
     OLESTATUS status = OleActivate(oleobj32, uint, b1, b2, HWND_32(hwnd), rect ? &rect32 : NULL);
     return status;
 }
+
+#include <pshpack1.h>
+typedef struct {
+    UINT16 otdDeviceNameOffset;
+    UINT16 otdDriverNameOffset;
+    UINT16 otdPortNameOffset;
+    UINT16 otdExtDevmodeOffset;
+    UINT16 otdExtDevmodeSize;
+    UINT16 otdEnvironmentOffset;
+    UINT16 otdEnvironmentSize;
+    BYTE otdData[1];
+} OLETARGETDEVICE16;
+#include <poppack.h>
+OLESTATUS WINAPI OleSetTargetDevice16(LPOLEOBJECT oleobj, HGLOBAL16 hotd)
+{
+    OLETARGETDEVICE16 *otd = GlobalLock16(hotd);
+    DWORD size = GlobalSize16(hotd);
+    DWORD exdata = size - sizeof(OLETARGETDEVICE16) + 1;
+    HGLOBAL hotd32 = GlobalAlloc(0, sizeof(OLETARGETDEVICE) + exdata);
+    OLETARGETDEVICE *otd32 = GlobalLock(hotd32);
+    otd32->otdDeviceNameOffset = otd->otdDeviceNameOffset;
+    otd32->otdDriverNameOffset = otd->otdDriverNameOffset;
+    otd32->otdPortNameOffset = otd->otdPortNameOffset;
+    otd32->otdExtDevmodeOffset = otd->otdExtDevmodeOffset;
+    otd32->otdExtDevmodeSize = otd->otdExtDevmodeSize;
+    otd32->otdEnvironmentOffset = otd->otdEnvironmentOffset;
+    otd32->otdEnvironmentSize = otd->otdEnvironmentSize;
+    memcpy(&otd32->otdData, &otd->otdData, exdata);
+    OLESTATUS status = OleSetTargetDevice(oleobj, otd32);
+    GlobalUnlock(otd32);
+    GlobalFree(hotd32);
+    GlobalUnlock16(hotd);
+    return status;
+}
