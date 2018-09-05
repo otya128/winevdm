@@ -34,7 +34,7 @@
 34 stub WRITESTRINGSTREAM
 35 pascal RegisterDragDrop(word segptr) RegisterDragDrop16
 36 pascal RevokeDragDrop(word) RevokeDragDrop16
-37 stub DODRAGDROP
+37 pascal DoDragDrop(ptr ptr long ptr) DoDragDrop16
 38 stub CREATEOLEADVISEHOLDER
 39 stub CREATEDATAADVISEHOLDER
 40 stub OLECREATEMENUDESCRIPTOR

@@ -413,3 +413,10 @@ HRESULT WINAPI WriteClassStg16(IStorage *stg, REFCLSID clsid)
     FIXME("stub:%p %s\n", stg, debugstr_guid(clsid));
     return STG_E_MEDIUMFULL;
 }
+
+HRESULT WINAPI DoDragDrop16(LPDATAOBJECT pDataObj, LPDROPSOURCE pDropSource, DWORD dwOKEffects, LPDWORD pdwEffect)
+{
+    /* return DoDragDrop(pDataObj, pDropSource, dwOKEffects, pdwEffect); */
+    FIXME("(%p,%p,%x,%p),stub!\n", pDataObj, pDropSource, dwOKEffects, pdwEffect);
+    return S_OK;
+}
