@@ -528,7 +528,10 @@ INT16 WINAPI InitApp16( HINSTANCE16 hInstance )
  */
 BOOL16 WINAPI ExitWindows16( DWORD dwReturnCode, UINT16 wReserved )
 {
-    return ExitWindowsEx( EWX_LOGOFF, 0xffffffff );
+    int result = MessageBoxA(NULL, "ExitWindows?", "ExitWindows", MB_SYSTEMMODAL | MB_YESNO);
+    if (result == IDOK)
+        return ExitWindowsEx( EWX_LOGOFF, 0xffffffff );
+    ExitProcess(0);
 }
 
 
@@ -1650,7 +1653,7 @@ BOOL16 WINAPI ExitWindowsExec16( LPCSTR lpszExe, LPCSTR lpszParams )
 {
     TRACE("Should run the following in DOS-mode: \"%s %s\"\n",
           lpszExe, lpszParams);
-    return ExitWindowsEx( EWX_LOGOFF, 0xffffffff );
+    return ExitWindows16(0, 0);
 }
 
 
