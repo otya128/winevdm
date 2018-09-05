@@ -674,7 +674,7 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
 }
 static DLGPROCTHUNK *thunk_array;
 static int MAX_THUNK;
-static void init_thunk()
+static void init_proc_thunk()
 {
     MAX_THUNK = 4096 / sizeof(DLGPROCTHUNK);
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(DLGPROCTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
@@ -698,9 +698,9 @@ DLGPROCTHUNK *init_thunk_data(LPVOID param, int i)
     thunk_array[i].param = param;
     return thunk_array + i;
 }
-DLGPROC allocate_thunk(LPVOID param)
+DLGPROC allocate_proc_thunk(LPVOID param)
 {
-    init_thunk();
+    init_proc_thunk();
     for (int i = 0; i < MAX_THUNK; i++)
     {
         if (!thunk_array[i].used)
@@ -856,8 +856,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	}
 	paramd = (LPBYTE)paramd - sizeof(CREATESTRUCTA);
     DWORD count;
-    init_thunk();
-    DLGPROC proc = allocate_thunk(paramd);
+    DLGPROC proc = allocate_proc_thunk(paramd);
     ReleaseThunkLock(&count);
 	if (modal)
 	{
