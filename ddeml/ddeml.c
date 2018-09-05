@@ -309,7 +309,11 @@ HCONV WINAPI DdeConnect16(DWORD idInst, HSZ hszService, HSZ hszTopic,
 
     if (pCC16)
         map1632_conv_context(pCC = &cc, pCC16);
-    return DdeConnect(idInst, hszService, hszTopic, pCC);
+    DWORD count;
+    ReleaseThunkLock(&count);
+    HCONV result = DdeConnect(idInst, hszService, hszTopic, pCC);
+    RestoreThunkLock(count);
+    return result;
 }
 
 /*****************************************************************
