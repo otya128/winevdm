@@ -518,7 +518,8 @@ BOOL16 WINAPI LocalInit16( HANDLE16 selector, WORD start, WORD end )
     ret = TRUE;
 
  done:
-    CURRENT_STACK16->ecx = ret;  /* must be returned in cx too */
+    if (CURRENT_STACK16)
+        CURRENT_STACK16->ecx = ret;  /* must be returned in cx too */
     return ret;
 }
 
