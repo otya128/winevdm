@@ -46,6 +46,11 @@ static DWORD (WINAPI *pRegSetValueExA)(HKEY,LPCSTR,DWORD,DWORD,const BYTE*,DWORD
 
 static HMODULE advapi32;
 
+static BOOL enable_registry_redirection;
+static HKEY registry_redirection_root;
+static HKEY registry_redirection_classes;
+static HKEY registry_redirection_current_user;
+static HKEY registry_redirection_local_machine;
 
 /* 0 and 1 are valid rootkeys in win16 shell.dll and are used by
  * some programs. Do not remove those cases. -MM
@@ -53,10 +58,42 @@ static HMODULE advapi32;
 static inline void fix_win16_hkey( HKEY *hkey )
 {
     if (*hkey == 0 || *hkey == (HKEY)1) *hkey = HKEY_CLASSES_ROOT;
+    if (enable_registry_redirection && *hkey == HKEY_CLASSES_ROOT)
+    {
+        *hkey = registry_redirection_classes;
+    }
+    if (enable_registry_redirection && *hkey == HKEY_CURRENT_USER)
+    {
+        *hkey = registry_redirection_current_user;
+    }
+    if (enable_registry_redirection && *hkey == HKEY_LOCAL_MACHINE)
+    {
+        *hkey = registry_redirection_local_machine;
+    }
 }
 
+static BOOL is_redir_root_key(HKEY key)
+{
+    if (!enable_registry_redirection)
+        return FALSE;
+    return key == registry_redirection_classes;
+}
 static void init_func_ptrs(void)
 {
+    enable_registry_redirection = krnl386_get_config_int("otvdm", "EnableRegistryRedirection", FALSE);
+    if (enable_registry_redirection)
+    {
+        LONG result = 0;
+        result = result || RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\otvdm\\", 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &registry_redirection_root, NULL);
+        result = result || RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\otvdm\\HKEY_CLASSES_ROOT\\", 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &registry_redirection_classes, NULL);
+        result = result || RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\otvdm\\HKEY_CURRENT_USER\\", 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &registry_redirection_current_user, NULL);
+        result = result || RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\otvdm\\HKEY_LOCAL_MACHINE\\", 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &registry_redirection_local_machine, NULL);
+        if (result)
+        {
+            ERR("Could not init EnableRegistryRedirection\n");
+            enable_registry_redirection = FALSE;
+        }
+    }
     advapi32 = LoadLibraryA("advapi32.dll");
     if (!advapi32)
     {
@@ -79,6 +116,12 @@ static void init_func_ptrs(void)
 #undef GET_PTR
 }
 
+
+static BOOL is_empty(LPCSTR name)
+{
+    return name == NULL || name[0] == 0;
+}
+
 /******************************************************************************
  *           RegEnumKey   [KERNEL.216]
  */
@@ -86,7 +129,26 @@ DWORD WINAPI RegEnumKey16( HKEY hkey, DWORD index, LPSTR name, DWORD name_len )
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegEnumKeyA( hkey, index, name, name_len );
+    DWORD result = pRegEnumKeyA( hkey, index, name, name_len );
+    return result;
+}
+
+static void fix_redir_key(PHKEY retkey, LPDWORD result)
+{
+    if (!enable_registry_redirection)
+        return;
+    if (*retkey == registry_redirection_classes)
+    {
+        *retkey = HKEY_CLASSES_ROOT;
+    }
+    if (*retkey == registry_redirection_local_machine)
+    {
+        *retkey = HKEY_LOCAL_MACHINE;
+    }
+    if (*retkey == registry_redirection_current_user)
+    {
+        *retkey = HKEY_CURRENT_USER;
+    }
 }
 
 /******************************************************************************
@@ -96,7 +158,9 @@ DWORD WINAPI RegOpenKey16( HKEY hkey, LPCSTR name, PHKEY retkey )
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegOpenKeyA( hkey, name, retkey );
+    DWORD result = pRegOpenKeyA( hkey, name, retkey );
+    fix_redir_key(retkey, &result);
+    return result;
 }
 
 /******************************************************************************
@@ -106,7 +170,16 @@ DWORD WINAPI RegCreateKey16( HKEY hkey, LPCSTR name, PHKEY retkey )
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegCreateKeyA( hkey, name, retkey );
+    DWORD result;
+    if (is_redir_root_key(hkey) && is_empty(name))
+    {
+        *retkey = hkey;
+        fix_redir_key(retkey, &result);
+        return ERROR_SUCCESS;
+    }
+    result = pRegCreateKeyA(hkey, name, retkey);
+    fix_redir_key(retkey, &result);
+    return result;
 }
 
 /******************************************************************************
@@ -116,7 +189,10 @@ DWORD WINAPI RegDeleteKey16( HKEY hkey, LPCSTR name )
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegDeleteKeyA( hkey, name );
+    if (is_redir_root_key(hkey) && is_empty(name))
+        return ERROR_SUCCESS;
+    DWORD result = pRegDeleteKeyA( hkey, name );
+    return result;
 }
 
 /******************************************************************************
@@ -126,7 +202,10 @@ DWORD WINAPI RegCloseKey16( HKEY hkey )
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegCloseKey( hkey );
+    if (is_redir_root_key(hkey))
+        return ERROR_SUCCESS;
+    DWORD result = pRegCloseKey( hkey );
+    return result;
 }
 
 /******************************************************************************
@@ -136,7 +215,8 @@ DWORD WINAPI RegSetValue16( HKEY hkey, LPCSTR name, DWORD type, LPCSTR data, DWO
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegSetValueA( hkey, name, type, data, count );
+    DWORD result = pRegSetValueA( hkey, name, type, data, count );
+    return result;
 }
 
 /******************************************************************************
@@ -146,7 +226,10 @@ DWORD WINAPI RegDeleteValue16( HKEY hkey, LPSTR name )
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegDeleteValueA( hkey, name );
+    if (is_redir_root_key(hkey) && is_empty(name))
+        return ERROR_SUCCESS;
+    DWORD result = pRegDeleteValueA( hkey, name );
+    return result;
 }
 
 /******************************************************************************
@@ -157,7 +240,8 @@ DWORD WINAPI RegEnumValue16( HKEY hkey, DWORD index, LPSTR value, LPDWORD val_co
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegEnumValueA( hkey, index, value, val_count, reserved, type, data, count );
+    DWORD result = pRegEnumValueA( hkey, index, value, val_count, reserved, type, data, count );
+    return result;
 }
 
 /******************************************************************************
@@ -176,7 +260,8 @@ DWORD WINAPI RegQueryValue16( HKEY hkey, LPCSTR name, LPSTR data, LPDWORD count 
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
     if (count) *count &= 0xffff;
-    return pRegQueryValueA( hkey, name, data, (LONG*) count );
+    DWORD result = pRegQueryValueA( hkey, name, data, (LONG*) count );
+    return result;
 }
 
 /******************************************************************************
@@ -187,7 +272,8 @@ DWORD WINAPI RegQueryValueEx16( HKEY hkey, LPCSTR name, LPDWORD reserved, LPDWOR
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegQueryValueExA( hkey, name, reserved, type, data, count );
+    DWORD result = pRegQueryValueExA( hkey, name, reserved, type, data, count );
+    return result;
 }
 
 /******************************************************************************
@@ -199,7 +285,8 @@ DWORD WINAPI RegSetValueEx16( HKEY hkey, LPCSTR name, DWORD reserved, DWORD type
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
     if (!count && (type==REG_SZ)) count = strlen( (const char *)data );
-    return pRegSetValueExA( hkey, name, reserved, type, data, count );
+    DWORD result = pRegSetValueExA( hkey, name, reserved, type, data, count );
+    return result;
 }
 
 /******************************************************************************
@@ -209,5 +296,6 @@ DWORD WINAPI RegFlushKey16( HKEY hkey )
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    return pRegFlushKey( hkey );
+    DWORD result = pRegFlushKey( hkey );
+    return result;
 }
