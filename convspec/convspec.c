@@ -52,6 +52,13 @@ int main(int argc, char* argv[])
     init_dll_name(spec);
 	if (argc > 2)
 	{
+        if (!strcmp(argv[2], "--heap"))
+        {
+            spec->heap_size = atoi(argv[3]);
+            argv += 2;
+            argc -= 2;
+        }
+
 		if (!strcmp(argv[2], "-DEF"))
 		{
 			exec_mode = MODE_DEF;
