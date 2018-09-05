@@ -196,7 +196,10 @@ OLESTATUS WINAPI OleBlockServer16(LHSERVER hServer)
 */
 OLESTATUS WINAPI OleUnblockServer16(LHSERVER hServer, BOOL16 *block)
 {
-    return OleUnblockServer(hServer, block);
+    BOOL block32 = *block;
+    OLESTATUS status = OleUnblockServer(hServer, &block32);
+    *block = block32;
+    return status;
 }
 typedef struct _OLESERVERDOCVTBL16 {
     SEGPTR Save;
@@ -218,31 +221,31 @@ OLESTATUS CALLBACK ole_doc_Save(LPOLESERVERDOC document)
 {
     return OLE_OK;
 }
-OLESTATUS CALLBACK ole_doc_Close      (LPOLESERVERDOC document)
+OLESTATUS CALLBACK ole_doc_Close(LPOLESERVERDOC document)
 {
     return OLE_OK;
 }
-OLESTATUS CALLBACK ole_doc_SetHostNames (LPOLESERVERDOC document, OLE_LPCSTR name1, OLE_LPCSTR name2)
+OLESTATUS CALLBACK ole_doc_SetHostNames(LPOLESERVERDOC document, OLE_LPCSTR name1, OLE_LPCSTR name2)
 {
     return OLE_OK;
 }
-OLESTATUS CALLBACK ole_doc_SetDocDimensions (LPOLESERVERDOC document, OLE_CONST RECT FAR* rect)
+OLESTATUS CALLBACK ole_doc_SetDocDimensions(LPOLESERVERDOC document, OLE_CONST RECT FAR* rect)
 {
     return OLE_OK;
 }
-OLESTATUS CALLBACK ole_doc_GetObject  (LPOLESERVERDOC document, OLE_LPCSTR name, LPOLEOBJECT FAR* object, LPOLECLIENT client)
+OLESTATUS CALLBACK ole_doc_GetObject(LPOLESERVERDOC document, OLE_LPCSTR name, LPOLEOBJECT FAR* object, LPOLECLIENT client)
 {
     return OLE_OK;
 }
-OLESTATUS CALLBACK ole_doc_Release    (LPOLESERVERDOC document)
+OLESTATUS CALLBACK ole_doc_Release(LPOLESERVERDOC document)
 {
     return OLE_OK;
 }
-OLESTATUS CALLBACK ole_doc_SetColorScheme (LPOLESERVERDOC document, OLE_CONST LOGPALETTE FAR* palette)
+OLESTATUS CALLBACK ole_doc_SetColorScheme(LPOLESERVERDOC document, OLE_CONST LOGPALETTE FAR* palette)
 {
     return OLE_OK;
 }
-OLESTATUS CALLBACK ole_doc_Execute   (LPOLESERVERDOC document, HGLOBAL h)
+OLESTATUS CALLBACK ole_doc_Execute(LPOLESERVERDOC document, HGLOBAL h)
 {
     return OLE_OK;
 }
