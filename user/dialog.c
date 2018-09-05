@@ -516,7 +516,7 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		paddingDWORD(&dlgItemTemplate32);
 		template = DIALOG_GetControl16(template, &info);
 		//segptr = MapLS(info.data);
-		dlgItemTemplate32->style = info.style | WS_CHILD | WS_VISIBLE;
+        dlgItemTemplate32->style = info.style | WS_CHILD;
 		dlgItemTemplate32->dwExtendedStyle = 0;// WS_EX_NOPARENTNOTIFY;
 		dlgItemTemplate32->x = info.x;
 		dlgItemTemplate32->y = info.y;
