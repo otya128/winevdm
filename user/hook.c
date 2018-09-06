@@ -64,9 +64,11 @@ static const HOOKPROC hook_procs[NB_HOOKS16] =
 
 struct hook16_queue_info
 {
-    INT        id;                /* id of current hook */
-    HHOOK      hook[NB_HOOKS16];  /* Win32 hook handles */
-    HOOKPROC16 proc[NB_HOOKS16];  /* 16-bit hook procedures */
+    INT         id;                /* id of current hook */
+    HHOOK       hook[NB_HOOKS16];  /* Win32 hook handles */
+    HOOKPROC16  proc[NB_HOOKS16];  /* 16-bit hook procedures */
+    HTASK16     htask16[NB_HOOKS16];
+    HINSTANCE16 hinst16[NB_HOOKS16];
 };
 
 static struct hook16_queue_info *get_hook_info( BOOL create )
@@ -123,14 +125,26 @@ static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp )
     WORD args[4];
     DWORD ret;
     INT prev_id = info->id;
+    CONTEXT context;
     info->id = id;
 
     args[3] = code;
     args[2] = wp;
     args[1] = HIWORD(lp);
     args[0] = LOWORD(lp);
-    WOWCallback16Ex( (DWORD)info->proc[id - WH_MINHOOK], WCB16_PASCAL, sizeof(args), args, &ret );
+    memset(&context, 0, sizeof(context));
+    context.SegDs = context.SegEs = SELECTOROF(getWOW32Reserved());
+    context.SegFs = wine_get_fs();
+    context.SegGs = wine_get_gs();
+    context.Eax = info->hinst16[id - WH_MINHOOK] | 1; /* Handle To Sel */
+    if (!context.Eax) context.Eax = context.SegDs;
+    context.SegCs = SELECTOROF((DWORD)info->proc[id - WH_MINHOOK]);
+    context.Eip = OFFSETOF((DWORD)info->proc[id - WH_MINHOOK]);
+    context.Ebp = OFFSETOF(getWOW32Reserved()) + FIELD_OFFSET(STACK16FRAME, bp);
+    //WOWCallback16Ex( (DWORD)info->proc[id - WH_MINHOOK], WCB16_PASCAL, sizeof(args), args, &ret );
+    WOWCallback16Ex( (DWORD)info->proc[id - WH_MINHOOK], WCB16_REGS | WCB16_PASCAL, sizeof(args), args, (LPDWORD)&context );
 
+    ret = MAKELONG(LOWORD(context.Eax), LOWORD(context.Edx));
     info->id = prev_id;
 
     /* Grrr. While the hook procedure is supposed to have an LRESULT return
@@ -464,6 +478,8 @@ HHOOK WINAPI SetWindowsHookEx16( INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, H
     if (!(hook = SetWindowsHookExA( id, hook_procs[index], 0, GetCurrentThreadId() ))) return 0;
     info->hook[index] = hook;
     info->proc[index] = proc;
+    info->hinst16[index] = hInst;
+    info->htask16[index] = hTask;
     return hook;
 }
 
@@ -482,6 +498,8 @@ BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
     if (!UnhookWindowsHookEx( info->hook[index] )) return FALSE;
     info->hook[index] = 0;
     info->proc[index] = 0;
+    info->hinst16[index] = 0;
+    info->htask16[index] = 0;
     return TRUE;
 }
 
