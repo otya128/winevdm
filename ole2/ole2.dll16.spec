@@ -146,13 +146,13 @@
 161 variable _IID_IRunnableObject(0x00000126 0x00000000 0x000000c0 0x46000000)
 
 # WINE MemLockBytes implementation.
-# 500 cdecl HGLOBALLockBytesImpl16_QueryInterface(segptr ptr ptr) HGLOBALLockBytesImpl16_QueryInterface
-# 501 cdecl HGLOBALLockBytesImpl16_AddRef(ptr) HGLOBALLockBytesImpl16_AddRef
-# 502 cdecl HGLOBALLockBytesImpl16_Release(ptr) HGLOBALLockBytesImpl16_Release
-# 503 cdecl HGLOBALLockBytesImpl16_ReadAt(ptr int64 ptr long ptr) HGLOBALLockBytesImpl16_ReadAt
-# 504 cdecl HGLOBALLockBytesImpl16_WriteAt(ptr int64 ptr long ptr) HGLOBALLockBytesImpl16_WriteAt
-# 505 cdecl HGLOBALLockBytesImpl16_Flush(ptr) HGLOBALLockBytesImpl16_Flush
-# 506 cdecl HGLOBALLockBytesImpl16_SetSize(ptr int64) HGLOBALLockBytesImpl16_SetSize
-# 507 cdecl HGLOBALLockBytesImpl16_LockRegion(ptr int64 int64 long) HGLOBALLockBytesImpl16_LockRegion
-# 508 cdecl HGLOBALLockBytesImpl16_UnlockRegion(ptr int64 int64 long) HGLOBALLockBytesImpl16_UnlockRegion
-# 509 cdecl HGLOBALLockBytesImpl16_Stat(ptr ptr long) HGLOBALLockBytesImpl16_Stat
+500 cdecl HGLOBALLockBytesImpl16_QueryInterface(segptr ptr ptr) HGLOBALLockBytesImpl16_QueryInterface
+501 cdecl HGLOBALLockBytesImpl16_AddRef(ptr) HGLOBALLockBytesImpl16_AddRef
+502 cdecl HGLOBALLockBytesImpl16_Release(ptr) HGLOBALLockBytesImpl16_Release
+503 cdecl HGLOBALLockBytesImpl16_ReadAt(ptr int64 ptr long ptr) HGLOBALLockBytesImpl16_ReadAt
+504 cdecl HGLOBALLockBytesImpl16_WriteAt(ptr int64 ptr long ptr) HGLOBALLockBytesImpl16_WriteAt
+505 cdecl HGLOBALLockBytesImpl16_Flush(ptr) HGLOBALLockBytesImpl16_Flush
+506 cdecl HGLOBALLockBytesImpl16_SetSize(ptr int64) HGLOBALLockBytesImpl16_SetSize
+507 cdecl HGLOBALLockBytesImpl16_LockRegion(ptr int64 int64 long) HGLOBALLockBytesImpl16_LockRegion
+508 cdecl HGLOBALLockBytesImpl16_UnlockRegion(ptr int64 int64 long) HGLOBALLockBytesImpl16_UnlockRegion
+509 cdecl HGLOBALLockBytesImpl16_Stat(ptr ptr long) HGLOBALLockBytesImpl16_Stat
