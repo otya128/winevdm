@@ -708,13 +708,145 @@ extern "C"
 		free(symbol);
 		current_stack_frame_size = 0;
 	}
+    BOOL WINAPI dump(DWORD CtrlType)
+    {
+        DWORD pid = GetCurrentProcessId();
+        DWORD tid = GetCurrentThreadId();
+        HANDLE hThreadSnap = INVALID_HANDLE_VALUE;
+        THREADENTRY32 te32;
+        hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+        if (hThreadSnap == INVALID_HANDLE_VALUE)
+            return false;
+        te32.dwSize = sizeof(THREADENTRY32);
+        if (!Thread32First(hThreadSnap, &te32))
+        {
+            CloseHandle(hThreadSnap);
+            return false;
+        }
+        do
+        {
+            if (te32.th32OwnerProcessID == pid)
+            {
+                if (tid != te32.th32ThreadID)
+                {
+                    HANDLE threads = OpenThread(THREAD_SUSPEND_RESUME, FALSE, te32.th32ThreadID);
+                    SuspendThread(threads);
+                    CloseHandle(threads);
+                }
+            }
+        } while (Thread32Next(hThreadSnap, &te32));
+        CloseHandle(hThreadSnap);
+        /* prevent deadlock */
+        FILE *err = fdopen(dup(fileno(stderr)), "w");
+
+        __try
+        {
+            char buffer[256];
+#if defined(HAS_I386)
+            UINT64 eip = m_eip;
+#else
+            UINT64 eip = m_pc - SREG_BASE(CS);
+#endif
+            UINT8 *oprom = mem + SREG_BASE(CS) + eip;
+
+            int result;
+            for (int i = 0; i < 8192; i++)
+            {
+                LDT_ENTRY entry = wine_ldt[i];
+                DWORD base = entry.BaseLow | (entry.HighWord.Bytes.BaseMid << 16);
+                DWORD limit = entry.LimitLow;
+                if (!base)
+                    continue;
+                if ((entry.HighWord.Bytes.Flags1 & 0x0018) == 0x0018)
+                {
+
+                }
+                else if ((entry.HighWord.Bytes.Flags1 & 0x0010) != 0)
+                    continue;
+                fprintf(err, "%04X %p-%p\n", i << 3 | 7, base, limit);
+                __try
+                {
+                    for (int j = 0; j < limit; )
+                    {
+                        m_eip = j;
+                        m_sreg[CS].selector = i << 3 | 7;
+                        i386_load_segment_descriptor(CS);
+                        m_operand_size = m_sreg[CS].d;
+                        m_xmm_operand_size = 0;
+                        m_address_size = m_sreg[CS].d;
+                        m_operand_prefix = 0;
+                        m_address_prefix = 0;
+                        m_operand_size = m_address_size = 0;
+                        i386_jmp_far(i << 3 | 7, j); eip = m_eip; oprom = mem + SREG_BASE(CS) + eip;
+                        /* call */
+                        if (*oprom == 0x9A &&!m_sreg[CS].d)
+                        {
+                            WORD addr = *(LPWORD)(oprom + 1);
+                            WORD seg = *(LPWORD)(oprom + 3);
+                            LPLDT_ENTRY entry = wine_ldt + (seg >> 3);
+                            LPBYTE base = (LPBYTE)wine_ldt_get_base(entry);
+                            LPBYTE relay = base + addr;
+                            relay += 2; /* push bp */
+                            relay += 1; /* push func */
+                            LPVOID func = (LPVOID)relay;
+                            relay += 4;
+                            STACK16FRAME frame = { 0 };
+                            frame.module_cs = seg;
+                            frame.entry_ip = addr + 7;
+                            STACK16FRAME *framep = (STACK16FRAME*)(SREG_BASE(SS) + REG32(ESP));
+                            *framep = frame;
+                            dynamic_setWOW32Reserved((LPVOID)(SREG(SS) << 16 | REG16(SP)));
+                            {
+                                typedef void(*vm_debug_get_entry_point_t)(char *module, char *func, WORD *ordinal);
+                                static vm_debug_get_entry_point_t vm_debug_get_entry_point;
+                                if (!vm_debug_get_entry_point)
+                                {
+                                    vm_debug_get_entry_point = (vm_debug_get_entry_point_t)GetProcAddress(LoadLibraryA(KRNL386), "vm_debug_get_entry_point");
+                                }
+                                char module[100], func[100];
+                                WORD ordinal = 0;
+                                vm_debug_get_entry_point(module, func, &ordinal);
+                                fprintf(err, "call built-in func %p %s.%d: %s\n", entry, module, ordinal, func);
+                            }
+                        }
+                        result = i386_dasm_one_ex(buffer, eip, oprom, 16);// CPU_DISASSEMBLE_CALL(x86_32);//i386_dasm_one_ex(buffer, 0, (UINT8*)(base + j), 16);
+                        fprintf(err, "%04X:%04X %s\n", i << 3 | 7, j, buffer);
+                        j += result & 0xFF;
+                    }
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+
+                }
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+
+        }
+        return FALSE;
+
+    }
 	LONG NTAPI vm86_vectored_exception_handler(struct _EXCEPTION_POINTERS *ExceptionInfo)
 	{
 		capture_stack_trace();
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
+    typedef WORD(*get_native_wndproc_segment_t)();
+    typedef DWORD(*call_native_wndproc_context_t)(CONTEXT *context);
+    get_native_wndproc_segment_t get_native_wndproc_segment;
+    call_native_wndproc_context_t call_native_wndproc_context;
+    WORD native_wndproc_segment;
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
+        HMODULE user = LoadLibraryW(L"user.exe16");
+        if (user)
+        {
+            call_native_wndproc_context = (call_native_wndproc_context_t)GetProcAddress(user, "call_native_wndproc_context");
+            get_native_wndproc_segment = (get_native_wndproc_segment_t)GetProcAddress(user, "get_native_wndproc_segment");
+            native_wndproc_segment = get_native_wndproc_segment();
+        }
+        //SetConsoleCtrlHandler(dump, TRUE);
 		AddVectoredExceptionHandler(TRUE, vm86_vectored_exception_handler);
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
 		CPU_INIT_CALL(CPU_MODEL);
@@ -1087,6 +1219,13 @@ extern "C"
 				{
 					break;//return VM
 				}
+                if (SREG(CS) == native_wndproc_segment)
+                {
+                    CONTEXT context;
+                    save_context(&context);
+                    call_native_wndproc_context(&context);
+                    load_context(&context);
+                }
 				bool reg = false;
 				if (m_pc >= (UINT)iret && m_pc <= (UINT)iret + 255)
 				{

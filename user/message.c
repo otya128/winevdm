@@ -222,17 +222,18 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK DefEditProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 /* Some bad behavior programs access native WNDPROC... */
-BYTE dummy_proc[MAX_WINPROCS16];
+BYTE *dummy_proc;
 BOOL dummy_proc_allocated;
 WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
 {
     if (!dummy_proc_allocated)
     {
-        memset(dummy_proc, 0x90, sizeof(dummy_proc));
+        dummy_proc = HeapAlloc(GetProcessHeap(), 0xcc, MAX_WINPROCS32 * 2);
+        memset(dummy_proc, 0xc3, MAX_WINPROCS32 * 2);
         dummy_proc_allocated = TRUE;
         LDT_ENTRY dummy;
         wine_ldt_set_base(&dummy, dummy_proc);
-        wine_ldt_set_limit(&dummy, MAX_WINPROCS16);
+        wine_ldt_set_limit(&dummy, MAX_WINPROCS32 * 2);
         wine_ldt_set_flags(&dummy, WINE_LDT_FLAGS_CODE);
         wine_ldt_set_entry(0xffff, &dummy);
     }
@@ -308,6 +309,38 @@ DWORD TEST(WNDPROC16 func)
     if (index == -1)
         return func;
     return winproc16_array[index - MAX_WINPROCS32];
+}
+/* vm functions */
+WORD get_native_wndproc_segment()
+{
+    return 0xffff;
+}
+static WORD POP16(CONTEXT *context)
+{
+    LPWORD stack = MapSL(MAKESEGPTR(context->SegSs, context->Esp));
+    context->Esp += 2;
+    return *stack;
+}
+static DWORD POP32(CONTEXT *context)
+{
+    LPDWORD stack = MapSL(MAKESEGPTR(context->SegSs, context->Esp));
+    context->Esp += 4;
+    return *stack;
+}
+DWORD call_native_wndproc_context(CONTEXT *context)
+{
+    LPWORD stack = MapSL(MAKESEGPTR(context->SegSs, context->Esp));
+    SEGPTR ret = POP32(context);
+    LPARAM lParam = POP32(context);
+    WPARAM16 wParam = POP16(context);
+    UINT16 msg = POP16(context);
+    HWND16 hwnd = POP16(context);
+    LRESULT result = CallWindowProc16(MAKESEGPTR(context->SegCs, context->Eip), hwnd, msg, wParam, lParam);
+    context->Edx = HIWORD(result);
+    context->Eax = LOWORD(result);
+    context->Eip = LOWORD(ret);
+    context->SegCs = HIWORD(ret);
+    return 0;
 }
 
 /* call a 16-bit window procedure */

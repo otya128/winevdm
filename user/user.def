@@ -8,3 +8,5 @@ EXPORTS
   CreateIconFromResourceEx16
   dialog_template16_to_template32
   DIALOG_CallDialogProc
+  get_native_wndproc_segment
+  call_native_wndproc_context
