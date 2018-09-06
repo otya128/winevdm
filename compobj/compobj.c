@@ -743,7 +743,7 @@ HRESULT WINAPI CoGetClassObject16(
 
         StringFromGUID216(MapSL(rclsid), idstr, CHARS_IN_GUID);
         sprintf(buf_key, "CLSID\\%s\\InprocServer", idstr);
-        if (RegQueryValueA(HKEY_CLASSES_ROOT, buf_key, dllpath, &dllpath_len))
+        if (RegQueryValue16(HKEY_CLASSES_ROOT, buf_key, dllpath, &dllpath_len))
         {
             ERR("class %s not registered\n", debugstr_guid(MapSL(rclsid)));
             return REGDB_E_CLASSNOTREG;
