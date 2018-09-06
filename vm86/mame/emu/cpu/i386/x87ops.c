@@ -4427,6 +4427,7 @@ extern "C"
     typedef void(*fclex_t)();
     typedef void(*fsave_t)(char*);
     typedef void(*frstor_t)(const char*);
+	typedef DWORD(*fistp_t)(WORD);
     typedef struct
     {
         fldcw_t fldcw;
@@ -4437,6 +4438,7 @@ extern "C"
         fclex_t fclex;
         fsave_t fsave;
         frstor_t frstor;
+		fistp_t fistp;
     } x87function;
     __declspec(dllexport) void fldcw(WORD cw)
 	{
@@ -4503,6 +4505,25 @@ extern "C"
         for (int i = 0; i < 8; ++i)
             x87_write_stack(i, READ80(ea + i * 10), FALSE);
     }
+	__declspec(dllexport) DWORD fistp(WORD round)
+	{
+		DWORD m32int = 0x80000000;
+		if (!X87_IS_ST_EMPTY(0))
+		{
+			int8 oldround = float_rounding_mode;
+			float_rounding_mode = x87_to_sf_rc[round & 3];
+			floatx80 fx80 = floatx80_round_to_int(ST(0));
+
+			floatx80 lowerLim = int32_to_floatx80(0x80000000);
+			floatx80 upperLim = int32_to_floatx80(0x7fffffff);
+
+			if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim))
+				m32int = floatx80_to_int32(fx80);
+			x87_inc_stack();
+			float_rounding_mode = oldround;
+		}
+		return m32int;
+	}
     __declspec(dllexport) void load_x87function(x87function *func)
     {
         func->fclex = fclex;
@@ -4513,6 +4534,7 @@ extern "C"
         func->fsave = fsave;
         func->fstcw = fstcw;
         func->wait = wait;
+		func->fistp = fistp;
     }
 }
 

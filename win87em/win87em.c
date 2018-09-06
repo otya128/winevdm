@@ -38,6 +38,7 @@ typedef void(*frndint_t)();
 typedef void(*fclex_t)();
 typedef void(*fsave_t)(char*);
 typedef void(*frstor_t)(const char*);
+typedef DWORD(*fistp_t)(WORD);
 
 void fldcw_stub(WORD a)
 {
@@ -71,6 +72,11 @@ void frstor_stub(const char* a)
 {
     FIXME("stub\n");
 }
+DWORD fistp_stub(WORD round)
+{
+    FIXME("stub\n");
+    return 0;
+}
 typedef struct
 {
     fldcw_t fldcw;
@@ -81,6 +87,7 @@ typedef struct
     fclex_t fclex;
     fsave_t fsave;
     frstor_t frstor;
+    fistp_t fistp;
 } x87function;
 x87function x87;
 typedef void (*load_x87function_t)(x87function *func);
@@ -112,6 +119,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
         x87.fsave = fsave_stub;
     if (!x87.frstor)
         x87.frstor = frstor_stub;
+    if (!x87.fistp)
+        x87.fistp = fistp_stub;
     return TRUE;
 }
 #define USE_VM86_DLL 1
@@ -328,7 +337,7 @@ void WINAPI _fpMath( CONTEXT *context )
         /* IN: AX&0x0C00 rounding protocol */
         /* OUT: DX:AX variable popped */
         {
-            DWORD dw=0;
+            DWORD dw=x87.fistp((context->Eax >> 18) & 3);
             /* I don't know much about asm() programming. This could be
              * wrong.
              */

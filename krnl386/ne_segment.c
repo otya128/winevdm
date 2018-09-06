@@ -402,6 +402,12 @@ BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum )
         void *mem = GlobalLock16(pSeg->hSeg);
         if (!NE_READ_DATA( pModule, mem, pos, size ))
             return FALSE;
+        if (!memcmp(mem, "MSEM87", 6)) // check for linked in MS 8087 emulator
+        {
+            FARPROC16 fpmath = GetProcAddress16(LoadLibrary16("WIN87EM.DLL"), "__FPMATH");
+            *(char *)((char *)mem + 0x24) = 0xea;  // JMP FAR
+            *(FARPROC16 *)((char *)mem + 0x25) = fpmath;
+        }
         pos += size;
     }
     else
