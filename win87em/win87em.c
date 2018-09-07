@@ -337,7 +337,7 @@ void WINAPI _fpMath( CONTEXT *context )
         /* IN: AX&0x0C00 rounding protocol */
         /* OUT: DX:AX variable popped */
         {
-            DWORD dw=x87.fistp((context->Eax >> 18) & 3);
+            DWORD dw=x87.fistp((context->Eax >> 10) & 3);
             /* I don't know much about asm() programming. This could be
              * wrong.
              */
