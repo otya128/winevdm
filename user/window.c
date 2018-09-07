@@ -1034,9 +1034,9 @@ HINSTANCE16 GetWindowHInst16(WORD hWnd16);
 void SetWindowHMenu16(WORD hWnd16, HMENU16 hinst16);
 //__declspec(dllexport) 
 HMENU16 GetWindowHMenu16(WORD hWnd16);
-static WORD get_actual_cbwndextra(HWND hwnd)
+static WORD get_actual_cbwndextra(HWND16 hwnd16)
 {
-    SIZE_T siz = GetClassLongA(hwnd, GCL_CBWNDEXTRA);
+    SIZE_T siz = GetClassWord16(hwnd16, GCL_CBWNDEXTRA);
     if (siz >= 65536)
         return 65535;
     WORD w = (WORD)siz;
@@ -1051,7 +1051,7 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
 {
     if (offset >= 0)
     {
-        size_t siz = get_actual_cbwndextra(WIN_Handle32(hwnd));
+        size_t siz = get_actual_cbwndextra(hwnd);
         if (siz + sizeof(WORD) < offset)
         {
             ERR("(0x%04X, %d) Out of range\n", hwnd, offset);
@@ -1097,7 +1097,7 @@ WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
 {
     if (offset >= 0)
     {
-        size_t siz = get_actual_cbwndextra(WIN_Handle32(hwnd));
+        size_t siz = get_actual_cbwndextra(hwnd);
         if (siz + sizeof(WORD) < offset)
         {
             ERR("(0x%04X, %d, 0x%04X) Out of range\n", hwnd, offset, newval);
@@ -1146,7 +1146,7 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
 
     if (offset >= 0)
     {
-        int cbWndExtra = get_actual_cbwndextra( hwnd );
+        int cbWndExtra = get_actual_cbwndextra( hwnd16 );
 
         if (offset > (int)(cbWndExtra - sizeof(LONG)))
         {
@@ -1183,7 +1183,7 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
     //if (is_winproc) retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
     if (offset >= 0)
     {
-        size_t siz = get_actual_cbwndextra(hwnd);
+        size_t siz = get_actual_cbwndextra(hwnd16);
         if (siz + sizeof(LONG) < offset)
         {
             ERR("(0x%04X, %d) Out of range\n", hwnd, offset);
@@ -1274,7 +1274,7 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     }
     if (offset >= 0)
     {
-        size_t siz = get_actual_cbwndextra(hwnd);
+        size_t siz = get_actual_cbwndextra(hwnd16);
         if (siz + sizeof(LONG) < offset)
         {
             ERR("(0x%04X, %d) Out of range\n", hwnd, offset);
@@ -2609,7 +2609,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         ERR("Could not create window(%08x,\"%s\"(\"%s\"),\"%s\",%08x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%08x)\n", exStyle, className, cs.lpszClass, windowName, style, x, y, width, height, parent, menu, instance, data);
         return NULL;
     }
-	HWND16 hWnd16 = HWND_16(hwnd);
+    HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);
     SetWindowHMenu16(hWnd16, menu);
