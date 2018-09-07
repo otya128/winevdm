@@ -2237,8 +2237,89 @@ BOOL16 WINAPI GetCharABCWidths16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, 
 UINT16 WINAPI GetOutlineTextMetrics16( HDC16 hdc, UINT16 cbData,
                                        LPOUTLINETEXTMETRIC16 lpOTM )
 {
-    FIXME("(%04x,%04x,%p): stub\n", hdc,cbData,lpOTM);
-    return 0;
+    HDC hdc32 = HDC_32(hdc);
+    int offset = sizeof(OUTLINETEXTMETRICA) - sizeof(*lpOTM);
+    if (!lpOTM)
+    {
+        UINT buf_size = GetOutlineTextMetricsA(hdc32, NULL, NULL);
+        if (buf_size == 0)
+            return 0;
+        return buf_size - offset;
+    }
+    if (cbData < sizeof(OUTLINETEXTMETRIC16))
+        return 0;
+    /* extra data size for strings */
+    SIZE_T exsize = cbData - sizeof(*lpOTM);
+
+    LPOUTLINETEXTMETRICA otm32 = HeapAlloc(GetProcessHeap(), 0, sizeof(OUTLINETEXTMETRICA) + exsize);
+    otm32->otmSize = sizeof(*otm32) + exsize;
+    UINT result = GetOutlineTextMetricsA(hdc32, sizeof(*otm32) + exsize, otm32);
+    if (result == 0)
+    {
+        HeapFree(GetProcessHeap(), 0, otm32);
+        return 0;
+    }
+    lpOTM->otmSize = otm32->otmSize - offset;
+    lpOTM->otmTextMetrics.tmHeight = otm32->otmTextMetrics.tmHeight;
+    lpOTM->otmTextMetrics.tmAscent = otm32->otmTextMetrics.tmAscent;
+    lpOTM->otmTextMetrics.tmDescent = otm32->otmTextMetrics.tmDescent;
+    lpOTM->otmTextMetrics.tmInternalLeading = otm32->otmTextMetrics.tmInternalLeading;
+    lpOTM->otmTextMetrics.tmExternalLeading = otm32->otmTextMetrics.tmExternalLeading;
+    lpOTM->otmTextMetrics.tmAveCharWidth = otm32->otmTextMetrics.tmAveCharWidth;
+    lpOTM->otmTextMetrics.tmMaxCharWidth = otm32->otmTextMetrics.tmMaxCharWidth;
+    lpOTM->otmTextMetrics.tmWeight = otm32->otmTextMetrics.tmWeight;
+    lpOTM->otmTextMetrics.tmOverhang = otm32->otmTextMetrics.tmOverhang;
+    lpOTM->otmTextMetrics.tmDigitizedAspectX = otm32->otmTextMetrics.tmDigitizedAspectX;
+    lpOTM->otmTextMetrics.tmDigitizedAspectY = otm32->otmTextMetrics.tmDigitizedAspectY;
+    lpOTM->otmTextMetrics.tmFirstChar = otm32->otmTextMetrics.tmFirstChar;
+    lpOTM->otmTextMetrics.tmLastChar = otm32->otmTextMetrics.tmLastChar;
+    lpOTM->otmTextMetrics.tmDefaultChar = otm32->otmTextMetrics.tmDefaultChar;
+    lpOTM->otmTextMetrics.tmBreakChar = otm32->otmTextMetrics.tmBreakChar;
+    lpOTM->otmTextMetrics.tmItalic = otm32->otmTextMetrics.tmItalic;
+    lpOTM->otmTextMetrics.tmUnderlined = otm32->otmTextMetrics.tmUnderlined;
+    lpOTM->otmTextMetrics.tmStruckOut = otm32->otmTextMetrics.tmStruckOut;
+    lpOTM->otmTextMetrics.tmPitchAndFamily = otm32->otmTextMetrics.tmPitchAndFamily;
+    lpOTM->otmTextMetrics.tmCharSet = otm32->otmTextMetrics.tmCharSet;
+    lpOTM->otmFiller = otm32->otmFiller;
+    lpOTM->otmPanoseNumber = otm32->otmPanoseNumber;
+    lpOTM->otmfsSelection = otm32->otmfsSelection;
+    lpOTM->otmfsType = otm32->otmfsType;
+    lpOTM->otmsCharSlopeRise = otm32->otmsCharSlopeRise;
+    lpOTM->otmsCharSlopeRun = otm32->otmsCharSlopeRun;
+    lpOTM->otmItalicAngle = otm32->otmItalicAngle;
+    lpOTM->otmEMSquare = otm32->otmEMSquare;
+    lpOTM->otmAscent = otm32->otmAscent;
+    lpOTM->otmDescent = otm32->otmDescent;
+    lpOTM->otmLineGap = otm32->otmLineGap;
+    lpOTM->otmsCapEmHeight = otm32->otmsCapEmHeight;
+    lpOTM->otmsXHeight = otm32->otmsXHeight;
+    lpOTM->otmrcFontBox.left = otm32->otmrcFontBox.left;
+    lpOTM->otmrcFontBox.top = otm32->otmrcFontBox.top;
+    lpOTM->otmrcFontBox.right = otm32->otmrcFontBox.right;
+    lpOTM->otmrcFontBox.bottom = otm32->otmrcFontBox.bottom;
+    lpOTM->otmMacAscent = otm32->otmMacAscent;
+    lpOTM->otmMacDescent = otm32->otmMacDescent;
+    lpOTM->otmMacLineGap = otm32->otmMacLineGap;
+    lpOTM->otmusMinimumPPEM = otm32->otmusMinimumPPEM;
+    lpOTM->otmptSubscriptSize.x = otm32->otmptSubscriptSize.x;
+    lpOTM->otmptSubscriptSize.y = otm32->otmptSubscriptSize.y;
+    lpOTM->otmptSubscriptOffset.x = otm32->otmptSubscriptOffset.x;
+    lpOTM->otmptSubscriptOffset.y = otm32->otmptSubscriptOffset.y;
+    lpOTM->otmptSuperscriptSize.x = otm32->otmptSuperscriptSize.x;
+    lpOTM->otmptSuperscriptSize.y = otm32->otmptSuperscriptSize.y;
+    lpOTM->otmptSuperscriptOffset.x = otm32->otmptSuperscriptOffset.x;
+    lpOTM->otmptSuperscriptOffset.y = otm32->otmptSuperscriptOffset.y;
+    lpOTM->otmsStrikeoutSize = otm32->otmsStrikeoutSize;
+    lpOTM->otmsStrikeoutPosition = otm32->otmsStrikeoutPosition;
+    lpOTM->otmsUnderscorePosition = otm32->otmsUnderscorePosition;
+    lpOTM->otmsUnderscoreSize = otm32->otmsUnderscoreSize;
+    lpOTM->otmpFamilyName = otm32->otmpFamilyName ? (SIZE_T)otm32->otmpFamilyName - offset : 0;
+    lpOTM->otmpFaceName = otm32->otmpFaceName ? (SIZE_T)otm32->otmpFaceName - offset : 0;
+    lpOTM->otmpStyleName = otm32->otmpStyleName ? (SIZE_T)otm32->otmpStyleName - offset : 0;
+    lpOTM->otmpFullName = otm32->otmpFullName ? (SIZE_T)otm32->otmpFullName - offset : 0;
+    memcpy((LPBYTE)lpOTM + sizeof(*lpOTM), (LPBYTE)otm32 + sizeof(*otm32), result - sizeof(*otm32));
+    HeapFree(GetProcessHeap(), 0, otm32);
+    return result - offset;
 }
 
 
