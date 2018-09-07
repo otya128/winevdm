@@ -227,12 +227,13 @@ typedef struct _OUTLINETEXTMETRIC16
     POINT16         otmptSuperscriptOffset;
     UINT16          otmsStrikeoutSize;
     INT16           otmsStrikeoutPosition;
-    INT16           otmsUnderscoreSize;
-    INT           otmsUnderscorePosition;
-    LPSTR           otmpFamilyName;
-    LPSTR           otmpFaceName;
-    LPSTR           otmpStyleName;
-    LPSTR           otmpFullName;
+    INT16           otmsUnderscorePosition; /* sic */
+    INT16           otmsUnderscoreSize; /* sic */
+    /* near char pointer */
+    WORD            otmpFamilyName;
+    WORD            otmpFaceName;
+    WORD            otmpStyleName;
+    WORD            otmpFullName;
 } OUTLINETEXTMETRIC16,*LPOUTLINETEXTMETRIC16;
 
 typedef struct
