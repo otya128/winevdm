@@ -169,7 +169,12 @@ BOOL16 WINAPI ReleaseCapture16(void)
  */
 HWND16 WINAPI SetFocus16( HWND16 hwnd )
 {
-    return HWND_16( SetFocus( WIN_Handle32(hwnd) ));
+    DWORD count;
+    HWND16 result;
+    ReleaseThunkLock(&count);
+    result = HWND_16(SetFocus(WIN_Handle32(hwnd)));
+    RestoreThunkLock(count);
+    return result;
 }
 
 
@@ -462,7 +467,11 @@ BOOL16 WINAPI ShowWindow16( HWND16 hwnd, INT16 cmd )
  */
 BOOL16 WINAPI CloseWindow16( HWND16 hwnd )
 {
-    return CloseWindow( WIN_Handle32(hwnd) );
+    DWORD count;
+    ReleaseThunkLock(&count);
+    BOOL16 result = CloseWindow( WIN_Handle32(hwnd) );
+    RestoreThunkLock(count);
+    return result;
 }
 
 
@@ -1620,8 +1629,12 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
             flags &= ~SWP_NOREDRAW;
         }
     }
-    return SetWindowPos( hwnd32, full_insert_after_hwnd(hwndInsertAfter),
+    DWORD count;
+    ReleaseThunkLock(&count);
+    BOOL16 result = SetWindowPos( hwnd32, full_insert_after_hwnd(hwndInsertAfter),
                          x, y, cx, cy, flags );
+    RestoreThunkLock(count);
+    return result;
 }
 
 
