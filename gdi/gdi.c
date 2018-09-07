@@ -1699,9 +1699,9 @@ INT16 WINAPI GetTextFace16( HDC16 hdc, INT16 count, LPSTR name )
  */
 BOOL16 WINAPI GetTextMetrics16( HDC16 hdc, TEXTMETRIC16 *tm )
 {
-    TEXTMETRICW tm32;
+    TEXTMETRICA tm32;
 
-    if (!GetTextMetricsW( HDC_32(hdc), &tm32 )) return FALSE;
+    if (!GetTextMetricsA( HDC_32(hdc), &tm32 )) return FALSE;
 
     tm->tmHeight           = tm32.tmHeight;
     tm->tmAscent           = tm32.tmAscent;
