@@ -34,7 +34,7 @@
 #include "message_table.h"
 WINE_DEFAULT_DEBUG_CHANNEL(msg);
 WINE_DECLARE_DEBUG_CHANNEL(message);
-
+BOOL is_win_menu_disallowed(DWORD style);
 DWORD USER16_AlertableWait = 0;
 
 struct wow_handlers32 wow_handlers32;
@@ -606,11 +606,18 @@ static void WINDOWPOS16to32( const WINDOWPOS16* from, WINDOWPOS* to )
 }
 
 /* The strings are not copied */
-static void CREATESTRUCT32Ato16( const CREATESTRUCTA* from, CREATESTRUCT16* to )
+static void CREATESTRUCT32Ato16( HWND hwnd32, const CREATESTRUCTA* from, CREATESTRUCT16* to )
 {
     to->lpCreateParams = (SEGPTR)from->lpCreateParams;
     to->hInstance      = HINSTANCE_16(from->hInstance);
-    to->hMenu          = HMENU_16(from->hMenu);
+    if (!is_win_menu_disallowed(GetWindowLongA(hwnd32, GWL_STYLE)))
+    {
+        to->hMenu      = HMENU_16(from->hMenu);
+    }
+    else
+    {
+        to->hMenu      = from->hMenu;
+    }
     to->hwndParent     = HWND_16(from->hwndParent);
     to->cy             = from->cy;
     to->cx             = from->cx;
@@ -620,12 +627,18 @@ static void CREATESTRUCT32Ato16( const CREATESTRUCTA* from, CREATESTRUCT16* to )
     to->dwExStyle      = from->dwExStyle;
 }
 
-static void CREATESTRUCT16to32A( const CREATESTRUCT16* from, CREATESTRUCTA *to )
-
+static void CREATESTRUCT16to32A( HWND hwnd32, const CREATESTRUCT16* from, CREATESTRUCTA *to )
 {
     to->lpCreateParams = (LPVOID)from->lpCreateParams;
     to->hInstance      = HINSTANCE_32(from->hInstance);
-    to->hMenu          = HMENU_32(from->hMenu);
+    if (!is_win_menu_disallowed(GetWindowLongA(hwnd32, GWL_STYLE)))
+    {
+        to->hMenu      = HMENU_32(from->hMenu);
+    }
+    else
+    {
+        to->hMenu      = from->hMenu;
+    }
     to->hwndParent     = WIN_Handle32(from->hwndParent);
     to->cy             = from->cy;
     to->cx             = from->cx;
@@ -1050,7 +1063,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             CREATESTRUCTA cs;
             MDICREATESTRUCTA mdi_cs;
 
-            CREATESTRUCT16to32A( cs16, &cs );
+            CREATESTRUCT16to32A( hwnd32, cs16, &cs );
             if (GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD)
             {
                 MDICREATESTRUCT16 *mdi_cs16 = MapSL(cs16->lpCreateParams);
@@ -1058,7 +1071,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
                 cs.lpCreateParams = &mdi_cs;
             }
             ret = callback( hwnd32, msg, wParam, (LPARAM)&cs, result, arg );
-            CREATESTRUCT32Ato16( &cs, cs16 );
+            CREATESTRUCT32Ato16( hwnd32, &cs, cs16 );
         }
         break;
     case WM_MDICREATE:
@@ -1445,7 +1458,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             MDICREATESTRUCT16 mdi_cs16;
             BOOL mdi_child = (GetWindowLongW(hwnd, GWL_EXSTYLE) & WS_EX_MDICHILD);
 
-            CREATESTRUCT32Ato16( cs32, &cs );
+            CREATESTRUCT32Ato16( hwnd, cs32, &cs );
             cs.lpszName  = MapLS( cs32->lpszName );
             cs.lpszClass = MapLS( win16classname(cs32->lpszClass) );
             if (mdi_child)

@@ -33,6 +33,12 @@ WINE_DEFAULT_DEBUG_CHANNEL(win);
 #define HANDLE_16(h32)		(LOWORD(h32))
 #define HANDLE_32(h16)		((HANDLE)(ULONG_PTR)(h16))
 
+/* wine(25cc380b8ed41652b135657ef7651beef2f20ae4) dlls/user32/menu.c */
+BOOL is_win_menu_disallowed(DWORD style)
+{
+    return (style & (WS_CHILD | WS_POPUP)) == WS_CHILD;
+}
+
 static HWND16 hwndSysModal;
 
 
@@ -2605,13 +2611,17 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         cs.lpszClass = buffer;
     }
     cs.lpszClass = win32classname(cs.hInstance, cs.lpszClass);
-    if (!menu && (style & (WS_CHILD | WS_POPUP)) != WS_CHILD)
+    if (!menu && !is_win_menu_disallowed(style))
     {
         WNDCLASSA class;
         HINSTANCE16 module = GetExePtr( instance );
 
         if (GetClassInfoA( HINSTANCE_32(module), cs.lpszClass, &class ))
             cs.hMenu = HMENU_32( LoadMenu16( module, class.lpszMenuName ));
+    }
+    else if (!is_win_menu_disallowed(style))
+    {
+        cs.hMenu = HMENU_32(menu);
     }
 
     WNDCLASSEXA wndclass;
