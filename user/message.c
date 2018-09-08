@@ -2473,6 +2473,7 @@ static LRESULT is_dialog_message_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 {
     MSG16 *msg16 = (MSG16*)arg;
     MSG mesg;
+    mesg.hwnd = HWND_32(msg16->hwnd);
     mesg.message = msg;
     mesg.wParam = wp;
     mesg.lParam = lp;
@@ -2508,7 +2509,7 @@ BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, MSG16 *msg16 )
     default:
     {
         LPARAM result;
-        return WINPROC_CallProc16To32A(is_dialog_message_callback, msg16->hwnd, msg16->message, msg16->wParam, msg16->lParam, &result, msg16);
+        return WINPROC_CallProc16To32A(is_dialog_message_callback, hwndDlg, msg16->message, msg16->wParam, msg16->lParam, &result, msg16);
     }
     }
 
