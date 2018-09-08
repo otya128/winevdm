@@ -1066,6 +1066,8 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
     }
     switch (offset)
     {
+    case GWL_STYLE:
+        return (WORD)GetWindowLong16(hwnd, offset);
     case GWL_HINSTANCE:
     {
         HINSTANCE16 h16 = GetWindowHInst16(hwnd);
@@ -1073,8 +1075,22 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
         {
             return h16;
         }
-        HINSTANCE h = HINSTANCE_32(GetWindowLongPtrW(WIN_Handle32(hwnd), offset));
-        return h ? HINSTANCE_16(h) : 0;
+        HINSTANCE h = GetWindowLongPtrW(WIN_Handle32(hwnd), offset);
+        if (h == 0xFFFF0000)
+            return GetModuleHandle16("USER");
+        if (HIWORD(h))
+        {
+            HTASK16 task = GetWindowTask16(hwnd);
+            if (!task)
+            {
+                return 0;
+            }
+            TDB *tdb = GlobalLock16(task);
+            h16 = tdb->hInstance;
+            GlobalUnlock16(task);
+            return h16;
+        }
+        return !HIWORD(h) ? h : 0;
     }
     case GWL_ID:
     {
