@@ -1008,7 +1008,7 @@ LONG WINAPI SetClassLong16( HWND16 hwnd16, INT16 offset, LONG newval )
         return get_icon_16( icon );
     case GCLP_WNDPROC:
         {
-            WNDPROC new_proc = WINPROC_AllocProc16( (WNDPROC16)newval );
+            WNDPROC new_proc = (WNDPROC16)newval;
             //WNDPROC old_proc = (WNDPROC)SetClassLongA( WIN_Handle32(hwnd16), offset, (LONG_PTR)new_proc );
             ATOM atom = GetClassWord(WIN_Handle32(hwnd16), GCW_ATOM);
             WNDPROC old = WNDCLASS16Info[atom].wndproc;
@@ -1255,7 +1255,7 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     {
         BOOL isDefWndProca = GetWindowLongA(hwnd, offset) == DefWndProca;
         DWORD old = ((LONG_PTR)GetWindowLong16(hwnd16, offset));
-        WNDPROC new_proc = WINPROC_AllocProc16( (WNDPROC16)newval );
+        WNDPROC new_proc = (WNDPROC16)newval;
 		SetWndProc16(hwnd16, new_proc);//krnl386.exe
         //WNDPROC old_proc = (WNDPROC)SetWindowLongPtrA( hwnd, offset, (LONG_PTR)new_proc );
         //return (LONG)WINPROC_GetProc16( old_proc, FALSE );
@@ -2082,7 +2082,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
 	if (atom)
 	{
         WNDCLASS16Info[atom].allocated = TRUE;
-        WNDCLASS16Info[atom].wndproc = (DWORD)WINPROC_AllocProc16(wc->lpfnWndProc);
+        WNDCLASS16Info[atom].wndproc = (DWORD)(wc->lpfnWndProc);
         WNDCLASS16Info[atom].cbWndExtra = wc->cbWndExtra;
 	}
     class_len = strlen(a.name) + 1;
