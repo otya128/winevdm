@@ -2353,7 +2353,7 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
     SIZE_T lcprefix_len = strlen(lcprefix);
     char atomname[256];
 
-    if (!HIWORD(className))
+    if (!HIWORD(className) && LOWORD(className))
     {
         GlobalGetAtomNameA(className, atomname, ARRAYSIZE(atomname));
         className = atomname;
@@ -2362,6 +2362,8 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
     {
         child32 = FindWindowExA(NULL, child32, NULL, title);
         if (!child32)
+            break;
+        if (!className)
             break;
         int classname_len = 0;
         while (TRUE)
