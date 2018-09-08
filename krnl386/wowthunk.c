@@ -609,6 +609,7 @@ BOOL WINAPI K32WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
      * copy them to the 16-bit stack ...
      */
     char *stack = (char *)CURRENT_STACK16 - cbArgs;
+    LPVOID old = getWOW32Reserved();
 
     memcpy( stack, pArgs, cbArgs );
 
@@ -742,6 +743,7 @@ BOOL WINAPI K32WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
         }
     }
 
+    setWOW32Reserved(old);
     return TRUE;  /* success */
 }
 
