@@ -235,7 +235,7 @@ LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 /* Some bad behavior programs access native WNDPROC... */
 BYTE *dummy_proc;
 BOOL dummy_proc_allocated;
-WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
+static void init_dummy_proc()
 {
     if (!dummy_proc_allocated)
     {
@@ -248,6 +248,10 @@ WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
         wine_ldt_set_flags(&dummy, WINE_LDT_FLAGS_CODE);
         wine_ldt_set_entry(0xffff, &dummy);
     }
+}
+WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
+{
+    init_dummy_proc();
     if (func == (WNDPROC16)DefWndProca)
         func = (WNDPROC16)DefWindowProcA;
     if (func == (WNDPROC16)DefEditProc)
@@ -302,6 +306,43 @@ done:
     return ret;
 }
 
+WNDPROC16 WINPROC_AllocProc16_2(WNDPROC func)
+{
+    int index;
+    WNDPROC ret;
+
+    if (!func) return NULL;
+
+    /* then check if we already have a winproc for that function */
+    for (index = 0; index < winproc16_used; index++)
+        if (winproc16_array[index] == func) goto done;
+
+    if (winproc16_used >= MAX_WINPROCS16)
+    {
+        FIXME("too many winprocs, cannot allocate one for 16-bit %p\n", func);
+        return NULL;
+    }
+    winproc16_array[winproc16_used++] = func;
+
+done:
+    ret = (WNDPROC)(ULONG_PTR)((index + MAX_WINPROCS32) | (WINPROC_HANDLE << 16));
+    TRACE("returning %p for %p/16-bit (%d/%d used)\n",
+        ret, func, winproc16_used, MAX_WINPROCS16);
+    return ret;
+}
+
+WNDPROC16 WINPROC_AllocNativeProc_2(WNDPROC func)
+{
+    init_dummy_proc();
+    WNDPROC16 ret = WINPROC_AllocProc16_2(func);
+    int index = winproc_to_index(ret);
+    if (index == -1)
+        return ret;
+    if (index >= MAX_WINPROCS32)
+        index -= MAX_WINPROCS32;
+    winproc16_native[index] = TRUE;
+    return ret;
+}
 /**********************************************************************
  *	     WINPROC_GetProc16
  *

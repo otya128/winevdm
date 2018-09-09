@@ -38,6 +38,7 @@ BOOL is_win_menu_disallowed(DWORD style)
 {
     return (style & (WS_CHILD | WS_POPUP)) == WS_CHILD;
 }
+WNDPROC16 WINPROC_AllocNativeProc_2(WNDPROC func);
 
 static HWND16 hwndSysModal;
 
@@ -96,14 +97,7 @@ static BOOL is_dialog(HWND hwnd)
 {
     GetDlgItem(hwnd, 0);
     int err = GetLastError();
-    return err == ERROR_WINDOW_NOT_DIALOG;
-    /*
-    char cbuf[512];
-    GetClassNameA(hwnd, cbuf, sizeof(cbuf));
-    if (!stricmp(cbuf, "_____DIALOGCLASS_____"))
-        return TRUE;
-    return FALSE;
-    */
+    return err != ERROR_WINDOW_NOT_DIALOG;
 }
 
 /**************************************************************************
@@ -968,21 +962,8 @@ LONG WINAPI GetClassLong16( HWND16 hwnd16, INT16 offset )
     case GCLP_WNDPROC:
     {
         ATOM atom = GetClassWord(WIN_Handle32(hwnd16), GCW_ATOM);
-        WNDCLASSEXA cls;
-        char name[256];
-        if (GetClassNameA(WIN_Handle32(hwnd16), name, sizeof(name)))
-        {
-            if (!strcmp(name, "UserAdapterWindowClass"))
-            {
-                return WINPROC_AllocNativeProc((WNDPROC)UserAdapterWindowClass);
-            }
-        }
         WNDPROC proc = GetClassLongPtrA(WIN_Handle32(hwnd16), GCLP_WNDPROC);
-        if ((DWORD)proc >> 16 == 0xFFFF)
-        {
-            return WINPROC_AllocNativeProc((WNDPROC)UserAdapterWindowClass);
-        }
-        return WNDCLASS16Info[atom].wndproc ? WNDCLASS16Info[atom].wndproc : WINPROC_AllocNativeProc(proc);//(LONG_PTR)WINPROC_GetProc16((WNDPROC)ret, FALSE);
+        return WNDCLASS16Info[atom].wndproc ? WNDCLASS16Info[atom].wndproc : WINPROC_AllocNativeProc_2(proc);//(LONG_PTR)WINPROC_GetProc16((WNDPROC)ret, FALSE);
     }
     case GCLP_MENUNAME:
         return MapLS( (void *)ret );  /* leak */
@@ -1195,11 +1176,18 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
     }
     if (is_winproc)
     {
-        retvalue = (LONG_PTR)GetWndProc16(hwnd16);
+        if (offset == DWLP_DLGPROC)
+        {
+            retvalue = (LONG_PTR)GetDlgProc16(hwnd16);
+        }
+        else
+        {
+            retvalue = (LONG_PTR)GetWndProc16(hwnd16);
+        }
         if (retvalue)
             return TEST(retvalue);
         retvalue = GetWindowLongA(hwnd, offset);
-        retvalue = WINPROC_AllocNativeProc(retvalue);
+        retvalue = WINPROC_AllocNativeProc_2(retvalue);
         return retvalue;
     }//krnl386.exe
     //if (is_winproc) retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
@@ -1256,7 +1244,7 @@ LRESULT CALLBACK DefWndProcTemplate(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
     return CallWindowProcA(def, hDlg, Msg, wParam, lParam);
 }
 WNDPROC get_classinfo_wndproc(const char *class);
-BOOL isEdit(HWND hWnd);
+BOOL isEdit(HWND16 hwnd16, HWND hWnd);
 LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK DefEditProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
@@ -1278,12 +1266,17 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
         BOOL isDefWndProca = GetWindowLongA(hwnd, offset) == DefWndProca;
         DWORD old = ((LONG_PTR)GetWindowLong16(hwnd16, offset));
         WNDPROC new_proc = (WNDPROC16)newval;
-		SetWndProc16(hwnd16, new_proc);//krnl386.exe
-        //WNDPROC old_proc = (WNDPROC)SetWindowLongPtrA( hwnd, offset, (LONG_PTR)new_proc );
-        //return (LONG)WINPROC_GetProc16( old_proc, FALSE );
+        if (offset == DWLP_DLGPROC)
+        {
+            SetDlgProc16(offset, new_proc);
+        }
+        else
+        {
+            SetWndProc16(hwnd16, new_proc);//krnl386.exe
+        }
         if (!isDefWndProca)
         {
-            if (isEdit(hwnd) || GetWindowLongA(hwnd, offset) == edit_wndproc16)
+            if (isEdit(hwnd16, hwnd) || GetWindowLongA(hwnd, offset) == edit_wndproc16)
             {
                 SetWindowLongA(hwnd, offset, DefEditProc);
             }
