@@ -1265,7 +1265,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             DRAWITEMSTRUCT dis;
             dis.CtlType       = dis16->CtlType;
             dis.CtlID         = dis16->CtlID;
-            dis.itemID        = dis16->itemID;
+            dis.itemID        = dis16->itemID == 0xFFFF ? ~0 : dis16->itemID;
             dis.itemAction    = dis16->itemAction;
             dis.itemState     = dis16->itemState;
             dis.hwndItem      = (dis.CtlType == ODT_MENU) ? (HWND)HMENU_32(dis16->hwndItem)
@@ -1447,6 +1447,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         break;
     case WM_INITMENU:
     case WM_INITMENUPOPUP:
+    case WM_UNINITMENUPOPUP:
         ret = callback(hwnd32, msg, HMENU_32(wParam), lParam, result, arg);
         break;
     case WM_THEMECHANGED:
@@ -2106,6 +2107,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         break;
     case WM_INITMENU:
     case WM_INITMENUPOPUP:
+    case WM_UNINITMENUPOPUP:
         ret = callback(HWND_16(hwnd), msg, HMENU_16(wParam), lParam, result, arg);
         break;
     case WM_GETICON:
@@ -3802,10 +3804,6 @@ LRESULT CALLBACK CBTHook(
         {
             window_type_table[hwnd] = (BYTE)WINDOW_TYPE_SCROLLBAR;
         }
-        if (isEdit(hwnd, hwnd32)/*?*/)
-        {
-            SetWindowLongPtrA(hWnd, GWLP_WNDPROC, edit_wndproc16);
-        }
     }
     return FALSE;
 }
@@ -3828,18 +3826,6 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
                     SetWindowTheme(pcwp->hwnd, L"", L"");
                 }
             }
-            if (isStatic(HWND_16(pcwp->hwnd), pcwp->hwnd))
-            {
-                SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, static_wndproc16);
-            }
-            //if (isListBox(pcwp->hwnd))
-            //{
-            //    //SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, listbox_wndproc16);
-            //}
-            //if (isButton(pcwp->hwnd))
-            //{
-            //    SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, button_wndproc16);
-            //}
         }
     }
 

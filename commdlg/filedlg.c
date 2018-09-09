@@ -56,8 +56,7 @@ static UINT_PTR CALLBACK thunk_hook(COMMDLGTHUNK *thunk, HWND hwnd, UINT msg, WP
 {
     if (msg == WM_INITDIALOG)
     {
-        wp = HWND_16(wp);
-        lp = thunk->segofn16;// thunk->ofn16.lCustData;
+        lp = thunk->segofn16;
     }
     UINT_PTR result = DIALOG_CallDialogProc(hwnd, msg, wp, lp, thunk->ofn16.lpfnHook);
     return result;
