@@ -95,9 +95,51 @@ void free_module_classes( HINSTANCE16 inst )
 
 static BOOL is_dialog(HWND hwnd)
 {
-    GetDlgItem(hwnd, 0);
-    int err = GetLastError();
-    return err != ERROR_WINDOW_NOT_DIALOG;
+    struct WW
+    {
+        union
+        {
+            DWORD state;
+            struct
+            {
+                int WFMPRESENT : 1;
+                int WFVPRESENT : 1;
+                int WFHPRESENT : 1;
+                int WFCPRESENT : 1;
+                int WFSENDSIZEMOVE : 1;
+                int WFMSGBOX : 1;
+                int WFFRAMEON : 1;
+                int WFHASSPB : 1;
+                int WFNONCPAINT : 1;
+                int WFSENDERASEBKGND : 1;
+                int WFERASEBKGND : 1;
+                int WFSENDNCPAINT : 1;
+                int WFINTERNALPAINT : 1;
+                int WFUPDATEDIRTY : 1;
+                int WFHIDDENPOPUP : 1;
+                int WFMENUDRAW : 1;
+                int WFDIALOGWINDOW : 1;
+                /*...*/
+            } stateFlags;
+        };
+        DWORD state2;
+        DWORD exstyle;
+        DWORD style;
+        /*...*/
+    };
+    /* undocumented, GetWindowLongW(hwnd, -1) returns a pointer to the internal window structure */
+    struct WW *ww = GetWindowLongW(hwnd, -1);
+    if (!ww)
+        return FALSE;
+    __try
+    {
+        if (ww->stateFlags.WFDIALOGWINDOW)
+            return TRUE;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+    }
+    return FALSE;
 }
 
 /**************************************************************************
@@ -1274,7 +1316,10 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
         {
             SetWndProc16(hwnd16, new_proc);//krnl386.exe
         }
-        if (!isDefWndProca)
+        if (offset == DWLP_DLGPROC)
+        {
+        }
+        else if (!isDefWndProca)
         {
             if (isEdit(hwnd16, hwnd) || GetWindowLongA(hwnd, offset) == edit_wndproc16)
             {
