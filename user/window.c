@@ -547,7 +547,7 @@ HWND16 WINAPI FindWindowEx16(HWND16 parent, HWND16 child, LPCSTR className, LPCS
  */
 HWND16 WINAPI FindWindow16( LPCSTR className, LPCSTR title )
 {
-    return FindWindowEx16( NULL, NULL, className, title );
+    return FindWindowEx16( (HWND16)NULL, (HWND16)NULL, className, title );
 }
 
 
@@ -651,7 +651,7 @@ INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
             }
             if (!heap)
                 break;
-            className = (LPCSTR)heap;
+            className = (LPSTR)heap;
             len *= 2;
             continue;
         }
@@ -666,12 +666,12 @@ INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
         struct class_entry *entry = find_win32_class(className);
         if (!entry)
         {
-            memcpy(buffer, className, min(clen + 1, count));
+            memcpy(buffer, className, min(clen + 1, (SIZE_T)count));
             buffer[count - 1] = 0;
         }
         else
         {
-            memcpy(buffer, entry->classInfo.lpszClassName, min(strlen(entry->classInfo.lpszClassName) + 1, count));
+            memcpy(buffer, entry->classInfo.lpszClassName, min(strlen(entry->classInfo.lpszClassName) + 1, (SIZE_T)count));
             buffer[count - 1] = 0;
         }
     }
@@ -866,7 +866,7 @@ static WORD get_system_window_class_wndextra(const char *cls, BOOL *f)
     *f = TRUE;
     if (IS_INTRESOURCE(cls))
     {
-        GlobalGetAtomNameA(cls, buf, 100);
+        GlobalGetAtomNameA((ATOM)LOWORD(cls), buf, 100);
         cls = buf;
     }
     if (!strncasecmp(cls, "EDIT", sizeof(cls)))
@@ -918,7 +918,7 @@ WORD WINAPI GetClassWord16( HWND16 hwnd, INT16 offset )
         icon = (HICON)GetClassLongPtrW( WIN_Handle32(hwnd), offset );
         return get_icon_16( icon );
     case GCLP_HBRBACKGROUND:
-        return HBRUSH_16(GetClassLongPtrW(WIN_Handle32(hwnd), offset));
+        return HBRUSH_16((HBRUSH)GetClassLongPtrW(WIN_Handle32(hwnd), offset));
     }
     return GetClassWord( WIN_Handle32(hwnd), offset );
 }
@@ -939,7 +939,7 @@ WORD WINAPI SetClassWord16( HWND16 hwnd, INT16 offset, WORD newval )
         icon = (HICON)SetClassLongPtrW( WIN_Handle32(hwnd), offset, (ULONG_PTR)get_icon_32(newval) );
         return get_icon_16( icon );
     case GCLP_HBRBACKGROUND:
-        return HBRUSH_16(SetClassLongPtrW(WIN_Handle32(hwnd), offset, HBRUSH_32(newval)));
+        return HBRUSH_16((HBRUSH)SetClassLongPtrW(WIN_Handle32(hwnd), offset, HBRUSH_32(newval)));
     }
     return SetClassWord( WIN_Handle32(hwnd), offset, newval );
 }
