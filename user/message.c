@@ -3757,19 +3757,55 @@ void set_window_app_id(HWND hwnd)
     }
     set_app_id(hwnd, buffer);
 }
-LRESULT CALLBACK CBTHook(
-    int nCode,
-    WPARAM wParam,
-    LPARAM lParam
-)
+void detect_window_type(HWND16 hwnd, HWND hwnd32)
 {
+    char name[100];
+    GetClassNameA(hwnd32, name, 100);
+    /* detect window type */
+    if (isListBox(hwnd, hwnd32) || !stricmp(name, "LISTBOX"))
+    {
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_LISTBOX;
+    }
+    if (isComboBox(hwnd, hwnd32) || !stricmp(name, "COMBOBOX"))
+    {
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_COMBOBOX;
+    }
+    if (isButton(hwnd, hwnd32) || !stricmp(name, "BUTTON"))
+    {
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_BUTTON;
+    }
+    if (isEdit(hwnd, hwnd32) || !stricmp(name, "EDIT"))
+    {
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_EDIT;
+    }
+    if (isScrollBar(hwnd, hwnd32) || !stricmp(name, "SCROLLBAR"))
+    {
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_SCROLLBAR;
+    }
+    if (isStatic(hwnd, hwnd32) || !stricmp(name, "STATIC"))
+    {
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_STATIC;
+    }
+}
+DWORD hhook_tls_index;
+typedef struct
+{
+    HHOOK wndproc;
+    HHOOK wndprocret;
+    HHOOK cbt;
+} user_hook_data;
+LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    user_hook_data *hd = (user_hook_data*)TlsGetValue(hhook_tls_index);
+    HHOOK hook = hd ? hd->cbt : NULL;
     if (nCode < 0)
     {
-        return CallNextHookEx(NULL, nCode, wParam, lParam);
+        return CallNextHookEx(hook, nCode, wParam, lParam);
     }
     if (nCode == HCBT_CREATEWND)
     {
         HWND hWnd = (HWND)wParam;
+        LPCBT_CREATEWNDA create = (LPCBT_CREATEWNDA)lParam;
         if (aero_diasble)
         {
             SetThemeAppProperties(0);
@@ -3779,40 +3815,71 @@ LRESULT CALLBACK CBTHook(
         {
             set_window_app_id(hWnd);
         }
-        HWND16 hwnd = HWND_16(hWnd);
-        HWND hwnd32 = hWnd;
-        char name[100];
-        GetClassNameA(hwnd32, name, 100);
-        /* detect window type */
-        if (isListBox(hwnd, hwnd32) || !stricmp(name, "LISTBOX"))
-        {
-            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_LISTBOX;
-        }
-        if (isComboBox(hwnd, hwnd32) || !stricmp(name, "COMBOBOX"))
-        {
-            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_COMBOBOX;
-        }
-        if (isButton(hwnd, hwnd32) || !stricmp(name, "BUTTON"))
-        {
-            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_BUTTON;
-        }
-        if (isEdit(hwnd, hwnd32) || !stricmp(name, "EDIT"))
-        {
-            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_EDIT;
-        }
-        if (isScrollBar(hwnd, hwnd32) || !stricmp(name, "SCROLLBAR"))
-        {
-            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_SCROLLBAR;
-        }
+        detect_window_type(HWND_16(hWnd), hWnd);
     }
     return FALSE;
 }
 //reactos sdk/include/reactos/undocuser.h
 #define WM_SETVISIBLE 0x0009
+LRESULT CALLBACK WndProcRetHook(int code, WPARAM wParam, LPARAM lParam)
+{
+    user_hook_data *hd = (user_hook_data*)TlsGetValue(hhook_tls_index);
+    HHOOK hook = hd ? hd->wndprocret : NULL;
+    if (code < 0)
+        return CallNextHookEx(hook, code, wParam, lParam);
+    if (code >= 0)
+    {
+        CWPRETSTRUCT *pcwp = (CWPRETSTRUCT *)lParam;
+        HWND hwnd = pcwp->hwnd;
+        HWND16 hwnd16 = HWND_16(hwnd);
+        detect_window_type(hwnd16, hwnd);
+        if (window_type_table[hwnd16] == WINDOW_TYPE_STATIC)
+        {
+            if (pcwp->message == WM_CREATE)
+            {
+                do
+                {
+                    LPARAM lParam = pcwp->lParam;
+                    WPARAM wParam = pcwp->wParam;
+                    UINT msg = pcwp->message;
+                    HWND hwnd = pcwp->hwnd;
+                    CREATESTRUCTA *cs = (CREATESTRUCTA *)lParam;
+                    if (!cs)
+                        break;
+                    if (((ULONG_PTR)cs->hInstance >> 16)) break;  /* 32-bit instance, nothing to do */
+                    switch (cs->style & SS_TYPEMASK)
+                    {
+                    case SS_ICON:
+                    {
+                        SetWindowTextA(hwnd, "");
+                        HICON16 icon = LoadIcon16(HINSTANCE_16(cs->hInstance), cs->lpszName);
+                        if (!icon) icon = LoadCursor16(HINSTANCE_16(cs->hInstance), cs->lpszName);
+                        if (icon) wow_handlers32.static_proc(hwnd, STM_SETIMAGE, IMAGE_ICON,
+                            (LPARAM)get_icon_32(icon), FALSE);
+                        break;
+                    }
+                    case SS_BITMAP:
+                    {
+                        SetWindowTextA(hwnd, "");
+                        HBITMAP16 bitmap = LoadBitmap16(HINSTANCE_16(cs->hInstance), cs->lpszName);
+                        if (bitmap) wow_handlers32.static_proc(hwnd, STM_SETIMAGE, IMAGE_BITMAP,
+                            (LPARAM)HBITMAP_32(bitmap), FALSE);
+                        break;
+                    }
+                    }
+                } while (0);
+            }
+        }
+    }
+
+    return CallNextHookEx(hook, code, wParam, lParam);
+}
 LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
 {
+    user_hook_data *hd = (user_hook_data*)TlsGetValue(hhook_tls_index);
+    HHOOK hook = hd ? hd->wndproc : NULL;
     if (code < 0)
-        return CallNextHookEx(NULL, code, wParam, lParam);
+        return CallNextHookEx(hook, code, wParam, lParam);
     if (code == HC_ACTION) {
         if (wParam == NULL) {
             CWPSTRUCT *pcwp = (CWPSTRUCT *)lParam;
@@ -3829,7 +3896,7 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
         }
     }
 
-    return CallNextHookEx(NULL, code, wParam, lParam);
+    return CallNextHookEx(hook, code, wParam, lParam);
 }
 LRESULT wow_static_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
 {
@@ -3867,6 +3934,16 @@ LRESULT wow_edit_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
     }
     return CallWindowProcA(proc, a, b, c, d);
 }
+void InitNewThreadHook()
+{
+    if (TlsGetValue(hhook_tls_index))
+        return;
+    user_hook_data *hd = (user_hook_data*)HeapAlloc(GetProcessHeap(), 0, sizeof(user_hook_data));
+    TlsSetValue(hhook_tls_index, hd);
+    hd->wndproc = SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
+    hd->wndprocret = SetWindowsHookExA(WH_CALLWNDPROCRET, WndProcRetHook, GetModuleHandle(NULL), GetCurrentThreadId());
+    hd->cbt = SetWindowsHookExA(WH_CBT, CBTHook, GetModuleHandle(NULL), GetCurrentThreadId());
+}
 void InitHook()
 {
     isStatic(NULL, NULL);
@@ -3874,13 +3951,8 @@ void InitHook()
     isButton(NULL, NULL);
     isEdit(NULL, NULL);
     isComboBox(NULL, NULL);
-    SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
-    SetWindowsHookExA(WH_CBT, CBTHook, GetModuleHandle(NULL), GetCurrentThreadId());
-}
-void InitNewThreadHook()
-{
-    SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
-    SetWindowsHookExA(WH_CBT, CBTHook, GetModuleHandle(NULL), GetCurrentThreadId());
+    hhook_tls_index = TlsAlloc();
+    InitNewThreadHook();
 }
 
 #include "wine/winbase16.h"
