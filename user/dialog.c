@@ -467,7 +467,8 @@ LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     LRESULT ret;
     BOOL16 result = WINPROC_CallProc32ATo16(call_dialog_proc16, hwnd, msg, wParam, lParam,
         &ret, proc);
-    SetWindowLongA(hwnd, DWL_MSGRESULT, ret);
+    if (GetWindowLong16(HWND_16(hwnd), DWL_MSGRESULT) != 0xdeadbeef)
+        SetWindowLongA(hwnd, DWL_MSGRESULT, ret);
     return result;
 }
 
