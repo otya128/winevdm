@@ -1423,6 +1423,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
         *result = HFONT_16(*result);
         break;
+    case WM_MDIDESTROY:
+        ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
+        break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -2073,6 +2076,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_GETFONT:
         ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
         *result = HFONT_32(*result);
+        break;
+    case WM_MDIDESTROY:
+        ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
         break;
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
