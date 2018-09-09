@@ -63,7 +63,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
+      <AdditionalDependencies>$(OutDir)user.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
@@ -91,7 +91,7 @@ ctl3dv2.def
       <ModuleDefinitionFile>
 ctl3dv2.def
       </ModuleDefinitionFile>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
+      <AdditionalDependencies>$(OutDir)user.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -109,6 +109,9 @@ user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(OutDir)convspec" "%(Filename).spec" CTL3DV2 &gt; "%(Filename).asm" &amp;&amp; "$(AsmPath)as" --32 -o "%(Filename).obj" "%(Filename).asm"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).obj</Outputs>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ctl3dv2.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -22,8 +22,65 @@
 #include "wine/winuser16.h"
 #include <WowNT32.h>
 
+/* Ctl3dSubclassDlg */
+#define CTL3D_BUTTONS 0x0001
+#define CTL3D_LISTBOXES 0x0002
+#define CTL3D_EDITS 0x0004
+#define CTL3D_COMBOS 0x0008
+#define CTL3D_STATICTEXTS 0x0010
+#define CTL3D_STATICFRAMES 0x0020
+#define CTL3D_ALL 0xffff
+
+/* resource */
+#define CTL3D_3DCHECK 26567
+
+/* Ctl3dSubclassDlgEx */
+#define CTL3D_NODLGWINDOW 0x00010000
+/* WM_DLGBORDER result */
+#define WM_DLGBORDER (WM_USER + 3567)
+#define CTL3D_NOBORDER 0
+#define CTL3D_BORDER 1
+
+/* WM_DLGSUBCLASS result */
+#define WM_DLGSUBCLASS (WM_USER + 3568)
+#define CTL3D_NOSUBCLASS 0
+#define CTL3D_SUBCLASS 1
+
+#define CTLMSGOFFSET 3569
+#define CTL3D_CTLCOLOR (WM_USER + CTLMSGOFFSET)
+
 static BOOL16 CTL3D16_is_auto_subclass = FALSE;
 
+static WNDPROC listbox_proc;
+static WNDPROC button_proc;
+static WNDPROC static_proc;
+static WNDPROC combo_proc;
+static WNDPROC edit_proc;
+static WNDPROC dialog_proc;
+LRESULT WINAPI __wine_call_wndproc(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam, WNDPROC proc);
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID lpvReserved)
+{
+    WNDCLASSA cls;
+    switch (reason)
+    {
+    case DLL_PROCESS_ATTACH:
+        if (GetClassInfoA(hinstDLL, "LISTBOX", &cls))
+            listbox_proc = cls.lpfnWndProc;
+        if (GetClassInfoA(hinstDLL, "BUTTON", &cls))
+            button_proc = cls.lpfnWndProc;
+        if (GetClassInfoA(hinstDLL, "STATIC", &cls))
+            static_proc = cls.lpfnWndProc;
+        if (GetClassInfoA(hinstDLL, "COMBOBOX", &cls))
+            combo_proc = cls.lpfnWndProc;
+        if (GetClassInfoA(hinstDLL, "EDIT", &cls))
+            edit_proc = cls.lpfnWndProc;
+        if (GetClassInfoA(hinstDLL, "#32770", &cls))
+            dialog_proc = cls.lpfnWndProc;
+        break;
+    }
+    return TRUE;
+}
 /***********************************************************************
  *		Ctl3dAutoSubclass (CTL3DV2.16)
  */
@@ -71,7 +128,7 @@ HBRUSH WINAPI Ctl3dCtlColorEx16(UINT16 msg, WPARAM16 wParam, LPARAM lParam)
  */
 LRESULT WINAPI Ctl3dDlgFramePaint16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam)
 {
-    return 0;
+    return __wine_call_wndproc(hwnd, msg, wParam, lParam, DefWindowProcA);
 }
 
 /***********************************************************************
@@ -106,44 +163,61 @@ BOOL16 WINAPI Ctl3dRegister16(HINSTANCE16 hInst)
     return TRUE;
 }
 
+
 /***********************************************************************
- *		Ctl3dSubclassCtl (CTL3DV2.3)
- */
-BOOL16 WINAPI Ctl3dSubclassCtl16(HWND16 hwnd)
+*		Ctl3dSubclassCtlEx (CTL3DV2.25)
+*/
+BOOL16 WINAPI Ctl3dSubclassCtlEx16(HWND16 hwnd, INT16 type)
 {
     HWND hwnd32 = HWND_32(hwnd);
     char buf[200] = { 0 };
     GetClassNameA(hwnd32, buf, sizeof(buf));
-    if (!strcmpi(buf, "EDIT") || !strcmpi(buf, "LISTBOX"))
+    if ((type & CTL3D_EDITS) && (!strcmpi(buf, "EDIT")) || ((type & CTL3D_LISTBOXES) && !strcmpi(buf, "LISTBOX")))
     {
         SetWindowLongA(hwnd32, GWL_EXSTYLE, GetWindowLongA(HWND_32(hwnd), GWL_EXSTYLE) | WS_EX_CLIENTEDGE);
-        SetWindowPos(hwnd32, 0, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_DRAWFRAME);
+        SetWindowPos(hwnd32, 0, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
     return TRUE;
 }
 
 /***********************************************************************
- *		Ctl3dSubclassCtlEx (CTL3DV2.25)
+ *		Ctl3dSubclassCtl (CTL3DV2.3)
  */
-BOOL16 WINAPI Ctl3dSubclassCtlEx16(HWND16 hwnd, INT16 type)
+BOOL16 WINAPI Ctl3dSubclassCtl16(HWND16 hwnd)
 {
-    return Ctl3dSubclassCtl16(hwnd);
+    return Ctl3dSubclassCtlEx16(hwnd, CTL3D_ALL);
 }
 
-/***********************************************************************
- *		Ctl3dSubclassDlg (CTL3DV2.2)
- */
-BOOL16 WINAPI Ctl3dSubclassDlg16(HWND16 hwnd, WORD types)
+struct ctl3d_enumproc
 {
-    return FALSE;
+    HWND parent;
+    DWORD types;
+};
+BOOL CALLBACK ctl3d_enumproc(HWND hwnd, LPARAM lparam)
+{
+    struct ctl3d_enumproc *data = (struct ctl3d_enumproc*)lparam;
+    if (GetParent(hwnd) != data->parent)
+        return TRUE;
+    Ctl3dSubclassCtlEx16(hwnd, data->types);
 }
-
 /***********************************************************************
  *		Ctl3dSubclassDlgEx (CTL3DV2.21)
  */
 BOOL16 WINAPI Ctl3dSubclassDlgEx16(HWND16 hwnd, DWORD types)
 {
+    HWND hwnd32 = HWND_32(hwnd);
+    struct ctl3d_enumproc data = { 0 };
+    data.types = types;
+    EnumChildWindows(hwnd32, ctl3d_enumproc, (LPARAM)&data);
     return FALSE;
+}
+
+/***********************************************************************
+*		Ctl3dSubclassDlg (CTL3DV2.2)
+*/
+BOOL16 WINAPI Ctl3dSubclassDlg16(HWND16 hwnd, WORD types)
+{
+    return Ctl3dSubclassDlgEx16(hwnd, types);
 }
 
 /***********************************************************************
@@ -184,7 +258,7 @@ void WINAPI Ctl3dWinIniChange16(void)
  */
 LRESULT WINAPI ComboWndProc3d16(HWND16 hwnd, UINT16 msg,WPARAM16 wparam, LPARAM lparam)
 {
-    return 0;
+    return __wine_call_wndproc(hwnd, msg, wparam, lparam, combo_proc);
 }
 
 /***********************************************************************
@@ -192,7 +266,7 @@ LRESULT WINAPI ComboWndProc3d16(HWND16 hwnd, UINT16 msg,WPARAM16 wparam, LPARAM 
  */
 LRESULT WINAPI BtnWndProc3d16(HWND16 hwnd, UINT16 msg, WPARAM16 wparam, LPARAM lparam)
 {
-    return 0;
+    return __wine_call_wndproc(hwnd, msg, wparam, lparam, button_proc);
 }
 
 /***********************************************************************
@@ -200,7 +274,7 @@ LRESULT WINAPI BtnWndProc3d16(HWND16 hwnd, UINT16 msg, WPARAM16 wparam, LPARAM l
  */
 LRESULT WINAPI StaticWndProc3d16(HWND16 hwnd, UINT16 msg, WPARAM16 wparam, LPARAM lparam)
 {
-    return 0;
+    return __wine_call_wndproc(hwnd, msg, wparam, lparam, static_proc);
 }
 
 /***********************************************************************
@@ -208,7 +282,7 @@ LRESULT WINAPI StaticWndProc3d16(HWND16 hwnd, UINT16 msg, WPARAM16 wparam, LPARA
  */
 LRESULT WINAPI EditWndProc3d16(HWND16 hwnd, UINT16 msg, WPARAM16 wparam, LPARAM lparam)
 {
-    return 0;
+    return __wine_call_wndproc(hwnd, msg, wparam, lparam, edit_proc);
 }
 
 /***********************************************************************
@@ -216,13 +290,18 @@ LRESULT WINAPI EditWndProc3d16(HWND16 hwnd, UINT16 msg, WPARAM16 wparam, LPARAM 
  */
 LRESULT WINAPI ListWndProc3d16(HWND16 hwnd, UINT16 msg, WPARAM16 wparam, LPARAM lparam)
 {
-    return 0;
+    return __wine_call_wndproc(hwnd, msg, wparam, lparam, listbox_proc);
 }
 
 /***********************************************************************
  *		Ctl3dDlgProc (CTL3DV2.17)
  */
 LRESULT WINAPI Ctl3dDlgProc16(HWND16 hwnd, UINT16 msg, WPARAM16 wparam, LPARAM lparam)
+{
+    return __wine_call_wndproc(hwnd, msg, wparam, lparam, dialog_proc);
+}
+
+WORD WINAPI Ctl3dSetStyle16(WORD a1, SEGPTR a2, WORD a3)
 {
     return 0;
 }

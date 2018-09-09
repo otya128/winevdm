@@ -63,7 +63,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
+      <AdditionalDependencies>$(OutDir)ctl3dv2.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
@@ -91,7 +91,7 @@ ctl3d.def
       <ModuleDefinitionFile>
 ctl3d.def
       </ModuleDefinitionFile>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
+      <AdditionalDependencies>$(OutDir)ctl3dv2.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

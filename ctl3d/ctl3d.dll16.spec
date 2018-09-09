@@ -14,7 +14,7 @@
 16 pascal -ret16 Ctl3dAutoSubclass(word) Ctl3dAutoSubclass16
 17 pascal Ctl3dDlgProc(word word word long) Ctl3dDlgProc16
 18 pascal -ret16 Ctl3dCtlColorEx(word word long) Ctl3dCtlColorEx16
-19 stub Ctl3dSetStyle
+19 pascal -ret16 Ctl3dSetStyle(word long word) Ctl3dSetStyle16
 20 pascal Ctl3dDlgFramePaint(word word word long) Ctl3dDlgFramePaint16
 21 pascal -ret16 Ctl3dSubclassDlgEx(word long) Ctl3dSubclassDlgEx16
 22 pascal -ret16 Ctl3dWinIniChange() Ctl3dWinIniChange16

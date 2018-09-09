@@ -4,3 +4,28 @@ LIBRARY ..\ctl3dv2\ctl3dv2.dll16.spec
 
 EXPORTS
   _wine_spec_dos_header @1 DATA
+  Ctl3dGetVer16
+  Ctl3dSubclassDlg16
+  Ctl3dSubclassCtl16
+  Ctl3dCtlColor16
+  Ctl3dEnabled16
+  Ctl3dColorChange16
+  BtnWndProc3d16
+  EditWndProc3d16
+  ListWndProc3d16
+  ComboWndProc3d16
+  StaticWndProc3d16
+  Ctl3dRegister16
+  Ctl3dUnregister16
+  Ctl3dAutoSubclass16
+  Ctl3dDlgProc16
+  Ctl3dCtlColorEx16
+  Ctl3dSetStyle16
+  Ctl3dDlgFramePaint16
+  Ctl3dSubclassDlgEx16
+  Ctl3dWinIniChange16
+  Ctl3dIsAutoSubclass16
+  Ctl3dUnAutoSubclass16
+  Ctl3dSubclassCtlEx16
+  Ctl3dUnsubclassCtl16
+  Ctl3dAutoSubclassEx16
