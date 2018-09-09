@@ -50,6 +50,17 @@ struct timer32_wrapper
 static int timer32_count;
 static struct timer32_wrapper timer32[TIMER32_WRAP_SIZE];
 
+typedef enum
+{
+    WINDOW_TYPE_WINDOW,
+    WINDOW_TYPE_STATIC,
+    WINDOW_TYPE_BUTTON,
+    WINDOW_TYPE_LISTBOX,
+    WINDOW_TYPE_EDIT,
+    WINDOW_TYPE_SCROLLBAR,
+    WINDOW_TYPE_COMBOBOX,
+} WINDOW_TYPE;
+LPBYTE window_type_table;
 static void dump_hmenu(HMENU menu)
 {
     int count = GetMenuItemCount(menu);
@@ -761,8 +772,10 @@ BOOL is_listbox_wndproc(WNDPROC lpfnWndProc)
         lpfnWndProc2 = get_window_wndproc("LISTBOX");
     return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
-BOOL isListBox(HWND hWnd)
+BOOL isListBox(HWND16 hWnd16, HWND hWnd)
 {
+    if (window_type_table[hWnd16] == WINDOW_TYPE_LISTBOX)
+        return TRUE;
     WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
     return is_listbox_wndproc(lpfnWndProc);
 }
@@ -777,8 +790,10 @@ BOOL is_edit_wndproc(WNDPROC lpfnWndProc)
         lpfnWndProc2 = get_window_wndproc("EDIT");
     return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
-BOOL isEdit(HWND hWnd)
+BOOL isEdit(HWND16 hWnd16, HWND hWnd)
 {
+    if (window_type_table[hWnd16] == WINDOW_TYPE_EDIT)
+        return TRUE;
     WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
     return is_edit_wndproc(lpfnWndProc);
 }
@@ -793,8 +808,10 @@ BOOL is_scrollbar_wndproc(WNDPROC lpfnWndProc)
         lpfnWndProc2 = get_window_wndproc("SCROLLBAR");
     return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
-BOOL isScrollBar(HWND hWnd)
+BOOL isScrollBar(HWND16 hWnd16, HWND hWnd)
 {
+    if (window_type_table[hWnd16] == WINDOW_TYPE_SCROLLBAR)
+        return TRUE;
     WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
     return is_scrollbar_wndproc(lpfnWndProc);
 }
@@ -809,8 +826,10 @@ BOOL is_combobox_wndproc(WNDPROC lpfnWndProc)
         lpfnWndProc2 = get_window_wndproc("COMBOBOX");
     return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
-BOOL isComboBox(HWND hWnd)
+BOOL isComboBox(HWND16 hWnd16, HWND hWnd)
 {
+    if (window_type_table[hWnd16] == WINDOW_TYPE_COMBOBOX)
+        return TRUE;
     WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
     return is_combobox_wndproc(lpfnWndProc);
 }
@@ -825,8 +844,10 @@ BOOL is_static_wndproc(WNDPROC lpfnWndProc)
         lpfnWndProc2 = get_window_wndproc("STATIC");
     return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
-BOOL isStatic(HWND hWnd)
+BOOL isStatic(HWND16 hWnd16, HWND hWnd)
 {
+    if (window_type_table[hWnd16] == WINDOW_TYPE_STATIC)
+        return TRUE;
     WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
     return is_static_wndproc(lpfnWndProc);
 }
@@ -841,8 +862,10 @@ BOOL is_button_wndproc(WNDPROC lpfnWndProc)
         lpfnWndProc2 = get_window_wndproc("BUTTON");
     return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
-BOOL isButton(HWND hWnd)
+BOOL isButton(HWND16 hWnd16, HWND hWnd)
 {
+    if (window_type_table[hWnd16] == WINDOW_TYPE_BUTTON)
+        return TRUE;
     WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
     return is_button_wndproc(lpfnWndProc);
 }
@@ -1019,37 +1042,42 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 
     const char *msg_str = message_to_str(msg);
     TRACE("(%p, %04X, %s(%04X), %04X, %08X)\n", callback, hwnd, msg_str, msg, wParam, lParam);
-    if (isListBox(hwnd32) || (call_window_proc_callback == callback && is_listbox_wndproc(arg)))
+    if (isListBox(hwnd, hwnd32) || (call_window_proc_callback == callback && is_listbox_wndproc(arg)))
 	{
 		BOOL f;
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_LISTBOX;
 		ret = listbox_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
 		if (f)
 			return ret;
 	}
-    if (isComboBox(hwnd32) || (call_window_proc_callback == callback && is_combobox_wndproc(arg)))
+    if (isComboBox(hwnd, hwnd32) || (call_window_proc_callback == callback && is_combobox_wndproc(arg)))
     {
         BOOL f;
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_COMBOBOX;
         ret = combo_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
         if (f)
             return ret;
     }
-    if (isButton(hwnd32) || (call_window_proc_callback == callback && is_button_wndproc(arg)))
+    if (isButton(hwnd, hwnd32) || (call_window_proc_callback == callback && is_button_wndproc(arg)))
     {
         BOOL f;
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_BUTTON;
         ret = button_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
         if (f)
             return ret;
     }
-    if (isEdit(hwnd32) || (call_window_proc_callback == callback && is_edit_wndproc(arg)))
+    if (isEdit(hwnd, hwnd32) || (call_window_proc_callback == callback && is_edit_wndproc(arg)))
     {
         BOOL f;
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_EDIT;
         ret = edit_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
         if (f)
             return ret;
     }
-    if (isScrollBar(hwnd32) || (call_window_proc_callback == callback && is_scrollbar_wndproc(arg)))
+    if (isScrollBar(hwnd, hwnd32) || (call_window_proc_callback == callback && is_scrollbar_wndproc(arg)))
     {
         BOOL f;
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_SCROLLBAR;
         ret = scrollbar_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
         if (f)
             return ret;
@@ -1423,8 +1451,16 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
         *result = HFONT_16(*result);
         break;
+    case WM_KILLFOCUS:
+    case WM_INITDIALOG:
     case WM_MDIDESTROY:
         ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
+        break;
+    case WM_ENTERIDLE:
+        ret = callback(hwnd32, msg, wParam, HWND_32(lParam), result, arg);
+        break;
+    case WM_UPDATEUISTATE:
+        ret = callback(hwnd32, msg, lParam, lParam, result, arg);
         break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
@@ -1448,8 +1484,21 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 {
     LRESULT ret = 0;
 
+    HWND16 hwnd16 = HWND_16(hwnd);
     const char *msg_str = message_to_str(msg);
     TRACE("(%p, %p, %s(%04X), %08X, %08X)\n", callback, hwnd, msg_str, msg, wParam, lParam);
+    if (BM_GETCHECK <= msg && msg <= BM_SETDONTCLICK)
+        window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_BUTTON;
+    if (LB_ADDSTRING <= msg && msg <= LB_MSGMAX)
+        window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_LISTBOX;
+    if (STM_SETICON <= msg && msg <= STM_MSGMAX)
+        window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_STATIC;
+    if (SBM_SETPOS <= msg && msg <= SBM_GETSCROLLBARINFO)
+        window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_SCROLLBAR;
+    if (EM_GETSEL <= msg && msg <= EM_ENABLEFEATURE)
+        window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_EDIT;
+    if (CB_GETEDITSEL <= msg && msg <= CB_MSGMAX)
+        window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_COMBOBOX;
     switch (msg)
     {
     case WM_NCCREATE:
@@ -1711,8 +1760,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
-        ret = HBRUSH_32(callback( HWND_16(hwnd), WM_CTLCOLOR, HDC_16(wParam),
-                        MAKELPARAM( HWND_16(lParam), msg - WM_CTLCOLORMSGBOX ), result, arg ));
+        ret = callback( HWND_16(hwnd), WM_CTLCOLOR, HDC_16(wParam),
+                        MAKELPARAM( HWND_16(lParam), msg - WM_CTLCOLORMSGBOX ), result, arg );
         *result = HBRUSH_32(*result);
         break;
     case WM_MENUSELECT:
@@ -2077,8 +2126,16 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
         *result = HFONT_32(*result);
         break;
+    case WM_KILLFOCUS:
     case WM_MDIDESTROY:
+    case WM_INITDIALOG:
         ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
+        break;
+    case WM_ENTERIDLE:
+        ret = callback(HWND_16(hwnd), msg, wParam, HWND_16(lParam), result, arg);
+        break;
+    case WM_UPDATEUISTATE:
+        ret = callback(HWND_16(hwnd), msg, wParam, wParam, result, arg);
         break;
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
@@ -3679,7 +3736,32 @@ LRESULT CALLBACK CBTHook(
         {
             set_window_app_id(hWnd);
         }
-        if (isEdit(hWnd))
+        HWND16 hwnd = HWND_16(hWnd);
+        HWND hwnd32 = hWnd;
+        char name[100];
+        GetClassNameA(hwnd32, name, 100);
+        /* detect window type */
+        if (isListBox(hwnd, hwnd32) || !stricmp(name, "LISTBOX"))
+        {
+            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_LISTBOX;
+        }
+        if (isComboBox(hwnd, hwnd32) || !stricmp(name, "COMBOBOX"))
+        {
+            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_COMBOBOX;
+        }
+        if (isButton(hwnd, hwnd32) || !stricmp(name, "BUTTON"))
+        {
+            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_BUTTON;
+        }
+        if (isEdit(hwnd, hwnd32) || !stricmp(name, "EDIT"))
+        {
+            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_EDIT;
+        }
+        if (isScrollBar(hwnd, hwnd32) || !stricmp(name, "SCROLLBAR"))
+        {
+            window_type_table[hwnd] = (BYTE)WINDOW_TYPE_SCROLLBAR;
+        }
+        if (isEdit(hwnd, hwnd32)/*?*/)
         {
             SetWindowLongPtrA(hWnd, GWLP_WNDPROC, edit_wndproc16);
         }
@@ -3705,7 +3787,7 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
                     SetWindowTheme(pcwp->hwnd, L"", L"");
                 }
             }
-            if (isStatic(pcwp->hwnd))
+            if (isStatic(HWND_16(pcwp->hwnd), pcwp->hwnd))
             {
                 SetWindowLongPtrA(pcwp->hwnd, GWLP_WNDPROC, static_wndproc16);
             }
@@ -3760,11 +3842,11 @@ LRESULT wow_edit_proc_wrapper(HWND a, UINT b, WPARAM c, LPARAM d, BOOL e)
 }
 void InitHook()
 {
-    isStatic(NULL);//判定の無限ループが起こるので先に実行する
-    isListBox(NULL);//判定の無限ループが起こるので先に実行する
-    isButton(NULL);//判定の無限ループが起こるので先に実行する
-    isEdit(NULL);//判定の無限ループが起こるので先に実行する
-    isComboBox(NULL);//判定の無限ループが起こるので先に実行する
+    isStatic(NULL, NULL);
+    isListBox(NULL, NULL);
+    isButton(NULL, NULL);
+    isEdit(NULL, NULL);
+    isComboBox(NULL, NULL);
     SetWindowsHookExA(WH_CALLWNDPROC, WndProcHook, GetModuleHandle(NULL), GetCurrentThreadId());
     SetWindowsHookExA(WH_CBT, CBTHook, GetModuleHandle(NULL), GetCurrentThreadId());
 }
@@ -3783,12 +3865,17 @@ BOOL WINAPI DllMain(
 {
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
+        window_type_table = HeapAlloc(GetProcessHeap(), 0, 65536);
         aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", TRUE);
         separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE);
     }
     if (fdwReason == DLL_THREAD_ATTACH)
     {
         InitNewThreadHook();
+    }
+    if (fdwReason == DLL_PROCESS_DETACH)
+    {
+        HeapFree(GetProcessHeap(), 0, window_type_table);
     }
     return TRUE;
 }
