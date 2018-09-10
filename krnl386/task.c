@@ -513,6 +513,54 @@ static inline void free_win16_tib( WIN16_SUBSYSTEM_TIB *tib )
     HeapFree( GetProcessHeap(), 0, tib );
 }
 
+static void set_thread_internal_windows_ver(DWORD version)
+{
+    /* In WOW64, NtCurrentTeb()->Win32ClientInfo is not used */
+    BOOL iswow64 = FALSE;
+    IsWow64Process(GetCurrentProcess(), &iswow64);
+    typedef struct
+    {
+        DWORD64 CI_flags;
+        DWORD64 cSpins;
+        DWORD dwExpWinVer;
+        DWORD dwCompatFlags;
+        /* teb->Peb->AppCompatFlagsUser.LowPart */
+        DWORD dwCompatFlags2;
+        /* ... */
+    } CLIENTINFO64, *LPCLIENTINFO64;
+    typedef struct
+    {
+        DWORD CI_flags;
+        DWORD cSpins;
+        DWORD dwExpWinVer;
+        DWORD dwCompatFlags;
+        /* teb->Peb->AppCompatFlagsUser.LowPart */
+        DWORD dwCompatFlags2;
+        /* ... */
+    } CLIENTINFO32, *LPCLIENTINFO32;
+    if (iswow64)
+    {
+#if 0
+        /* only works in windows 10 */
+        SSIZE_T teb_wow64teboffset = *(PSSIZE_T)((LPBYTE)NtCurrentTeb() + 0x0FDC);
+        LPBYTE wow64teb = (LPBYTE)NtCurrentTeb() + teb_wow64teboffset;
+#else
+        LPBYTE wow64teb = *(LPBYTE*)((LPBYTE)NtCurrentTeb() + 0x0F70);
+#endif
+        LPCLIENTINFO64 wow64teb_Win32ClientInfo = (LPCLIENTINFO64)(wow64teb + 0x800);
+        wow64teb_Win32ClientInfo->dwExpWinVer = version;
+        wow64teb_Win32ClientInfo->dwCompatFlags2 |= 0x10080000;
+    }
+    else
+    {
+        /* NT 5.0 and higher */
+        LPBYTE teb = (LPBYTE)NtCurrentTeb();
+        LPCLIENTINFO32 teb_Win32ClientInfo = (LPCLIENTINFO32)(teb + 0x06CC);
+        teb_Win32ClientInfo->dwExpWinVer = version;
+        teb_Win32ClientInfo->dwCompatFlags2 = 0x10000000 | 0x80000;
+    }
+}
+
 /* startup routine for a new 16-bit thread */
 static DWORD CALLBACK task_start( LPVOID p )
 {
@@ -522,6 +570,8 @@ static DWORD CALLBACK task_start( LPVOID p )
 
     kernel_get_thread_data()->htask16 = pTask->hSelf;
     NtCurrentTeb()->Tib.SubSystemTib = data->tib;
+
+    set_thread_internal_windows_ver(0x30A);
 
     _EnterWin16Lock();
     TASK_LinkTask( pTask->hSelf );
