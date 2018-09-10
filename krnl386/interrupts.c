@@ -869,11 +869,13 @@ static void WINAPI DOSVM_Int1aHandler( CONTEXT *context )
     {
     case 0x00: /* GET SYSTEM TIME */
         {
-            BIOSDATA *data = DOSVM_BiosData();
-            SET_CX( context, HIWORD(data->Ticks) );
-            SET_DX( context, LOWORD(data->Ticks) );
+            SYSTEMTIME systime;
+            GetLocalTime( &systime );
+            DWORD ticks = (float)(systime.wHour * 3600 + systime.wMinute * 60 + systime.wSecond) * 18.2f;
+            SET_CX( context, HIWORD(ticks) );
+            SET_DX( context, LOWORD(ticks) );
             SET_AL( context, 0 ); /* FIXME: midnight flag is unsupported */
-            TRACE( "GET SYSTEM TIME - ticks=%d\n", data->Ticks );
+            TRACE( "GET SYSTEM TIME - ticks=%d\n", ticks );
         }
         break;
 
