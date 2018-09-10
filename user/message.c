@@ -3951,6 +3951,7 @@ void InitHook()
     isButton(NULL, NULL);
     isEdit(NULL, NULL);
     isComboBox(NULL, NULL);
+    isScrollBar(NULL, NULL);
     hhook_tls_index = TlsAlloc();
     InitNewThreadHook();
 }
