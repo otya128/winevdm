@@ -549,7 +549,6 @@ static void set_thread_internal_windows_ver(DWORD version)
 #endif
         LPCLIENTINFO64 wow64teb_Win32ClientInfo = (LPCLIENTINFO64)(wow64teb + 0x800);
         wow64teb_Win32ClientInfo->dwExpWinVer = version;
-        wow64teb_Win32ClientInfo->dwCompatFlags2 |= 0x10080000;
     }
     else
     {
@@ -557,7 +556,6 @@ static void set_thread_internal_windows_ver(DWORD version)
         LPBYTE teb = (LPBYTE)NtCurrentTeb();
         LPCLIENTINFO32 teb_Win32ClientInfo = (LPCLIENTINFO32)(teb + 0x06CC);
         teb_Win32ClientInfo->dwExpWinVer = version;
-        teb_Win32ClientInfo->dwCompatFlags2 = 0x10000000 | 0x80000;
     }
 }
 
