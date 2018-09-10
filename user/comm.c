@@ -707,7 +707,8 @@ INT16 WINAPI GetCommError16(INT16 cid,LPCOMSTAT16 lpStat)
         unsigned char *stol;
 
 	if ((ptr = GetDeviceStruct(cid)) == NULL) {
-		FIXME("no handle for cid = %0x!\n",cid);
+		/* Some programs frequently call GetCommError(0, ) */
+		/* FIXME("no handle for cid = %0x!\n",cid); */
 		return -1;
 	}
         if (cid&FLAG_LPT) {
