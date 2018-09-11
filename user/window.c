@@ -2188,12 +2188,17 @@ struct class_entry *find_win16_class(HINSTANCE16 hInst16, LPCSTR name)
     }
     return NULL;
 }
-
 LPCSTR win16classname(LPCSTR name)
 {
     struct class_entry *entry = find_win32_class(name);
     if (entry)
         return entry->classInfo.lpszClassName;
+    if (HIWORD(name) && name[0] == '#')
+    {
+        ATOM atom = FindAtomA(name);
+        if (atom != 0)
+            return atom;
+    }
     return name;
 }
 LPCSTR win32classname(HINSTANCE16 hInst16, LPCSTR name)

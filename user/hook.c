@@ -305,7 +305,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             cs16.x              = cbtcw32->lpcs->x;
             cs16.style          = cbtcw32->lpcs->style;
             cs16.lpszName       = MapLS( cbtcw32->lpcs->lpszName );
-            cs16.lpszClass      = MapLS( cbtcw32->lpcs->lpszClass );
+            cs16.lpszClass      = MapLS( win16classname(cbtcw32->lpcs->lpszClass) );
             cs16.dwExStyle      = cbtcw32->lpcs->dwExStyle;
 
             cbtcw16.lpcs = (CREATESTRUCT16 *)MapLS( &cs16 );
@@ -637,7 +637,7 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
                 cs32.x              = cs16->x;
                 cs32.style          = cs16->style;
                 cs32.lpszName       = MapSL( cs16->lpszName );
-                cs32.lpszClass      = MapSL( cs16->lpszClass );
+                cs32.lpszClass      = win32classname(cs16->hInstance, MapSL( cs16->lpszClass) );
                 cs32.dwExStyle      = cs16->dwExStyle;
 
                 ret = CallNextHookEx( hhook, code, HWND_32(wparam), (LPARAM)&cbtcw32 );
