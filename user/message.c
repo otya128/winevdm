@@ -230,7 +230,6 @@ static WNDPROC16 alloc_win16_thunk( WNDPROC handle )
 }
 
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK DefEditProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 /* Some bad behavior programs access native WNDPROC... */
 BYTE *dummy_proc;
@@ -254,8 +253,6 @@ WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
     init_dummy_proc();
     if (func == (WNDPROC16)DefWndProca)
         func = (WNDPROC16)DefWindowProcA;
-    if (func == (WNDPROC16)DefEditProc)
-        func = (WNDPROC16)edit_wndproc16;
     WNDPROC ret = WINPROC_AllocProc16(func);
     int index = winproc_to_index((WNDPROC16)ret);
     if (index == -1)
@@ -1530,17 +1527,29 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     const char *msg_str = message_to_str(msg);
     TRACE("(%p, %p, %s(%04X), %08X, %08X)\n", callback, hwnd, msg_str, msg, wParam, lParam);
     if (BM_GETCHECK <= msg && msg <= BM_SETDONTCLICK)
+    {
         window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_BUTTON;
+    }
     if (LB_ADDSTRING <= msg && msg <= LB_MSGMAX)
+    {
         window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_LISTBOX;
+    }
     if (STM_SETICON <= msg && msg <= STM_MSGMAX)
+    {
         window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_STATIC;
+    }
     if (SBM_SETPOS <= msg && msg <= SBM_GETSCROLLBARINFO)
+    {
         window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_SCROLLBAR;
+    }
     if (EM_GETSEL <= msg && msg <= EM_ENABLEFEATURE)
+    {
         window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_EDIT;
+    }
     if (CB_GETEDITSEL <= msg && msg <= CB_MSGMAX)
+    {
         window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_COMBOBOX;
+    }
     switch (msg)
     {
     case WM_NCCREATE:
@@ -4104,7 +4113,6 @@ void register_wow_handlers(void)
     wow_handlers32.button_proc = wow_button_proc_wrapper;
     wow_handlers32.edit_proc = wow_edit_proc_wrapper;
     InitHook();
-	//
 }
 
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)

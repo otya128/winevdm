@@ -400,12 +400,9 @@ INT_PTR CALLBACK DlgProc_Thunk(DLGPROCTHUNK *thunk_data, HWND hDlg, UINT Msg, WP
         {
             BOOL ret = SetMenu(hDlg, HMENU_32(cs->hMenu));
         }
-        ATOM classatom = GetClassLongA(hDlg, GCW_ATOM);//WNDPROC16
         HWND16 hWnd16 = HWND_16(hDlg);
-        if (classatom)
-        {
-            SetDlgProc16(hWnd16, params[1]);
-        }
+        SetDlgProc16(hWnd16, params[1]);
+        SetWindowLongPtrA(hDlg, DWLP_DLGPROC, DlgProc);
     }
     return DlgProc(hDlg, Msg, wParam, lParam);
 }
