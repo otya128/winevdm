@@ -198,12 +198,14 @@ BOOL WINHELP_GetOpenFileName(LPSTR lpszFile, int len)
 static INT WINHELP_MessageBoxIDS_s(UINT ids_text, LPCSTR str, UINT ids_title, WORD type)
 {
     CHAR text[MAX_STRING_LEN];
+    CHAR caption[MAX_STRING_LEN];
     CHAR newtext[MAX_STRING_LEN + MAX_PATH];
 
     LoadStringA(Globals.hInstance, ids_text, text, sizeof(text));
     wsprintfA(newtext, text, str);
+    LoadStringA(Globals.hInstance, ids_title, caption, sizeof(caption));
 
-    return MessageBoxA(0, newtext, MAKEINTRESOURCEA(ids_title), type);
+    return MessageBoxA(0, newtext, caption, type);
 }
 
 /***********************************************************************
