@@ -1,0 +1,69 @@
+#include "wine/windef16.h"
+#include "wine/winbase16.h"
+#include "wine/debug.h"
+
+WINE_DEFAULT_DEBUG_CHANNEL(nddeapi);
+#define NDDE_NOT_IMPLEMENTED 14
+
+typedef struct _NDDESHAREINFO16 NDDESHAREINFO16, *LPNDDESHAREINFO16;
+UINT16 WINAPI NDdeShareGetInfo16(LPSTR a, LPSTR b, UINT16 c, LPBYTE d, DWORD e, LPDWORD f, LPWORD g)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+UINT16 WINAPI NDdeShareSetInfo16(LPSTR a, LPSTR b, UINT16 c, LPBYTE d, DWORD e, WORD f)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+UINT16 WINAPI NDdeGetClientInfo16(HWND16 a, LPSTR b, LONG c, LPSTR d, LONG e)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+BOOL16 WINAPI NDdeIsValidPassword16(LPSTR a)
+{
+    return FALSE;
+}
+UINT16 WINAPI NDdeSessionEnum16(LPSTR a, UINT16 b, LPBYTE c, DWORD d, LPDWORD e, LPDWORD f)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+UINT16 WINAPI NDdeGetNodeName16(LPSTR a, LONG b)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+UINT16 WINAPI NDdeGetErrorString16(UINT16 a, LPSTR b, DWORD c)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+UINT16 WINAPI NDdeConnectionEnum16(LPSTR a, LPSTR b, DWORD c, UINT16 d, LPBYTE e, DWORD f, LPDWORD g, LPDWORD h)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+UINT16 WINAPI NDdeShareDel16(LPSTR a, LPSTR b, UINT c)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+HWND16 WINAPI NDdeGetWindow16()
+{
+    ERR("network dde is no longer supported.\n");
+    return 0;
+}
+UINT16 WINAPI NDdeSessionClose16(LPSTR a, LPSTR b, DWORD c)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+UINT16 WINAPI NDdeShareAdd16(LPSTR a, UINT16 b, LPBYTE c, DWORD d)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+UINT16 WINAPI NDdeShareEnum16(LPSTR a, UINT16 b, LPBYTE c, DWORD d, LPDWORD e, LPDWORD f)
+{
+    return NDDE_NOT_IMPLEMENTED;
+}
+BOOL16 WINAPI NDdeIsValidTopic16(LPSTR a)
+{
+    return FALSE;
+}
+BOOL16 WINAPI NDdeIsValidShareName16(LPSTR a)
+{
+    return FALSE;
+}
