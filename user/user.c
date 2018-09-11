@@ -2993,6 +2993,32 @@ BOOL16 WINAPI AdjustWindowRectEx16( LPRECT16 rect, DWORD style, BOOL16 menu, DWO
     rect32.right  = rect->right;
     rect32.bottom = rect->bottom;
     ret = AdjustWindowRectEx( &rect32, style, menu, exStyle );
+    /*
+        win16:SM_CYCAPTION  = 20 win32:SM_CYCAPTION  = 24
+        win16:SM_CXBORDER   =  1 win32:SM_CXBORDER   =  1
+        win16:SM_CYBORDER   =  1 win32:SM_CYBORDER   =  1
+        win16:SM_CXDLGFRAME =  4 win32:SM_CXDLGFRAME =  2
+        win16:SM_CYDLGFRAME =  4 win32:SM_CYDLGFRAME =  2
+        win16: AdjustWindowRectEx(WS_DLGFRAME,...)=>non-client width(5,5,5,5)
+        win32: AdjustWindowRectEx(WS_DLGFRAME,...)=>non-client width(3,3,3,3)
+        win16: CreateWindow(WS_DLGFRAME,...)=>non-client width(1,20,1,1)
+        win32: CreateWindow(WS_DLGFRAME,...)=>non-client width(3,26,3,3)
+    */
+    if (menu)
+    {
+        /*
+        win16 bug?
+        +-------------+ <= SM_CYCAPTION (when caption is required)
+        |   CAPTION   | <= SM_CYCAPTION
+        +-------------+ <= 1px (win16 ignores this?)
+        |     MENU    | <= SM_CYMENU
+        +-------------+ <= SM_CYMENU
+        |             |
+        | client area |
+        |             |
+        */
+        rect32.top++;
+    }
     rect->left   = rect32.left;
     rect->top    = rect32.top;
     rect->right  = rect32.right;
