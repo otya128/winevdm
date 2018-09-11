@@ -1120,6 +1120,14 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         if (f)
             return ret;
     }
+    if (isStatic(hwnd, hwnd32) || (call_window_proc_callback == callback && is_static_wndproc(arg)))
+    {
+        BOOL f;
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_STATIC;
+        ret = static_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
+        if (f)
+            return ret;
+    }
     switch(msg)
     {
     case WM_NCCREATE:
@@ -3651,6 +3659,27 @@ static LRESULT scrollbar_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     return wow_handlers32.scrollbar_proc( hwnd, msg, wParam, lParam, FALSE );
 }
 
+static LRESULT static_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f)
+{
+    LRESULT ret;
+    switch (msg)
+    {
+    case STM_SETICON16:
+        wParam = (WPARAM)get_icon_32((HICON16)wParam);
+        *f = TRUE;
+        ret = callback(hwnd, STM_GETICON, wParam, lParam, result, arg);
+        return ret;
+    case STM_GETICON16:
+        ret = callback(hwnd, STM_GETICON, wParam, lParam, result, arg);
+        *result = get_icon_16((HICON)*result);
+        *f = TRUE;
+        return ret;
+    default:
+        break;
+    }
+    return *f = FALSE;
+}
 /***********************************************************************
  *           static_proc16
  */
