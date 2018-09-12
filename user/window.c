@@ -365,11 +365,13 @@ void WINAPI GetWindowRect16( HWND16 hwnd, LPRECT16 rect )
 {
     RECT rect32;
 
-    GetWindowRect( WIN_Handle32(hwnd), &rect32 );
-    rect->left   = rect32.left;
-    rect->top    = rect32.top;
-    rect->right  = rect32.right;
-    rect->bottom = rect32.bottom;
+    if (GetWindowRect( WIN_Handle32(hwnd), &rect32 ))
+    {
+        rect->left   = rect32.left;
+        rect->top    = rect32.top;
+        rect->right  = rect32.right;
+        rect->bottom = rect32.bottom;
+    }
 }
 
 
@@ -380,11 +382,13 @@ void WINAPI GetClientRect16( HWND16 hwnd, LPRECT16 rect )
 {
     RECT rect32;
 
-    GetClientRect( WIN_Handle32(hwnd), &rect32 );
-    rect->left   = rect32.left;
-    rect->top    = rect32.top;
-    rect->right  = rect32.right;
-    rect->bottom = rect32.bottom;
+    if (GetClientRect( WIN_Handle32(hwnd), &rect32 ))
+    {
+        rect->left   = rect32.left;
+        rect->top    = rect32.top;
+        rect->right  = rect32.right;
+        rect->bottom = rect32.bottom;
+    }
 }
 
 
@@ -1551,10 +1555,13 @@ BOOL16 WINAPI GetUpdateRect16( HWND16 hwnd, LPRECT16 rect, BOOL16 erase )
 
     if (!rect) return GetUpdateRect( WIN_Handle32(hwnd), NULL, erase );
     ret = GetUpdateRect( WIN_Handle32(hwnd), &r, erase );
-    rect->left   = r.left;
-    rect->top    = r.top;
-    rect->right  = r.right;
-    rect->bottom = r.bottom;
+    if (ret)
+    {
+        rect->left   = r.left;
+        rect->top    = r.top;
+        rect->right  = r.right;
+        rect->bottom = r.bottom;
+    }
     return ret;
 }
 
