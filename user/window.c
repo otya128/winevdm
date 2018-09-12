@@ -1227,7 +1227,7 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
             retvalue = (LONG_PTR)GetWndProc16(hwnd16);
         }
         if (retvalue)
-            return TEST(retvalue);
+            return retvalue;
         retvalue = GetWindowLongA(hwnd, offset);
         retvalue = WINPROC_AllocNativeProc_2(retvalue);
         return retvalue;
