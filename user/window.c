@@ -2064,7 +2064,10 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     LPCSTR classname32 = MapSL(wc->lpszClassName);
 
     inst = GetExePtr( wc->hInstance );
-    if (!inst) inst = GetModuleHandle16( NULL );
+    if (!inst)
+    {
+        inst = GetExePtr(GetCurrentTask());
+    }
 
     wc32.cbSize        = sizeof(wc32);
     wc32.style         = wc->style;
