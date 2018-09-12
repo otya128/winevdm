@@ -1854,7 +1854,7 @@ UINT32 wine_load_protected_mode_segment(I386_SREG *seg, UINT64 *desc)
 	if(!(seg->selector & 0x4))
 		return 0;
 
-	wine_ldt_get_entry(seg->selector & ~0x7, &entry);
+	wine_ldt_get_entry(seg->selector, &entry);
     v1 = ((const UINT32 *)&entry)[0];
 	v2 = ((const UINT32 *)&entry)[1];
 	if(!v1 && !v2)
