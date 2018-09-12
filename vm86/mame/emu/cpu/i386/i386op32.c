@@ -3441,7 +3441,7 @@ static void I386OP(lsl_r32_rm32)()  // Opcode 0x0f 0x03
 		else
 		{
 			UINT8 type;
-			if(!i386_load_protected_mode_segment(&seg,NULL))
+			if(!wine_load_protected_mode_segment(&seg,NULL))
 			{
 				SetZF(0);
 				return;

@@ -560,6 +560,7 @@ extern MODRM_TABLE i386_MODRM_table[256];
 
 //
 UINT get_segment_descriptor_wine(int sreg);
+UINT32 wine_load_protected_mode_segment(I386_SREG *seg, UINT64 *desc);
 //
 INLINE UINT32 i386_translate(int segment, UINT32 ip, int rwn)
 {

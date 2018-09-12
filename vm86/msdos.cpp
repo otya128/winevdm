@@ -1834,3 +1834,41 @@ void load_segment_descriptor_wine(int sreg)
 	void *ptr = wine_ldt_get_ptr(SREG(sreg), 0);
 	SREG_BASE(sreg) = (UINT)ptr;
 }
+
+UINT32 wine_load_protected_mode_segment(I386_SREG *seg, UINT64 *desc)
+{
+	UINT32 v1,v2;
+	UINT32 base, limit;
+    LDT_ENTRY entry;
+
+	if(!seg->selector)
+	{
+		seg->flags = 0;
+		seg->base = 0;
+		seg->limit = 0;
+		seg->d = 0;
+		seg->valid = false;
+		return 0;
+	}
+
+	if(!(seg->selector & 0x4))
+		return 0;
+
+	wine_ldt_get_entry(seg->selector & ~0x7, &entry);
+    v1 = ((const UINT32 *)&entry)[0];
+	v2 = ((const UINT32 *)&entry)[1];
+	if(!v1 && !v2)
+		return 0;
+
+	seg->flags = (v2 >> 8) & 0xf0ff;
+	seg->base = (v2 & 0xff000000) | ((v2 & 0xff) << 16) | ((v1 >> 16) & 0xffff);
+	seg->limit = (v2 & 0xf0000) | (v1 & 0xffff);
+	if (seg->flags & 0x8000)
+		seg->limit = (seg->limit << 12) | 0xfff;
+	seg->d = (seg->flags & 0x4000) ? 1 : 0;
+	seg->valid = true;
+
+	if(desc)
+		*desc = ((UINT64)v2<<32)|v1;
+	return 1;
+}
