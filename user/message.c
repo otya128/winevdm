@@ -1335,9 +1335,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         break;
     case WM_CTLCOLOR:
         if (HIWORD(lParam) <= CTLCOLOR_STATIC)
-            ret = HBRUSH_16(callback( hwnd32, WM_CTLCOLORMSGBOX + HIWORD(lParam),
+            ret = callback( hwnd32, WM_CTLCOLORMSGBOX + HIWORD(lParam),
                             (WPARAM)HDC_32(wParam), (LPARAM)WIN_Handle32( LOWORD(lParam) ),
-                            result, arg ));
+                            result, arg );
         *result = HBRUSH_16(*result);
         break;
     case WM_GETTEXT:

@@ -429,6 +429,8 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
                 &ret, wndproc16);
             if (GetWindowLong16(HWND_16(msg.hwnd), DWL_MSGRESULT) != 0xdeadbeef)
                 SetWindowLongA(hDlg, DWL_MSGRESULT, ret);
+            else
+                return ret;
             return result;
         }
         }
