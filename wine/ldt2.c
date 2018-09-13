@@ -48,6 +48,17 @@ void *wine_ldt_get_ptr(unsigned short sel, unsigned long offset)
 	if (!(wine_ldt_copy.flags[index] & WINE_LDT_FLAGS_32BIT)) offset &= 0xffff;
 	return (char *)wine_ldt_copy.base[index] + offset;
 }
+static BOOL intel_vt_x_workaround = FALSE;
+void set_intel_vt_x_workaround()
+{
+    intel_vt_x_workaround = TRUE;
+    for (int index = LDT_FIRST_ENTRY; index <= LDT_SIZE; index++)
+    {
+        wine_ldt[index].HighWord.Bits.Granularity = TRUE;
+        wine_ldt[index].HighWord.Bits.LimitHi = 0xffff;
+        wine_ldt[index].LimitLow = 0xffff;
+    }
+}
 /***********************************************************************
 *           wine_ldt_set_entry
 *
@@ -61,8 +72,12 @@ int wine_ldt_set_entry(unsigned short sel, const LDT_ENTRY *entry)
 	if (ret >= 0)
 	{
         wine_ldt[index] = *entry;
-        /* FIXME!!!! */
-        wine_ldt[index].HighWord.Bits.Granularity = TRUE; wine_ldt[index].HighWord.Bits.LimitHi = 0xffff; wine_ldt[index].LimitLow = 0xffff;
+		if (intel_vt_x_workaround)
+		{
+			wine_ldt[index].HighWord.Bits.Granularity = TRUE;
+			wine_ldt[index].HighWord.Bits.LimitHi = 0xffff;
+			wine_ldt[index].LimitLow = 0xffff;
+		}
 		wine_ldt_copy.base[index] = wine_ldt_get_base(entry);
 		wine_ldt_copy.limit[index] = wine_ldt_get_limit(entry);
 		wine_ldt_copy.flags[index] = (entry->HighWord.Bits.Type |
