@@ -1552,16 +1552,16 @@ BOOL16 WINAPI GetUpdateRect16( HWND16 hwnd, LPRECT16 rect, BOOL16 erase )
 {
     RECT r;
     BOOL16 ret;
+    HWND hwnd32 = WIN_Handle32(hwnd);
 
-    if (!rect) return GetUpdateRect( WIN_Handle32(hwnd), NULL, erase );
-    ret = GetUpdateRect( WIN_Handle32(hwnd), &r, erase );
-    if (ret)
-    {
-        rect->left   = r.left;
-        rect->top    = r.top;
-        rect->right  = r.right;
-        rect->bottom = r.bottom;
-    }
+    if (!rect) return GetUpdateRect(hwnd32, NULL, erase );
+    if (!IsWindow(hwnd32))
+        return FALSE;
+    ret = GetUpdateRect( hwnd32, &r, erase );
+    rect->left   = r.left;
+    rect->top    = r.top;
+    rect->right  = r.right;
+    rect->bottom = r.bottom;
     return ret;
 }
 
