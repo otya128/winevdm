@@ -210,6 +210,8 @@ ATOM WINAPI AddAtom16( LPCSTR str )
     if (ATOM_IsIntAtomA( str, &iatom )) return iatom;
 
     TRACE("%s\n",debugstr_a(str));
+    if (strlen(str) >= 256)
+        return INVALID_ATOM;
 
     if (!(table = ATOM_GetTable( TRUE ))) return 0;
 
@@ -336,6 +338,8 @@ UINT16 WINAPI GetAtomName16( ATOM atom, LPSTR buffer, INT16 count )
     TRACE("%x\n",atom);
 
     if (!count) return 0;
+    if (atom == INVALID_ATOM)
+        return 0;
     if (atom < MAXINTATOM)
     {
         sprintf( text, "#%d", atom );

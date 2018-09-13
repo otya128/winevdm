@@ -1805,7 +1805,23 @@ ATOM WINAPI GlobalFindAtom16(LPCSTR lpString)
  */
 UINT16 WINAPI GlobalGetAtomName16(ATOM nAtom, LPSTR lpBuffer, INT16 nSize)
 {
-  return GlobalGetAtomNameA(nAtom, lpBuffer, nSize);
+    char buffer[256];
+    if (nSize == 0)
+        return 0;
+    /* win32 wow32:if specify a small buffer, GlobalGetAtomName returns 0 */
+    /* win16      :if specify a small buffer, GlobalGetAtomName returns max(0, nSize - 1) */
+    UINT len = GlobalGetAtomNameA(nAtom, buffer, 256);
+    if (len + 1 <= nSize)
+    {
+        memcpy(lpBuffer, buffer, len + 1);
+        return len;
+    }
+    else
+    {
+        memcpy(lpBuffer, buffer, nSize - 1);
+        lpBuffer[nSize - 1] = 0;
+        return nSize - 1;
+    }
 }
 
 
