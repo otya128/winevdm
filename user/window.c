@@ -2305,19 +2305,16 @@ BOOL16 WINAPI UnregisterClass16( LPCSTR className, HINSTANCE16 hInstance )
 
     if (hInstance == GetModuleHandle16("user")) hInstance = 0;
     else hInstance = GetExePtr( hInstance );
+    struct class_entry *win32 = find_win16_class(hInstance, className);
 
-    if ((atom = GlobalFindAtomA( className )))
+    if (win32)
     {
-        WNDCLASS16Info[atom].allocated = FALSE;
-        struct class_entry *class;
-        LIST_FOR_EACH_ENTRY( class, &class_list, struct class_entry, entry )
-        {
-            if (class->inst != hInstance) continue;
-            if (class->atom != atom) continue;
-            list_remove( &class->entry );
-            HeapFree( GetProcessHeap(), 0, class );
-            break;
-        }
+        WNDCLASS16Info[win32->atom].allocated = FALSE;
+        className = win32->win32_classname;
+        BOOL ret = UnregisterClassA(className, HINSTANCE_32(hInstance));
+        list_remove(&win32->entry);
+        HeapFree(GetProcessHeap(), 0, win32);
+        return ret;
     }
     return UnregisterClassA( className, HINSTANCE_32(hInstance) );
 }
