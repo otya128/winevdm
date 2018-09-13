@@ -52,7 +52,7 @@ static BOOL intel_vt_x_workaround = FALSE;
 void set_intel_vt_x_workaround()
 {
     intel_vt_x_workaround = TRUE;
-    for (int index = LDT_FIRST_ENTRY; index <= LDT_SIZE; index++)
+    for (int index = LDT_FIRST_ENTRY; index < LDT_SIZE; index++)
     {
         wine_ldt[index].HighWord.Bits.Granularity = TRUE;
         wine_ldt[index].HighWord.Bits.LimitHi = 0xffff;
