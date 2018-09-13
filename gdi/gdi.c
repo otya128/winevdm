@@ -196,6 +196,7 @@ struct callback16_info
 {
     FARPROC16 proc;
     LPARAM    param;
+    INT       result;
 };
 
 /* callback for LineDDA16 */
@@ -355,16 +356,86 @@ static INT CALLBACK enum_font_callback( const LOGFONTW *plf,
                                         const TEXTMETRICW *ptm, DWORD fType,
                                         LPARAM param )
 {
-    const struct callback16_info *info = (struct callback16_info *)param;
+    struct callback16_info *info = (struct callback16_info *)param;
     ENUMLOGFONTEX16 elfe16;
     NEWTEXTMETRICEX16 ntm16;
     SEGPTR segelfe16;
     SEGPTR segntm16;
     WORD args[7];
     DWORD ret;
+    static BOOL enum_font_limitation_init;
+    static BOOL enum_font_limitation;
 
     enumlogfontex_W_to_16((const ENUMLOGFONTEXW *)plf, &elfe16);
     newtextmetricex_W_to_16((const NEWTEXTMETRICEXW *)ptm, &ntm16);
+    /* some old programs can not process many fonts(1000+) */
+    if (!enum_font_limitation_init)
+    {
+        enum_font_limitation_init = TRUE;
+        enum_font_limitation = krnl386_get_config_int("otvdm", "EnumFontLimitation", FALSE);
+    }
+    if (enum_font_limitation)
+    {
+        /* TODO: configurable */
+        if (
+            /* Japanese font */
+            stricmp(elfe16.elfLogFont.lfFaceName, "‚l‚r ƒSƒVƒbƒN") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "‚l‚r –¾’©") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "@‚l‚r ƒSƒVƒbƒN") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "@‚l‚r –¾’©") &&
+            /* */
+            stricmp(elfe16.elfLogFont.lfFaceName, "Arial") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Courier New") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Times New Roman") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Wingdings") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Symbol") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "CenturyOldst") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "&CenturyOldst") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "%CenturyOldst") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Arial Narrow") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Book Antiqua") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Bookman Old Style") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Century Gothic") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Century Schoolbook") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Monotype Corsiva") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Monotype Sorts") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Fences") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "MT Extra") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Monotype Sorts") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "System") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "@System") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "FixedSys") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "@FixedSys") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Modern") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Script") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Terminal") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Roman") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Small Fonts") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "@Small Fonts") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "MS Serif") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "MS Dialog") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "MS Sans Serif") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "MS LineDraw") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Century") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Algerian") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Arial Rounded MT Bold") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Braggadocio") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Britannic Bold") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Brush Script MT") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Colonna MT") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Desdemona") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Footlight MT Light") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Impact") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Kino MT") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Wide Latin") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Matura MT Script Capitals") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "Playbill") &&
+            TRUE)
+        {
+            TRACE("font %s skipped.\n", elfe16.elfLogFont.lfFaceName);
+            return info->result;
+        }
+    }
     segelfe16 = MapLS( &elfe16 );
     segntm16 = MapLS( &ntm16 );
     args[6] = SELECTOROF(segelfe16);
@@ -378,7 +449,7 @@ static INT CALLBACK enum_font_callback( const LOGFONTW *plf,
     WOWCallback16Ex( (DWORD)info->proc, WCB16_PASCAL, sizeof(args), args, &ret );
     UnMapLS( segelfe16 );
     UnMapLS( segntm16 );
-    return LOWORD(ret);
+    return info->result = LOWORD(ret);
 }
 
 struct dib_segptr_bits
