@@ -189,12 +189,12 @@ BOOL dynamic_resource(LPOPENFILENAME16 lpofn)
 BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure with data*/
 {
     LPOPENFILENAME16 lpofn = MapSL(ofn);
-    OPENFILENAME16 ofn16 = *lpofn;
-    dynamic_resource(lpofn);
     OPENFILENAMEA ofn32;
     BOOL ret;
 
     if (!lpofn) return FALSE;
+    OPENFILENAME16 ofn16 = *lpofn;
+    dynamic_resource(lpofn);
 
     ofn32.lStructSize       = OPENFILENAME_SIZE_VERSION_400A;
     ofn32.hwndOwner         = HWND_32( lpofn->hwndOwner );
@@ -258,6 +258,8 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     BOOL ret;
 
     if (!lpofn) return FALSE;
+    OPENFILENAME16 ofn16 = *lpofn;
+    dynamic_resource(lpofn);
 
     ofn32.lStructSize       = OPENFILENAME_SIZE_VERSION_400A;
     ofn32.hwndOwner         = HWND_32( lpofn->hwndOwner );
@@ -271,7 +273,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.nMaxFileTitle     = lpofn->nMaxFileTitle;
     ofn32.lpstrInitialDir   = MapSL( lpofn->lpstrInitialDir );
     ofn32.lpstrTitle        = MapSL( lpofn->lpstrTitle );
-    ofn32.Flags             = get_ofn_flag((lpofn->Flags & ~OFN_ENABLETEMPLATE) | OFN_ENABLEHOOK);
+    ofn32.Flags             = get_ofn_flag(lpofn->Flags | OFN_ENABLEHOOK);
     ofn32.nFileOffset       = lpofn->nFileOffset;
     ofn32.nFileExtension    = lpofn->nFileExtension;
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
@@ -279,10 +281,19 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.lpfnHook          = dummy_hook;  /* this is to force old 3.1 dialog style */
 
     if (lpofn->Flags & OFN_ENABLETEMPLATE)
-        FIXME( "custom templates no longer supported, using default\n" );
+    {
+        ofn32.lpTemplateName = MAKEINTRESOURCEA(IDB_BITMAP1);
+        ofn32.hInstance = GetModuleHandleW(L"commdlg.dll16");
+    }
     if (lpofn->Flags & OFN_ENABLEHOOK)
-        FIXME( "custom hook %p no longer supported\n", lpofn->lpfnHook );
-
+    {
+        ofn32.lpfnHook = allocate_thunk(ofn16, ofn);
+        if (!ofn32.lpfnHook)
+        {
+            ERR("could not allocate GetOpenFileName16 thunk\n");
+            ofn32.lpfnHook = dummy_hook;
+        }
+    }
     if ((ret = GetSaveFileNameA( &ofn32 )))
     {
 	lpofn->nFilterIndex   = ofn32.nFilterIndex;
@@ -299,14 +310,4 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 short WINAPI GetFileTitle16(LPCSTR lpFile, LPSTR lpTitle, UINT16 cbBuf)
 {
 	return GetFileTitleA(lpFile, lpTitle, cbBuf);
-}
-
-//////////////////////////////////////
-void __wine_spec_init_ctor()
-{
-	ERR("NOTIMPL:__wine_spec_init_ctor()\n");
-}
-void __wine_spec_dll_entry()
-{
-	ERR("NOTIMPL:__wine_spec_dll_entry(?)\n");
 }
