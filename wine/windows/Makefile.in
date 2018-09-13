@@ -59,6 +59,7 @@ PUBLIC_IDL_H_SRCS = \
 	imnxport.idl \
 	indexsrv.idl \
 	inputscope.idl \
+	inseng.idl \
 	mediaobj.idl \
 	metahost.idl \
 	mimeinfo.idl \
@@ -400,6 +401,7 @@ SRCDIR_INCLUDES = \
 	mciavi.h \
 	mcx.h \
 	mediaerr.h \
+	mfapi.h \
 	mferror.h \
 	midles.h \
 	minmax.h \

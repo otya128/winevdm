@@ -263,8 +263,6 @@ typedef struct
 struct hardware_msg_data
 {
     lparam_t        info;
-    int             x;
-    int             y;
     unsigned int    hw_id;
     unsigned int    flags;
     union
@@ -2822,7 +2820,7 @@ struct set_queue_mask_reply
 struct get_queue_status_request
 {
     struct request_header __header;
-    int          clear;
+    unsigned int clear_bits;
 };
 struct get_queue_status_reply
 {
@@ -2934,6 +2932,8 @@ struct get_message_reply
     lparam_t        wparam;
     lparam_t        lparam;
     int             type;
+    int             x;
+    int             y;
     unsigned int    time;
     unsigned int    active_hooks;
     data_size_t     total;
@@ -4690,9 +4690,9 @@ struct get_object_info_reply
     struct reply_header __header;
     unsigned int   access;
     unsigned int   ref_count;
+    unsigned int   handle_count;
     data_size_t    total;
     /* VARARG(name,unicode_str); */
-    char __pad_20[4];
 };
 
 
@@ -4845,7 +4845,7 @@ struct create_completion_request
     unsigned int attributes;
     unsigned int concurrent;
     obj_handle_t rootdir;
-    /* VARARG(filename,string); */
+    /* VARARG(filename,unicode_str); */
     char __pad_28[4];
 };
 struct create_completion_reply
@@ -4863,7 +4863,7 @@ struct open_completion_request
     unsigned int access;
     unsigned int attributes;
     obj_handle_t rootdir;
-    /* VARARG(filename,string); */
+    /* VARARG(filename,unicode_str); */
 };
 struct open_completion_reply
 {
@@ -5077,6 +5077,94 @@ struct set_suspend_context_request
     char __pad_12[4];
 };
 struct set_suspend_context_reply
+{
+    struct reply_header __header;
+};
+
+
+
+struct create_job_request
+{
+    struct request_header __header;
+    unsigned int access;
+    unsigned int attributes;
+    /* VARARG(objattr,object_attributes); */
+    char __pad_20[4];
+};
+struct create_job_reply
+{
+    struct reply_header __header;
+    obj_handle_t handle;
+    char __pad_12[4];
+};
+
+
+
+struct assign_job_request
+{
+    struct request_header __header;
+    obj_handle_t job;
+    obj_handle_t process;
+    char __pad_20[4];
+};
+struct assign_job_reply
+{
+    struct reply_header __header;
+};
+
+
+
+struct process_in_job_request
+{
+    struct request_header __header;
+    obj_handle_t job;
+    obj_handle_t process;
+    char __pad_20[4];
+};
+struct process_in_job_reply
+{
+    struct reply_header __header;
+};
+
+
+
+struct set_job_limits_request
+{
+    struct request_header __header;
+    obj_handle_t handle;
+    unsigned int limit_flags;
+    char __pad_20[4];
+};
+struct set_job_limits_reply
+{
+    struct reply_header __header;
+};
+
+
+
+struct set_job_completion_port_request
+{
+    struct request_header __header;
+    obj_handle_t job;
+    obj_handle_t port;
+    char __pad_20[4];
+    client_ptr_t key;
+};
+struct set_job_completion_port_reply
+{
+    struct reply_header __header;
+};
+
+
+
+struct terminate_job_request
+{
+    struct request_header __header;
+    obj_handle_t handle;
+    int          status;
+    char __pad_20[4];
+};
+struct terminate_job_reply
 {
     struct reply_header __header;
 };
@@ -5340,6 +5428,12 @@ enum request
     REQ_update_rawinput_devices,
     REQ_get_suspend_context,
     REQ_set_suspend_context,
+    REQ_create_job,
+    REQ_assign_job,
+    REQ_process_in_job,
+    REQ_set_job_limits,
+    REQ_set_job_completion_port,
+    REQ_terminate_job,
     REQ_NB_REQUESTS
 };
 
@@ -5603,6 +5697,12 @@ union generic_request
     struct update_rawinput_devices_request update_rawinput_devices_request;
     struct get_suspend_context_request get_suspend_context_request;
     struct set_suspend_context_request set_suspend_context_request;
+    struct create_job_request create_job_request;
+    struct assign_job_request assign_job_request;
+    struct process_in_job_request process_in_job_request;
+    struct set_job_limits_request set_job_limits_request;
+    struct set_job_completion_port_request set_job_completion_port_request;
+    struct terminate_job_request terminate_job_request;
 };
 union generic_reply
 {
@@ -5864,8 +5964,14 @@ union generic_reply
     struct update_rawinput_devices_reply update_rawinput_devices_reply;
     struct get_suspend_context_reply get_suspend_context_reply;
     struct set_suspend_context_reply set_suspend_context_reply;
+    struct create_job_reply create_job_reply;
+    struct assign_job_reply assign_job_reply;
+    struct process_in_job_reply process_in_job_reply;
+    struct set_job_limits_reply set_job_limits_reply;
+    struct set_job_completion_port_reply set_job_completion_port_reply;
+    struct terminate_job_reply terminate_job_reply;
 };
 
-#define SERVER_PROTOCOL_VERSION 460
+#define SERVER_PROTOCOL_VERSION 469
 
 #endif /* __WINE_WINE_SERVER_PROTOCOL_H */

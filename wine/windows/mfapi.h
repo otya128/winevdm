@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Nikolay Sivov for CodeWeavers
+ * Copyright (C) 2015 Austin English
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,22 +16,25 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef _RASDLG_H_
-#define _RASDLG_H_
+#ifndef __WINE_MFAPI_H
+#define __WINE_MFAPI_H
 
-#include <ras.h>
+#define MFSTARTUP_NOSOCKET 0x1
+#define MFSTARTUP_LITE     (MFSTARTUP_NOSOCKET)
+#define MFSTARTUP_FULL     0
 
-typedef struct tagRASENTRYDLGW
-{
-    DWORD dwSize;
-    HWND  hwndOwner;
-    DWORD dwFlags;
-    LONG  xDlg;
-    LONG  yDlg;
-    WCHAR szEntry[ RAS_MaxEntryName + 1 ];
-    DWORD dwError;
-    ULONG_PTR reserved;
-    ULONG_PTR reserved2;
-} RASENTRYDLGW;
+typedef struct _MFT_REGISTER_TYPE_INFO {
+  GUID major_type;
+  GUID sub_type;
+} MFT_REGISTER_TYPE_INFO;
 
-#endif  /* _RASDLG_H_ */
+typedef unsigned __int64 MFWORKITEM_KEY;
+
+HRESULT WINAPI MFCancelWorkItem(MFWORKITEM_KEY key);
+HRESULT WINAPI MFGetTimerPeriodicity(DWORD *periodicity);
+HRESULT WINAPI MFLockPlatform(void);
+HRESULT WINAPI MFShutdown(void);
+HRESULT WINAPI MFStartup(ULONG version, DWORD flags);
+HRESULT WINAPI MFUnlockPlatform(void);
+
+#endif /* __WINE_MFAPI_H */

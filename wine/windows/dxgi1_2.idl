@@ -130,3 +130,105 @@ interface IDXGISwapChain1 : IDXGISwapChain
     HRESULT GetRotation(
             [out] DXGI_MODE_ROTATION *pRotation);
 }
+
+[
+    object,
+    uuid(50c83a1c-e072-4c48-87b0-3630fa36a6d0),
+    local,
+    pointer_default(unique)
+]
+interface IDXGIFactory2 : IDXGIFactory1
+{
+    BOOL IsWindowedStereoEnabled();
+
+    HRESULT CreateSwapChainForHwnd(
+            [in]  IUnknown *pDevice,
+            [in]  HWND hWnd,
+            [in]  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+            [in]  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc,
+            [in]  IDXGIOutput *pRestrictToOutput,
+            [out] IDXGISwapChain1 **ppSwapChain);
+
+    HRESULT CreateSwapChainForCoreWindow(
+            [in]  IUnknown *pDevice,
+            [in]  IUnknown *pWindow,
+            [in]  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+            [in]  IDXGIOutput *pRestrictToOutput,
+            [out] IDXGISwapChain1 **ppSwapChain);
+
+    HRESULT GetSharedResourceAdapterLuid(
+            [in]  HANDLE hResource,
+            [out] LUID *pLuid);
+
+    HRESULT RegisterOcclusionStatusWindow(
+            [in]  HWND WindowHandle,
+            [in]  UINT wMsg,
+            [out] DWORD *pdwCookie);
+
+    HRESULT RegisterStereoStatusEvent(
+            [in]  HANDLE hEvent,
+            [out] DWORD *pdwCookie);
+
+    void UnregisterStereoStatus(
+            [in]  DWORD dwCookie);
+
+    HRESULT RegisterStereoStatusWindow(
+            [in]  HWND WindowHandle,
+            [in]  UINT wMsg,
+            [out] DWORD *pdwCookie);
+
+    HRESULT RegisterOcclusionStatusEvent(
+            [in]  HANDLE hEvent,
+            [out] DWORD *pdwCookie);
+
+    void UnregisterOcclusionStatus(
+            [in]  DWORD dwCookie);
+
+    HRESULT CreateSwapChainForComposition(
+            [in]  IUnknown *pDevice,
+            [in]  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+            [in]  IDXGIOutput *pRestrictToOutput,
+            [out] IDXGISwapChain1 **ppSwapChain);
+}
+
+typedef enum DXGI_GRAPHICS_PREEMPTION_GRANULARITY {
+    DXGI_GRAPHICS_PREEMPTION_DMA_BUFFER_BOUNDARY,
+    DXGI_GRAPHICS_PREEMPTION_PRIMITIVE_BOUNDARY,
+    DXGI_GRAPHICS_PREEMPTION_TRIANGLE_BOUNDARY,
+    DXGI_GRAPHICS_PREEMPTION_PIXEL_BOUNDARY,
+    DXGI_GRAPHICS_PREEMPTION_INSTRUCTION_BOUNDARY
+} DXGI_GRAPHICS_PREEMPTION_GRANULARITY;
+
+typedef enum DXGI_COMPUTE_PREEMPTION_GRANULARITY {
+    DXGI_COMPUTE_PREEMPTION_DMA_BUFFER_BOUNDARY,
+    DXGI_COMPUTE_PREEMPTION_DISPATCH_BOUNDARY,
+    DXGI_COMPUTE_PREEMPTION_THREAD_GROUP_BOUNDARY,
+    DXGI_COMPUTE_PREEMPTION_THREAD_BOUNDARY,
+    DXGI_COMPUTE_PREEMPTION_INSTRUCTION_BOUNDARY
+} DXGI_COMPUTE_PREEMPTION_GRANULARITY;
+
+typedef struct DXGI_ADAPTER_DESC2 {
+    WCHAR Description[128];
+    UINT VendorId;
+    UINT DeviceId;
+    UINT SubSysId;
+    UINT Revision;
+    SIZE_T DedicatedVideoMemory;
+    SIZE_T DedicatedSystemMemory;
+    SIZE_T SharedSystemMemory;
+    LUID AdapterLuid;
+    UINT Flags;
+    DXGI_GRAPHICS_PREEMPTION_GRANULARITY GraphicsPreemptionGranularity;
+    DXGI_COMPUTE_PREEMPTION_GRANULARITY ComputePreemptionGranularity;
+} DXGI_ADAPTER_DESC2;
+
+[
+    object,
+    uuid(0aa1ae0a-fa0e-4b84-8644-e05ff8e5acb5),
+    local,
+    pointer_default(unique)
+]
+interface IDXGIAdapter2 : IDXGIAdapter1
+{
+    HRESULT GetDesc2([out] DXGI_ADAPTER_DESC2 *pDesc);
+}

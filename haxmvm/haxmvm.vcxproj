@@ -90,7 +90,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;WIN32;__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;WIN32;__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;NDEBUG;_CONSOLE;DECLSPEC_HIDDEN=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>../wine</AdditionalIncludeDirectories>
@@ -109,7 +109,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;WIN32;__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;WIN32;__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;_DEBUG;_CONSOLE;DECLSPEC_HIDDEN=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>../wine</AdditionalIncludeDirectories>
@@ -126,7 +126,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;_DEBUG;_CONSOLE;DECLSPEC_HIDDEN=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>../wine</AdditionalIncludeDirectories>
@@ -145,7 +145,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__i386__;_WINDOWS;HAS_I386;NtCurrentTeb=NtCurrentTeb__;NDEBUG;_CONSOLE;DECLSPEC_HIDDEN=;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>../wine</AdditionalIncludeDirectories>

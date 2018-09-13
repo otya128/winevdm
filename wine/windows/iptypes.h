@@ -188,6 +188,11 @@ typedef struct _IP_ADAPTER_GATEWAY_ADDRESS_LH {
 typedef IP_ADAPTER_GATEWAY_ADDRESS_LH IP_ADAPTER_GATEWAY_ADDRESS;
 typedef IP_ADAPTER_GATEWAY_ADDRESS_LH *PIP_ADAPTER_GATEWAY_ADDRESS;
 
+typedef struct _IP_ADAPTER_DNS_SUFFIX {
+    struct _IP_ADAPTER_DNS_SUFFIX *Next;
+    WCHAR String[MAX_DNS_SUFFIX_STRING_LENGTH];
+} IP_ADAPTER_DNS_SUFFIX, *PIP_ADAPTER_DNS_SUFFIX;
+
 #define IP_ADAPTER_DDNS_ENABLED               0x1
 #define IP_ADAPTER_REGISTER_ADAPTER_SUFFIX    0x2
 #define IP_ADAPTER_DHCP_ENABLED               0x4
@@ -199,7 +204,7 @@ typedef IP_ADAPTER_GATEWAY_ADDRESS_LH *PIP_ADAPTER_GATEWAY_ADDRESS;
 #define IP_ADAPTER_IPV6_ENABLED               0x100
 #define IP_ADAPTER_IPV6_MANAGE_ADDRESS_CONFIG 0x200
 
-typedef struct _IP_ADAPTER_ADDRESSES {
+typedef struct _IP_ADAPTER_ADDRESSES_LH {
     union {
         ULONGLONG Alignment;
         struct {
@@ -207,7 +212,7 @@ typedef struct _IP_ADAPTER_ADDRESSES {
             DWORD IfIndex;
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
-    struct _IP_ADAPTER_ADDRESSES   *Next;
+    struct _IP_ADAPTER_ADDRESSES_LH *Next;
     PCHAR                           AdapterName;
     PIP_ADAPTER_UNICAST_ADDRESS     FirstUnicastAddress;
     PIP_ADAPTER_ANYCAST_ADDRESS     FirstAnycastAddress;
@@ -241,7 +246,39 @@ typedef struct _IP_ADAPTER_ADDRESSES {
     BYTE                            Dhcpv6ClientDuid[MAX_DHCPV6_DUID_LENGTH];
     ULONG                           Dhcpv6ClientDuidLength;
     ULONG                           Dhcpv6Iaid;
-} IP_ADAPTER_ADDRESSES, *PIP_ADAPTER_ADDRESSES;
+    PIP_ADAPTER_DNS_SUFFIX          FirstDnsSuffix;
+} IP_ADAPTER_ADDRESSES_LH, *PIP_ADAPTER_ADDRESSES_LH;
+
+typedef struct _IP_ADAPTER_ADDRESSES_XP {
+    union {
+        ULONGLONG Alignment;
+        struct {
+            ULONG Length;
+            DWORD IfIndex;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+    struct _IP_ADAPTER_ADDRESSES_XP *Next;
+    PCHAR                           AdapterName;
+    PIP_ADAPTER_UNICAST_ADDRESS     FirstUnicastAddress;
+    PIP_ADAPTER_ANYCAST_ADDRESS     FirstAnycastAddress;
+    PIP_ADAPTER_MULTICAST_ADDRESS   FirstMulticastAddress;
+    PIP_ADAPTER_DNS_SERVER_ADDRESS  FirstDnsServerAddress;
+    PWCHAR                          DnsSuffix;
+    PWCHAR                          Description;
+    PWCHAR                          FriendlyName;
+    BYTE                            PhysicalAddress[MAX_ADAPTER_ADDRESS_LENGTH];
+    DWORD                           PhysicalAddressLength;
+    DWORD                           Flags;
+    DWORD                           Mtu;
+    DWORD                           IfType;
+    IF_OPER_STATUS                  OperStatus;
+    DWORD                           Ipv6IfIndex;
+    DWORD                           ZoneIndices[16];
+    PIP_ADAPTER_PREFIX              FirstPrefix;
+} IP_ADAPTER_ADDRESSES_XP, *PIP_ADAPTER_ADDRESSES_XP;
+
+#define IP_ADAPTER_ADDRESSES IP_ADAPTER_ADDRESSES_LH
+#define PIP_ADAPTER_ADDRESSES PIP_ADAPTER_ADDRESSES_LH
 
 #define GAA_FLAG_SKIP_UNICAST                0x00000001
 #define GAA_FLAG_SKIP_ANYCAST                0x00000002

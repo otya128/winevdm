@@ -305,8 +305,8 @@ BOOL DOSMEM_InitDosMemory(void)
 	//ERR("NOTIMPL");
 	//return TRUE;
     static BOOL done;
-	static HANDLE hRunOnce;
-	DWORD old_prot;
+    static HANDLE hRunOnce;
+    DWORD old_prot;
 
     if (done) return TRUE;
 
@@ -322,7 +322,7 @@ BOOL DOSMEM_InitDosMemory(void)
 	    /* ok, we're the winning thread */
             if (!(ret = VirtualProtect( DOSMEM_dosmem + DOSMEM_protect,
                                         DOSMEM_SIZE - DOSMEM_protect,
-										PAGE_READWRITE, &old_prot)))
+                                        PAGE_READWRITE, &old_prot )))
                 ERR("Cannot load access low 1Mb, DOS subsystem unavailable\n");
             RemoveVectoredExceptionHandler( vectored_handler );
 
@@ -660,7 +660,7 @@ UINT DOSMEM_Available(void)
 BOOL DOSMEM_MapDosLayout(void)
 {
     static BOOL already_mapped;
-	DWORD old_prot;
+    DWORD old_prot;
 
     if (!already_mapped)
     {
