@@ -1437,7 +1437,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback(hwnd32, msg, HRGN_32(wParam), lParam, result, arg);
 		break;
     case WM_ERASEBKGND:
-        if (IsIconic(hwnd) && GetClassLongPtrW(hwnd, GCLP_HICON)) msg = WM_ICONERASEBKGND;
+        if (IsIconic(hwnd32) && GetClassLongPtrW(hwnd32, GCLP_HICON)) msg = WM_ICONERASEBKGND;
         ret = callback(hwnd32, msg, HDC_32(wParam), lParam, result, arg);
         break;
     case WM_SETFONT:
