@@ -1779,7 +1779,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, 
             DWORD result = 0;
             __try
             {
-                result = (DWORD)MessageBoxA(NULL, ((const char**)lpThreadParameter)[0], ((const char**)lpThreadParameter)[1], MB_RETRYCANCEL | MB_ICONERROR);
+                result = (DWORD)MessageBoxA(NULL, ((const char**)lpThreadParameter)[0], ((const char**)lpThreadParameter)[1], MB_CANCELTRYCONTINUE | MB_ICONERROR);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
