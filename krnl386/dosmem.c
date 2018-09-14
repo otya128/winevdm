@@ -269,7 +269,7 @@ static DWORD CALLBACK timer_thread( void *arg )
  *
  * Start the BIOS ticks timer when the app accesses selector 0x40.
  */
-void DOSVM_start_bios_timer(void)
+__declspec(dllexport) void DOSVM_start_bios_timer(void)
 {
     static LONG running;
 

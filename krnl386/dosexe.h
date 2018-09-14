@@ -372,7 +372,7 @@ extern void DOSVM_ASPIHandler(CONTEXT*) DECLSPEC_HIDDEN;
 
 /* dosmem.c */
 extern BIOSDATA *DOSVM_BiosData( void ) DECLSPEC_HIDDEN;
-extern void DOSVM_start_bios_timer(void) DECLSPEC_HIDDEN;
+__declspec(dllexport) extern void DOSVM_start_bios_timer(void) DECLSPEC_HIDDEN;
 
 /* fpu.c */
 extern void WINAPI DOSVM_Int34Handler(CONTEXT*) DECLSPEC_HIDDEN;
