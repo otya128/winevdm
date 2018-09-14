@@ -2955,13 +2955,18 @@ static LRESULT combo_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd
         {
             RECT r;
             RECT16 *r16 = (RECT16 *)lParam;
-            wow_handlers32.combo_proc(hwnd, CB_GETDROPPEDCONTROLRECT, wParam, (LPARAM)&r, FALSE);
+            r.left = r16->left;
+            r.top = r16->top;
+            r.right = r16->right;
+            r.bottom = r16->bottom;
+            LRESULT ret = callback(hwnd, CB_GETDROPPEDCONTROLRECT, wParam, (LPARAM)&r, result, arg);//wow_handlers32.combo_proc(hwnd, CB_GETDROPPEDCONTROLRECT, wParam, (LPARAM)&r, FALSE);
             r16->left = r.left;
             r16->top = r.top;
             r16->right = r.right;
             r16->bottom = r.bottom;
+            *result = CB_OKAY;
+            return ret;
         }
-        return CB_OKAY;
     case CB_DIR16:
         if (wParam & DDL_DRIVES) wParam |= DDL_EXCLUSIVE;
         lParam = (LPARAM)MapSL(lParam);
