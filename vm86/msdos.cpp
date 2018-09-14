@@ -1802,6 +1802,10 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, 
             {
                 return EXCEPTION_CONTINUE_EXECUTION;
             }
+            if (exitcode == IDCONTINUE)
+            {
+                return EXCEPTION_EXECUTE_HANDLER;
+            }
         }
 
         return EXCEPTION_EXECUTE_HANDLER;
