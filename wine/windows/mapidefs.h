@@ -182,7 +182,7 @@ typedef struct _MAPIUID
 #define cchProfilePassMax 64 /* Maximum length of a profile password */
 #endif
 
-/* Properties: The are the contents of cells in MAPI tables, as well as the
+/* Properties: These are the contents of cells in MAPI tables, as well as the
  * values returned when object properties are queried.
  */
 
@@ -478,7 +478,7 @@ typedef struct _SPropProblemArray
 typedef ULONG BOOKMARK;
 
 #define BOOKMARK_BEGINNING ((BOOKMARK)0) /* The first row */
-#define BOOKMARK_CURRENT   ((BOOKMARK)1) /* The curent table row */
+#define BOOKMARK_CURRENT   ((BOOKMARK)1) /* The current table row */
 #define BOOKMARK_END       ((BOOKMARK)2) /* The last row */
 
 /* Row restrictions */

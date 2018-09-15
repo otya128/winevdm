@@ -107,7 +107,8 @@ HRESULT WINAPI D3DGetInputSignatureBlob(const void *data, SIZE_T data_size, ID3D
 HRESULT WINAPI D3DGetOutputSignatureBlob(const void *data, SIZE_T data_size, ID3DBlob **blob);
 HRESULT WINAPI D3DGetInputAndOutputSignatureBlob(const void *data, SIZE_T data_size, ID3DBlob **blob);
 HRESULT WINAPI D3DGetDebugInfo(const void *data, SIZE_T data_size, ID3DBlob **blob);
-
+HRESULT WINAPI D3DReadFileToBlob(const WCHAR *filename, ID3DBlob **contents);
+HRESULT WINAPI D3DWriteBlobToFile(ID3DBlob *blob, const WCHAR *filename, BOOL overwrite);
 HRESULT WINAPI D3DReflect(const void *data, SIZE_T data_size, REFIID riid, void **reflector);
 
 HRESULT WINAPI D3DCreateBlob(SIZE_T data_size, ID3DBlob **blob);
@@ -118,6 +119,8 @@ HRESULT WINAPI D3DPreprocess(const void *data, SIZE_T size, const char *filename
 typedef HRESULT (WINAPI *pD3DPreprocess)(const void *data, SIZE_T size, const char *filename,
         const D3D_SHADER_MACRO *defines, ID3DInclude *include,
         ID3DBlob **shader, ID3DBlob **error_messages);
+
+HRESULT WINAPI D3DLoadModule(const void *data, SIZE_T size, ID3D11Module **module);
 
 #ifdef __cplusplus
 }

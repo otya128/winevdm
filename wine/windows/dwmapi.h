@@ -37,6 +37,12 @@ typedef HTHUMBNAIL *PHTHUMBNAIL;
 typedef ULONGLONG DWM_FRAME_COUNT;
 typedef ULONGLONG QPC_TIME;
 
+typedef enum _DWM_SOURCE_FRAME_SAMPLING {
+    DWM_SOURCE_FRAME_SAMPLING_POINT,
+    DWM_SOURCE_FRAME_SAMPLING_COVERAGE,
+    DWM_SOURCE_FRAME_SAMPLING_LAST
+} DWM_SOURCE_FRAME_SAMPLING;
+
 typedef struct _UNSIGNED_RATIO {
     UINT32 uiNumerator;
     UINT32 uiDenominator;
@@ -107,6 +113,27 @@ typedef struct _DWM_BLURBEHIND
     BOOL fTransitionOnMaximized;
 } DWM_BLURBEHIND, *PDWM_BLURBEHIND;
 
+typedef struct _DWM_THUMBNAIL_PROPERTIES
+{
+    DWORD dwFlags;
+    RECT  rcDestination;
+    RECT  rcSource;
+    BYTE  opacity;
+    BOOL  fVisible;
+    BOOL  fSourceClientAreaOnly;
+} DWM_THUMBNAIL_PROPERTIES, *PDWM_THUMBNAIL_PROPERTIES;
+
+typedef struct _DWM_PRESENT_PARAMETERS {
+    UINT32 cbSize;
+    BOOL fQueue;
+    DWM_FRAME_COUNT cRefreshStart;
+    UINT cBuffer;
+    BOOL fUseSourceRate;
+    UNSIGNED_RATIO rateSource;
+    UINT cRefreshesPerFrame;
+    DWM_SOURCE_FRAME_SAMPLING eSampling;
+} DWM_PRESENT_PARAMETERS;
+
 #include <poppack.h>
 
 DWMAPI DwmDefWindowProc(HWND, UINT, WPARAM, LPARAM, LRESULT*);
@@ -119,8 +146,10 @@ DWMAPI DwmGetCompositionTimingInfo(HWND,DWM_TIMING_INFO*);
 DWMAPI DwmInvalidateIconicBitmaps(HWND);
 DWMAPI DwmIsCompositionEnabled(BOOL*);
 DWMAPI DwmRegisterThumbnail(HWND, HWND, PHTHUMBNAIL);
+DWMAPI DwmSetPresentParameters(HWND, DWM_PRESENT_PARAMETERS *);
 DWMAPI DwmSetWindowAttribute(HWND, DWORD, LPCVOID, DWORD);
 DWMAPI DwmUnregisterThumbnail(HTHUMBNAIL);
+DWMAPI DwmUpdateThumbnailProperties(HTHUMBNAIL, const DWM_THUMBNAIL_PROPERTIES *);
 
 #ifdef __cplusplus
 }

@@ -211,8 +211,7 @@ HFILE WINAPI Win32HandleToDosFileHandle( HANDLE handle )
     if (!handle || (handle == INVALID_HANDLE_VALUE))
         return HFILE_ERROR;
 
-    FILE_InitProcessDosHandles();
-    for (i = 0; i < DOS_TABLE_SIZE; i++)
+    for (i = 5; i < DOS_TABLE_SIZE; i++)
         if (!dos_handles[i])
         {
             dos_handles[i] = handle;
@@ -584,7 +583,7 @@ UINT WINAPI GetTempDrive( BYTE ignored )
     WCHAR buffer[MAX_PATH];
     BYTE ret;
 
-    if (GetTempPathW(MAX_PATH, buffer )) ret = (BYTE)toupperW(buffer[0]);
+    if (GetTempPathW( MAX_PATH, buffer )) ret = (BYTE)toupperW(buffer[0]);
     else ret = 'C';
     return MAKELONG( ret | (':' << 8), 1 );
 }
@@ -713,6 +712,9 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
     char filenamebuf[MAX_PATH];
     RedirectPrivateProfileStringWindowsDir(filename, filenamebuf);
     filename = filenamebuf;
+    TRACE("(%s, %s, %s, %p, %u, %s)\n", debugstr_a(section), debugstr_a(entry),
+          debugstr_a(def_val), buffer, len, debugstr_a(filename));
+
     if (!section)
     {
         if (buffer && len) buffer[0] = 0;
@@ -746,7 +748,12 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
         {
             char *p = strchr( src, '=' );
 
-            if (!p) p = src + strlen(src);
+            /* A valid entry is formed by name = value */
+            if (!p)
+            {
+                src += strlen(src) + 1;
+                continue;
+            }
             if (p - src < len)
             {
                 memcpy( buffer, src, p - src );

@@ -1,36 +1,56 @@
-PRIVATE_IDL_H_SRCS = \
-	wine/winedxgi.idl
-
-PUBLIC_IDL_H_SRCS = \
+IDL_SRCS = \
+	access.idl \
 	activaut.idl \
 	activdbg.idl \
 	activscp.idl \
 	amstream.idl \
 	amvideo.idl \
 	asptlb.idl \
+	asynot.idl \
+	asysta.idl \
 	atliface.idl \
 	audioclient.idl \
 	audiopolicy.idl \
 	austream.idl \
+	axcore.idl \
+	axextend.idl \
 	bdaiface.idl \
+	binres.idl \
 	bits.idl \
 	bits1_5.idl \
+	bits2_0.idl \
+	bits2_5.idl \
 	bits3_0.idl \
+	chprst.idl \
+	cmdbas.idl \
+	cmdtxt.idl \
+	colinf.idl \
 	comcat.idl \
 	commoncontrols.idl \
 	control.idl \
 	cor.idl \
 	cordebug.idl \
+	crtrow.idl \
 	ctfutb.idl \
 	ctxtcall.idl \
 	d2d1.idl \
 	d3d10.idl \
 	d3d10_1.idl \
+	d3d10sdklayers.idl \
 	d3d11.idl \
 	d3d11_1.idl \
 	d3d11sdklayers.idl \
 	d3dcommon.idl \
+	d3dx10core.idl \
+	d3dx11core.idl \
+	dbccmd.idl \
+	dbcses.idl \
+	dbdsad.idl \
+	dbinit.idl \
+	dbprop.idl \
+	dbs.idl \
 	ddstream.idl \
+	devenum.idl \
 	devicetopology.idl \
 	dimm.idl \
 	dispex.idl \
@@ -40,10 +60,13 @@ PUBLIC_IDL_H_SRCS = \
 	dwrite.idl \
 	dwrite_1.idl \
 	dwrite_2.idl \
+	dwrite_3.idl \
 	dxgi.idl \
 	dxgi1_2.idl \
 	dxva2api.idl \
+	dyngraph.idl \
 	endpointvolume.idl \
+	errrec.idl \
 	exdisp.idl \
 	fusion.idl \
 	gameux.idl \
@@ -55,13 +78,16 @@ PUBLIC_IDL_H_SRCS = \
 	iads.idl \
 	icftypes.idl \
 	iextag.idl \
+	iimgctx.idl \
 	imnact.idl \
 	imnxport.idl \
 	indexsrv.idl \
 	inputscope.idl \
 	inseng.idl \
+	inspectable.idl \
 	mediaobj.idl \
 	metahost.idl \
+	mfobjects.idl \
 	mimeinfo.idl \
 	mimeole.idl \
 	mlang.idl \
@@ -93,6 +119,7 @@ PUBLIC_IDL_H_SRCS = \
 	oleacc.idl \
 	oledb.idl \
 	oleidl.idl \
+	opnrst.idl \
 	optary.idl \
 	perhist.idl \
 	propidl.idl \
@@ -100,12 +127,24 @@ PUBLIC_IDL_H_SRCS = \
 	pstore.idl \
 	qedit.idl \
 	richole.idl \
+	row.idl \
+	rowchg.idl \
+	rowpos.idl \
+	rowpsc.idl \
+	rstbas.idl \
+	rstinf.idl \
+	rstloc.idl \
+	rstnot.idl \
 	sensevts.idl \
 	servprov.idl \
+	sesprp.idl \
 	shdeprecated.idl \
+	shimgdata.idl \
 	shldisp.idl \
 	shobjidl.idl \
 	shtypes.idl \
+	srcrst.idl \
+	stdole2.idl \
 	strmif.idl \
 	structuredquerycondition.idl \
 	taskschd.idl \
@@ -121,6 +160,7 @@ PUBLIC_IDL_H_SRCS = \
 	urlhist.idl \
 	urlmon.idl \
 	vmr9.idl \
+	vmrender.idl \
 	vss.idl \
 	wbemcli.idl \
 	wbemdisp.idl \
@@ -129,8 +169,10 @@ PUBLIC_IDL_H_SRCS = \
 	wia_xp.idl \
 	wincodec.idl \
 	wincodecsdk.idl \
+	windows.foundation.idl \
 	wine/itss.idl \
 	wine/svcctl.idl \
+	wine/winedxgi.idl \
 	winsxs.idl \
 	wmiutils.idl \
 	wmp.idl \
@@ -139,21 +181,15 @@ PUBLIC_IDL_H_SRCS = \
 	wpcapi.idl \
 	wtypes.idl \
 	wuapi.idl \
+	xapo.idl \
 	xaudio2.idl \
+	xaudio2fx.idl \
+	xmldom.idl \
+	xmldso.idl \
 	xmllite.idl
 
-IDL_TLB_SRCS = \
-	stdole2.idl
-
-XTEMPLATE_SRCS = \
-	rmxftmpl.x
-
-SRCDIR_INCLUDES = \
-	$(IDL_TLB_SRCS) \
-	$(PUBLIC_IDL_H_SRCS) \
-	$(XTEMPLATE_SRCS) \
+HEADER_SRCS = \
 	accctrl.h \
-	access.idl \
 	aclapi.h \
 	aclui.h \
 	adshlp.h \
@@ -162,32 +198,27 @@ SRCDIR_INCLUDES = \
 	amaudio.h \
 	appcompatapi.h \
 	appmgmt.h \
-	asynot.idl \
-	asysta.idl \
 	atlbase.h \
 	atlcom.h \
 	atlwin.h \
 	audevcod.h \
 	audiosessiontypes.h \
+	authz.h \
 	aviriff.h \
 	avrt.h \
-	axcore.idl \
-	axextend.idl \
 	basetsd.h \
 	basetyps.h \
 	bcrypt.h \
 	bdaiface_enums.h \
 	bdatypes.h \
-	binres.idl \
 	bitsmsg.h \
+	bluetoothapis.h \
+	bthsdpdef.h \
 	cderr.h \
 	cfgmgr32.h \
 	cguid.h \
-	chprst.idl \
 	cierror.h \
 	clusapi.h \
-	cmdbas.idl \
-	cmdtxt.idl \
 	commctrl.h \
 	commctrl.rh \
 	commdlg.h \
@@ -195,7 +226,6 @@ SRCDIR_INCLUDES = \
 	corerror.h \
 	corhdr.h \
 	cpl.h \
-	crtrow.idl \
 	cryptdlg.h \
 	cryptuiapi.h \
 	custcntl.h \
@@ -222,7 +252,15 @@ SRCDIR_INCLUDES = \
 	d3drmobj.h \
 	d3drmwin.h \
 	d3dtypes.h \
+	d3dukmdt.h \
 	d3dvec.inl \
+	d3dx10.h \
+	d3dx10async.h \
+	d3dx10math.h \
+	d3dx10tex.h \
+	d3dx11.h \
+	d3dx11async.h \
+	d3dx11tex.h \
 	d3dx9.h \
 	d3dx9anim.h \
 	d3dx9core.h \
@@ -234,13 +272,8 @@ SRCDIR_INCLUDES = \
 	d3dx9shape.h \
 	d3dx9tex.h \
 	d3dx9xof.h \
-	dbccmd.idl \
-	dbcses.idl \
-	dbdsad.idl \
+	davclnt.h \
 	dbghelp.h \
-	dbinit.idl \
-	dbprop.idl \
-	dbs.idl \
 	dbt.h \
 	dciddi.h \
 	dciman.h \
@@ -250,9 +283,15 @@ SRCDIR_INCLUDES = \
 	ddeml.h \
 	ddk/compstui.h \
 	ddk/csq.h \
+	ddk/d3dkmthk.h \
+	ddk/hidclass.h \
+	ddk/hidpi.h \
+	ddk/hidport.h \
 	ddk/hidsdi.h \
+	ddk/hidtypes.h \
 	ddk/imm.h \
 	ddk/mountmgr.h \
+	ddk/ndis.h \
 	ddk/ntddcdvd.h \
 	ddk/ntddk.h \
 	ddk/ntddser.h \
@@ -271,7 +310,6 @@ SRCDIR_INCLUDES = \
 	ddrawgdi.h \
 	ddrawi.h \
 	delayloadhandler.h \
-	devenum.idl \
 	devguid.h \
 	devpkey.h \
 	devpropdef.h \
@@ -315,10 +353,8 @@ SRCDIR_INCLUDES = \
 	dxfile.h \
 	dxgiformat.h \
 	dxgitype.h \
-	dyngraph.idl \
 	errorrep.h \
 	errors.h \
-	errrec.idl \
 	evcode.h \
 	evntprov.h \
 	evntrace.h \
@@ -328,9 +364,11 @@ SRCDIR_INCLUDES = \
 	fdi.h \
 	fileapi.h \
 	fltdefs.h \
+	fontsub.h \
 	gdiplus.h \
 	gdipluscolor.h \
 	gdipluscolormatrix.h \
+	gdipluseffects.h \
 	gdiplusenums.h \
 	gdiplusflat.h \
 	gdiplusgpstubs.h \
@@ -467,7 +505,9 @@ SRCDIR_INCLUDES = \
 	msxml6did.h \
 	msxmldid.h \
 	nb30.h \
+	ncrypt.h \
 	ndrtypes.h \
+	netioapi.h \
 	nldef.h \
 	npapi.h \
 	nspapi.h \
@@ -490,7 +530,6 @@ SRCDIR_INCLUDES = \
 	olectl.h \
 	oledberr.h \
 	oledlg.h \
-	opnrst.idl \
 	patchapi.h \
 	pdh.h \
 	pdhmsg.h \
@@ -498,6 +537,7 @@ SRCDIR_INCLUDES = \
 	pktdef.h \
 	poppack.h \
 	powrprof.h \
+	prntvpt.h \
 	profinfo.h \
 	propkey.h \
 	propkeydef.h \
@@ -517,10 +557,6 @@ SRCDIR_INCLUDES = \
 	richedit.h \
 	rmxfguid.h \
 	roapi.h \
-	row.idl \
-	rowchg.idl \
-	rowpos.idl \
-	rowpsc.idl \
 	rpc.h \
 	rpcasync.h \
 	rpcdce.h \
@@ -529,10 +565,6 @@ SRCDIR_INCLUDES = \
 	rpcnterr.h \
 	rpcproxy.h \
 	rpcsal.h \
-	rstbas.idl \
-	rstinf.idl \
-	rstloc.idl \
-	rstnot.idl \
 	rtutils.h \
 	scarderr.h \
 	schannel.h \
@@ -542,7 +574,6 @@ SRCDIR_INCLUDES = \
 	secext.h \
 	security.h \
 	sensapi.h \
-	sesprp.idl \
 	setupapi.h \
 	sfc.h \
 	shdispid.h \
@@ -558,7 +589,6 @@ SRCDIR_INCLUDES = \
 	sql.h \
 	sqlext.h \
 	sqltypes.h \
-	srcrst.idl \
 	srrestoreptapi.h \
 	sspi.h \
 	sti.h \
@@ -568,6 +598,7 @@ SRCDIR_INCLUDES = \
 	t2embapi.h \
 	tapi.h \
 	tchar.h \
+	tcpestats.h \
 	tcpmib.h \
 	textserv.h \
 	tlhelp32.h \
@@ -586,13 +617,16 @@ SRCDIR_INCLUDES = \
 	verrsrc.h \
 	vfw.h \
 	vfwmsgs.h \
-	vmrender.idl \
 	vsstyle.h \
 	vssym32.h \
 	vswriter.h \
+	wct.h \
+	webservices.h \
 	werapi.h \
 	wfext.h \
 	wia.h \
+	wiadef.h \
+	wimgapi.h \
 	winbase.h \
 	wincon.h \
 	wincred.h \
@@ -637,7 +671,9 @@ SRCDIR_INCLUDES = \
 	winuser.h \
 	winuser.rh \
 	winver.h \
+	wlanapi.h \
 	wmistr.h \
+	wmium.h \
 	wnaspi32.h \
 	wownt32.h \
 	ws2def.h \
@@ -648,42 +684,14 @@ SRCDIR_INCLUDES = \
 	wsipx.h \
 	wsnwlink.h \
 	wtsapi32.h \
+	x3daudio.h \
+	xapofx.h \
 	xcmc.h \
 	xinput.h \
 	xmldom.h \
-	xmldom.idl \
 	xmldomdid.h \
-	xmldso.idl \
 	xmldsodid.h \
 	zmouse.h
 
-IDL_H_SRCS = $(PUBLIC_IDL_H_SRCS) $(PRIVATE_IDL_H_SRCS)
-IDL_SRCS = $(IDL_H_SRCS) $(IDL_TLB_SRCS)
-
-OBJDIR_INCLUDES = $(PUBLIC_IDL_H_SRCS:.idl=.h) $(XTEMPLATE_SRCS:.x=.h)
-
-all: $(IDL_H_SRCS:.idl=.h) $(IDL_TLB_SRCS:.idl=.tlb) $(XTEMPLATE_SRCS:.x=.h)
-
-.PHONY: install install-dev uninstall
-
-install install-dev:: $(OBJDIR_INCLUDES)
-	for f in $(SRCDIR_INCLUDES); do case $$f in \
-	  wine/*)   $(INSTALL_DATA) $(srcdir)/$$f $(DESTDIR)$(includedir)/`expr $$f : 'wine/\(.*\)'` ;; \
-	  msvcrt/*) $(INSTALL_DATA) $(srcdir)/$$f $(DESTDIR)$(includedir)/$$f ;; \
-	  *)        $(INSTALL_DATA) $(srcdir)/$$f $(DESTDIR)$(includedir)/windows/$$f ;; \
-	esac; done
-	for f in $(OBJDIR_INCLUDES); do case $$f in \
-	  wine/*)   $(INSTALL_DATA) $$f $(DESTDIR)$(includedir)/`expr $$f : 'wine/\(.*\)'` ;; \
-	  msvcrt/*) $(INSTALL_DATA) $$f $(DESTDIR)$(includedir)/$$f ;; \
-	  *)        $(INSTALL_DATA) $$f $(DESTDIR)$(includedir)/windows/$$f ;; \
-	esac; done
-
-# Don't just do a rm -rf on $(includedir) -- don't want to wipe out
-# anything extra the user may have put there.
-uninstall::
-	for f in $(SRCDIR_INCLUDES) $(OBJDIR_INCLUDES); do case $$f in \
-	  wine/*)   $(RM) $(DESTDIR)$(includedir)/`expr $$f : 'wine/\(.*\)'` ;; \
-	  msvcrt/*) $(RM) $(DESTDIR)$(includedir)/$$f ;; \
-	  *)        $(RM) $(DESTDIR)$(includedir)/windows/$$f ;; \
-	esac; done
-	-rmdir $(DESTDIR)$(includedir)/windows/ddk $(DESTDIR)$(includedir)/windows $(DESTDIR)$(includedir)/msvcrt/sys $(DESTDIR)$(includedir)/msvcrt
+XTEMPLATE_SRCS = \
+	rmxftmpl.x

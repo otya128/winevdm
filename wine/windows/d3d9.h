@@ -290,7 +290,7 @@ DECLARE_INTERFACE_(IDirect3D9Ex,IDirect3D9)
             UINT mode_idx, D3DDISPLAYMODEEX *mode) PURE;
     STDMETHOD(GetAdapterDisplayModeEx)(THIS_ UINT Adapter, D3DDISPLAYMODEEX *pMode, D3DDISPLAYROTATION *pRotation);
     STDMETHOD(CreateDeviceEx)(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, struct IDirect3DDevice9Ex **ppReturnedDeviceInterface) PURE;
-    STDMETHOD(GetAdapterLUID)(THIS_ UINT Adatper, LUID *pLUID) PURE;
+    STDMETHOD(GetAdapterLUID)(THIS_ UINT adapter, LUID *luid) PURE;
 };
 #undef INTERFACE
 
@@ -494,8 +494,8 @@ __CRT_UUID_DECL(IDirect3DSwapChain9Ex,        0x91886caf, 0x1c3d, 0x4d2e, 0xa0, 
 /*** IDirect3DSwapChain9 methods ***/
 #define IDirect3DSwapChain9Ex_Present(p,a,b,c,d,e)       (p)->lpVtbl->Present(p,a,b,c,d,e)
 #define IDirect3DSwapChain9Ex_GetFrontBufferData(p,a)    (p)->lpVtbl->GetFrontBufferData(p,a)
-#define IDirect3DSwapChain9EX_GetBackBuffer(p,a,b,c)     (p)->lpVtbl->GetBackBuffer(p,a,b,c)
-#define IDirect3DSwapChain9EX_GetRasterStatus(p,a)       (p)->lpVtbl->GetRasterStatus(p,a)
+#define IDirect3DSwapChain9Ex_GetBackBuffer(p,a,b,c)     (p)->lpVtbl->GetBackBuffer(p,a,b,c)
+#define IDirect3DSwapChain9Ex_GetRasterStatus(p,a)       (p)->lpVtbl->GetRasterStatus(p,a)
 #define IDirect3DSwapChain9Ex_GetDisplayMode(p,a)        (p)->lpVtbl->GetDisplayMode(p,a)
 #define IDirect3DSwapChain9Ex_GetDevice(p,a)             (p)->lpVtbl->GetDevice(p,a)
 #define IDirect3DSwapChain9Ex_GetPresentParameters(p,a)  (p)->lpVtbl->GetPresentParameters(p,a)

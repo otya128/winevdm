@@ -162,16 +162,16 @@ interface IMalloc : IUnknown
   typedef [unique] IMalloc *LPMALLOC;
 
   LPVOID Alloc(
-    [in] ULONG cb);
+    [in] SIZE_T cb);
 
   LPVOID Realloc(
     [in] LPVOID pv,
-    [in] ULONG cb);
+    [in] SIZE_T cb);
 
   void Free(
     [in] LPVOID pv);
 
-  ULONG GetSize(
+  SIZE_T GetSize(
     [in] LPVOID pv);
 
   int DidAlloc(LPVOID pv);
@@ -188,8 +188,8 @@ interface IMallocSpy : IUnknown
 {
   typedef [unique] IMallocSpy *LPMALLOCSPY;
 
-  ULONG PreAlloc(
-    [in] ULONG cbRequest);
+  SIZE_T PreAlloc(
+    [in] SIZE_T cbRequest);
 
   LPVOID PostAlloc(
     [in] LPVOID pActual);
@@ -201,9 +201,9 @@ interface IMallocSpy : IUnknown
   void PostFree(
     [in] BOOL fSpyed);
 
-  ULONG PreRealloc(
+  SIZE_T PreRealloc(
     [in] LPVOID pRequest,
-    [in] ULONG cbRequest,
+    [in] SIZE_T cbRequest,
     [out] LPVOID *ppNewRequest,
     [in] BOOL fSpyed);
 
@@ -215,8 +215,8 @@ interface IMallocSpy : IUnknown
     [in] LPVOID pRequest,
     [in] BOOL fSpyed);
 
-  ULONG PostGetSize(
-    [in] ULONG cbActual,
+  SIZE_T PostGetSize(
+    [in] SIZE_T cbActual,
     [in] BOOL fSpyed);
 
   LPVOID PreDidAlloc(
@@ -2327,6 +2327,15 @@ typedef enum _APTTYPE {
     APTTYPE_MAINSTA = 3
 } APTTYPE;
 
+typedef enum _APTTYPEQUALIFIER {
+    APTTYPEQUALIFIER_NONE,
+    APTTYPEQUALIFIER_IMPLICIT_MTA,
+    APTTYPEQUALIFIER_NA_ON_MTA,
+    APTTYPEQUALIFIER_NA_ON_STA,
+    APTTYPEQUALIFIER_NA_ON_IMPLICIT_MTA,
+    APTTYPEQUALIFIER_NA_ON_MAINSTA
+} APTTYPEQUALIFIER;
+
 typedef enum _THDTYPE {
     THDTYPE_BLOCKMESSAGES   = 0,
     THDTYPE_PROCESSMESSAGES = 1
@@ -2439,6 +2448,16 @@ interface IGlobalOptions : IUnknown
 {
     HRESULT Set([in] GLOBALOPT_PROPERTIES property, [in] ULONG_PTR value);
     HRESULT Query([in] GLOBALOPT_PROPERTIES property, [out ] ULONG_PTR *value);
+}
+
+[
+    object,
+    pointer_default(unique),
+    uuid(947990de-cc28-11d2-a0f7-00805f858fb1)
+]
+interface IDummyHICONIncluder : IUnknown
+{
+    HRESULT Dummy([in] HICON hIcon, [in] HDC hdc);
 }
 
 cpp_quote("#ifdef USE_COM_CONTEXT_DEF")

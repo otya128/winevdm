@@ -250,12 +250,6 @@ void WINAPI SHFreeNameMappings(HANDLE hNameMappings);
 /******************************************
  * ShellExecute
  */
-#define SE_ERR_SHARE            26
-#define SE_ERR_ASSOCINCOMPLETE  27
-#define SE_ERR_DDETIMEOUT       28
-#define SE_ERR_DDEFAIL          29
-#define SE_ERR_DDEBUSY          30
-#define SE_ERR_NOASSOC          31
 
 HINSTANCE	WINAPI ShellExecuteA(HWND,LPCSTR,LPCSTR,LPCSTR,LPCSTR,INT);
 HINSTANCE	WINAPI ShellExecuteW(HWND,LPCWSTR,LPCWSTR,LPCWSTR,LPCWSTR,INT);
@@ -496,6 +490,19 @@ HRESULT     WINAPI SHQueryRecycleBinW(LPCWSTR,LPSHQUERYRBINFO);
  * Misc
  */
 
+typedef enum
+{
+    QUNS_NOT_PRESENT             = 1,
+    QUNS_BUSY                    = 2,
+    QUNS_RUNNING_D3D_FULL_SCREEN = 3,
+    QUNS_PRESENTATION_MODE       = 4,
+    QUNS_ACCEPTS_NOTIFICATIONS   = 5,
+    QUNS_QUIET_TIME              = 6,
+    QUNS_APP                     = 7
+} QUERY_USER_NOTIFICATION_STATE;
+
+HRESULT     WINAPI SHQueryUserNotificationState(QUERY_USER_NOTIFICATION_STATE*);
+
 typedef enum SHSTOCKICONID
 {
     SIID_INVALID=-1,
@@ -599,8 +606,8 @@ typedef enum SHSTOCKICONID
     SIID_MEDIABDR,
     SIID_MEDIABDRE,
     SIID_CLUSTEREDDRIVE,
-    /* Missing: 141 - 174 */
-    SIID_MAX_ICONS = 175
+    /* Missing: 141 - 177 */
+    SIID_MAX_ICONS = 178
 }SHSTOCKICONID;
 
 typedef struct _SHSTOCKICONINFO
@@ -653,6 +660,7 @@ HRESULT     WINAPI SHEnumerateUnreadMailAccountsA(HKEY,DWORD,LPSTR,INT);
 HRESULT     WINAPI SHEnumerateUnreadMailAccountsW(HKEY,DWORD,LPWSTR,INT);
 #define     SHEnumerateUnreadMailAccounts WINELIB_NAME_AW(SHEnumerateUnreadMailAccounts)
 
+HRESULT     WINAPI SHGetPropertyStoreForWindow(HWND,REFIID,void **);
 
 #ifdef __cplusplus
 } /* extern "C" */

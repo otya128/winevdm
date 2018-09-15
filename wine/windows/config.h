@@ -33,6 +33,12 @@
 /* Define to 1 if you have the `asctime_r' function. */
 #define HAVE_ASCTIME_R 1
 
+/* Define to 1 if you have the `asinh' function. */
+/* #undef HAVE_ASINH */
+
+/* Define to 1 if you have the `asinhf' function. */
+/* #undef HAVE_ASINHF */
+
 /* Define to 1 if you have the <asm/types.h> header file. */
 #define HAVE_ASM_TYPES_H 1
 
@@ -72,6 +78,9 @@
 /* Define to 1 if you have the <CL/cl.h> header file. */
 /* #undef HAVE_CL_CL_H */
 
+/* Define to 1 if you have the <CommonCrypto/CommonDigest.h> header file. */
+/* #undef HAVE_COMMONCRYPTO_COMMONDIGEST_H */
+
 /* Define to 1 if you have the <CoreAudio/CoreAudio.h> header file. */
 /* #undef HAVE_COREAUDIO_COREAUDIO_H */
 
@@ -80,6 +89,9 @@
 
 /* Define to 1 if you have the <cups/cups.h> header file. */
 /* #undef HAVE_CUPS_CUPS_H */
+
+/* Define to 1 if you have the <cups/ppd.h> header file. */
+/* #undef HAVE_CUPS_PPD_H */
 
 /* Define to 1 if you have the <curses.h> header file. */
 #define HAVE_CURSES_H 1
@@ -111,6 +123,12 @@
 
 /* Define to 1 if you have the `epoll_create' function. */
 /* #undef HAVE_EPOLL_CREATE */
+
+/* Define to 1 if you have the `erf' function. */
+/* #undef HAVE_ERF */
+
+/* Define to 1 if you have the `erff' function. */
+/* #undef HAVE_ERFF */
 
 /* Define to 1 if you have the `exp2' function. */
 #define HAVE_EXP2 1
@@ -184,9 +202,6 @@
 /* Define to 1 if you have the `getattrlist' function. */
 /* #undef HAVE_GETATTRLIST */
 
-/* Define to 1 if you have the `getdirentries' function. */
-/* #undef HAVE_GETDIRENTRIES */
-
 /* Define to 1 if you have the `getnameinfo' function. */
 #define HAVE_GETNAMEINFO 1
 
@@ -219,6 +234,9 @@
 
 /* Define to 1 if you have the `getuid' function. */
 #define HAVE_GETUID 1
+
+/* Define to 1 if you have the `gnutls_hash' function. */
+/* #undef HAVE_GNUTLS_HASH */
 
 /* Define if we have the libgphoto2 development environment */
 /* #undef HAVE_GPHOTO2 */
@@ -354,6 +372,9 @@
 
 /* Define to 1 if you have the <libproc.h> header file. */
 /* #undef HAVE_LIBPROC_H */
+
+/* Define to 1 if you have the <libunwind.h> header file. */
+/* #undef HAVE_LIBUNWIND_H */
 
 /* Define to 1 if you have the <libv4l1.h> header file. */
 /* #undef HAVE_LIBV4L1_H */
@@ -652,6 +673,9 @@
 /* Define to 1 if you have the <port.h> header file. */
 /* #undef HAVE_PORT_H */
 
+/* Define to 1 if you have the `powl' function. */
+/* #undef HAVE_POWL */
+
 /* Define if we can use ppdev.h for parallel port access */
 /* #undef HAVE_PPDEV */
 
@@ -688,6 +712,9 @@
 /* Define to 1 if you have the <pthread_np.h> header file. */
 /* #undef HAVE_PTHREAD_NP_H */
 
+/* Define to 1 if you have the <pulse/pulseaudio.h> header file. */
+/* #undef HAVE_PULSE_PULSEAUDIO_H */
+
 /* Define to 1 if you have the <pwd.h> header file. */
 #define HAVE_PWD_H 1
 
@@ -702,6 +729,12 @@
 
 /* Define to 1 if you have the `readlink' function. */
 #define HAVE_READLINK 1
+
+/* Define to 1 if you have the `remainder' function. */
+/* #undef HAVE_REMAINDER */
+
+/* Define to 1 if you have the `remainderf' function. */
+/* #undef HAVE_REMAINDERF */
 
 /* Define to 1 if the system has the type `request_sense'. */
 /* #undef HAVE_REQUEST_SENSE */
@@ -756,6 +789,9 @@
 
 /* Define to 1 if you have the `setproctitle' function. */
 /* #undef HAVE_SETPROCTITLE */
+
+/* Define to 1 if you have the `setprogname' function. */
+/* #undef HAVE_SETPROGNAME */
 
 /* Define to 1 if you have the `setrlimit' function. */
 #define HAVE_SETRLIMIT 1
@@ -1084,6 +1120,9 @@
 /* Define to 1 if you have the <sys/sysctl.h> header file. */
 /* #undef HAVE_SYS_SYSCTL_H */
 
+/* Define to 1 if you have the <sys/sysinfo.h> header file. */
+/* #undef HAVE_SYS_SYSINFO_H */
+
 /* Define to 1 if you have the <sys/thr.h> header file. */
 /* #undef HAVE_SYS_THR_H */
 
@@ -1122,6 +1161,9 @@
 
 /* Define to 1 if you have the <sys/vm86.h> header file. */
 /* #undef HAVE_SYS_VM86_H */
+
+/* Define to 1 if you have the <sys/vnode.h> header file. */
+/* #undef HAVE_SYS_VNODE_H */
 
 /* Define to 1 if you have the <sys/wait.h> header file. */
 #define HAVE_SYS_WAIT_H 1
@@ -1291,11 +1333,22 @@
 /* Define to 1 if you have the `__builtin_clz' built-in function. */
 #define HAVE___BUILTIN_CLZ 1
 
+/* Define to 1 if you have the `__builtin_popcount' built-in function. */
+/* #undef HAVE___BUILTIN_POPCOUNT */
+
 /* Define to 1 if you have the `__res_getservers' function. */
 /* #undef HAVE___RES_GETSERVERS */
 
 /* Define to 1 if you have the `__res_get_state' function. */
 /* #undef HAVE___RES_GET_STATE */
+
+/* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
+   */
+/* #undef MAJOR_IN_MKDEV */
+
+/* Define to 1 if `major', `minor', and `makedev' are declared in
+   <sysmacros.h>. */
+/* #undef MAJOR_IN_SYSMACROS */
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT "wine-devel@winehq.org"

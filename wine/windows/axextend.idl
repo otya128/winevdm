@@ -16,6 +16,10 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#if 0
+#pragma makedep install
+#endif
+
 interface IAMAnalogVideoDecoder;
 interface IAMAnalogVideoEncoder;
 interface IAMAudioInputMixer;
@@ -174,7 +178,7 @@ interface IFilterMapper : IUnknown
          [in]  CLSID clsInMaj,
          [in]  CLSID clsInSub,
          [in]  BOOL  bRender,
-         [in]  BOOL  bOututNeeded,
+         [in]  BOOL  bOutputNeeded,
          [in]  CLSID clsOutMaj,
          [in]  CLSID clsOutSub
        );
@@ -1257,4 +1261,24 @@ interface IAMGraphBuilderCallback : IUnknown
 
     HRESULT CreatedFilter(
         [in] IBaseFilter *pFil);
+};
+
+[
+    local,
+    object,
+    uuid(d8d715a0-6e5e-11d0-b3f0-00aa003761c5),
+    pointer_default(unique)
+]
+interface IAMVfwCaptureDialogs : IUnknown
+{
+    HRESULT HasDialog(
+            [in] int dialog);
+    HRESULT ShowDialog(
+            [in] int dialog,
+            [in] HWND hwnd);
+    HRESULT SendDriverMessage(
+            [in] int dialog,
+            [in] int msg,
+            [in] long data1,
+            [in] long data2);
 };

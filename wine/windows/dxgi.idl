@@ -60,6 +60,8 @@ const DXGI_USAGE DXGI_USAGE_RENDER_TARGET_OUTPUT    = 0x20L;
 const DXGI_USAGE DXGI_USAGE_BACK_BUFFER             = 0x40L;
 const DXGI_USAGE DXGI_USAGE_SHARED                  = 0x80L;
 const DXGI_USAGE DXGI_USAGE_READ_ONLY               = 0x100L;
+const DXGI_USAGE DXGI_USAGE_DISCARD_ON_PRESENT      = 0x200L;
+const DXGI_USAGE DXGI_USAGE_UNORDERED_ACCESS        = 0x400L;
 
 const UINT DXGI_ENUM_MODES_INTERLACED               = 1;
 const UINT DXGI_ENUM_MODES_SCALING                  = 2;
@@ -67,7 +69,8 @@ const UINT DXGI_ENUM_MODES_SCALING                  = 2;
 typedef enum DXGI_SWAP_EFFECT {
     DXGI_SWAP_EFFECT_DISCARD    = 0,
     DXGI_SWAP_EFFECT_SEQUENTIAL = 1,
-    DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL = 3
+    DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL = 3,
+    DXGI_SWAP_EFFECT_FLIP_DISCARD = 4
 } DXGI_SWAP_EFFECT;
 
 typedef enum DXGI_RESIDENCY {
@@ -218,6 +221,22 @@ interface IDXGISurface : IDXGIDeviceSubObject
         [in] UINT flags
     );
     HRESULT Unmap(
+    );
+}
+
+[
+    object,
+    local,
+    uuid(4ae63092-6327-4c1b-80ae-bfe12ea32b86)
+]
+interface IDXGISurface1 : IDXGISurface
+{
+    HRESULT GetDC(
+        [in] BOOL discard,
+        [out] HDC *hdc
+    );
+    HRESULT ReleaseDC(
+        [in] RECT *dirty_rect
     );
 }
 

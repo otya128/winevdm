@@ -27,6 +27,11 @@ typedef D3D_PRIMITIVE_TOPOLOGY D3D11_PRIMITIVE_TOPOLOGY;
 typedef D3D_SRV_DIMENSION D3D11_SRV_DIMENSION;
 typedef RECT D3D11_RECT;
 
+interface ID3D11Device;
+interface ID3D11ClassLinkage;
+interface ID3D11Resource;
+interface ID3D11VideoProcessorInputView;
+
 const UINT D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT      = 14;
 const UINT D3D11_COMMONSHADER_CONSTANT_BUFFER_COMPONENTS          = 4;
 const UINT D3D11_COMMONSHADER_CONSTANT_BUFFER_COMPONENT_BIT_COUNT = 32;
@@ -87,12 +92,20 @@ const UINT D3D11_DEFAULT_VIEWPORT_WIDTH      = 0;
 
 cpp_quote("#define D3D11_FLOAT32_MAX         (3.402823466e+38f)")
 
+const UINT D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT = 32;
+
 const unsigned int D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT = 8;
 
 const UINT D3D11_MAX_MAXANISOTROPY           = 16;
 const UINT D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT = 32;
 const UINT D3D11_VIEWPORT_BOUNDS_MAX         = 32767;
 const INT D3D11_VIEWPORT_BOUNDS_MIN          = -32768;
+const UINT D3D11_VIEWPORT_AND_SCISSORRECT_MAX_INDEX = 15;
+const UINT D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE = 16;
+
+const UINT D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL = 0xffffffff;
+const UINT D3D11_KEEP_UNORDERED_ACCESS_VIEWS           = 0xffffffff;
+
 const UINT D3D11_SHADER_MAJOR_VERSION        = 5;
 const UINT D3D11_SHADER_MAX_INSTANCES        = 65535;
 const UINT D3D11_SHADER_MAX_INTERFACES       = 253;
@@ -100,6 +113,8 @@ const UINT D3D11_SHADER_MAX_INTERFACE_CALL_SITES = 4096;
 const UINT D3D11_SHADER_MAX_TYPES            = 65535;
 const UINT D3D11_SHADER_MINOR_VERSION        = 0;
 const UINT D3D11_VS_OUTPUT_REGISTER_COUNT    = 32;
+
+const UINT D3D11_OMAC_SIZE = 16;
 
 const UINT D3D11_PS_CS_UAV_REGISTER_COMPONENTS         = 1;
 const UINT D3D11_PS_CS_UAV_REGISTER_COUNT              = 8;
@@ -222,6 +237,61 @@ typedef enum D3D11_BLEND_OP
     D3D11_BLEND_OP_MIN,
     D3D11_BLEND_OP_MAX
 } D3D11_BLEND_OP;
+
+typedef enum D3D11_VIDEO_DECODER_BUFFER_TYPE
+{
+    D3D11_VIDEO_DECODER_BUFFER_PICTURE_PARAMETERS = 0,
+    D3D11_VIDEO_DECODER_BUFFER_MACROBLOCK_CONTROL = 1,
+    D3D11_VIDEO_DECODER_BUFFER_RESIDUAL_DIFFERENCE = 2,
+    D3D11_VIDEO_DECODER_BUFFER_DEBLOCKING_CONTROL = 3,
+    D3D11_VIDEO_DECODER_BUFFER_INVERSE_QUANTIZATION_MATRIX = 4,
+    D3D11_VIDEO_DECODER_BUFFER_SLICE_CONTROL = 5,
+    D3D11_VIDEO_DECODER_BUFFER_BITSTREAM = 6,
+    D3D11_VIDEO_DECODER_BUFFER_MOTION_VECTOR = 7,
+    D3D11_VIDEO_DECODER_BUFFER_FILM_GRAIN = 8,
+} D3D11_VIDEO_DECODER_BUFFER_TYPE;
+
+typedef enum D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE
+{
+    D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE_OPAQUE = 0,
+    D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE_BACKGROUND = 1,
+    D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE_DESTINATION = 2,
+    D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE_SOURCE_STREAM = 3,
+} D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE;
+
+typedef enum D3D11_VIDEO_PROCESSOR_OUTPUT_RATE
+{
+    D3D11_VIDEO_PROCESSOR_OUTPUT_RATE_NORMAL = 0,
+    D3D11_VIDEO_PROCESSOR_OUTPUT_RATE_HALF = 1,
+    D3D11_VIDEO_PROCESSOR_OUTPUT_RATE_CUSTOM = 2,
+} D3D11_VIDEO_PROCESSOR_OUTPUT_RATE;
+
+typedef enum D3D11_VIDEO_PROCESSOR_STEREO_FORMAT
+{
+    D3D11_VIDEO_PROCESSOR_STEREO_FORMAT_MONO = 0,
+    D3D11_VIDEO_PROCESSOR_STEREO_FORMAT_HORIZONTAL = 1,
+    D3D11_VIDEO_PROCESSOR_STEREO_FORMAT_VERTICAL = 2,
+    D3D11_VIDEO_PROCESSOR_STEREO_FORMAT_SEPARATE = 3,
+    D3D11_VIDEO_PROCESSOR_STEREO_FORMAT_MONO_OFFSET = 4,
+    D3D11_VIDEO_PROCESSOR_STEREO_FORMAT_ROW_INTERLEAVED = 5,
+    D3D11_VIDEO_PROCESSOR_STEREO_FORMAT_COLUMN_INTERLEAVED = 6,
+    D3D11_VIDEO_PROCESSOR_STEREO_FORMAT_CHECKERBOARD = 7,
+} D3D11_VIDEO_PROCESSOR_STEREO_FORMAT;
+
+typedef enum D3D11_VIDEO_PROCESSOR_STEREO_FLIP_MODE
+{
+    D3D11_VIDEO_PROCESSOR_STEREO_FLIP_NONE = 0,
+    D3D11_VIDEO_PROCESSOR_STEREO_FLIP_FRAME0 = 1,
+    D3D11_VIDEO_PROCESSOR_STEREO_FLIP_FRAME1 = 2,
+} D3D11_VIDEO_PROCESSOR_STEREO_FLIP_MODE;
+
+typedef enum D3D11_VIDEO_PROCESSOR_ROTATION
+{
+    D3D11_VIDEO_PROCESSOR_ROTATION_IDENTITY = 0,
+    D3D11_VIDEO_PROCESSOR_ROTATION_90 = 1,
+    D3D11_VIDEO_PROCESSOR_ROTATION_180 = 2,
+    D3D11_VIDEO_PROCESSOR_ROTATION_270 = 3,
+} D3D11_VIDEO_PROCESSOR_ROTATION;
 
 typedef struct D3D11_BOX
 {
@@ -368,6 +438,12 @@ typedef enum D3D11_FEATURE
     D3D11_FEATURE_SHADER_MIN_PRECISION_SUPPORT,
     D3D11_FEATURE_D3D9_SHADOW_SUPPORT
 } D3D11_FEATURE;
+
+typedef struct D3D11_FEATURE_DATA_THREADING
+{
+    BOOL DriverConcurrentCreates;
+    BOOL DriverCommandLists;
+} D3D11_FEATURE_DATA_THREADING;
 
 typedef struct D3D11_FEATURE_DATA_D3D11_OPTIONS
 {
@@ -528,6 +604,11 @@ typedef enum D3D11_QUERY
     D3D11_QUERY_SO_OVERFLOW_PREDICATE_STREAM3,
 } D3D11_QUERY;
 
+typedef enum D3D11_QUERY_MISC_FLAG
+{
+    D3D11_QUERY_MISC_PREDICATEHINT = 0x1,
+} D3D11_QUERY_MISC_FLAG;
+
 typedef enum D3D11_ASYNC_GETDATA_FLAG
 {
     D3D11_ASYNC_GETDATA_DONOTFLUSH = 0x0001,
@@ -556,6 +637,21 @@ typedef struct D3D11_QUERY_DESC
     D3D11_QUERY Query;
     UINT MiscFlags;
 } D3D11_QUERY_DESC;
+
+cpp_quote("#if !defined(D3D11_NO_HELPERS) && defined(__cplusplus)")
+cpp_quote("struct CD3D11_QUERY_DESC : public D3D11_QUERY_DESC {")
+cpp_quote("    CD3D11_QUERY_DESC() {}")
+cpp_quote("    ~CD3D11_QUERY_DESC() {}")
+cpp_quote("    explicit CD3D11_QUERY_DESC(const D3D11_QUERY_DESC &other) : D3D11_QUERY_DESC(other) {}")
+cpp_quote("    explicit CD3D11_QUERY_DESC(D3D11_QUERY query, UINT misc_flags = 0) {")
+cpp_quote("        Query = query;")
+cpp_quote("        MiscFlags = misc_flags;")
+cpp_quote("    }")
+cpp_quote("    operator const D3D11_QUERY_DESC&() const {")
+cpp_quote("        return *this;")
+cpp_quote("    }")
+cpp_quote("};")
+cpp_quote("#endif")
 
 typedef struct D3D11_RASTERIZER_DESC
 {
@@ -944,7 +1040,11 @@ typedef enum D3D11_FORMAT_SUPPORT
     D3D11_FORMAT_SUPPORT_SHADER_GATHER                = 0x00800000,
     D3D11_FORMAT_SUPPORT_BACK_BUFFER_CAST             = 0x01000000,
     D3D11_FORMAT_SUPPORT_TYPED_UNORDERED_ACCESS_VIEW  = 0x02000000,
-    D3D11_FORMAT_SUPPORT_SHADER_GATHER_COMPARISON     = 0x04000000
+    D3D11_FORMAT_SUPPORT_SHADER_GATHER_COMPARISON     = 0x04000000,
+    D3D11_FORMAT_SUPPORT_DECODER_OUTPUT               = 0x08000000,
+    D3D11_FORMAT_SUPPORT_VIDEO_PROCESSOR_OUTPUT       = 0x10000000,
+    D3D11_FORMAT_SUPPORT_VIDEO_PROCESSOR_INPUT        = 0x20000000,
+    D3D11_FORMAT_SUPPORT_VIDEO_ENCODER                = 0x40000000,
 } D3D11_FORMAT_SUPPORT;
 
 typedef enum D3D11_CLEAR_FLAG
@@ -1076,6 +1176,72 @@ typedef struct D3D11_RENDER_TARGET_VIEW_DESC
     };
 } D3D11_RENDER_TARGET_VIEW_DESC;
 
+cpp_quote("#if !defined(D3D11_NO_HELPERS) && defined(__cplusplus)")
+cpp_quote("struct CD3D11_RENDER_TARGET_VIEW_DESC : public D3D11_RENDER_TARGET_VIEW_DESC {")
+cpp_quote("    CD3D11_RENDER_TARGET_VIEW_DESC() {}")
+cpp_quote("    explicit CD3D11_RENDER_TARGET_VIEW_DESC(D3D11_RTV_DIMENSION dim, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN,")
+cpp_quote("            UINT mip_slice = 0, UINT first_slice = 0, UINT array_size = -1) {")
+cpp_quote("        Format = format;")
+cpp_quote("        ViewDimension = dim;")
+cpp_quote("        switch(dim) {")
+cpp_quote("        case D3D11_RTV_DIMENSION_BUFFER:")
+cpp_quote("            Buffer.FirstElement = mip_slice;")
+cpp_quote("            Buffer.NumElements = first_slice;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_RTV_DIMENSION_TEXTURE1D:")
+cpp_quote("            Texture1D.MipSlice = mip_slice;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_RTV_DIMENSION_TEXTURE1DARRAY:")
+cpp_quote("            Texture1DArray.MipSlice = mip_slice;")
+cpp_quote("            Texture1DArray.FirstArraySlice = first_slice;")
+cpp_quote("            Texture1DArray.ArraySize = array_size;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_RTV_DIMENSION_TEXTURE2D:")
+cpp_quote("            Texture2D.MipSlice = mip_slice;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_RTV_DIMENSION_TEXTURE2DARRAY:")
+cpp_quote("            Texture2DArray.MipSlice = mip_slice;")
+cpp_quote("            Texture2DArray.FirstArraySlice = first_slice;")
+cpp_quote("            Texture2DArray.ArraySize = array_size;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY:")
+cpp_quote("            Texture2DMSArray.FirstArraySlice = first_slice;")
+cpp_quote("            Texture2DMSArray.ArraySize = array_size;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_RTV_DIMENSION_TEXTURE3D:")
+cpp_quote("            Texture3D.MipSlice = mip_slice;")
+cpp_quote("            Texture3D.FirstWSlice = first_slice;")
+cpp_quote("            Texture3D.WSize = array_size;")
+cpp_quote("            break;")
+cpp_quote("        default:")
+cpp_quote("            break;")
+cpp_quote("        }")
+cpp_quote("    }")
+cpp_quote("    explicit CD3D11_RENDER_TARGET_VIEW_DESC(ID3D11Buffer*, DXGI_FORMAT format, UINT first_elem,")
+cpp_quote("            UINT elem_cnt) {")
+cpp_quote("        Format = format;")
+cpp_quote("        ViewDimension = D3D11_RTV_DIMENSION_BUFFER;")
+cpp_quote("        Buffer.FirstElement = first_elem;")
+cpp_quote("        Buffer.NumElements = elem_cnt;")
+cpp_quote("    }")
+cpp_quote("    explicit CD3D11_RENDER_TARGET_VIEW_DESC(ID3D11Texture1D *texture, D3D11_RTV_DIMENSION dim,")
+cpp_quote("            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, UINT mip_slice = 0, UINT first_slice = 0,")
+cpp_quote("            UINT array_size = -1);") /* FIXME: implement */
+cpp_quote("    explicit CD3D11_RENDER_TARGET_VIEW_DESC(ID3D11Texture2D *texture, D3D11_RTV_DIMENSION dim,")
+cpp_quote("            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, UINT mip_slice = 0, UINT first_slice = 0,")
+cpp_quote("            UINT array_size = -1);") /* FIXME: implement */
+cpp_quote("    explicit CD3D11_RENDER_TARGET_VIEW_DESC(ID3D11Texture3D *texture, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN,")
+cpp_quote("            UINT mip_slice = 0, UINT first_w_slice = 0, UINT w_slice = -1 );") /* FIXME: implement */
+cpp_quote("    ~CD3D11_RENDER_TARGET_VIEW_DESC() {}")
+cpp_quote("    explicit CD3D11_RENDER_TARGET_VIEW_DESC(const D3D11_RENDER_TARGET_VIEW_DESC &other)")
+cpp_quote("        : D3D11_RENDER_TARGET_VIEW_DESC(other) {}")
+cpp_quote("    operator const D3D11_RENDER_TARGET_VIEW_DESC&() const {")
+cpp_quote("        return *this;")
+cpp_quote("    }")
+cpp_quote("};")
+cpp_quote("#endif")
+
+
 typedef struct D3D11_SAMPLER_DESC
 {
     D3D11_FILTER Filter;
@@ -1154,6 +1320,85 @@ typedef struct D3D11_SHADER_RESOURCE_VIEW_DESC
     };
 } D3D11_SHADER_RESOURCE_VIEW_DESC;
 
+cpp_quote("#if !defined(D3D11_NO_HELPERS) && defined( __cplusplus )")
+cpp_quote("struct CD3D11_SHADER_RESOURCE_VIEW_DESC : public D3D11_SHADER_RESOURCE_VIEW_DESC {")
+cpp_quote("    CD3D11_SHADER_RESOURCE_VIEW_DESC() {}")
+cpp_quote("    explicit CD3D11_SHADER_RESOURCE_VIEW_DESC(D3D11_SRV_DIMENSION dim,")
+cpp_quote("            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, UINT most_detailed_mip = 0,")
+cpp_quote("            UINT mip_levels = -1, UINT first_slice = 0, UINT array_size = -1, UINT flags = 0) {")
+cpp_quote("        Format = format;")
+cpp_quote("        ViewDimension = dim;")
+cpp_quote("        switch(ViewDimension) {")
+cpp_quote("        case D3D11_SRV_DIMENSION_BUFFER:")
+cpp_quote("            Buffer.FirstElement = most_detailed_mip;")
+cpp_quote("            Buffer.NumElements = mip_levels;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_TEXTURE1D:")
+cpp_quote("            Texture1D.MostDetailedMip = most_detailed_mip;")
+cpp_quote("            Texture1D.MipLevels = mip_levels;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_TEXTURE1DARRAY:")
+cpp_quote("            Texture1DArray.MostDetailedMip = most_detailed_mip;")
+cpp_quote("            Texture1DArray.MipLevels = mip_levels;")
+cpp_quote("            Texture1DArray.FirstArraySlice = first_slice;")
+cpp_quote("            Texture1DArray.ArraySize = array_size;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_TEXTURE2D:")
+cpp_quote("            Texture2D.MostDetailedMip = most_detailed_mip;")
+cpp_quote("            Texture2D.MipLevels = mip_levels;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_TEXTURE2DARRAY:")
+cpp_quote("            Texture2DArray.MostDetailedMip = most_detailed_mip;")
+cpp_quote("            Texture2DArray.MipLevels = mip_levels;")
+cpp_quote("            Texture2DArray.FirstArraySlice = first_slice;")
+cpp_quote("            Texture2DArray.ArraySize = array_size;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY:")
+cpp_quote("            Texture2DMSArray.FirstArraySlice = first_slice;")
+cpp_quote("            Texture2DMSArray.ArraySize = array_size;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_TEXTURE3D:")
+cpp_quote("            Texture3D.MostDetailedMip = most_detailed_mip;")
+cpp_quote("            Texture3D.MipLevels = mip_levels;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_TEXTURECUBE:")
+cpp_quote("            TextureCube.MostDetailedMip = most_detailed_mip;")
+cpp_quote("            TextureCube.MipLevels = mip_levels;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_TEXTURECUBEARRAY:")
+cpp_quote("            TextureCubeArray.MostDetailedMip = most_detailed_mip;")
+cpp_quote("            TextureCubeArray.MipLevels = mip_levels;")
+cpp_quote("            TextureCubeArray.First2DArrayFace = first_slice;")
+cpp_quote("            TextureCubeArray.NumCubes = array_size;")
+cpp_quote("            break;")
+cpp_quote("        case D3D11_SRV_DIMENSION_BUFFEREX:")
+cpp_quote("            BufferEx.FirstElement = most_detailed_mip;")
+cpp_quote("            BufferEx.NumElements = mip_levels;")
+cpp_quote("            BufferEx.Flags = flags;")
+cpp_quote("            break;")
+cpp_quote("        default:")
+cpp_quote("            break;")
+cpp_quote("        }")
+cpp_quote("    }")
+cpp_quote("    explicit CD3D11_SHADER_RESOURCE_VIEW_DESC(ID3D11Buffer*, DXGI_FORMAT format, UINT first_elem,")
+cpp_quote("            UINT elem_cnt, UINT flags = 0);") /* FIXME: implement */
+cpp_quote("    explicit CD3D11_SHADER_RESOURCE_VIEW_DESC(ID3D11Texture1D *texture, D3D11_SRV_DIMENSION dim,")
+cpp_quote("            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, UINT most_detailed_mip = 0, UINT mip_levels = -1,")
+cpp_quote("            UINT first_slice = 0, UINT array_size = -1 );") /* FIXME: implement */
+cpp_quote("    explicit CD3D11_SHADER_RESOURCE_VIEW_DESC(ID3D11Texture2D *texture, D3D11_SRV_DIMENSION dim,")
+cpp_quote("            DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, UINT most_detailed_mip = 0, UINT mip_levels = -1,")
+cpp_quote("            UINT first_slice = 0, UINT array_size = -1 );") /* FIXME: implement */
+cpp_quote("    explicit CD3D11_SHADER_RESOURCE_VIEW_DESC(ID3D11Texture3D *texture, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN,")
+cpp_quote("            UINT most_detailed_mip = 0, UINT mip_levels = -1 );")
+cpp_quote("    ~CD3D11_SHADER_RESOURCE_VIEW_DESC() {}")
+cpp_quote("    explicit CD3D11_SHADER_RESOURCE_VIEW_DESC(const D3D11_SHADER_RESOURCE_VIEW_DESC &other)")
+cpp_quote("        : D3D11_SHADER_RESOURCE_VIEW_DESC(other) {}")
+cpp_quote("    operator const D3D11_SHADER_RESOURCE_VIEW_DESC&() const {")
+cpp_quote("        return *this;")
+cpp_quote("    }")
+cpp_quote("};")
+cpp_quote("#endif")
+
 typedef struct D3D11_TEXTURE1D_DESC
 {
     UINT Width;
@@ -1218,9 +1463,300 @@ typedef struct D3D11_TEXTURE3D_DESC
     UINT MiscFlags;
 } D3D11_TEXTURE3D_DESC;
 
-/* A couple forward declarations are needed */
-interface ID3D11Device;
-interface ID3D11ClassLinkage;
+typedef struct D3D11_VIDEO_DECODER_DESC
+{
+    GUID Guid;
+    UINT SampleWidth;
+    UINT SampleHeight;
+    DXGI_FORMAT OutputFormat;
+} D3D11_VIDEO_DECODER_DESC;
+
+typedef struct D3D11_VIDEO_DECODER_CONFIG
+{
+    GUID guidConfigBitstreamEncryption;
+    GUID guidConfigMBcontrolEncryption;
+    GUID guidConfigResidDiffEncryption;
+    UINT ConfigBitstreamRaw;
+    UINT ConfigMBcontrolRasterOrder;
+    UINT ConfigResidDiffHost;
+    UINT ConfigSpatialResid8;
+    UINT ConfigResid8Subtraction;
+    UINT ConfigSpatialHost8or9Clipping;
+    UINT ConfigSpatialResidInterleaved;
+    UINT ConfigIntraResidUnsigned;
+    UINT ConfigResidDiffAccelerator;
+    UINT ConfigHostInverseScan;
+    UINT ConfigSpecificIDCT;
+    UINT Config4GroupedCoefs;
+    USHORT ConfigMinRenderTargetBuffCount;
+    USHORT ConfigDecoderSpecific;
+} D3D11_VIDEO_DECODER_CONFIG;
+
+typedef enum D3D11_VIDEO_FRAME_FORMAT
+{
+    D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE                   = 0,
+    D3D11_VIDEO_FRAME_FORMAT_INTERLACED_TOP_FIELD_FIRST    = 1,
+    D3D11_VIDEO_FRAME_FORMAT_INTERLACED_BOTTOM_FIELD_FIRST = 2
+} D3D11_VIDEO_FRAME_FORMAT;
+
+typedef enum D3D11_VIDEO_USAGE
+{
+    D3D11_VIDEO_USAGE_PLAYBACK_NORMAL = 0,
+    D3D11_VIDEO_USAGE_OPTIMAL_SPEED   = 1,
+    D3D11_VIDEO_USAGE_OPTIMAL_QUALITY = 2
+} D3D11_VIDEO_USAGE;
+
+typedef struct D3D11_VIDEO_PROCESSOR_CONTENT_DESC
+{
+    D3D11_VIDEO_FRAME_FORMAT InputFrameFormat;
+    DXGI_RATIONAL InputFrameRate;
+    UINT InputWidth;
+    UINT InputHeight;
+    DXGI_RATIONAL OutputFrameRate;
+    UINT OutputWidth;
+    UINT OutputHeight;
+    D3D11_VIDEO_USAGE Usage;
+} D3D11_VIDEO_PROCESSOR_CONTENT_DESC;
+
+typedef struct D3D11_VIDEO_PROCESSOR_CAPS
+{
+    UINT DeviceCaps;
+    UINT FeatureCaps;
+    UINT FilterCaps;
+    UINT InputFormatCaps;
+    UINT AutoStreamCaps;
+    UINT StereoCaps;
+    UINT RateConversionCapsCount;
+    UINT MaxInputStreams;
+    UINT MaxStreamStates;
+} D3D11_VIDEO_PROCESSOR_CAPS;
+
+typedef struct D3D11_VIDEO_PROCESSOR_RATE_CONVERSION_CAPS
+{
+    UINT PastFrames;
+    UINT FutureFrames;
+    UINT ProcessorCaps;
+    UINT ITelecineCaps;
+    UINT CustomRateCount;
+} D3D11_VIDEO_PROCESSOR_RATE_CONVERSION_CAPS;
+
+typedef struct D3D11_VIDEO_PROCESSOR_CUSTOM_RATE
+{
+    DXGI_RATIONAL CustomRate;
+    UINT OutputFrames;
+    BOOL InputInterlaced;
+    UINT InputFramesOrFields;
+} D3D11_VIDEO_PROCESSOR_CUSTOM_RATE;
+
+typedef enum D3D11_VIDEO_PROCESSOR_FILTER
+{
+    D3D11_VIDEO_PROCESSOR_FILTER_BRIGHTNESS         = 0,
+    D3D11_VIDEO_PROCESSOR_FILTER_CONTRAST           = 1,
+    D3D11_VIDEO_PROCESSOR_FILTER_HUE                = 2,
+    D3D11_VIDEO_PROCESSOR_FILTER_SATURATION         = 3,
+    D3D11_VIDEO_PROCESSOR_FILTER_NOISE_REDUCTION    = 4,
+    D3D11_VIDEO_PROCESSOR_FILTER_EDGE_ENHANCEMENT   = 5,
+    D3D11_VIDEO_PROCESSOR_FILTER_ANAMORPHIC_SCALING = 6,
+    D3D11_VIDEO_PROCESSOR_FILTER_STEREO_ADJUSTMENT  = 7
+} D3D11_VIDEO_PROCESSOR_FILTER;
+
+typedef struct D3D11_VIDEO_PROCESSOR_FILTER_RANGE
+{
+    int Minimum;
+    int Maximum;
+    int Default;
+    float Multiplier;
+} D3D11_VIDEO_PROCESSOR_FILTER_RANGE;
+
+typedef enum D3D11_AUTHENTICATED_CHANNEL_TYPE
+{
+    D3D11_AUTHENTICATED_CHANNEL_D3D11           = 1,
+    D3D11_AUTHENTICATED_CHANNEL_DRIVER_SOFTWARE = 2,
+    D3D11_AUTHENTICATED_CHANNEL_DRIVER_HARDWARE = 3
+} D3D11_AUTHENTICATED_CHANNEL_TYPE;
+
+typedef enum D3D11_VDOV_DIMENSION
+{
+    D3D11_VDOV_DIMENSION_UNKNOWN   = 0,
+    D3D11_VDOV_DIMENSION_TEXTURE2D = 1
+} D3D11_VDOV_DIMENSION;
+
+typedef struct D3D11_TEX2D_VDOV
+{
+    UINT ArraySlice;
+} D3D11_TEX2D_VDOV;
+
+typedef struct D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC
+{
+    GUID DecodeProfile;
+    D3D11_VDOV_DIMENSION ViewDimension;
+    union {
+        D3D11_TEX2D_VDOV Texture2D;
+    };
+} D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC;
+
+typedef enum D3D11_VPIV_DIMENSION
+{
+    D3D11_VPIV_DIMENSION_UNKNOWN   = 0,
+    D3D11_VPIV_DIMENSION_TEXTURE2D = 1
+} D3D11_VPIV_DIMENSION;
+
+typedef struct D3D11_TEX2D_VPIV
+{
+    UINT MipSlice;
+    UINT ArraySlice;
+} D3D11_TEX2D_VPIV;
+
+typedef struct D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC
+{
+    UINT FourCC;
+    D3D11_VPIV_DIMENSION ViewDimension;
+    union {
+        D3D11_TEX2D_VPIV Texture2D;
+    };
+} D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC;
+
+typedef enum D3D11_VPOV_DIMENSION
+{
+    D3D11_VPOV_DIMENSION_UNKNOWN        = 0,
+    D3D11_VPOV_DIMENSION_TEXTURE2D      = 1,
+    D3D11_VPOV_DIMENSION_TEXTURE2DARRAY = 2
+} D3D11_VPOV_DIMENSION;
+
+typedef struct D3D11_TEX2D_VPOV
+{
+    UINT MipSlice;
+} D3D11_TEX2D_VPOV;
+
+typedef struct D3D11_TEX2D_ARRAY_VPOV
+{
+    UINT MipSlice;
+    UINT FirstArraySlice;
+    UINT ArraySize;
+} D3D11_TEX2D_ARRAY_VPOV;
+
+typedef struct D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC
+{
+    D3D11_VPOV_DIMENSION ViewDimension;
+    union {
+        D3D11_TEX2D_VPOV Texture2D;
+        D3D11_TEX2D_ARRAY_VPOV Texture2DArray;
+    };
+} D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC;
+
+typedef struct D3D11_VIDEO_CONTENT_PROTECTION_CAPS
+{
+    UINT Caps;
+    UINT KeyExchangeTypeCount;
+    UINT BlockAlignmentSize;
+    ULONGLONG ProtectedMemorySize;
+} D3D11_VIDEO_CONTENT_PROTECTION_CAPS;
+
+typedef struct D3D11_ENCRYPTED_BLOCK_INFO
+{
+    UINT NumEncryptedBytesAtBeginning;
+    UINT NumBytesInSkipPattern;
+    UINT NumBytesInEncryptPattern;
+} D3D11_ENCRYPTED_BLOCK_INFO;
+
+typedef struct D3D11_VIDEO_DECODER_BUFFER_DESC
+{
+    D3D11_VIDEO_DECODER_BUFFER_TYPE BufferType;
+    UINT BufferIndex;
+    UINT DataOffset;
+    UINT DataSize;
+    UINT FirstMBaddress;
+    UINT NumMBsInBuffer;
+    UINT Width;
+    UINT Height;
+    UINT Stride;
+    UINT ReservedBits;
+    void *pIV;
+    UINT IVSize;
+    BOOL PartialEncryption;
+    D3D11_ENCRYPTED_BLOCK_INFO EncryptedBlockInfo;
+} D3D11_VIDEO_DECODER_BUFFER_DESC;
+
+typedef struct D3D11_VIDEO_DECODER_EXTENSION
+{
+    UINT Function;
+    void *pPrivateInputData;
+    UINT PrivateInputDataSize;
+    void *pPrivateOutputData;
+    UINT PrivateOutputDataSize;
+    UINT ResourceCount;
+    ID3D11Resource **ppResourceList;
+} D3D11_VIDEO_DECODER_EXTENSION;
+
+typedef struct D3D11_VIDEO_COLOR_YCbCrA
+{
+    float Y;
+    float Cb;
+    float Cr;
+    float A;
+} D3D11_VIDEO_COLOR_YCbCrA;
+
+typedef struct D3D11_VIDEO_COLOR_RGBA
+{
+    float R;
+    float G;
+    float B;
+    float A;
+} D3D11_VIDEO_COLOR_RGBA;
+
+typedef struct D3D11_VIDEO_COLOR
+{
+    union
+    {
+        D3D11_VIDEO_COLOR_YCbCrA YCbCr;
+        D3D11_VIDEO_COLOR_RGBA RGBA;
+    };
+} D3D11_VIDEO_COLOR;
+
+typedef struct D3D11_VIDEO_PROCESSOR_COLOR_SPACE
+{
+    UINT Usage : 1;
+    UINT RGB_Range : 1;
+    UINT YCbCr_Matrix : 1;
+    UINT YCbCr_xvYCC : 1;
+    UINT Nominal_Range : 2;
+    UINT Reserved : 26;
+} D3D11_VIDEO_PROCESSOR_COLOR_SPACE;
+
+typedef struct D3D11_VIDEO_PROCESSOR_STREAM
+{
+    BOOL Enable;
+    UINT OutputIndex;
+    UINT InputFrameOrField;
+    UINT PastFrames;
+    UINT FutureFrames;
+    ID3D11VideoProcessorInputView **ppPastSurfaces;
+    ID3D11VideoProcessorInputView *pInputSurface;
+    ID3D11VideoProcessorInputView **ppFutureSurfaces;
+    ID3D11VideoProcessorInputView **ppPastSurfacesRight;
+    ID3D11VideoProcessorInputView *pInputSurfaceRight;
+    ID3D11VideoProcessorInputView **ppFutureSurfacesRight;
+} D3D11_VIDEO_PROCESSOR_STREAM;
+
+typedef struct D3D11_OMAC
+{
+      BYTE Omac[D3D11_OMAC_SIZE];
+} D3D11_OMAC;
+
+typedef struct D3D11_AUTHENTICATED_CONFIGURE_OUTPUT
+{
+    D3D11_OMAC omac;
+    GUID ConfigureType;
+    HANDLE hChannel;
+    UINT SequenceNumber;
+    HRESULT ReturnCode;
+} D3D11_AUTHENTICATED_CONFIGURE_OUTPUT;
+
+typedef struct D3D11_QUERY_DATA_TIMESTAMP_DISJOINT
+{
+    UINT64 Frequency;
+    BOOL Disjoint;
+} D3D11_QUERY_DATA_TIMESTAMP_DISJOINT;
 
 [
     object,
@@ -1969,6 +2505,556 @@ interface ID3D11DeviceContext : ID3D11DeviceChild
 
 [
     object,
+    uuid(3015a308-dcbd-47aa-a747-192486d14d4a),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11AuthenticatedChannel : ID3D11DeviceChild
+{
+    HRESULT GetCertificateSize(
+        UINT *pCertificateSize);
+    HRESULT GetCertificate(
+        UINT CertificateSize,
+        BYTE *pCertificate);
+    void GetChannelHandle(
+        HANDLE *pChannelHandle);
+}
+
+[
+    object,
+    uuid(9b32f9ad-bdcc-40a6-a39d-d5c865845720),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11CryptoSession : ID3D11DeviceChild
+{
+    void GetCryptoType(
+        GUID *pCryptoType);
+    void GetDecoderProfile(
+        GUID *pDecoderProfile);
+    HRESULT GetCertificateSize(
+        UINT *pCertificateSize);
+    HRESULT GetCertificate(
+        UINT CertificateSize,
+        BYTE *pCertificate);
+    void GetCryptoSessionHandle(
+        HANDLE *pCryptoSessionHandle);
+}
+
+[
+    object,
+    uuid(3c9c5b51-995d-48d1-9b8d-fa5caeded65c),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11VideoDecoder : ID3D11DeviceChild
+{
+    HRESULT GetCreationParameters(
+        D3D11_VIDEO_DECODER_DESC *pVideoDesc,
+        D3D11_VIDEO_DECODER_CONFIG *pConfig);
+    HRESULT GetDriverHandle(
+        HANDLE *pDriverHandle);
+}
+
+[
+    object,
+    uuid(31627037-53ab-4200-9061-05faa9ab45f9),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11VideoProcessorEnumerator : ID3D11DeviceChild
+{
+    HRESULT GetVideoProcessorContentDesc(
+        D3D11_VIDEO_PROCESSOR_CONTENT_DESC *pContentDesc);
+    HRESULT CheckVideoProcessorFormat(
+        DXGI_FORMAT Format,
+        UINT *pFlags);
+    HRESULT GetVideoProcessorCaps(
+        D3D11_VIDEO_PROCESSOR_CAPS *pCaps);
+    HRESULT GetVideoProcessorRateConversionCaps(
+        UINT TypeIndex,
+        D3D11_VIDEO_PROCESSOR_RATE_CONVERSION_CAPS *pCaps);
+    HRESULT GetVideoProcessorCustomRate(
+        UINT TypeIndex,
+        UINT CustomRateIndex,
+        D3D11_VIDEO_PROCESSOR_CUSTOM_RATE *pRate);
+    HRESULT GetVideoProcessorFilterRange(
+        D3D11_VIDEO_PROCESSOR_FILTER Filter,
+        D3D11_VIDEO_PROCESSOR_FILTER_RANGE *pRange);
+}
+
+[
+    object,
+    uuid(1d7b0652-185f-41c6-85ce-0c5be3d4ae6c),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11VideoProcessor : ID3D11DeviceChild
+{
+    void GetContentDesc(
+        D3D11_VIDEO_PROCESSOR_CONTENT_DESC *pDesc);
+    void GetRateConversionCaps(
+        D3D11_VIDEO_PROCESSOR_RATE_CONVERSION_CAPS *pCaps);
+}
+
+[
+    object,
+    uuid(c2931aea-2a85-4f20-860f-fba1fd256e18),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11VideoDecoderOutputView : ID3D11View
+{
+    void GetDesc(
+        D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC *pDesc);
+}
+
+[
+    object,
+    uuid(11ec5a5f-51dc-4945-ab34-6e8c21300ea5),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11VideoProcessorInputView : ID3D11View
+{
+    void GetDesc(
+        D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC *pDesc);
+}
+
+[
+    object,
+    uuid(a048285e-25a9-4527-bd93-d68b68c44254),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11VideoProcessorOutputView : ID3D11View
+{
+    void GetDesc(
+        D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC *pDesc);
+}
+
+[
+    object,
+    uuid(10ec4d5b-975a-4689-b9e4-d0aac30fe333),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11VideoDevice : IUnknown
+{
+    HRESULT CreateVideoDecoder(
+        const D3D11_VIDEO_DECODER_DESC *pVideoDesc,
+        const D3D11_VIDEO_DECODER_CONFIG *pConfig,
+        ID3D11VideoDecoder **ppDecoder);
+    HRESULT CreateVideoProcessor(
+        ID3D11VideoProcessorEnumerator *pEnum,
+        UINT RateConversionIndex,
+        ID3D11VideoProcessor **ppVideoProcessor);
+    HRESULT CreateAuthenticatedChannel(
+        D3D11_AUTHENTICATED_CHANNEL_TYPE ChannelType,
+        ID3D11AuthenticatedChannel **ppAuthenticatedChannel);
+    HRESULT CreateCryptoSession(
+        const GUID *pCryptoType,
+        const GUID *pDecoderProfile,
+        const GUID *pKeyExchangeType,
+        ID3D11CryptoSession **ppCryptoSession);
+    HRESULT CreateVideoDecoderOutputView(
+        ID3D11Resource *pResource,
+        const D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC *pDesc,
+        ID3D11VideoDecoderOutputView **ppVDOVView);
+    HRESULT CreateVideoProcessorInputView(
+        ID3D11Resource *pResource,
+        ID3D11VideoProcessorEnumerator *pEnum,
+        const D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC *pDesc,
+        ID3D11VideoProcessorInputView **ppVPIView);
+    HRESULT CreateVideoProcessorOutputView(
+        ID3D11Resource *pResource,
+        ID3D11VideoProcessorEnumerator *pEnum,
+        const D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC *pDesc,
+        ID3D11VideoProcessorOutputView **ppVPOView);
+    HRESULT CreateVideoProcessorEnumerator(
+        const D3D11_VIDEO_PROCESSOR_CONTENT_DESC *pDesc,
+        ID3D11VideoProcessorEnumerator **ppEnum);
+    UINT GetVideoDecoderProfileCount();
+    HRESULT GetVideoDecoderProfile(
+        UINT Index,
+        GUID *pDecoderProfile);
+    HRESULT CheckVideoDecoderFormat(
+        const GUID *pDecoderProfile,
+        DXGI_FORMAT Format,
+        BOOL *pSupported);
+    HRESULT GetVideoDecoderConfigCount(
+        const D3D11_VIDEO_DECODER_DESC *pDesc,
+        UINT *pCount);
+    HRESULT GetVideoDecoderConfig(
+        const D3D11_VIDEO_DECODER_DESC *pDesc,
+        UINT Index,
+        D3D11_VIDEO_DECODER_CONFIG *pConfig);
+    HRESULT GetContentProtectionCaps(
+        const GUID *pCryptoType,
+        const GUID *pDecoderProfile,
+        D3D11_VIDEO_CONTENT_PROTECTION_CAPS *pCaps);
+    HRESULT CheckCryptoKeyExchange(
+        const GUID *pCryptoType,
+        const GUID *pDecoderProfile,
+        UINT Index,
+        GUID *pKeyExchangeType);
+    HRESULT SetPrivateData(
+        REFGUID guid,
+        UINT DataSize,
+        const void *pData);
+    HRESULT SetPrivateDataInterface(
+        REFGUID guid,
+        const IUnknown *pData);
+}
+
+[
+    object,
+    uuid(61f21c45-3c0e-4a74-9cea-67100d9ad5e4),
+    local,
+    pointer_default(unique)
+]
+interface ID3D11VideoContext : ID3D11DeviceChild
+{
+    HRESULT GetDecoderBuffer(
+        [in] ID3D11VideoDecoder *decoder,
+        [in] D3D11_VIDEO_DECODER_BUFFER_TYPE type,
+        [out] UINT *buffer_size,
+        [out] void **buffer
+    );
+    HRESULT ReleaseDecoderBuffer(
+        [in] ID3D11VideoDecoder *decoder,
+        [in] D3D11_VIDEO_DECODER_BUFFER_TYPE type
+    );
+    HRESULT DecoderBeginFrame(
+        [in] ID3D11VideoDecoder *decoder,
+        [in] ID3D11VideoDecoderOutputView *view,
+        [in] UINT key_size,
+        [in] const void *key
+    );
+    HRESULT DecoderEndFrame(
+        [in] ID3D11VideoDecoder *decoder
+    );
+    HRESULT SubmitDecoderBuffers(
+        [in] ID3D11VideoDecoder *decoder,
+        [in] UINT buffers_count,
+        [in] const D3D11_VIDEO_DECODER_BUFFER_DESC *buffer_desc
+    );
+    HRESULT DecoderExtension(
+        [in] ID3D11VideoDecoder *decoder,
+        [in] const D3D11_VIDEO_DECODER_EXTENSION *extension
+    );
+    void VideoProcessorSetOutputTargetRect(
+        [in] ID3D11VideoProcessor *processor,
+        [in] BOOL enable,
+        [in] const RECT *rect
+    );
+    void VideoProcessorSetOutputBackgroundColor(
+        [in] ID3D11VideoProcessor *processor,
+        [in] BOOL y_cb_cr,
+        [in] const D3D11_VIDEO_COLOR *color
+    );
+    void VideoProcessorSetOutputColorSpace(
+        [in] ID3D11VideoProcessor *processor,
+        [in] const D3D11_VIDEO_PROCESSOR_COLOR_SPACE *color_space
+    );
+    void VideoProcessorSetOutputAlphaFillMode(
+        [in] ID3D11VideoProcessor *processor,
+        [in] D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE alpha_fill_mode,
+        [in] UINT stream_idx
+    );
+    void VideoProcessorSetOutputConstriction(
+        [in] ID3D11VideoProcessor *processor,
+        [in] BOOL enable,
+        [in] SIZE size
+    );
+    void VideoProcessorSetOutputStereoMode(
+        [in] ID3D11VideoProcessor *processor,
+        [in] BOOL enable
+    );
+    HRESULT VideoProcessorSetOutputExtension(
+        [in] ID3D11VideoProcessor *processor,
+        [in] const GUID *guid,
+        [in] UINT data_size,
+        [in] void *data
+    );
+    void VideoProcessorGetOutputTargetRect(
+        [in] ID3D11VideoProcessor *processor,
+        [out] BOOL *enabled,
+        [out] RECT *rect
+    );
+    void VideoProcessorGetOutputBackgroundColor(
+        [in] ID3D11VideoProcessor *processor,
+        [out] BOOL *y_cb_cr,
+        [out] D3D11_VIDEO_COLOR *color
+    );
+    void VideoProcessorGetOutputColorSpace(
+        [in] ID3D11VideoProcessor *processor,
+        [out] D3D11_VIDEO_PROCESSOR_COLOR_SPACE *color_space
+    );
+    void VideoProcessorGetOutputAlphaFillMode(
+        [in] ID3D11VideoProcessor *processor,
+        [out] D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE *alpha_fill_mode,
+        [out] UINT *stream_idx
+    );
+    void VideoProcessorGetOutputConstriction(
+        [in] ID3D11VideoProcessor *processor,
+        [out] BOOL *enabled,
+        [out] SIZE *size
+    );
+    void VideoProcessorGetOutputStereoMode(
+        [in] ID3D11VideoProcessor *processor,
+        [out] BOOL *enabled
+    );
+    HRESULT VideoProcessorGetOutputExtension(
+        [in] ID3D11VideoProcessor *processor,
+        [in] const GUID *guid,
+        [in] UINT data_size,
+        [out] void *data
+    );
+    void VideoProcessorSetStreamFrameFormat(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] D3D11_VIDEO_FRAME_FORMAT format
+    );
+    void VideoProcessorSetStreamColorSpace(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] const D3D11_VIDEO_PROCESSOR_COLOR_SPACE *color_space
+    );
+    void VideoProcessorSetStreamOutputRate(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] D3D11_VIDEO_PROCESSOR_OUTPUT_RATE rate,
+        [in] BOOL repeat,
+        [in] const DXGI_RATIONAL *custom_rate
+    );
+    void VideoProcessorSetStreamSourceRect(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] BOOL enable,
+        [in] const RECT *rect
+    );
+    void VideoProcessorSetStreamDestRect(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] BOOL enable,
+        [in] const RECT *rect
+    );
+    void VideoProcessorSetStreamAlpha(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] BOOL enable,
+        [in] float alpha
+    );
+    void VideoProcessorSetStreamPalette(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] UINT entry_count,
+        [in] const UINT *entries
+    );
+    void VideoProcessorSetStreamPixelAspectRatio(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] BOOL enable,
+        [in] const DXGI_RATIONAL *src_aspect_ratio,
+        [in] const DXGI_RATIONAL *dst_aspect_ratio
+    );
+    void VideoProcessorSetStreamLumaKey(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] BOOL enable,
+        [in] float lower,
+        [in] float upper
+    );
+    void VideoProcessorSetStreamStereoFormat(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] BOOL enable,
+        [in] D3D11_VIDEO_PROCESSOR_STEREO_FORMAT format,
+        [in] BOOL left_view_frame0,
+        [in] BOOL base_view_frame0,
+        [in] D3D11_VIDEO_PROCESSOR_STEREO_FLIP_MODE flip_mode,
+        [in] int mono_offset
+    );
+    void VideoProcessorSetStreamAutoProcessingMode(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] BOOL enable
+    );
+    void VideoProcessorSetStreamFilter(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] D3D11_VIDEO_PROCESSOR_FILTER filter,
+        [in] BOOL enable,
+        [in] int level
+    );
+    HRESULT VideoProcessorSetStreamExtension(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] const GUID *guid,
+        [in] UINT data_size,
+        [in] void *data
+    );
+    void VideoProcessorGetStreamFrameFormat(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] D3D11_VIDEO_FRAME_FORMAT *format
+    );
+    void VideoProcessorGetStreamColorSpace(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] D3D11_VIDEO_PROCESSOR_COLOR_SPACE *color_space
+    );
+    void VideoProcessorGetStreamOutputRate(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] D3D11_VIDEO_PROCESSOR_OUTPUT_RATE *rate,
+        [out] BOOL *repeat,
+        [out] DXGI_RATIONAL *custom_rate
+    );
+    void VideoProcessorGetStreamSourceRect(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] BOOL *enabled,
+        [out] RECT *rect
+    );
+    void VideoProcessorGetStreamDestRect(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] BOOL *enabled,
+        [out] RECT *rect
+    );
+    void VideoProcessorGetStreamAlpha(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] BOOL *enabled,
+        [out] float *alpha
+    );
+    void VideoProcessorGetStreamPalette(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] UINT entry_count,
+        [out] UINT *entries
+    );
+    void VideoProcessorGetStreamPixelAspectRatio(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] BOOL *enabled,
+        [out] DXGI_RATIONAL *src_aspect_ratio,
+        [out] DXGI_RATIONAL *dst_aspect_ratio
+    );
+    void VideoProcessorGetStreamLumaKey(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] BOOL *enabled,
+        [out] float *lower,
+        [out] float *upper
+    );
+    void VideoProcessorGetStreamStereoFormat(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] BOOL *enabled,
+        [out] D3D11_VIDEO_PROCESSOR_STEREO_FORMAT *format,
+        [out] BOOL *left_view_frame0,
+        [out] BOOL *base_view_frame0,
+        [out] D3D11_VIDEO_PROCESSOR_STEREO_FLIP_MODE *flip_mode,
+        [out] int *mono_offset
+    );
+    void VideoProcessorGetStreamAutoProcessingMode(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] BOOL *enabled
+    );
+    void VideoProcessorGetStreamFilter(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] D3D11_VIDEO_PROCESSOR_FILTER filter,
+        [out] BOOL *enabled,
+        [out] int *level
+    );
+    HRESULT VideoProcessorGetStreamExtension(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] const GUID *guid,
+        [in] UINT data_size,
+        [out] void *data
+    );
+    HRESULT VideoProcessorBlt(
+        [in] ID3D11VideoProcessor *processor,
+        [in] ID3D11VideoProcessorOutputView *view,
+        [in] UINT frame_idx,
+        [in] UINT stream_count,
+        [in] const D3D11_VIDEO_PROCESSOR_STREAM *streams
+    );
+    HRESULT NegotiateCryptoSessionKeyExchange(
+        [in] ID3D11CryptoSession *session,
+        [in] UINT data_size,
+        [in, out] void *data
+    );
+    void EncryptionBlt(
+        [in] ID3D11CryptoSession *session,
+        [in] ID3D11Texture2D *src_surface,
+        [in] ID3D11Texture2D *dst_surface,
+        [in] UINT iv_size,
+        [in, out] void *iv
+    );
+    void DecryptionBlt(
+        [in] ID3D11CryptoSession *session,
+        [in] ID3D11Texture2D *src_surface,
+        [in] ID3D11Texture2D *dst_surface,
+        [in] D3D11_ENCRYPTED_BLOCK_INFO *block_info,
+        [in] UINT key_size,
+        [in] const void *key,
+        [in] UINT iv_size,
+        [in, out] void *iv
+    );
+    void StartSessionKeyRefresh(
+        [in] ID3D11CryptoSession *session,
+        [in] UINT random_number_size,
+        [out] void *random_number
+    );
+    void FinishSessionKeyRefresh(
+        [in] ID3D11CryptoSession *session
+    );
+    HRESULT GetEncryptionBltKey(
+        [in] ID3D11CryptoSession *session,
+        [in] UINT key_size,
+        [out] void *key
+    );
+    HRESULT NegotiateAuthenticatedChannelKeyExchange(
+        [in] ID3D11AuthenticatedChannel *channel,
+        [in] UINT data_size,
+        [in, out] void *data
+    );
+    HRESULT QueryAuthenticatedChannel(
+        [in] ID3D11AuthenticatedChannel *channel,
+        [in] UINT input_size,
+        [in] const void *input,
+        [in] UINT output_size,
+        [out] void *output
+    );
+    HRESULT ConfigureAuthenticatedChannel(
+        [in] ID3D11AuthenticatedChannel *channel,
+        [in] UINT input_size,
+        [in] const void *input,
+        [out] D3D11_AUTHENTICATED_CONFIGURE_OUTPUT *output
+    );
+    void VideoProcessorSetStreamRotation(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [in] BOOL enable,
+        [in] D3D11_VIDEO_PROCESSOR_ROTATION rotation
+    );
+    void VideoProcessorGetStreamRotation(
+        [in] ID3D11VideoProcessor *processor,
+        [in] UINT stream_idx,
+        [out] BOOL *enable,
+        [out] D3D11_VIDEO_PROCESSOR_ROTATION *rotation
+    );
+}
+
+[
+    object,
     local,
     uuid(db6f6ddb-ac77-4e88-8253-819df9bbf140)
 ]
@@ -2157,3 +3243,8 @@ cpp_quote("    UINT,UINT,ID3D11Device**,D3D_FEATURE_LEVEL*,ID3D11DeviceContext**
 cpp_quote("typedef HRESULT (WINAPI *PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)(IDXGIAdapter*,D3D_DRIVER_TYPE,HMODULE,UINT,")
 cpp_quote("    const D3D_FEATURE_LEVEL*,UINT,UINT,const DXGI_SWAP_CHAIN_DESC*,IDXGISwapChain**,ID3D11Device**,")
 cpp_quote("    D3D_FEATURE_LEVEL*,ID3D11DeviceContext**);")
+
+[local] HRESULT __stdcall D3D11CreateDeviceAndSwapChain(IDXGIAdapter *adapter, D3D_DRIVER_TYPE driver_type,
+        HMODULE swrast, UINT flags, const D3D_FEATURE_LEVEL *feature_levels, UINT levels, UINT sdk_version,
+        const DXGI_SWAP_CHAIN_DESC *swapchain_desc, IDXGISwapChain **swapchain, ID3D11Device **device,
+        D3D_FEATURE_LEVEL *obtained_feature_level, ID3D11DeviceContext **immediate_context);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include <d3dx9.h>
+#include "d3dx9.h"
 
 #ifndef __D3DX9EFFECT_H__
 #define __D3DX9EFFECT_H__
@@ -424,6 +424,8 @@ HRESULT WINAPI D3DXCreateEffectCompilerFromResourceW(HMODULE srcmodule, const WC
         const D3DXMACRO *defines, ID3DXInclude *include, DWORD flags,
         ID3DXEffectCompiler **effectcompiler, ID3DXBuffer **parseerrors);
 #define D3DXCreateEffectCompilerFromResource WINELIB_NAME_AW(D3DXCreateEffectCompilerFromResource)
+
+HRESULT WINAPI D3DXDisassembleEffect(ID3DXEffect *effect, BOOL enable_color_code, ID3DXBuffer **disassembly);
 
 #ifdef __cplusplus
 }

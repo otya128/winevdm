@@ -42,7 +42,14 @@ BOOL WINAPI InitCommonControlsEx (const INITCOMMONCONTROLSEX*);
 LANGID WINAPI GetMUILanguage (VOID);
 VOID WINAPI InitMUILanguage (LANGID uiLang);
 
-HRESULT WINAPI LoadIconWithScaleDown(HINSTANCE, PCWSTR, int, int, HICON *);
+enum _LI_METRIC
+{
+    LIM_SMALL,
+    LIM_LARGE
+};
+
+HRESULT WINAPI LoadIconWithScaleDown(HINSTANCE, const WCHAR *, int, int, HICON *);
+HRESULT WINAPI LoadIconMetric(HINSTANCE, const WCHAR *, int, HICON *);
 
 #define COMCTL32_VERSION                5  /* dll version */
 
@@ -1206,14 +1213,15 @@ static const WCHAR TOOLBARCLASSNAMEW[] = { 'T','o','o','l','b','a','r',
 #define TB_GETSTRINGW            (WM_USER+91)
 #define TB_GETSTRINGA            (WM_USER+92)
 #define TB_GETSTRING             WINELIB_NAME_AW(TB_GETSTRING)
-
-/* undocumented messages in Toolbar */
-#ifdef __WINESRC__
-#define TB_UNKWN45D              (WM_USER+93)
+#define TB_SETBOUNDINGSIZE       (WM_USER+93)
 #define TB_SETHOTITEM2           (WM_USER+94)
+#define TB_HASACCELERATOR        (WM_USER+95)
 #define TB_SETLISTGAP            (WM_USER+96)
 #define TB_GETIMAGELISTCOUNT     (WM_USER+98)
 #define TB_GETIDEALSIZE          (WM_USER+99)
+
+/* undocumented messages in Toolbar */
+#ifdef __WINESRC__
 #define TB_UNKWN464              (WM_USER+100)
 #endif
 
@@ -2401,6 +2409,7 @@ static const WCHAR WC_TREEVIEWW[] = { 'S','y','s',
 #define TVS_SHAREDIMAGELISTS  0x0000
 #define TVS_PRIVATEIMAGELISTS 0x0400
 
+#define TVS_EX_NOSINGLECOLLAPSE    0x0001
 #define TVS_EX_MULTISELECT         0x0002
 #define TVS_EX_DOUBLEBUFFER        0x0004
 #define TVS_EX_NOINDENTSTATE       0x0008

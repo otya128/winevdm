@@ -385,6 +385,17 @@ typedef struct
     ULONG_PTR dwExtraInfo;
 } MOUSEHOOKSTRUCT, *PMOUSEHOOKSTRUCT, *LPMOUSEHOOKSTRUCT;
 
+typedef struct
+{
+    struct { /* MOUSEHOOKSTRUCT */
+        POINT pt;
+        HWND  hwnd;
+        UINT  wHitTestCode;
+        ULONG_PTR dwExtraInfo;
+    } DUMMYSTRUCTNAME;
+    DWORD mouseData;
+} MOUSEHOOKSTRUCTEX, *PMOUSEHOOKSTRUCTEX, *LPMOUSEHOOKSTRUCTEX;
+
 
     /* Hardware hook structure */
 
@@ -766,6 +777,21 @@ typedef struct tagWINDOWPLACEMENT
 #define RT_ANIICON        MAKEINTRESOURCE(22)
 #define RT_HTML           MAKEINTRESOURCE(23)
 
+#ifdef RC_INVOKED
+#define RT_MANIFEST                                        24
+#define CREATEPROCESS_MANIFEST_RESOURCE_ID                 1
+#define ISOLATIONAWARE_MANIFEST_RESOURCE_ID                2
+#define ISOLATIONAWARE_NOSTATICIMPORT_MANIFEST_RESOURCE_ID 3
+#define MINIMUM_RESERVED_MANIFEST_RESOURCE_ID              1
+#define MAXIMUM_RESERVED_MANIFEST_RESOURCE_ID              16
+#else
+#define RT_MANIFEST                                        MAKEINTRESOURCE(24)
+#define CREATEPROCESS_MANIFEST_RESOURCE_ID                 MAKEINTRESOURCE(1)
+#define ISOLATIONAWARE_MANIFEST_RESOURCE_ID                MAKEINTRESOURCE(2)
+#define ISOLATIONAWARE_NOSTATICIMPORT_MANIFEST_RESOURCE_ID MAKEINTRESOURCE(3)
+#define MINIMUM_RESERVED_MANIFEST_RESOURCE_ID              MAKEINTRESOURCE(1)
+#define MAXIMUM_RESERVED_MANIFEST_RESOURCE_ID              MAKEINTRESOURCE(16)
+#endif
 
   /* cbWndExtra bytes for dialog class */
 #define DLGWINDOWEXTRA      30
@@ -1533,6 +1559,7 @@ typedef struct tagCURSORINFO
 } CURSORINFO, *PCURSORINFO, *LPCURSORINFO;
 
 #define CURSOR_SHOWING 0x00000001
+#define CURSOR_SUPPRESSED 0x00000002
 
 /* this is the 6 byte accel struct used in Win32 when presented to the user */
 typedef struct tagACCEL
@@ -2533,6 +2560,12 @@ typedef struct tagMINIMIZEDMETRICS {
 #define USER_TIMER_MINIMUM 0x0000000A
 #define USER_TIMER_MAXIMUM 0x7FFFFFFF
 
+/* SetCoalescableTimer() tolerances */
+#define TIMERV_DEFAULT_COALESCING   0
+#define TIMERV_NO_COALESCING        0xFFFFFFFF
+#define TIMERV_COALESCING_MIN       1
+#define TIMERV_COALESCING_MAX       0x7FFFFFF5
+
 /* AnimateWindow() flags */
 #define AW_SLIDE        0x00040000
 #define AW_ACTIVATE     0x00020000
@@ -3258,6 +3291,7 @@ WINUSERAPI LONG        WINAPI ChangeDisplaySettingsExW(LPCWSTR,LPDEVMODEW,HWND,D
 WINUSERAPI HDESK       WINAPI CreateDesktopA(LPCSTR,LPCSTR,LPDEVMODEA,DWORD,ACCESS_MASK,LPSECURITY_ATTRIBUTES);
 WINUSERAPI HDESK       WINAPI CreateDesktopW(LPCWSTR,LPCWSTR,LPDEVMODEW,DWORD,ACCESS_MASK,LPSECURITY_ATTRIBUTES);
 #define                       CreateDesktop WINELIB_NAME_AW(CreateDesktop)
+WINUSERAPI LONG        WINAPI DisplayConfigGetDeviceInfo(DISPLAYCONFIG_DEVICE_INFO_HEADER *);
 WINUSERAPI BOOL        WINAPI EnumDisplayDevicesA(LPCSTR,DWORD,LPDISPLAY_DEVICEA,DWORD);
 WINUSERAPI BOOL        WINAPI EnumDisplayDevicesW(LPCWSTR,DWORD,LPDISPLAY_DEVICEW,DWORD);
 #define                       EnumDisplayDevices WINELIB_NAME_AW(EnumDisplayDevices)
@@ -3267,6 +3301,7 @@ WINUSERAPI BOOL        WINAPI EnumDisplaySettingsW(LPCWSTR,DWORD,LPDEVMODEW);
 WINUSERAPI BOOL        WINAPI EnumDisplaySettingsExA(LPCSTR,DWORD,LPDEVMODEA,DWORD);
 WINUSERAPI BOOL        WINAPI EnumDisplaySettingsExW(LPCWSTR,DWORD,LPDEVMODEW,DWORD);
 #define                       EnumDisplaySettingsEx WINELIB_NAME_AW(EnumDisplaySettingsEx)
+WINUSERAPI LONG        WINAPI GetDisplayConfigBufferSizes(UINT32,UINT32*,UINT32*);
 WINUSERAPI BOOL        WINAPI UpdateLayeredWindow(HWND,HDC,POINT*,SIZE*,HDC,POINT*,COLORREF,BLENDFUNCTION*,DWORD);
 WINUSERAPI BOOL        WINAPI UpdateLayeredWindowIndirect(HWND,UPDATELAYEREDWINDOWINFO const*);
 #endif /* defined(_WINGDI_) && !defined(NOGDI) */
@@ -3504,7 +3539,6 @@ WINUSERAPI BOOL        WINAPI EnumWindows(WNDENUMPROC,LPARAM);
 WINUSERAPI BOOL        WINAPI EnumWindowStationsA(WINSTAENUMPROCA,LPARAM);
 WINUSERAPI BOOL        WINAPI EnumWindowStationsW(WINSTAENUMPROCW,LPARAM);
 #define                       EnumWindowStations WINELIB_NAME_AW(EnumWindowStations)
-WINUSERAPI BOOL        WINAPI EqualRect(const RECT*,const RECT*);
 WINUSERAPI INT         WINAPI ExcludeUpdateRgn(HDC,HWND);
 #define                       ExitWindows(a,b) ExitWindowsEx(EWX_LOGOFF,0xffffffff)
 WINUSERAPI BOOL        WINAPI ExitWindowsEx(UINT,DWORD);
@@ -3576,6 +3610,7 @@ WINUSERAPI UINT        WINAPI GetDlgItemTextW(HWND,INT,LPWSTR,INT);
 WINUSERAPI UINT        WINAPI GetDoubleClickTime(void);
 WINUSERAPI HWND        WINAPI GetFocus(void);
 WINUSERAPI HWND        WINAPI GetForegroundWindow(void);
+WINUSERAPI BOOL        WINAPI GetGestureConfig(HWND,DWORD,DWORD,UINT*,GESTURECONFIG*,UINT);
 WINUSERAPI BOOL        WINAPI GetGUIThreadInfo(DWORD,GUITHREADINFO*);
 WINUSERAPI BOOL        WINAPI GetIconInfo(HICON,PICONINFO);
 WINUSERAPI BOOL        WINAPI GetIconInfoExA(HICON,ICONINFOEXA*);
@@ -3699,7 +3734,6 @@ WINUSERAPI BOOL        WINAPI GrayStringW(HDC,HBRUSH,GRAYSTRINGPROC,LPARAM,INT,I
 #define                       GrayString WINELIB_NAME_AW(GrayString)
 WINUSERAPI BOOL        WINAPI HideCaret(HWND);
 WINUSERAPI BOOL        WINAPI HiliteMenuItem(HWND,HMENU,UINT,UINT);
-WINUSERAPI BOOL        WINAPI InflateRect(LPRECT,INT,INT);
 WINUSERAPI BOOL        WINAPI InSendMessage(void);
 WINUSERAPI DWORD       WINAPI InSendMessageEx(LPVOID);
 WINUSERAPI BOOL        WINAPI InsertMenuA(HMENU,UINT,UINT,UINT_PTR,LPCSTR);
@@ -3735,7 +3769,6 @@ WINUSERAPI BOOL        WINAPI IsGUIThread(BOOL);
 WINUSERAPI BOOL        WINAPI IsHungAppWindow(HWND);
 WINUSERAPI BOOL        WINAPI IsIconic(HWND);
 WINUSERAPI BOOL        WINAPI IsMenu(HMENU);
-WINUSERAPI BOOL        WINAPI IsRectEmpty(const RECT*);
 WINUSERAPI BOOL        WINAPI IsTouchWindow(HWND,PULONG);
 WINUSERAPI BOOL        WINAPI IsWinEventHookInstalled(DWORD);
 WINUSERAPI BOOL        WINAPI IsWindow(HWND);
@@ -3815,7 +3848,6 @@ WINUSERAPI BOOL        WINAPI OemToCharW(LPCSTR,LPWSTR);
 WINUSERAPI BOOL        WINAPI OemToCharBuffA(LPCSTR,LPSTR,DWORD);
 WINUSERAPI BOOL        WINAPI OemToCharBuffW(LPCSTR,LPWSTR,DWORD);
 #define                       OemToCharBuff WINELIB_NAME_AW(OemToCharBuff)
-WINUSERAPI BOOL        WINAPI OffsetRect(LPRECT,INT,INT);
 WINUSERAPI BOOL        WINAPI OpenClipboard(HWND);
 WINUSERAPI HDESK       WINAPI OpenDesktopA(LPCSTR,DWORD,BOOL,ACCESS_MASK);
 WINUSERAPI HDESK       WINAPI OpenDesktopW(LPCWSTR,DWORD,BOOL,ACCESS_MASK);
@@ -3913,6 +3945,7 @@ WINUSERAPI ULONG_PTR   WINAPI SetClassLongPtrW(HWND,INT,LONG_PTR);
 WINUSERAPI WORD        WINAPI SetClassWord(HWND,INT,WORD);
 WINUSERAPI HANDLE      WINAPI SetClipboardData(UINT,HANDLE);
 WINUSERAPI HWND        WINAPI SetClipboardViewer(HWND);
+WINUSERAPI UINT_PTR    WINAPI SetCoalescableTimer(HWND,UINT_PTR,UINT,TIMERPROC,ULONG);
 WINUSERAPI HCURSOR     WINAPI SetCursor(HCURSOR);
 WINUSERAPI BOOL        WINAPI SetCursorPos(INT,INT);
 WINUSERAPI VOID        WINAPI SetDebugErrorLevel(DWORD);
@@ -3945,8 +3978,6 @@ WINUSERAPI HWND        WINAPI SetParent(HWND,HWND);
 WINUSERAPI BOOL        WINAPI SetPropA(HWND,LPCSTR,HANDLE);
 WINUSERAPI BOOL        WINAPI SetPropW(HWND,LPCWSTR,HANDLE);
 #define                       SetProp WINELIB_NAME_AW(SetProp)
-WINUSERAPI BOOL        WINAPI SetRect(LPRECT,INT,INT,INT,INT);
-WINUSERAPI BOOL        WINAPI SetRectEmpty(LPRECT);
 WINUSERAPI INT         WINAPI SetScrollInfo(HWND,INT,const SCROLLINFO*,BOOL);
 WINUSERAPI INT         WINAPI SetScrollPos(HWND,INT,INT,BOOL);
 WINUSERAPI BOOL        WINAPI SetScrollRange(HWND,INT,INT,INT,BOOL);
@@ -3992,6 +4023,8 @@ WINUSERAPI BOOL        WINAPI ShowScrollBar(HWND,INT,BOOL);
 WINUSERAPI BOOL        WINAPI ShowOwnedPopups(HWND,BOOL);
 WINUSERAPI BOOL        WINAPI ShowWindow(HWND,INT);
 WINUSERAPI BOOL        WINAPI ShowWindowAsync(HWND,INT);
+WINUSERAPI BOOL        WINAPI ShutdownBlockReasonCreate(HWND,LPCWSTR);
+WINUSERAPI BOOL        WINAPI ShutdownBlockReasonDestroy(HWND);
 WINUSERAPI BOOL        WINAPI SubtractRect(LPRECT,const RECT*,const RECT*);
 WINUSERAPI BOOL        WINAPI SwapMouseButton(BOOL);
 WINUSERAPI BOOL        WINAPI SwitchDesktop(HDESK);
@@ -4025,6 +4058,7 @@ WINUSERAPI BOOL        WINAPI UnregisterClassW(LPCWSTR,HINSTANCE);
 #define                       UnregisterClass WINELIB_NAME_AW(UnregisterClass)
 WINUSERAPI BOOL        WINAPI UnregisterDeviceNotification(HDEVNOTIFY);
 WINUSERAPI BOOL        WINAPI UnregisterHotKey(HWND,INT);
+WINUSERAPI BOOL        WINAPI UnregisterPowerSettingNotification(HPOWERNOTIFY);
 WINUSERAPI BOOL        WINAPI UpdateWindow(HWND);
 WINUSERAPI BOOL        WINAPI UserHandleGrantAccess(HANDLE,HANDLE,BOOL);
 WINUSERAPI UINT        WINAPI UserRealizePalette(HDC);
@@ -4051,6 +4085,71 @@ WINUSERAPI INT        WINAPIV wsprintfW(LPWSTR,LPCWSTR,...);
 WINUSERAPI INT         WINAPI wvsprintfA(LPSTR,LPCSTR,__ms_va_list);
 WINUSERAPI INT         WINAPI wvsprintfW(LPWSTR,LPCWSTR,__ms_va_list);
 #define                       wvsprintf WINELIB_NAME_AW(wvsprintf)
+
+#if !defined(__WINESRC__) || defined(WINE_NO_INLINE_RECT)
+
+WINUSERAPI BOOL        WINAPI EqualRect(const RECT*,const RECT*);
+WINUSERAPI BOOL        WINAPI InflateRect(LPRECT,INT,INT);
+WINUSERAPI BOOL        WINAPI IsRectEmpty(const RECT*);
+WINUSERAPI BOOL        WINAPI OffsetRect(LPRECT,INT,INT);
+WINUSERAPI BOOL        WINAPI SetRect(LPRECT,INT,INT,INT,INT);
+WINUSERAPI BOOL        WINAPI SetRectEmpty(LPRECT);
+
+#else
+
+/* Inline versions of common RECT helpers */
+
+static inline BOOL WINAPI EqualRect(const RECT *rect1, const RECT *rect2)
+{
+    if (!rect1 || !rect2) return FALSE;
+    return ((rect1->left == rect2->left) && (rect1->right == rect2->right) &&
+            (rect1->top == rect2->top) && (rect1->bottom == rect2->bottom));
+}
+
+static inline BOOL WINAPI InflateRect(LPRECT rect, INT x, INT y)
+{
+    if (!rect) return FALSE;
+    rect->left   -= x;
+    rect->top    -= y;
+    rect->right  += x;
+    rect->bottom += y;
+    return TRUE;
+}
+
+static inline BOOL WINAPI IsRectEmpty(const RECT *rect)
+{
+    if (!rect) return TRUE;
+    return ((rect->left >= rect->right) || (rect->top >= rect->bottom));
+}
+
+static inline BOOL WINAPI OffsetRect(LPRECT rect, INT x, INT y)
+{
+    if (!rect) return FALSE;
+    rect->left   += x;
+    rect->right  += x;
+    rect->top    += y;
+    rect->bottom += y;
+    return TRUE;
+}
+
+static inline BOOL WINAPI SetRect(LPRECT rect, INT left, INT top, INT right, INT bottom)
+{
+    if (!rect) return FALSE;
+    rect->left   = left;
+    rect->right  = right;
+    rect->top    = top;
+    rect->bottom = bottom;
+    return TRUE;
+}
+
+static inline BOOL WINAPI SetRectEmpty(LPRECT rect)
+{
+    if (!rect) return FALSE;
+    rect->left = rect->right = rect->top = rect->bottom = 0;
+    return TRUE;
+}
+
+#endif /* !defined(__WINESRC__) || defined(WINE_NO_INLINE_RECT) */
 
 /* Undocumented functions */
 

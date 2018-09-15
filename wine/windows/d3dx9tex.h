@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include <d3dx9.h>
+#include "d3dx9.h"
 
 #ifndef __WINE_D3DX9TEX_H
 #define __WINE_D3DX9TEX_H
@@ -337,12 +337,9 @@ HRESULT WINAPI D3DXFillTexture(struct IDirect3DTexture9 *texture, LPD3DXFILL2D f
 HRESULT WINAPI D3DXFillCubeTexture(struct IDirect3DCubeTexture9 *cube, LPD3DXFILL3D function, void *data);
 HRESULT WINAPI D3DXFillVolumeTexture(struct IDirect3DVolumeTexture9 *volume, LPD3DXFILL3D function, void *data);
 
-HRESULT WINAPI D3DXFillTextureTX(struct IDirect3DTexture9 *texture, const DWORD *function,
-        const D3DXVECTOR4 *constants, UINT numconstants);
-HRESULT WINAPI D3DXFillCubeTextureTX(struct IDirect3DCubeTexture9 *cube, const DWORD *function,
-        const D3DXVECTOR4 *constants, UINT numconstants);
-HRESULT WINAPI D3DXFillVolumeTextureTX(struct IDirect3DVolumeTexture9 *volume, const DWORD *function,
-        const D3DXVECTOR4 *constants, UINT numconstants);
+HRESULT WINAPI D3DXFillTextureTX(struct IDirect3DTexture9 *texture, ID3DXTextureShader *texture_shader);
+HRESULT WINAPI D3DXFillCubeTextureTX(struct IDirect3DCubeTexture9 *cube, ID3DXTextureShader *texture_shader);
+HRESULT WINAPI D3DXFillVolumeTextureTX(struct IDirect3DVolumeTexture9 *volume, ID3DXTextureShader *texture_shader);
 
 HRESULT WINAPI D3DXComputeNormalMap(IDirect3DTexture9 *texture, IDirect3DTexture9 *srctexture,
         const PALETTEENTRY *srcpalette, DWORD flags, DWORD channel, float amplitude);
