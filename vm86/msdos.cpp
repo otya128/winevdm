@@ -1072,36 +1072,86 @@ extern "C"
         }
         return FALSE;
     }
+
+    static int disassemble(char *buffer)
+    {
+#if defined(HAS_I386)
+        UINT64 eip = m_eip;
+#else
+        UINT64 eip = m_pc - SREG_BASE(CS);
+#endif
+        UINT8 *oprom = mem + SREG_BASE(CS) + eip;
+
+#if defined(HAS_I386)
+        if (m_operand_size) {
+            return CPU_DISASSEMBLE_CALL(x86_32) & 0xff;
+        }
+        else
+#endif
+            return i386_dasm_one_ex(buffer, m_eip, oprom, 16) & 0xff;//CPU_DISASSEMBLE_CALL(x86_16);
+    }
+
     void protected_mode_exception_handler(WORD num, const char *name, pm_interrupt_handler pih)
     {
         WORD err = has_x86_exception_err(num) ? POP16() : num;
         WORD ip = POP16();
         WORD cs = POP16();
         WORD flags = POP16();
-        if ((num == FAULT_GP) && !err && !m_sreg[ES].selector)
+        m_eip = ip;
+        m_sreg[CS].selector = cs;
+        i386_load_segment_descriptor(CS);
+        if (num == FAULT_GP)
         {
-            // Some Windows 1.0 C startups try to access the IVT directly
-            static WORD dosmem_0000H = 0;
-            static HTASK16 (WINAPI *GetCurrentTask)(void);
-            static BOOL16 (WINAPI *IsOldWindowsTask)(HINSTANCE16);
-            if (!dosmem_0000H)
+            if(!err && !m_sreg[ES].selector)
             {
-                DWORD(WINAPI *GetProcAddress16)(HMODULE16, LPCSTR);
-                HMODULE16(WINAPI *GetModuleHandle16)(LPCSTR);
-                if (!krnl386)
-                    krnl386 = LoadLibraryA(KRNL386);
-                GetProcAddress16 = (DWORD(WINAPI *)(HMODULE16, LPCSTR))GetProcAddress(krnl386, "GetProcAddress16");
-                GetModuleHandle16 = (HMODULE16(WINAPI *)(LPCSTR))GetProcAddress(krnl386, "GetModuleHandle16");
-                GetCurrentTask = (HTASK16(WINAPI *)(void))GetProcAddress(krnl386, "GetCurrentTask");
-                IsOldWindowsTask = (BOOL16(WINAPI *)(HINSTANCE16))GetProcAddress(krnl386, "IsOldWindowsTask");
-                dosmem_0000H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)183);
+                // Some Windows 1.0 C startups try to access the IVT directly
+                static WORD dosmem_0000H = 0;
+                static HTASK16 (WINAPI *GetCurrentTask)(void);
+                static BOOL16 (WINAPI *IsOldWindowsTask)(HINSTANCE16);
+                if (!dosmem_0000H)
+                {
+                    DWORD(WINAPI *GetProcAddress16)(HMODULE16, LPCSTR);
+                    HMODULE16(WINAPI *GetModuleHandle16)(LPCSTR);
+                    if (!krnl386)
+                        krnl386 = LoadLibraryA(KRNL386);
+                    GetProcAddress16 = (DWORD(WINAPI *)(HMODULE16, LPCSTR))GetProcAddress(krnl386, "GetProcAddress16");
+                    GetModuleHandle16 = (HMODULE16(WINAPI *)(LPCSTR))GetProcAddress(krnl386, "GetModuleHandle16");
+                    GetCurrentTask = (HTASK16(WINAPI *)(void))GetProcAddress(krnl386, "GetCurrentTask");
+                    IsOldWindowsTask = (BOOL16(WINAPI *)(HINSTANCE16))GetProcAddress(krnl386, "IsOldWindowsTask");
+                    dosmem_0000H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)183);
+                }
+                if (IsOldWindowsTask(GetCurrentTask()))
+                {
+                    m_sreg[ES].selector = dosmem_0000H;
+                    i386_load_segment_descriptor(ES);
+                    i386_jmp_far(cs, ip);
+                    return;
+                }
             }
-            if (IsOldWindowsTask(GetCurrentTask()))
+            else if(err == 0x40)
             {
-                m_sreg[ES].selector = dosmem_0000H;
-                i386_load_segment_descriptor(ES);
-                i386_jmp_far(cs, ip);
-                return;
+                // many startups access the BDA directly
+                static WORD dosmem_0040H = 0;
+                if (!dosmem_0040H)
+                {
+                    DWORD(WINAPI *GetProcAddress16)(HMODULE16, LPCSTR);
+                    HMODULE16(WINAPI *GetModuleHandle16)(LPCSTR);
+                    if (!krnl386)
+                        krnl386 = LoadLibraryA(KRNL386);
+                    GetProcAddress16 = (DWORD(WINAPI *)(HMODULE16, LPCSTR))GetProcAddress(krnl386, "GetProcAddress16");
+                    GetModuleHandle16 = (HMODULE16(WINAPI *)(LPCSTR))GetProcAddress(krnl386, "GetModuleHandle16");
+                    dosmem_0040H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)193);
+                    (void(*)(void))GetProcAddress(krnl386, "DOSVM_start_bios_timer")();
+                }
+                char buffer[256];
+                int len = disassemble(buffer);
+                if (strstr(buffer, "es,")) // TODO: LES?
+                {
+                    m_sreg[ES].selector = dosmem_0040H;
+                    i386_load_segment_descriptor(ES);
+                    i386_jmp_far(cs, ip + len);
+                    return;
+                }
             }
         }
         DWORD ret = pih(num);
@@ -1113,32 +1163,13 @@ extern "C"
         }
         PSTR dasm = (PSTR)calloc(10000, 1);
         ULONG_PTR arguments[7] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags, (ULONG_PTR)dasm };
-        m_eip = ip;
-        m_sreg[CS].selector = cs;
-        i386_load_segment_descriptor(CS);
 
         //jump to next instr
 
         __try
         {
             char buffer[256];
-#if defined(HAS_I386)
-            UINT64 eip = m_eip;
-#else
-            UINT64 eip = m_pc - SREG_BASE(CS);
-#endif
-            UINT8 *oprom = mem + SREG_BASE(CS) + eip;
-
-            int result;
-#if defined(HAS_I386)
-            if (m_operand_size) {
-                result = CPU_DISASSEMBLE_CALL(x86_32);
-            }
-            else
-#endif
-                result = i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-
-            int opsize = result & 0xFF;
+            int opsize = disassemble(buffer);
             memcpy(dasm, buffer, sizeof(buffer));
             if ((int)ip + opsize <= 0xFFFF)
             {
