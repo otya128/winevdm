@@ -34,11 +34,17 @@
 WINE_DEFAULT_DEBUG_CHANNEL(commdlg);
 #define MAX_THUNK 5
 COMMDLGTHUNK *thunk_array;
+UINT WMFILEOK;
+UINT WMHELPMSG;
+UINT WMFINDMSG;
+UINT WMCOLOROK;
+UINT WMSHAREVI;
 
 LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC proc);
 static UINT_PTR CALLBACK thunk_hook(COMMDLGTHUNK *thunk, HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
-    if (msg == WM_INITDIALOG)
+    /* window message hook? */
+    if (msg == WM_INITDIALOG || msg == WMFILEOK || msg == WMHELPMSG || msg == WMFINDMSG || msg == WMCOLOROK || msg == WMSHAREVI)
     {
         lp = thunk->segofn16;
     }
@@ -50,6 +56,11 @@ static void init_thunk()
 {
     if (thunk_array)
         return;
+    WMFILEOK = RegisterWindowMessageW(FILEOKSTRINGW);
+    WMHELPMSG = RegisterWindowMessageW(HELPMSGSTRINGW);
+    WMFINDMSG = RegisterWindowMessageW(FINDMSGSTRINGW);
+    WMCOLOROK = RegisterWindowMessageW(COLOROKSTRINGW);
+    WMSHAREVI = RegisterWindowMessageW(SHAREVISTRING);
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(COMMDLGTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 }
 
