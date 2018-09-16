@@ -69,10 +69,10 @@
 69 stub CREATEDATACACHE
 70 stub OLECONVERTISTORAGETOOLESTREAM
 71 stub OLECONVERTOLESTREAMTOISTORAGE
-74 stub READFMTUSERTYPESTG
-75 stub WRITEFMTUSERTYPESTG
+74 pascal ReadFmtUserTypeStg(ptr ptr ptr) ReadFmtUserTypeStg16
+75 pascal WriteFmtUserTypeStg(ptr word str) WriteFmtUserTypeStg16
 76 pascal -ret16 OleFlushClipboard() OleFlushClipboard16
-77 stub OLEISCURRENTCLIPBOARD
+77 pascal OleIsCurrentClipboard(ptr) OleIsCurrentClipboard16
 78 stub OLETRANSLATEACCELERATOR
 79 pascal OleDoAutoConvert(ptr ptr) OleDoAutoConvert16
 80 stub OLEGETAUTOCONVERT

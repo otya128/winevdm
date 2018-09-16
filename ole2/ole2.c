@@ -420,3 +420,21 @@ HRESULT WINAPI DoDragDrop16(LPDATAOBJECT pDataObj, LPDROPSOURCE pDropSource, DWO
     FIXME("(%p,%p,%x,%p),stub!\n", pDataObj, pDropSource, dwOKEffects, pdwEffect);
     return S_OK;
 }
+
+HRESULT WINAPI OleIsCurrentClipboard16(LPDATAOBJECT pDataObj)
+{
+    FIXME("(%p),stub!\n", pDataObj);
+    return S_OK;
+}
+
+HRESULT WINAPI ReadFmtUserTypeStg16(IStorage *pstg, CLIPFORMAT *pcf, LPOLESTR16 *lplpszUserType)
+{
+    FIXME("(%p,%p,%p),stub!\n", pstg, pcf, lplpszUserType);
+    return E_NOTIMPL;
+}
+
+HRESULT WINAPI WriteFmtUserTypeStg16(IStorage *pstg, CLIPFORMAT cf, LPOLESTR16 lpszUserType)
+{
+    FIXME("(%p,%04x,%s),stub!\n", pstg, cf, lpszUserType);
+    return E_NOTIMPL;
+}
