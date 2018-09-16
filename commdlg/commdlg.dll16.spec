@@ -13,7 +13,7 @@
 16  pascal -ret16 FormatCharDlgProc(word word word long) FormatCharDlgProc16
 18  pascal -ret16 FontStyleEnumProc(ptr ptr word long)   FontStyleEnumProc16
 19  pascal -ret16 FontFamilyEnumProc(ptr ptr word long)  FontFamilyEnumProc16
-20  pascal -ret16 PrintDlg(ptr) PrintDlg16
+20  pascal -ret16 PrintDlg(segptr) PrintDlg16
 21  pascal   PrintDlgProc(word word word long) PrintDlgProc16
 22  pascal   PrintSetupDlgProc(word word word long) PrintSetupDlgProc16
 #23  pascal  EDITINTEGERONLY exported, shared data

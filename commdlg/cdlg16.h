@@ -144,7 +144,7 @@ BOOL16  WINAPI ChooseColor16(LPCHOOSECOLOR16 lpChCol);
 HWND16  WINAPI FindText16( SEGPTR find);
 BOOL16  WINAPI GetOpenFileName16(SEGPTR ofn);
 BOOL16  WINAPI GetSaveFileName16(SEGPTR ofn);
-BOOL16  WINAPI PrintDlg16( LPPRINTDLG16 print);
+BOOL16  WINAPI PrintDlg16( SEGPTR print);
 HWND16  WINAPI ReplaceText16( SEGPTR find);
 BOOL16  WINAPI ChooseFont16(LPCHOOSEFONT16);
 BOOL16 CALLBACK ColorDlgProc16( HWND16 hDlg16, UINT16 message, WPARAM16 wParam, LPARAM lParam );
@@ -157,6 +157,27 @@ short WINAPI GetFileTitle16(LPCSTR lpFile, LPSTR lpTitle, UINT16 cbBuf);
 BOOL16 CALLBACK PrintDlgProc16(HWND16 hDlg16, UINT16 uMsg, WPARAM16 wParam, LPARAM lParam);
 BOOL16 CALLBACK PrintSetupDlgProc16(HWND16 hWnd16, UINT16 wMsg, WPARAM16 wParam, LPARAM lParam);
 
+typedef struct
+{
+    BYTE pop_eax;   //58
+    BYTE push;      //68
+    DWORD this_;
+    BYTE push_eax;  //50
+    BYTE mov_eax;   //B8
+    DWORD address;
+    BYTE jmp;       //FF E0
+    BYTE eax;       //E0
+    BOOL used;
+    SEGPTR segofn16;
+    SEGPTR func;
+    union
+    {
+        OPENFILENAME16 ofn16;
+        PRINTDLGA pd;
+    };
+} COMMDLGTHUNK;
+COMMDLGTHUNK *allocate_thunk(SEGPTR ofnseg, SEGPTR func);
+void delete_thunk(LPVOID func);
 #include "poppack.h"
 
 #endif /* _WINE_DLL_CDLG16_H */

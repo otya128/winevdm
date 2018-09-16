@@ -32,22 +32,6 @@
 #include <DbgHelp.h>
 
 WINE_DEFAULT_DEBUG_CHANNEL(commdlg);
-#include <pshpack1.h>
-typedef struct
-{
-    BYTE pop_eax;   //58
-    BYTE push;      //68
-    DWORD this_;
-    BYTE push_eax;  //50
-    BYTE mov_eax;   //B8
-    DWORD address;
-    BYTE jmp;       //FF E0
-    BYTE eax;       //E0
-    BOOL used;
-    SEGPTR segofn16;
-    OPENFILENAME16 ofn16;
-} COMMDLGTHUNK;
-#include <poppack.h>
 #define MAX_THUNK 5
 COMMDLGTHUNK *thunk_array;
 
@@ -58,7 +42,7 @@ static UINT_PTR CALLBACK thunk_hook(COMMDLGTHUNK *thunk, HWND hwnd, UINT msg, WP
     {
         lp = thunk->segofn16;
     }
-    UINT_PTR result = DIALOG_CallDialogProc(hwnd, msg, wp, lp, thunk->ofn16.lpfnHook);
+    UINT_PTR result = DIALOG_CallDialogProc(hwnd, msg, wp, lp, thunk->func);
     return result;
 }
 
@@ -69,7 +53,15 @@ static void init_thunk()
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(COMMDLGTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 }
 
-COMMDLGTHUNK *allocate_thunk(OPENFILENAME16 ofn16, SEGPTR ofnseg)
+void delete_thunk(LPVOID func)
+{
+    if (thunk_array <= func && func <= thunk_array + MAX_THUNK)
+    {
+        ((COMMDLGTHUNK*)func)->used = FALSE;
+    }
+}
+
+COMMDLGTHUNK *allocate_thunk(SEGPTR ofnseg, SEGPTR func)
 {
     init_thunk();
     for (int i = 0; i < MAX_THUNK; i++)
@@ -85,8 +77,8 @@ COMMDLGTHUNK *allocate_thunk(OPENFILENAME16 ofn16, SEGPTR ofnseg)
             thunk_array[i].jmp      = 0xFF;
             thunk_array[i].eax      = 0xE0;
             thunk_array[i].used     = TRUE;
+            thunk_array[i].func     = func;
             thunk_array[i].segofn16 = ofnseg;
-            thunk_array[i].ofn16    = ofn16;
             return thunk_array + i;
         }
     }
@@ -127,13 +119,13 @@ DWORD get_ofn_flag(DWORD flag)
 }
 #pragma comment(lib, "dbghelp.lib")
 DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size);
-BOOL dynamic_resource(LPOPENFILENAME16 lpofn)
+LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
 {
     HGLOBAL16 hmem;
     HRSRC16 hRsrc;
     LPCVOID data;
-    if (!(hRsrc = FindResource16(lpofn->hInstance, MapSL(lpofn->lpTemplateName), (LPSTR)RT_DIALOG))) return 0;
-    if (!(hmem = LoadResource16(lpofn->hInstance, hRsrc))) return 0;
+    if (!(hRsrc = FindResource16(hInstance, MapSL(lpTemplateName), (LPCSTR)RT_DIALOG))) return 0;
+    if (!(hmem = LoadResource16(hInstance, hRsrc))) return 0;
     if (!(data = LockResource16(hmem))) return 0;
     PVOID BaseAddress = GetModuleHandleW(L"commdlg.dll16");
     IMAGE_RESOURCE_DIRECTORY *dir;
@@ -168,11 +160,11 @@ BOOL dynamic_resource(LPOPENFILENAME16 lpofn)
     if (!(hmem32 = LoadResource(BaseAddress, hRsrc32))) return 0;
     if (!(data32 = LockResource(hmem32))) return 0;
     DWORD sized;
-    DLGTEMPLATE *tmp32 = dialog_template16_to_template32(lpofn->hInstance, data, &sized);
+    DLGTEMPLATE *tmp32 = dialog_template16_to_template32(hInstance, data, &sized);
     memcpy(data32, tmp32, sized);
     DWORD _;
     VirtualProtect(mbi.BaseAddress, mbi.RegionSize, oldprotect, &_);
-    return TRUE;
+    return MAKEINTRESOURCEA(IDB_BITMAP1);
 }
 /***********************************************************************
  *           GetOpenFileName   (COMMDLG.1)
@@ -194,7 +186,6 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 
     if (!lpofn) return FALSE;
     OPENFILENAME16 ofn16 = *lpofn;
-    dynamic_resource(lpofn);
 
     ofn32.lStructSize       = OPENFILENAME_SIZE_VERSION_400A;
     ofn32.hwndOwner         = HWND_32( lpofn->hwndOwner );
@@ -214,15 +205,13 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
     ofn32.lCustData         = lpofn->lCustData;
     ofn32.lpfnHook          = dummy_hook;  /* this is to force old 3.1 dialog style */
+    ofn32.lpTemplateName    = dynamic_resource(lpofn->hInstance, lpofn->lpTemplateName);
+    ofn32.hInstance         = GetModuleHandleW(L"commdlg.dll16");
 
-    if (lpofn->Flags & OFN_ENABLETEMPLATE)
-    {
-        ofn32.lpTemplateName = MAKEINTRESOURCEA(IDB_BITMAP1);
-        ofn32.hInstance = GetModuleHandleW(L"commdlg.dll16");
-    }
     if (lpofn->Flags & OFN_ENABLEHOOK)
     {
-        ofn32.lpfnHook = allocate_thunk(ofn16, ofn);
+        ofn32.lpfnHook = allocate_thunk(ofn, lpofn->lpfnHook);
+        ((COMMDLGTHUNK*)ofn32.lpfnHook)->ofn16 = ofn16;
         if (!ofn32.lpfnHook)
         {
             ERR("could not allocate GetOpenFileName16 thunk\n");
@@ -236,6 +225,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 	lpofn->nFileOffset    = ofn32.nFileOffset;
 	lpofn->nFileExtension = ofn32.nFileExtension;
     }
+    delete_thunk(ofn32.lpfnHook);
     return ret;
 }
 
@@ -259,7 +249,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 
     if (!lpofn) return FALSE;
     OPENFILENAME16 ofn16 = *lpofn;
-    dynamic_resource(lpofn);
+    dynamic_resource(lpofn->hInstance, lpofn->lpTemplateName);
 
     ofn32.lStructSize       = OPENFILENAME_SIZE_VERSION_400A;
     ofn32.hwndOwner         = HWND_32( lpofn->hwndOwner );
@@ -279,15 +269,13 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
     ofn32.lCustData         = lpofn->lCustData;
     ofn32.lpfnHook          = dummy_hook;  /* this is to force old 3.1 dialog style */
+    ofn32.lpTemplateName    = dynamic_resource(lpofn->hInstance, lpofn->lpTemplateName);
+    ofn32.hInstance         = GetModuleHandleW(L"commdlg.dll16");
 
-    if (lpofn->Flags & OFN_ENABLETEMPLATE)
-    {
-        ofn32.lpTemplateName = MAKEINTRESOURCEA(IDB_BITMAP1);
-        ofn32.hInstance = GetModuleHandleW(L"commdlg.dll16");
-    }
     if (lpofn->Flags & OFN_ENABLEHOOK)
     {
-        ofn32.lpfnHook = allocate_thunk(ofn16, ofn);
+        ofn32.lpfnHook = allocate_thunk(ofn, lpofn->lpfnHook);
+        ((COMMDLGTHUNK*)ofn32.lpfnHook)->ofn16 = ofn16;
         if (!ofn32.lpfnHook)
         {
             ERR("could not allocate GetOpenFileName16 thunk\n");
@@ -300,6 +288,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 	lpofn->nFileOffset    = ofn32.nFileOffset;
 	lpofn->nFileExtension = ofn32.nFileExtension;
     }
+    delete_thunk(ofn32.lpfnHook);
     return ret;
 }
 

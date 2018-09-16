@@ -100,8 +100,9 @@ static HGLOBAL global_handle_from_16( HGLOBAL16 handle )
  *  * Customizing is *not* implemented.
  */
 
-BOOL16 WINAPI PrintDlg16( LPPRINTDLG16 lppd )
+BOOL16 WINAPI PrintDlg16( SEGPTR pd )
 {
+    LPPRINTDLG16 lppd = MapSL(pd);
     PRINTDLGA pd32;
     BOOL ret;
 
@@ -124,9 +125,17 @@ BOOL16 WINAPI PrintDlg16( LPPRINTDLG16 lppd )
                        PD_ENABLESETUPTEMPLATE | PD_ENABLESETUPTEMPLATEHANDLE))
         FIXME( "custom templates no longer supported, using default\n" );
     if (lppd->Flags & PD_ENABLEPRINTHOOK)
-        FIXME( "custom print hook %p no longer supported\n", lppd->lpfnPrintHook );
+    {
+        COMMDLGTHUNK *thunk = allocate_thunk(pd, lppd->lpfnPrintHook);
+        pd32.Flags |= PD_ENABLEPRINTHOOK;
+        pd32.lpfnPrintHook = thunk;
+    }
     if (lppd->Flags & PD_ENABLESETUPHOOK)
-        FIXME( "custom setup hook %p no longer supported\n", lppd->lpfnSetupHook );
+    {
+        COMMDLGTHUNK *thunk = allocate_thunk(pd, lppd->lpfnSetupHook);
+        pd32.Flags |= PD_ENABLEPRINTHOOK;
+        pd32.lpfnSetupHook = thunk;
+    }
 
     /* Generate failure with CDERR_STRUCTSIZE, when needed */
     if (lppd->lStructSize != sizeof(PRINTDLG16)) pd32.lStructSize--;
@@ -145,6 +154,8 @@ BOOL16 WINAPI PrintDlg16( LPPRINTDLG16 lppd )
     }
     GlobalFree( pd32.hDevNames );
     GlobalFree( pd32.hDevMode );
+    delete_thunk(pd32.lpfnPrintHook);
+    delete_thunk(pd32.lpfnSetupHook);
     return ret;
 }
 
