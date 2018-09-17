@@ -1438,7 +1438,12 @@ BOOL16 WINAPI IsTask16( HTASK16 hTask )
 BOOL16 WINAPI IsWinOldApTask16( HTASK16 hTask )
 {
 	TDB *tdb = TASK_GetPtr(hTask);
-	if (!NE_GetPtr(tdb->hModule)->ne_expver)
+    if (!tdb)
+        return FALSE;
+    NE_MODULE *ne_mod = NE_GetPtr(tdb->hModule);
+    if (!ne_mod)
+        return FALSE;
+	if (!ne_mod->ne_expver)
 		return TRUE;
     /* should return bit 0 of byte 0x48 in PSP */
     return FALSE;
@@ -1446,7 +1451,13 @@ BOOL16 WINAPI IsWinOldApTask16( HTASK16 hTask )
 
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst)
 {
-	if (NE_GetPtr(GetExePtr(hInst))->ne_expver < 0x300)
+    HMODULE16 hmod = GetExePtr(hInst);
+    if (!hmod)
+        return FALSE;
+    NE_MODULE *ne_mod = NE_GetPtr(hmod);
+    if (!ne_mod)
+        return FALSE;
+	if (ne_mod->ne_expver < 0x300)
 		return TRUE;
 	return FALSE;
 }
