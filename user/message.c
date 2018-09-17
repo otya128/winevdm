@@ -1177,6 +1177,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback( hwnd32, wParam ? WM_MDIREFRESHMENU : WM_MDISETMENU,
                         (WPARAM)HMENU_32(LOWORD(lParam)), (LPARAM)HMENU_32(HIWORD(lParam)),
                         result, arg );
+        *result = HMENU_16(*result);
         break;
     case WM_GETMINMAXINFO:
         {
@@ -1622,6 +1623,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_MDISETMENU:
         ret = callback( HWND_16(hwnd), msg, (lParam == 0),
                         MAKELPARAM( LOWORD(wParam), LOWORD(lParam) ), result, arg );
+        *result = HMENU_32(*result);
         break;
     case WM_GETMINMAXINFO:
         {
