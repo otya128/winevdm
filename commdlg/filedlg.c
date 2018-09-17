@@ -60,7 +60,7 @@ static void init_thunk()
     WMHELPMSG = RegisterWindowMessageW(HELPMSGSTRINGW);
     WMFINDMSG = RegisterWindowMessageW(FINDMSGSTRINGW);
     WMCOLOROK = RegisterWindowMessageW(COLOROKSTRINGW);
-    WMSHAREVI = RegisterWindowMessageW(SHAREVISTRING);
+    WMSHAREVI = RegisterWindowMessageW(SHAREVISTRINGW);
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(COMMDLGTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 }
 

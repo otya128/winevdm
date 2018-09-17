@@ -175,7 +175,7 @@ BOOL16 WINAPI Ctl3dSubclassCtlEx16(HWND16 hwnd, INT16 type)
     if ((type & CTL3D_EDITS) && (!strcmpi(buf, "EDIT")) || ((type & CTL3D_LISTBOXES) && !strcmpi(buf, "LISTBOX")))
     {
         SetWindowLongA(hwnd32, GWL_EXSTYLE, GetWindowLongA(HWND_32(hwnd), GWL_EXSTYLE) | WS_EX_CLIENTEDGE);
-        SetWindowPos(hwnd32, 0, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        SetWindowPos(hwnd32, 0, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_DRAWFRAME);
     }
     return TRUE;
 }
