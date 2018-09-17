@@ -1,0 +1,97 @@
+/*
+ * Copyright (C) 2017 Alistair Leslie-Hughes
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+ */
+import "unknwn.idl";
+import "objidl.idl";
+import "oaidl.idl";
+import "mfobjects.idl";
+
+enum
+{
+    MF_SOURCE_READER_INVALID_STREAM_INDEX = 0xffffffff,
+    MF_SOURCE_READER_ALL_STREAMS          = 0xfffffffe,
+    MF_SOURCE_READER_ANY_STREAM           = 0xfffffffe,
+    MF_SOURCE_READER_FIRST_AUDIO_STREAM   = 0xfffffffd,
+    MF_SOURCE_READER_FIRST_VIDEO_STREAM   = 0xfffffffc,
+    MF_SOURCE_READER_MEDIASOURCE          = 0xffffffff,
+    MF_SOURCE_READER_CURRENT_TYPE_INDEX   = 0xffffffff
+};
+
+typedef struct _MF_SINK_WRITER_STATISTICS
+{
+    DWORD    cb;
+    LONGLONG llLastTimestampReceived;
+    LONGLONG llLastTimestampEncoded;
+    LONGLONG llLastTimestampProcessed;
+    LONGLONG llLastStreamTickReceived;
+    LONGLONG llLastSinkSampleRequest;
+    QWORD    qwNumSamplesReceived;
+    QWORD    qwNumSamplesEncoded;
+    QWORD    qwNumSamplesProcessed;
+    QWORD    qwNumStreamTicksReceived;
+    DWORD    dwByteCountQueued;
+    QWORD    qwByteCountProcessed;
+    DWORD    dwNumOutstandingSinkSampleRequests;
+    DWORD    dwAverageSampleRateReceived;
+    DWORD    dwAverageSampleRateEncoded;
+    DWORD    dwAverageSampleRateProcessed;
+} MF_SINK_WRITER_STATISTICS;
+
+interface IMFMediaSource;
+
+[
+    object,
+    uuid(70ae66f2-c809-4e4f-8915-bdcb406b7993),
+    local
+]
+interface IMFSourceReader : IUnknown
+{
+    HRESULT GetStreamSelection([in] DWORD index, [out] BOOL *selected);
+    HRESULT SetStreamSelection([in] DWORD index, [in] BOOL selected);
+    HRESULT GetNativeMediaType([in] DWORD index, [in] DWORD typeindex, [out] IMFMediaType **type);
+    HRESULT GetCurrentMediaType([in] DWORD index, [out] IMFMediaType **type);
+    HRESULT SetCurrentMediaType([in] DWORD index, [in, out] DWORD *reserved, [in] IMFMediaType *type);
+    HRESULT SetCurrentPosition([in] REFGUID format, [in] REFPROPVARIANT position);
+    HRESULT ReadSample([in] DWORD index, [in] DWORD flags, [out] DWORD *actualindex, [out] DWORD *sampleflags,
+                       [out] LONGLONG *timestamp, [out] IMFSample **sample);
+    HRESULT Flush([in] DWORD index);
+    HRESULT GetServiceForStream([in] DWORD index, [in] REFGUID service, [in] REFIID riid, [out] void **object);
+    HRESULT GetPresentationAttribute([in] DWORD index, [in] REFGUID guid, [out] PROPVARIANT *attr);
+};
+
+[
+    object,
+    uuid(3137f1cd-fe5e-4805-a5d8-fb477448cb3d),
+    local
+]
+interface IMFSinkWriter : IUnknown
+{
+    HRESULT AddStream([in] IMFMediaType *type, [out] DWORD *index);
+    HRESULT SetInputMediaType([in] DWORD index, [in] IMFMediaType *type, [in] IMFAttributes *parameters);
+    HRESULT BeginWriting(void);
+    HRESULT WriteSample([in] DWORD index, [in] IMFSample *sample);
+    HRESULT SendStreamTick([in] DWORD index, [in] LONGLONG timestamp);
+    HRESULT PlaceMarker([in] DWORD index, [in] void *context);
+    HRESULT NotifyEndOfSegment([in] DWORD index);
+    HRESULT Flush([in] DWORD index);
+    HRESULT Finalize(void);
+    HRESULT GetServiceForStream([in] DWORD index, [in] REFGUID service, [in] REFIID riid, [out] void **object);
+    HRESULT GetStatistics([in] DWORD index, [out] MF_SINK_WRITER_STATISTICS *stats);
+};
+
+cpp_quote( "HRESULT WINAPI MFCreateSourceReaderFromMediaSource(IMFMediaSource *source, IMFAttributes *attributes," )
+cpp_quote( "                                                   IMFSourceReader **reader);" )

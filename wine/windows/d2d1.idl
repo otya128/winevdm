@@ -42,15 +42,15 @@ cpp_quote("#ifndef __dwrite_h__")
 typedef struct DWRITE_GLYPH_RUN DWRITE_GLYPH_RUN;
 cpp_quote("#endif /* __dwrite_h__ */")
 
-typedef D2D_POINT_2F D2D1_POINT_2F;
 typedef D2D_MATRIX_3X2_F D2D1_MATRIX_3X2_F;
 typedef D2D_RECT_F D2D1_RECT_F;
 typedef D2D_SIZE_F D2D1_SIZE_F;
 typedef UINT64 D2D1_TAG;
-typedef D2D_SIZE_U D2D1_SIZE_U;
 typedef D2D_POINT_2U D2D1_POINT_2U;
 typedef D2D_RECT_U D2D1_RECT_U;
 typedef D2D_COLOR_F D2D1_COLOR_F;
+
+cpp_quote("#define D2D1_DEFAULT_FLATTENING_TOLERANCE (0.25f)")
 
 enum
 {
@@ -235,6 +235,8 @@ typedef enum D2D1_DRAW_TEXT_OPTIONS
 {
     D2D1_DRAW_TEXT_OPTIONS_NO_SNAP = 0x00000001,
     D2D1_DRAW_TEXT_OPTIONS_CLIP = 0x00000002,
+    D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT = 0x00000004,
+    D2D1_DRAW_TEXT_OPTIONS_DISABLE_COLOR_BITMAP_SNAPPING = 0x00000008,
     D2D1_DRAW_TEXT_OPTIONS_NONE = 0x00000000,
     D2D1_DRAW_TEXT_OPTIONS_FORCE_DWORD = 0xffffffff,
 } D2D1_DRAW_TEXT_OPTIONS;
@@ -1146,7 +1148,7 @@ interface ID2D1HwndRenderTarget : ID2D1RenderTarget
 {
     D2D1_WINDOW_STATE CheckWindowState();
     HRESULT Resize(
-        [in] const D2D1_SIZE_U size
+        [in] const D2D1_SIZE_U *size
     );
     HWND GetHwnd();
 }
@@ -1206,7 +1208,7 @@ interface ID2D1Factory : IUnknown
     );
     HRESULT CreateGeometryGroup(
         [in] D2D1_FILL_MODE fill_mode,
-        [in, size_is(geometry_count)] ID2D1Geometry *geometry,
+        [in, size_is(geometry_count)] ID2D1Geometry **geometries,
         [in] UINT32 geometry_count,
         [out] ID2D1GeometryGroup **group
     );

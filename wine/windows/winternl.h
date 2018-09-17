@@ -441,7 +441,14 @@ typedef enum _FILE_INFORMATION_CLASS {
     FileNumaNodeInformation,
     FileStandardLinkInformation,
     FileRemoteProtocolInformation,
+    FileRenameInformationBypassAccessCheck,
+    FileLinkInformationBypassAccessCheck,
+    FileVolumeNameInformation,
+    FileIdInformation,
+    FileIdExtdDirectoryInformation,
     FileReplaceCompletionInformation,
+    FileHardLinkFullIdInformation,
+    FileIdExtdBothDirectoryInformation,
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -563,6 +570,15 @@ typedef struct _FILE_STANDARD_INFORMATION {
 typedef struct _FILE_INTERNAL_INFORMATION {
     LARGE_INTEGER IndexNumber;
 } FILE_INTERNAL_INFORMATION, *PFILE_INTERNAL_INFORMATION;
+
+typedef struct _FILE_ID_128 {
+    UCHAR Identifier[16];
+} FILE_ID_128, *PFILE_ID_128;
+
+typedef struct _FILE_ID_INFORMATION {
+    ULONGLONG VolumeSerialNumber;
+    FILE_ID_128 FileId;
+} FILE_ID_INFORMATION, *PFILE_ID_INFORMATION;
 
 typedef struct _FILE_EA_INFORMATION {
     ULONG EaSize;
@@ -724,6 +740,14 @@ typedef struct _FILE_ALL_INFORMATION {
     FILE_ALIGNMENT_INFORMATION AlignmentInformation;
     FILE_NAME_INFORMATION      NameInformation;
 } FILE_ALL_INFORMATION, *PFILE_ALL_INFORMATION;
+
+typedef struct _FILE_IO_COMPLETION_NOTIFICATION_INFORMATION {
+    ULONG Flags;
+} FILE_IO_COMPLETION_NOTIFICATION_INFORMATION, *PFILE_IO_COMPLETION_NOTIFICATION_INFORMATION;
+
+#define FILE_SKIP_COMPLETION_PORT_ON_SUCCESS 0x1
+#define FILE_SKIP_SET_EVENT_ON_HANDLE        0x2
+#define FILE_SKIP_SET_USER_EVENT_ON_FAST_IO  0x4
 
 typedef enum _FSINFOCLASS {
     FileFsVolumeInformation = 1,
@@ -2405,6 +2429,7 @@ NTSYSAPI NTSTATUS  WINAPI RtlAddAtomToAtomTable(RTL_ATOM_TABLE,const WCHAR*,RTL_
 NTSYSAPI NTSTATUS  WINAPI RtlAddAuditAccessAce(PACL,DWORD,DWORD,PSID,BOOL,BOOL);
 NTSYSAPI NTSTATUS  WINAPI RtlAddAuditAccessAceEx(PACL,DWORD,DWORD,DWORD,PSID,BOOL,BOOL);
 NTSYSAPI NTSTATUS  WINAPI RtlAddAuditAccessObjectAce(PACL,DWORD,DWORD,DWORD,GUID*,GUID*,PSID,BOOL,BOOL);
+NTSYSAPI NTSTATUS  WINAPI RtlAddMandatoryAce(PACL,DWORD,DWORD,DWORD,DWORD,PSID);
 NTSYSAPI void      WINAPI RtlAddRefActivationContext(HANDLE);
 NTSYSAPI PVOID     WINAPI RtlAddVectoredExceptionHandler(ULONG,PVECTORED_EXCEPTION_HANDLER);
 NTSYSAPI NTSTATUS  WINAPI RtlAdjustPrivilege(ULONG,BOOLEAN,BOOLEAN,PBOOLEAN);

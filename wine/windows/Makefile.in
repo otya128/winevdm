@@ -27,6 +27,7 @@ IDL_SRCS = \
 	colinf.idl \
 	comcat.idl \
 	commoncontrols.idl \
+	comsvcs.idl \
 	control.idl \
 	cor.idl \
 	cordebug.idl \
@@ -57,6 +58,7 @@ IDL_SRCS = \
 	docobj.idl \
 	docobjectservice.idl \
 	downloadmgr.idl \
+	drmexternals.idl \
 	dwrite.idl \
 	dwrite_1.idl \
 	dwrite_2.idl \
@@ -87,7 +89,9 @@ IDL_SRCS = \
 	inspectable.idl \
 	mediaobj.idl \
 	metahost.idl \
+	mfidl.idl \
 	mfobjects.idl \
+	mfreadwrite.idl \
 	mimeinfo.idl \
 	mimeole.idl \
 	mlang.idl \
@@ -174,11 +178,15 @@ IDL_SRCS = \
 	wine/svcctl.idl \
 	wine/winedxgi.idl \
 	winsxs.idl \
+	wmdrmsdk.idl \
 	wmiutils.idl \
 	wmp.idl \
 	wmsbuffer.idl \
 	wmsdkidl.idl \
 	wpcapi.idl \
+	wsdbase.idl \
+	wsddisco.idl \
+	wsdxml.idl \
 	wtypes.idl \
 	wuapi.idl \
 	xapo.idl \
@@ -313,6 +321,7 @@ HEADER_SRCS = \
 	devguid.h \
 	devpkey.h \
 	devpropdef.h \
+	dhcpcsdk.h \
 	difxapi.h \
 	digitalv.h \
 	dinput.h \
@@ -392,6 +401,7 @@ HEADER_SRCS = \
 	ifdef.h \
 	ifmib.h \
 	imagehlp.h \
+	ime.h \
 	imm.h \
 	in6addr.h \
 	inaddr.h \
@@ -460,6 +470,7 @@ HEADER_SRCS = \
 	msidefs.h \
 	msiquery.h \
 	mssip.h \
+	msstkppg.h \
 	mstcpip.h \
 	msvcrt/assert.h \
 	msvcrt/conio.h \
@@ -473,6 +484,7 @@ HEADER_SRCS = \
 	msvcrt/errno.h \
 	msvcrt/fcntl.h \
 	msvcrt/float.h \
+	msvcrt/fpieee.h \
 	msvcrt/io.h \
 	msvcrt/limits.h \
 	msvcrt/locale.h \
@@ -504,6 +516,7 @@ HEADER_SRCS = \
 	msxml2did.h \
 	msxml6did.h \
 	msxmldid.h \
+	mtxdm.h \
 	nb30.h \
 	ncrypt.h \
 	ndrtypes.h \
@@ -589,6 +602,7 @@ HEADER_SRCS = \
 	sql.h \
 	sqlext.h \
 	sqltypes.h \
+	sqlucode.h \
 	srrestoreptapi.h \
 	sspi.h \
 	sti.h \
@@ -680,6 +694,10 @@ HEADER_SRCS = \
 	ws2ipdef.h \
 	ws2spi.h \
 	ws2tcpip.h \
+	wsdapi.h \
+	wsdtypes.h \
+	wsdutil.h \
+	wsdxmldom.h \
 	wshisotp.h \
 	wsipx.h \
 	wsnwlink.h \

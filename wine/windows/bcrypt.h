@@ -63,12 +63,17 @@ typedef LONG NTSTATUS;
 #define MS_PLATFORM_CRYPTO_PROVIDER (const WCHAR [])\
     {'M','i','c','r','o','s','o','f','t',' ','P','l','a','t','f','o','r','m',' ','C','r','y','p','t','o',' ','P','r','o','v','i','d','e','r',0}
 
+#define BCRYPT_AES_ALGORITHM        (const WCHAR []){'A','E','S',0}
 #define BCRYPT_MD5_ALGORITHM        (const WCHAR []){'M','D','5',0}
 #define BCRYPT_RNG_ALGORITHM        (const WCHAR []){'R','N','G',0}
 #define BCRYPT_SHA1_ALGORITHM       (const WCHAR []){'S','H','A','1',0}
 #define BCRYPT_SHA256_ALGORITHM     (const WCHAR []){'S','H','A','2','5','6',0}
 #define BCRYPT_SHA384_ALGORITHM     (const WCHAR []){'S','H','A','3','8','4',0}
 #define BCRYPT_SHA512_ALGORITHM     (const WCHAR []){'S','H','A','5','1','2',0}
+
+#define BCRYPT_CHAIN_MODE_NA        (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','N','/','A',0}
+#define BCRYPT_CHAIN_MODE_CBC       (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','C','B','C',0}
+#define BCRYPT_CHAIN_MODE_ECB       (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','E','C','B',0}
 
 typedef struct _BCRYPT_ALGORITHM_IDENTIFIER
 {
@@ -78,23 +83,35 @@ typedef struct _BCRYPT_ALGORITHM_IDENTIFIER
 } BCRYPT_ALGORITHM_IDENTIFIER;
 
 typedef PVOID BCRYPT_ALG_HANDLE;
+typedef PVOID BCRYPT_KEY_HANDLE;
 typedef PVOID BCRYPT_HANDLE;
 typedef PVOID BCRYPT_HASH_HANDLE;
 
+/* Flags for BCryptGenRandom */
 #define BCRYPT_RNG_USE_ENTROPY_IN_BUFFER 0x00000001
 #define BCRYPT_USE_SYSTEM_PREFERRED_RNG  0x00000002
+
+/* Flags for BCryptOpenAlgorithmProvider */
 #define BCRYPT_ALG_HANDLE_HMAC_FLAG 0x00000008
+
+/* Flags for BCryptEncrypt/BCryptDecrypt */
+#define BCRYPT_BLOCK_PADDING        0x00000001
 
 NTSTATUS WINAPI BCryptCloseAlgorithmProvider(BCRYPT_ALG_HANDLE, ULONG);
 NTSTATUS WINAPI BCryptCreateHash(BCRYPT_ALG_HANDLE, BCRYPT_HASH_HANDLE *, PUCHAR, ULONG, PUCHAR, ULONG, ULONG);
+NTSTATUS WINAPI BCryptDecrypt(BCRYPT_KEY_HANDLE, PUCHAR, ULONG, VOID *, PUCHAR, ULONG, PUCHAR, ULONG, ULONG *, ULONG);
 NTSTATUS WINAPI BCryptDestroyHash(BCRYPT_HASH_HANDLE);
+NTSTATUS WINAPI BCryptDestroyKey(BCRYPT_KEY_HANDLE);
+NTSTATUS WINAPI BCryptEncrypt(BCRYPT_KEY_HANDLE, PUCHAR, ULONG, VOID *, PUCHAR, ULONG, PUCHAR, ULONG, ULONG *, ULONG);
 NTSTATUS WINAPI BCryptEnumAlgorithms(ULONG, ULONG *, BCRYPT_ALGORITHM_IDENTIFIER **, ULONG);
 NTSTATUS WINAPI BCryptFinishHash(BCRYPT_HASH_HANDLE, PUCHAR, ULONG, ULONG);
+NTSTATUS WINAPI BCryptGenerateSymmetricKey(BCRYPT_ALG_HANDLE, BCRYPT_KEY_HANDLE *, PUCHAR, ULONG, PUCHAR, ULONG, ULONG);
 NTSTATUS WINAPI BCryptGenRandom(BCRYPT_ALG_HANDLE, PUCHAR, ULONG, ULONG);
 NTSTATUS WINAPI BCryptGetFipsAlgorithmMode(BOOLEAN *);
 NTSTATUS WINAPI BCryptGetProperty(BCRYPT_HANDLE, LPCWSTR, PUCHAR, ULONG, ULONG *, ULONG);
 NTSTATUS WINAPI BCryptHash(BCRYPT_ALG_HANDLE, PUCHAR, ULONG, PUCHAR, ULONG, PUCHAR, ULONG);
 NTSTATUS WINAPI BCryptHashData(BCRYPT_HASH_HANDLE, PUCHAR, ULONG, ULONG);
 NTSTATUS WINAPI BCryptOpenAlgorithmProvider(BCRYPT_ALG_HANDLE *, LPCWSTR, LPCWSTR, ULONG);
+NTSTATUS WINAPI BCryptSetProperty(BCRYPT_HANDLE, LPCWSTR, PUCHAR, ULONG, ULONG);
 
 #endif  /* __WINE_BCRYPT_H */

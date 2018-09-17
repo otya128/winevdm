@@ -4947,6 +4947,19 @@ typedef enum _POWER_ACTION {
 } POWER_ACTION,
 *PPOWER_ACTION;
 
+typedef enum _POWER_PLATFORM_ROLE {
+    PlatformRoleUnspecified,
+    PlatformRoleDesktop,
+    PlatformRoleMobile,
+    PlatformRoleWorkstation,
+    PlatformRoleEnterpriseServer,
+    PlatformRoleSOHOServer,
+    PlatformRoleAppliancePC,
+    PlatformRolePerformanceServer,
+    PlatformRoleSlate,
+    PlatformRoleMaximum
+} POWER_PLATFORM_ROLE, *PPOWER_PLATFORM_ROLE;
+
 typedef enum _SYSTEM_POWER_STATE {
 	PowerSystemUnspecified = 0,
 	PowerSystemWorking = 1,
@@ -5422,6 +5435,14 @@ typedef enum _CM_ERROR_CONTROL_TYPE
 #define RtlCopyMemory(Destination, Source, Length) memcpy((Destination),(Source),(Length))
 #define RtlFillMemory(Destination, Length, Fill) memset((Destination),(Fill),(Length))
 #define RtlZeroMemory(Destination, Length) memset((Destination),0,(Length))
+
+static FORCEINLINE void *RtlSecureZeroMemory(void *buffer, SIZE_T length)
+{
+    volatile char *ptr = (volatile char *)buffer;
+
+    while (length--) *ptr++ = 0;
+    return buffer;
+}
 
 #include <guiddef.h>
 

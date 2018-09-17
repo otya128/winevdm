@@ -69,6 +69,7 @@ typedef ADDRINFOA ADDRINFO, *LPADDRINFO;
 # define AI_NON_AUTHORITATIVE      0x00004000
 # define AI_SECURE                 0x00008000
 # define AI_RETURN_PREFERRED_NAMES 0x00010000
+# define AI_DISABLE_IDN_ENCODING   0x00080000
 /* getaddrinfo error codes */
 # define EAI_AGAIN	WSATRY_AGAIN
 # define EAI_BADFLAGS	WSAEINVAL
@@ -89,6 +90,7 @@ typedef ADDRINFOA ADDRINFO, *LPADDRINFO;
 # define WS_AI_NON_AUTHORITATIVE      0x00004000
 # define WS_AI_SECURE                 0x00008000
 # define WS_AI_RETURN_PREFERRED_NAMES 0x00010000
+# define WS_AI_DISABLE_IDN_ENCODING   0x00080000
 /* getaddrinfo error codes */
 # define WS_EAI_AGAIN	WSATRY_AGAIN
 # define WS_EAI_BADFLAGS	WSAEINVAL
@@ -176,6 +178,7 @@ int WINAPI  GetAddrInfoExA(const char*,const char*,DWORD,GUID*,const ADDRINFOEXA
 int WINAPI  GetAddrInfoExW(const WCHAR*,const WCHAR*,DWORD,GUID*, const ADDRINFOEXW*,ADDRINFOEXW**,struct timeval*,
                            OVERLAPPED*,LPLOOKUPSERVICE_COMPLETION_ROUTINE,HANDLE*);
 #define     GetAddrInfoEx WINELIB_NAME_AW(GetAddrInfoExW)
+int WINAPI  GetAddrInfoExCancel(HANDLE*);
 int WINAPI  WS(getnameinfo)(const SOCKADDR*,WS(socklen_t),PCHAR,DWORD,PCHAR,DWORD,INT);
 #define     GetNameInfoA WS(getnameinfo)
 INT WINAPI  GetNameInfoW(const SOCKADDR*,WS(socklen_t),PWCHAR,DWORD,PWCHAR,DWORD,INT);

@@ -21,6 +21,27 @@
 #ifndef __D3DX11TEX_H__
 #define __D3DX11TEX_H__
 
+typedef enum D3DX11_FILTER_FLAG
+{
+    D3DX11_FILTER_NONE             = 0x00000001,
+    D3DX11_FILTER_POINT            = 0x00000002,
+    D3DX11_FILTER_LINEAR           = 0x00000003,
+    D3DX11_FILTER_TRIANGLE         = 0x00000004,
+    D3DX11_FILTER_BOX              = 0x00000005,
+
+    D3DX11_FILTER_MIRROR_U         = 0x00010000,
+    D3DX11_FILTER_MIRROR_V         = 0x00020000,
+    D3DX11_FILTER_MIRROR_W         = 0x00040000,
+    D3DX11_FILTER_MIRROR           = 0x00070000,
+
+    D3DX11_FILTER_DITHER           = 0x00080000,
+    D3DX11_FILTER_DITHER_DIFFUSION = 0x00100000,
+
+    D3DX11_FILTER_SRGB_IN          = 0x00200000,
+    D3DX11_FILTER_SRGB_OUT         = 0x00400000,
+    D3DX11_FILTER_SRGB             = 0x00600000,
+} D3DX11_FILTER_FLAG;
+
 typedef enum D3DX11_IMAGE_FILE_FORMAT
 {
     D3DX11_IFF_BMP         = 0,
@@ -86,11 +107,20 @@ typedef struct D3DX11_IMAGE_LOAD_INFO
 extern "C" {
 #endif
 
+HRESULT WINAPI D3DX11CreateShaderResourceViewFromMemory(ID3D11Device *device, const void *data,
+        SIZE_T data_size, D3DX11_IMAGE_LOAD_INFO *load_info, ID3DX11ThreadPump *pump,
+        ID3D11ShaderResourceView **view, HRESULT *hresult);
+
 HRESULT WINAPI D3DX11CreateTextureFromMemory(ID3D11Device *device, const void *src_data, SIZE_T src_data_size,
         D3DX11_IMAGE_LOAD_INFO *loadinfo, ID3DX11ThreadPump *pump, ID3D11Resource **texture, HRESULT *hresult);
 
+HRESULT WINAPI D3DX11FilterTexture(ID3D11DeviceContext *context, ID3D11Resource *texture, UINT src_level, UINT filter);
+
 HRESULT WINAPI D3DX11GetImageInfoFromMemory(const void *src_data, SIZE_T src_data_size, ID3DX11ThreadPump *pump,
         D3DX11_IMAGE_INFO *img_info, HRESULT *hresult);
+
+HRESULT WINAPI D3DX11SaveTextureToMemory(ID3D11DeviceContext *context, ID3D11Resource *texture,
+        D3DX11_IMAGE_FILE_FORMAT format, ID3D10Blob **buffer, UINT flags);
 
 #ifdef __cplusplus
 }

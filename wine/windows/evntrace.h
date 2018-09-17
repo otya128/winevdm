@@ -236,6 +236,7 @@ typedef struct _EVENT_TRACE_PROPERTIES
     ULONG MaximumFileSize;
     ULONG LogFileMode;
     ULONG FlushTimer;
+    ULONG EnableFlags;
     LONG AgeLimit;
     ULONG NumberOfBuffers;
     ULONG FreeBuffers;
@@ -248,6 +249,16 @@ typedef struct _EVENT_TRACE_PROPERTIES
     ULONG LoggerNameOffset;
 } EVENT_TRACE_PROPERTIES, *PEVENT_TRACE_PROPERTIES;
 
+typedef struct _ENABLE_TRACE_PARAMETERS
+{
+    ULONG                            Version;
+    ULONG                            EnableProperty;
+    ULONG                            ControlFlags;
+    GUID                             SourceId;
+    struct _EVENT_FILTER_DESCRIPTOR *EnableFilterDesc;
+    ULONG                            FilterDescCount;
+} ENABLE_TRACE_PARAMETERS, *PENABLE_TRACE_PARAMETERS;
+
 #define INVALID_PROCESSTRACE_HANDLE ((TRACEHANDLE)~(ULONG_PTR)0)
 
 ULONG WINAPI CloseTrace(TRACEHANDLE);
@@ -255,6 +266,7 @@ ULONG WINAPI ControlTraceA(TRACEHANDLE,LPCSTR,PEVENT_TRACE_PROPERTIES,ULONG);
 ULONG WINAPI ControlTraceW(TRACEHANDLE,LPCWSTR,PEVENT_TRACE_PROPERTIES,ULONG);
 #define      ControlTrace WINELIB_NAME_AW(ControlTrace)
 ULONG WINAPI EnableTrace(ULONG,ULONG,ULONG,LPCGUID,TRACEHANDLE);
+ULONG WINAPI EnableTraceEx2(TRACEHANDLE,LPCGUID,ULONG,UCHAR,ULONGLONG,ULONGLONG,ULONG,PENABLE_TRACE_PARAMETERS);
 ULONG WINAPI FlushTraceA(TRACEHANDLE,LPCSTR,PEVENT_TRACE_PROPERTIES);
 ULONG WINAPI FlushTraceW(TRACEHANDLE,LPCWSTR,PEVENT_TRACE_PROPERTIES);
 #define      FlushTrace WINELIB_NAME_AW(FlushTrace)

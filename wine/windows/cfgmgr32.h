@@ -25,6 +25,8 @@
 # include <guiddef.h>
 #endif
 
+#include <winreg.h>
+
 /* cfgmgr32 doesn't use the normal convention, it adds an underscore before A/W */
 #ifdef WINE_NO_UNICODE_MACROS
 # define DECL_WINELIB_CFGMGR32_TYPE_AW(type)  /* nothing */
@@ -158,11 +160,20 @@ typedef DWORD CONFIGRET;
 #define CM_CRP_MIN                      CM_DRP_MIN
 #define CM_CRP_MAX                      CM_DRP_MAX
 
+#define RegDisposition_OpenAlways       0x00
+#define RegDisposition_OpenExisting     0x01
+
+#define CM_REGISTRY_HARDWARE            0x0000
+#define CM_REGISTRY_SOFTWARE            0x0001
+#define CM_REGISTRY_USER                0x0100
+#define CM_REGISTRY_CONFIG              0x0200
+
 typedef DWORD DEVINST, *PDEVINST;
 typedef DWORD DEVNODE, *PDEVNODE;
 typedef HANDLE HMACHINE, *PHMACHINE;
 typedef CHAR *DEVNODEID_A, *DEVINSTID_A;
 typedef WCHAR *DEVNODEID_W, *DEVINSTID_W;
+typedef ULONG REGDISPOSITION;
 
 DECL_WINELIB_CFGMGR32_TYPE_AW(DEVNODEID)
 DECL_WINELIB_CFGMGR32_TYPE_AW(DEVINSTID)
@@ -178,6 +189,8 @@ CMAPI CONFIGRET WINAPI CM_Create_DevNodeA(PDEVINST,DEVINSTID_A,DEVINST,ULONG);
 CMAPI CONFIGRET WINAPI CM_Create_DevNodeW(PDEVINST,DEVINSTID_W,DEVINST,ULONG);
 #define     CM_Create_DevNode WINELIB_NAME_AW(CM_Create_DevNode)
 CMAPI CONFIGRET WINAPI CM_Disconnect_Machine(HMACHINE);
+CMAPI CONFIGRET WINAPI CM_Get_Child(PDEVINST pdnDevInst, DEVINST dnDevInst, ULONG ulFlags);
+CMAPI CONFIGRET WINAPI CM_Get_Child_Ex(PDEVINST pdnDevInst, DEVINST dnDevInst, ULONG ulFlags, HMACHINE hMachine);
 CMAPI CONFIGRET WINAPI CM_Get_Device_IDA(DEVINST,PSTR,ULONG,ULONG);
 CMAPI CONFIGRET WINAPI CM_Get_Device_IDW(DEVINST,PWSTR,ULONG,ULONG);
 #define     CM_Get_Device_ID WINELIB_NAME_AW(CM_Get_Device_ID)
@@ -192,9 +205,13 @@ CMAPI CONFIGRET WINAPI CM_Get_Device_ID_List_ExW(PCWSTR,PWCHAR,ULONG,ULONG,HMACH
 #define     CM_Get_Device_ID_List_Ex WINELIB_NAME_AW(CM_Get_Device_ID_List_Ex)
 CMAPI CONFIGRET WINAPI CM_Get_Device_ID_Size(PULONG,DEVINST,ULONG);
 CMAPI CONFIGRET WINAPI CM_Get_Device_ID_Size_Ex(PULONG,DEVINST,ULONG,HMACHINE);
+CMAPI CONFIGRET WINAPI CM_Get_Sibling_Ex(PDEVINST pdnDevInst, DEVINST DevInst, ULONG ulFlags, HMACHINE hMachine);
+CMAPI WORD      WINAPI CM_Get_Version(void);
 CMAPI CONFIGRET WINAPI CM_Locate_DevNodeA(PDEVINST,DEVINSTID_A,ULONG);
 CMAPI CONFIGRET WINAPI CM_Locate_DevNodeW(PDEVINST,DEVINSTID_W,ULONG);
 #define     CM_Locate_DevNode WINELIB_NAME_AW(CM_Locate_DevNode)
+CMAPI CONFIGRET WINAPI CM_Open_DevNode_Key(DEVINST dnDevInst, REGSAM access, ULONG ulHardwareProfile,
+                                           REGDISPOSITION disposition, PHKEY phkDevice, ULONG ulFlags);
 
 #ifdef __cplusplus
 }

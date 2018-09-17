@@ -57,6 +57,15 @@ typedef enum
     KF_FLAG_ALIAS_ONLY                  = 0x80000000
 } KNOWN_FOLDER_FLAG;
 
+enum
+{
+    GPFIDL_DEFAULT    = 0x00,
+    GPFIDL_ALTNAME    = 0x01,
+    GPFIDL_UNCPRINTER = 0x02
+};
+
+typedef int GPFIDL_FLAGS;
+
 UINT         WINAPI SHAddFromPropSheetExtArray(HPSXA,LPFNADDPROPSHEETPAGE,LPARAM);
 LPVOID       WINAPI SHAlloc(ULONG) __WINE_ALLOC_SIZE(1);
 HRESULT      WINAPI SHCoCreateInstance(LPCWSTR,const CLSID*,IUnknown*,REFIID,LPVOID*);
@@ -83,6 +92,7 @@ HRESULT      WINAPI SHGetKnownFolderPath(REFKNOWNFOLDERID,DWORD,HANDLE,PWSTR*);
 BOOL         WINAPI SHGetPathFromIDListA(LPCITEMIDLIST,LPSTR);
 BOOL         WINAPI SHGetPathFromIDListW(LPCITEMIDLIST,LPWSTR);
 #define             SHGetPathFromIDList WINELIB_NAME_AW(SHGetPathFromIDList)
+BOOL         WINAPI SHGetPathFromIDListEx(PCIDLIST_ABSOLUTE,WCHAR*,DWORD,GPFIDL_FLAGS);
 INT          WINAPI SHHandleUpdateImage(LPCITEMIDLIST);
 HRESULT      WINAPI SHILCreateFromPath(LPCWSTR,LPITEMIDLIST*,DWORD*);
 HRESULT      WINAPI SHLoadOLE(LPARAM);
@@ -652,11 +662,11 @@ DECLARE_INTERFACE_(IShellFolderView, IUnknown)
 #define IShellFolderView_GetDropPoint(p,a)          (p)->lpVtbl->GetDropPoint(p,a)
 #define IShellFolderView_MoveIcons(p,a)             (p)->lpVtbl->MoveIcons(p,a)
 #define IShellFolderView_SetItemPos(p,a,b)          (p)->lpVtbl->SetItemPos(p,a,b)
-#define IShellFolderView_DropTarget(p,a)            (p)->lpVtbl->DropTarget(p,a)
+#define IShellFolderView_IsBkDropTarget(p,a)        (p)->lpVtbl->IsBkDropTarget(p,a)
 #define IShellFolderView_SetClipboard(p,a)          (p)->lpVtbl->SetClipboard(p,a)
 #define IShellFolderView_SetPoints(p,a)             (p)->lpVtbl->SetPoints(p,a)
 #define IShellFolderView_GetItemSpacing(p,a)        (p)->lpVtbl->GetItemSpacing(p,a)
-#define IShellFolderView_SetCallback(p,a)           (p)->lpVtbl->SetCallback(p,a)
+#define IShellFolderView_SetCallback(p,a,b)         (p)->lpVtbl->SetCallback(p,a,b)
 #define IShellFolderView_Select(p,a)                (p)->lpVtbl->Select(p,a)
 #define IShellFolderView_QuerySupport(p,a)          (p)->lpVtbl->QuerySupport(p,a)
 #define IShellFolderView_SetAutomationObject(p,a)   (p)->lpVtbl->SetAutomationObject(p,a)

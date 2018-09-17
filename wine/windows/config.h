@@ -202,6 +202,9 @@
 /* Define to 1 if you have the `getattrlist' function. */
 /* #undef HAVE_GETATTRLIST */
 
+/* Define to 1 if you have the `getauxval' function. */
+/* #undef HAVE_GETAUXVAL */
+
 /* Define to 1 if you have the `getnameinfo' function. */
 #define HAVE_GETNAMEINFO 1
 
@@ -352,6 +355,12 @@
 /* Define to 1 if you have the `ldap_parse_vlv_control' function. */
 /* #undef HAVE_LDAP_PARSE_VLV_CONTROL */
 
+/* Define to 1 if you have the `lgamma' function. */
+/* #undef HAVE_LGAMMA */
+
+/* Define to 1 if you have the `lgammaf' function. */
+/* #undef HAVE_LGAMMAF */
+
 /* Define to 1 if you have the `gettextpo' library (-lgettextpo). */
 #define HAVE_LIBGETTEXTPO 1
 
@@ -372,6 +381,9 @@
 
 /* Define to 1 if you have the <libproc.h> header file. */
 /* #undef HAVE_LIBPROC_H */
+
+/* Define to 1 if you have the <libudev.h> header file. */
+/* #undef HAVE_LIBUDEV_H */
 
 /* Define to 1 if you have the <libunwind.h> header file. */
 /* #undef HAVE_LIBUNWIND_H */
@@ -426,6 +438,9 @@
 
 /* Define to 1 if you have the <linux/hdreg.h> header file. */
 /* #undef HAVE_LINUX_HDREG_H */
+
+/* Define to 1 if you have the <linux/hidraw.h> header file. */
+/* #undef HAVE_LINUX_HIDRAW_H */
 
 /* Define to 1 if you have the <linux/input.h> header file. */
 /* #undef HAVE_LINUX_INPUT_H */
@@ -552,6 +567,12 @@
 
 /* Define to 1 if you have the <ncurses.h> header file. */
 #define HAVE_NCURSES_H 1
+
+/* Define to 1 if you have the `nearbyint' function. */
+/* #undef HAVE_NEARBYINT */
+
+/* Define to 1 if you have the `nearbyintf' function. */
+/* #undef HAVE_NEARBYINTF */
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #define HAVE_NETDB_H 1
@@ -1009,11 +1030,17 @@
 /* Define to 1 if you have the <syscall.h> header file. */
 /* #undef HAVE_SYSCALL_H */
 
+/* Define to 1 if you have the `sysinfo' function. */
+/* #undef HAVE_SYSINFO */
+
 /* Define to 1 if you have the <sys/asoundlib.h> header file. */
 /* #undef HAVE_SYS_ASOUNDLIB_H */
 
 /* Define to 1 if you have the <sys/attr.h> header file. */
 /* #undef HAVE_SYS_ATTR_H */
+
+/* Define to 1 if you have the <sys/auxv.h> header file. */
+/* #undef HAVE_SYS_AUXV_H */
 
 /* Define to 1 if you have the <sys/cdio.h> header file. */
 /* #undef HAVE_SYS_CDIO_H */
@@ -1192,6 +1219,9 @@
 /* Define to 1 if you have the `truncf' function. */
 #define HAVE_TRUNCF 1
 
+/* Define to 1 if you have the `udev' library (-ludev). */
+/* #undef HAVE_UDEV */
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
@@ -1221,6 +1251,9 @@
 
 /* Define to 1 if you have the <X11/extensions/xf86vmproto.h> header file. */
 /* #undef HAVE_X11_EXTENSIONS_XF86VMPROTO_H */
+
+/* Define to 1 if you have the <X11/extensions/Xfixes.h> header file. */
+/* #undef HAVE_X11_EXTENSIONS_XFIXES_H */
 
 /* Define to 1 if you have the <X11/extensions/Xinerama.h> header file. */
 /* #undef HAVE_X11_EXTENSIONS_XINERAMA_H */
@@ -1389,6 +1422,9 @@
 /* Define to the soname of the libGL library. */
 /* #undef SONAME_LIBGL */
 
+/* Define to the soname of the libGLU library. */
+/* #undef SONAME_LIBGLU */
+
 /* Define to the soname of the libgnutls library. */
 #define SONAME_LIBGNUTLS "	cyggnutls-28.dll"
 
@@ -1439,6 +1475,9 @@
 
 /* Define to the soname of the libXext library. */
 /* #undef SONAME_LIBXEXT */
+
+/* Define to the soname of the libXfixes library. */
+/* #undef SONAME_LIBXFIXES */
 
 /* Define to the soname of the libXi library. */
 /* #undef SONAME_LIBXI */
