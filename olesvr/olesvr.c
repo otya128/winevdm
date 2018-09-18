@@ -1,25 +1,25 @@
 /*
-*	OLESVR library
-*
-*	Copyright 1995	Martin von Loewis
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Lesser General Public
-* License as published by the Free Software Foundation; either
-* version 2.1 of the License, or (at your option) any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Lesser General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public
-* License along with this library; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
-*/
+ *	OLESVR library
+ *
+ *	Copyright 1995	Martin von Loewis
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+ */
 
 /*	At the moment, these are only empty stubs.
-*/
+ */
 
 #include "config.h"
 
@@ -39,8 +39,8 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
-#define HINSTANCE_32(h16)	((HINSTANCE)(ULONG_PTR)(h16))
-#define HINSTANCE_16(h32)	(LOWORD(h32))
+#define HINSTANCE_32(h16)      ((HINSTANCE)(ULONG_PTR)(h16))
+#define HINSTANCE_16(h32)      (LOWORD(h32))
 typedef LONG LHSERVER;
 typedef LONG LHSERVERDOC;
 typedef LPCSTR LPCOLESTR16;
@@ -50,26 +50,26 @@ typedef struct _OLESERVERDOC16 *LPOLESERVERDOC16;
 struct _OLESERVERDOCVTBL16;
 typedef struct _OLESERVERDOC16
 {
-	const struct _OLESERVERDOCVTBL16 *lpvtbl;
-	/* server provided state info */
+    const struct _OLESERVERDOCVTBL16 *lpvtbl;
+    /* server provided state info */
 } OLESERVERDOC16;
 
 typedef struct _OLESERVER16 *LPOLESERVER16;
 typedef struct _OLESERVERVTBL16
 {
-	OLESTATUS(CALLBACK *Open)(LPOLESERVER, LHSERVERDOC, LPCOLESTR16, LPOLESERVERDOC *);
-	OLESTATUS(CALLBACK *Create)(LPOLESERVER, LHSERVERDOC, LPCOLESTR16, LPCOLESTR16, LPOLESERVERDOC*);
-	OLESTATUS(CALLBACK *CreateFromTemplate)(LPOLESERVER, LHSERVERDOC, LPCOLESTR16, LPCOLESTR16, LPCOLESTR16, LPOLESERVERDOC *);
-	OLESTATUS(CALLBACK *Edit)(LPOLESERVER, LHSERVERDOC, LPCOLESTR16, LPCOLESTR16, LPOLESERVERDOC *);
-	OLESTATUS(CALLBACK *Exit)(LPOLESERVER);
-	OLESTATUS(CALLBACK *Release)(LPOLESERVER);
-	OLESTATUS(CALLBACK *Execute)(LPOLESERVER);
+    OLESTATUS (CALLBACK *Open)(LPOLESERVER,LHSERVERDOC,LPCOLESTR16,LPOLESERVERDOC *);
+    OLESTATUS (CALLBACK *Create)(LPOLESERVER,LHSERVERDOC,LPCOLESTR16,LPCOLESTR16,LPOLESERVERDOC*);
+    OLESTATUS (CALLBACK *CreateFromTemplate)(LPOLESERVER,LHSERVERDOC,LPCOLESTR16,LPCOLESTR16,LPCOLESTR16,LPOLESERVERDOC *);
+    OLESTATUS (CALLBACK *Edit)(LPOLESERVER,LHSERVERDOC,LPCOLESTR16,LPCOLESTR16,LPOLESERVERDOC *);
+    OLESTATUS (CALLBACK *Exit)(LPOLESERVER);
+    OLESTATUS (CALLBACK *Release)(LPOLESERVER);
+    OLESTATUS (CALLBACK *Execute)(LPOLESERVER);
 } OLESERVERVTBL16, *LPOLESERVERVTBL16;
 
 typedef struct _OLESERVER16
 {
-	const OLESERVERVTBL16 *lpvtbl;
-	/* server specific data */
+    const OLESERVERVTBL16 *lpvtbl;
+    /* server specific data */
 } OLESERVER16;
 
 static LONG OLE_current_handle;
@@ -164,11 +164,11 @@ static OLESERVER *register_oleserver(LPOLESERVERVTBL16 vtbl16)
 }
 
 /******************************************************************************
-*		OleRegisterServer	[OLESVR.2]
-*/
-OLESTATUS WINAPI OleRegisterServer16(LPCSTR name, LPOLESERVER16 serverStruct,
-	LHSERVER *hRet, HINSTANCE16 hServer,
-	OLE_SERVER_USE use)
+ *		OleRegisterServer	[OLESVR.2]
+ */
+OLESTATUS WINAPI OleRegisterServer16( LPCSTR name, LPOLESERVER16 serverStruct,
+                                      LHSERVER *hRet, HINSTANCE16 hServer,
+                                      OLE_SERVER_USE use )
 {
     OLESERVER *s = register_oleserver(MapSL(serverStruct->lpvtbl));
     OLESTATUS status = OleRegisterServer(name, s, hRet, HINSTANCE_32(hServer), use);
@@ -176,24 +176,24 @@ OLESTATUS WINAPI OleRegisterServer16(LPCSTR name, LPOLESERVER16 serverStruct,
 }
 
 /******************************************************************************
-*		OleRevokeServer	[OLESVR.3]
-*/
+ *		OleRevokeServer	[OLESVR.3]
+ */
 OLESTATUS WINAPI OleRevokeServer16(LHSERVER hServer)
 {
     return OleRevokeServer(hServer);
 }
 
 /******************************************************************************
-*		OleBlockServer	[OLESVR.4]
-*/
+ *		OleBlockServer	[OLESVR.4]
+ */
 OLESTATUS WINAPI OleBlockServer16(LHSERVER hServer)
 {
     return OleBlockServer(hServer);
 }
 
 /******************************************************************************
-*		OleUnblockServer	[OLESVR.5]
-*/
+ *		OleUnblockServer	[OLESVR.5]
+ */
 OLESTATUS WINAPI OleUnblockServer16(LHSERVER hServer, BOOL16 *block)
 {
     BOOL block32 = *block;
@@ -270,11 +270,11 @@ static LPOLESERVERDOC register_oleserver_doc(OLESERVERDOCVTBL16 *vtbl16)
     return doc;
 }
 /***********************************************************************
-*		OleRegisterServerDoc	[OLESVR.6]
-*/
-OLESTATUS WINAPI OleRegisterServerDoc16(LHSERVER hServer, LPCSTR docname,
-	LPOLESERVERDOC document,
-	LHSERVERDOC *hRet)
+ *		OleRegisterServerDoc	[OLESVR.6]
+ */
+OLESTATUS WINAPI OleRegisterServerDoc16( LHSERVER hServer, LPCSTR docname,
+                                         LPOLESERVERDOC document,
+                                         LHSERVERDOC *hRet)
 {
     LPOLESERVERDOC doc32 = register_oleserver_doc(document->lpvtbl);
     OLESTATUS result = OleRegisterServerDoc(hServer, docname, doc32, hRet);
@@ -282,35 +282,35 @@ OLESTATUS WINAPI OleRegisterServerDoc16(LHSERVER hServer, LPCSTR docname,
 }
 
 /******************************************************************************
-*		OleRevokeServerDoc	[OLESVR.7]
-*/
+ *		OleRevokeServerDoc	[OLESVR.7]
+ */
 OLESTATUS WINAPI OleRevokeServerDoc16(LHSERVERDOC hServerDoc)
 {
     return OleRevokeServerDoc(hServerDoc);
 }
 
 /******************************************************************************
-*		OleRenameServerDoc	[OLESVR.8]
-*
-*/
+ *		OleRenameServerDoc	[OLESVR.8]
+ *
+ */
 OLESTATUS WINAPI OleRenameServerDoc16(LHSERVERDOC hDoc, LPCSTR newName)
 {
     return OleRenameServerDoc(hDoc, newName);
 }
 
 /******************************************************************************
-*		OleRevertServerDoc	[OLESVR.9]
-*
-*/
+ *		OleRevertServerDoc	[OLESVR.9]
+ *
+ */
 OLESTATUS WINAPI OleRevertServerDoc16(LHSERVERDOC hDoc)
 {
-	return OleRevertServerDoc(hDoc);
+    return OleRevertServerDoc(hDoc);
 }
 
 /******************************************************************************
-*		OleSavedServerDoc	[OLESVR.10]
-*
-*/
+ *		OleSavedServerDoc	[OLESVR.10]
+ *
+ */
 OLESTATUS WINAPI OleSavedServerDoc16(LHSERVERDOC hDoc)
 {
     return OleSavedServerDoc(hDoc);
