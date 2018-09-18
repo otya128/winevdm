@@ -1,6 +1,6 @@
 ; File generated automatically from ..\ctl3dv2\ctl3dv2.dll16.spec; do not edit!
 
-LIBRARY ..\ctl3dv2\ctl3dv2.dll16.spec
+LIBRARY ctl3dv2.dll16
 
 EXPORTS
   _wine_spec_dos_header @1 DATA
