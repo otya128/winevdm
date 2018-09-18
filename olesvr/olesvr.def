@@ -1,6 +1,6 @@
 ; File generated automatically from ..\olesvr\olesvr.dll16.spec; do not edit!
 
-LIBRARY ..\olesvr\olesvr.dll16.spec
+LIBRARY olesvr.dll16
 
 EXPORTS
   _wine_spec_dos_header @1 DATA 

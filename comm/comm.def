@@ -1,6 +1,6 @@
 ; File generated automatically from comm\comm.drv16.spec; do not edit!
 
-LIBRARY comm\comm.drv16.spec
+LIBRARY comm.drv16
 
 EXPORTS
   _wine_spec_dos_header; @1 DATA PRIVATE

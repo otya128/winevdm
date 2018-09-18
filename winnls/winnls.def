@@ -1,6 +1,6 @@
 ; File generated automatically from winnls.dll16.spec; do not edit!
 
-LIBRARY winnls.dll16.spec
+LIBRARY winnls.dll16
 
 EXPORTS
-  _wine_spec_dos_header;=.L__wine_spec_dos_header @1 DATA PRIVATE
+  _wine_spec_dos_header @1 DATA

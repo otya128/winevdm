@@ -1,6 +1,6 @@
 ; File generated automatically from ole2prox\ole2prox.dll16.spec; do not edit!
 
-LIBRARY ole2prox\ole2prox.dll16.spec
+LIBRARY ole2prox.dll16
 
 EXPORTS
-  _wine_spec_dos_header @1 DATA PRIVATE
+  _wine_spec_dos_header @1 DATA

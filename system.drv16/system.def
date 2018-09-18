@@ -1,6 +1,6 @@
 ; File generated automatically from ..\system.drv16\system.drv16.spec; do not edit!
 
-LIBRARY ..\system.drv16\system.drv16.spec
+LIBRARY system.drv16
 
 EXPORTS
-  _wine_spec_dos_header;=.L__wine_spec_dos_header @1 DATA PRIVATE
+  _wine_spec_dos_header @1 DATA
