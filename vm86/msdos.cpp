@@ -4,7 +4,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2009.11.09-
 */
-
+int ignore_illegal_insn;
 #include "msdos.h"
 
 #define my_strchr(str, chr) (char *)_mbschr((unsigned char *)(str), (unsigned int)(chr))
@@ -381,6 +381,7 @@ void write_io_dword(offs_t byteaddress, UINT32 data);
 #if defined(HAS_I386)
 	static CPU_TRANSLATE(i386);
 	#include "mame/lib/softfloat/softfloat.c"
+	//#include "mame/lib/softfloat/fsincos.c"
 	#include "mame/emu/cpu/i386/i386.c"
 	#include "mame/emu/cpu/vtlb.c"
 #elif defined(HAS_I286)
@@ -615,6 +616,12 @@ extern "C"
 		}
 		return sel;
 	}
+    WORD reg_fs = 0;
+    WORD reg_gs = 0;
+    WORD reg_cs = 0;
+    WORD reg_ss = 0;
+    WORD reg_ds = 0;
+    WORD reg_es = 0;
 	void save_context(CONTEXT *context)
 	{
 		context->Eax = REG32(EAX);
@@ -652,8 +659,10 @@ extern "C"
 		SREG(SS) = (WORD)context->SegSs;
 		SREG(DS) = (WORD)context->SegDs;//ES, CS, SS, DS
 		//ES, CS, SS, DS, FS, GS
-		SREG(FS) = (WORD)context->SegFs;
-		SREG(GS) = (WORD)context->SegGs;
+        /* Some programs expect that gs is not a valid selector! */
+        /* Some programs expect that fs is not a valid selector! */
+		SREG(FS) = (WORD)context->SegFs == reg_fs ? 0 : context->SegFs;
+		SREG(GS) = (WORD)context->SegGs == reg_gs ? 0 : context->SegGs;
 		i386_load_segment_descriptor(ES);
 		i386_load_segment_descriptor(SS);
 		i386_load_segment_descriptor(DS);
@@ -886,12 +895,6 @@ extern "C"
             *(BYTE*)&table[i * 8 + 5] = 0x66 | 0x80;
             *(WORD*)&table[i * 8 + 6] = 0;
         }
-        WORD reg_fs = 0;
-        WORD reg_gs = 0;
-        WORD reg_cs = 0;
-        WORD reg_ss = 0;
-        WORD reg_ds = 0;
-        WORD reg_es = 0;
         __asm
         {
             mov reg_fs, fs;
@@ -1082,6 +1085,7 @@ extern "C"
 #endif
         UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 
+        m_operand_size = m_sreg[CS].d;
 #if defined(HAS_I386)
         if (m_operand_size) {
             return CPU_DISASSEMBLE_CALL(x86_32) & 0xff;
@@ -1224,8 +1228,10 @@ extern "C"
 			SREG(CS) = (WORD)context->SegCs;
 			SREG(SS) = (WORD)context->SegSs;
 			SREG(DS) = (WORD)context->SegDs;
-			SREG(FS) = (WORD)context->SegFs;
-			SREG(GS) = (WORD)context->SegGs;
+            /* Some programs expect that gs is not a valid selector! */
+            /* Some programs expect that fs is not a valid selector! */
+            SREG(FS) = (WORD)context->SegFs == reg_fs ? 0 : context->SegFs;
+            SREG(GS) = (WORD)context->SegGs == reg_gs ? 0 : context->SegGs;
 			i386_load_segment_descriptor(ES);
 			i386_jmp_far(context->SegCs, context->Eip);
 			i386_load_segment_descriptor(SS);
@@ -1448,8 +1454,11 @@ extern "C"
 						SREG(SS) = (WORD)context.SegSs;
 						SREG(DS) = reg ? (WORD)context.SegDs : (WORD)oa->ds;//ES, CS, SS, DS
 						//ES, CS, SS, DS, FS, GS
-						SREG(FS) = (WORD)context.SegFs;
-						SREG(GS) = (WORD)context.SegGs;
+                        /* Some programs expect that gs is not a valid selector! */
+                        /* Some programs expect that fs is not a valid selector! */
+                        /* win16 sets 0? */
+                        SREG(FS) = 0;//(WORD)context.SegFs == reg_fs ? 0 : context.SegFs;
+                        SREG(GS) = 0;//(WORD)context.SegGs == reg_gs ? 0 : context.SegGs;
                         if (reg)
                         {
                             if (!(ip19 != context.Eip || cs16 != context.SegCs))
@@ -1786,13 +1795,13 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
 16bit context\n\
 EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X\n\
 ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X\n\
-ES:%04X,CS:%04X,SS:%04X,DS:%04X\n\
+ES:%04X,CS:%04X,SS:%04X,DS:%04X,FS:%04X,GS:%04X\n\
 IP:%04X, address:%08X\n\
 EFLAGS:%08X\
 %s\n%s\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
 m_VM ? 16 : 32,
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG16(BP), REG16(SI), REG16(DI),
-SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags, buffer2, buffer, buf_pre);
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buffer2, buffer, buf_pre);
         dump_stack_trace();
         fprintf(stderr, "========================\n");
         print_stack();
