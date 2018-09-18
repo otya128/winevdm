@@ -1113,8 +1113,30 @@ HANDLE16 WINAPI FarGetOwner16( HGLOBAL16 handle )
  */
 DWORD WINAPI GlobalMasterHandle16(void)
 {
+    DWORD ret = 0;
     FIXME(": stub\n");
-    return 0;
+    // some real mode programs don't check for null, provide enough to prevent crashes
+    BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16);
+    if (IsOldWindowsTask(GetCurrentTask()))
+    {
+        // this is an early form of LOCALHEAPINFO
+        static WORD dummyheap[0x18];
+        static WORD sel = 0;
+        if (!sel)
+        {
+            sel = AllocSelector16(0);
+            SetSelectorBase(sel, (DWORD)dummyheap);
+            SetSelectorLimit16(sel, 0x30);
+            SelectorAccessRights16(sel, 1, 0); // data, readonly
+            dummyheap[0] = 'Z'; // check value don't care so pretend MCB end of chain
+            dummyheap[2] = 0; // count is 0
+            dummyheap[3] = sel; // start of chain
+            dummyheap[4] = sel; // pretend MCB pointer
+            dummyheap[18] = -1; // unknown
+        }
+        ret = sel << 16;
+    }
+    return ret;
 }
 
 /***********************************************************************
