@@ -259,6 +259,28 @@ static INT CALLBACK enum_brushes_callback( void *ptr, LPARAM param )
     return ret;
 }
 
+static BYTE fix_font_quality(LOGFONT16 *font16)
+{
+    static BOOL init_enable_antialias;
+    static BOOL enable_antialias;
+    static BYTE force_font_quality;
+    if (!init_enable_antialias)
+    {
+        init_enable_antialias = TRUE;
+        enable_antialias = krnl386_get_config_int("otvdm", "EnableFontAntialias", FALSE);
+        force_font_quality = (BYTE)krnl386_get_config_int("otvdm", "ForceFontQuality", -1);
+    }
+
+    if (font16->lfWidth && font16->lfHeight)
+        return font16->lfQuality;
+
+    if (force_font_quality != (BYTE)-1)
+        return force_font_quality;
+    if (enable_antialias)
+        return font16->lfQuality;
+    return NONANTIALIASED_QUALITY;
+}
+
 /* convert a LOGFONT16 to a LOGFONTW */
 static void logfont_16_to_W( const LOGFONT16 *font16, LPLOGFONTW font32 )
 {
@@ -273,7 +295,7 @@ static void logfont_16_to_W( const LOGFONT16 *font16, LPLOGFONTW font32 )
     font32->lfCharSet = fix_font_charset(font16->lfCharSet);
     font32->lfOutPrecision = font16->lfOutPrecision;
     font32->lfClipPrecision = font16->lfClipPrecision;
-    font32->lfQuality = font16->lfQuality | NONANTIALIASED_QUALITY;
+    font32->lfQuality = fix_font_quality(font16);
     font32->lfPitchAndFamily = font16->lfPitchAndFamily;
     MultiByteToWideChar( CP_ACP, 0, font16->lfFaceName, -1, font32->lfFaceName, LF_FACESIZE );
     font32->lfFaceName[LF_FACESIZE-1] = 0;
@@ -409,6 +431,7 @@ static INT CALLBACK enum_font_callback( const LOGFONTW *plf,
             stricmp(elfe16.elfLogFont.lfFaceName, "Modern") &&
             stricmp(elfe16.elfLogFont.lfFaceName, "Script") &&
             stricmp(elfe16.elfLogFont.lfFaceName, "Terminal") &&
+            stricmp(elfe16.elfLogFont.lfFaceName, "@Terminal") &&
             stricmp(elfe16.elfLogFont.lfFaceName, "Roman") &&
             stricmp(elfe16.elfLogFont.lfFaceName, "Small Fonts") &&
             stricmp(elfe16.elfLogFont.lfFaceName, "@Small Fonts") &&
@@ -1294,18 +1317,6 @@ static BYTE fix_font_charset(BYTE charset)
     }
     return charset;
 }
-/***********************************************************************
- *           CreateFont    (GDI.56)
- */
-HFONT16 WINAPI CreateFont16(INT16 height, INT16 width, INT16 esc, INT16 orient,
-                            INT16 weight, BYTE italic, BYTE underline,
-                            BYTE strikeout, BYTE charset, BYTE outpres,
-                            BYTE clippres, BYTE quality, BYTE pitch,
-                            LPCSTR name )
-{
-    return HFONT_16( CreateFontA( height, width, esc, orient, weight, italic, underline,
-                                  strikeout, fix_font_charset(charset), outpres, clippres, quality | NONANTIALIASED_QUALITY, pitch, name ));
-}
 
 /***********************************************************************
  *           CreateFontIndirect   (GDI.57)
@@ -1318,7 +1329,7 @@ HFONT16 WINAPI CreateFontIndirect16( const LOGFONT16 *plf16 )
         LOGFONTW lfW;
         logfont_16_to_W( plf16, &lfW );
         ret = CreateFontIndirectW( &lfW );
-        TRACE("(%04X, %04X, %04X, %04X, %04X, %02X, %02X, %02X, %02X, %02X, %02X, %02X, %s) = %04X\n", plf16->lfHeight, plf16->lfWidth, plf16->lfEscapement, plf16->lfOrientation, plf16->lfWeight
+        TRACE("(%d, %d, %04X, %04X, %04X, %02X, %02X, %02X, %02X, %02X, %02X, %02X, %s) = %04X\n", plf16->lfHeight, plf16->lfWidth, plf16->lfEscapement, plf16->lfOrientation, plf16->lfWeight
             , plf16->lfItalic, plf16->lfUnderline, plf16->lfStrikeOut, plf16->lfCharSet, plf16->lfOutPrecision, plf16->lfClipPrecision
             , plf16->lfPitchAndFamily, debugstr_a(plf16->lfFaceName), (int)HFONT_16(ret));
     }
@@ -1326,6 +1337,33 @@ HFONT16 WINAPI CreateFontIndirect16( const LOGFONT16 *plf16 )
     return HFONT_16(ret);
 }
 
+/***********************************************************************
+*           CreateFont    (GDI.56)
+*/
+HFONT16 WINAPI CreateFont16(INT16 height, INT16 width, INT16 esc, INT16 orient,
+    INT16 weight, BYTE italic, BYTE underline,
+    BYTE strikeout, BYTE charset, BYTE outpres,
+    BYTE clippres, BYTE quality, BYTE pitch,
+    LPCSTR name)
+{
+    LOGFONT16 lf16 = { 0 };
+    lf16.lfHeight = height;
+    lf16.lfWidth = width;
+    lf16.lfEscapement = esc;
+    lf16.lfOrientation = orient;
+    lf16.lfWeight = weight;
+    lf16.lfItalic = italic;
+    lf16.lfUnderline = underline;
+    lf16.lfStrikeOut = strikeout;
+    lf16.lfCharSet = charset;
+    lf16.lfOutPrecision = outpres;
+    lf16.lfClipPrecision = clippres;
+    lf16.lfQuality = quality;
+    lf16.lfPitchAndFamily = pitch;
+    if (name)
+        memcpy(lf16.lfFaceName, name, min(LF_FACESIZE - 1, strlen(name) + 1));
+    return CreateFontIndirect16(&lf16);
+}
 
 /***********************************************************************
  *           CreateHatchBrush    (GDI.58)
