@@ -681,7 +681,7 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
 
     if (pModule->ne_exetyp != 0x02 && pModule->ne_exetyp != 0x04)
     {
-        WARN("exe type is not windows or windows/386. (typ:%02x, ver:%04x)\n", pModule->ne_exetyp, pModule->ne_expver);
+        ERR("exe type is not windows or windows/386. (typ:%02x, ver:%04x)\n", pModule->ne_exetyp, pModule->ne_expver);
         pModule->ne_expver = 0;
     }
     pModule->count = 0;

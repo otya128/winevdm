@@ -15,14 +15,14 @@
 12  pascal -ret16 LocalFlags(word) LocalFlags16
 13  pascal -ret16 LocalCompact(word) LocalCompact16
 14  pascal LocalNotify(long) LocalNotify16
-15  pascal -ret16 GlobalAlloc(word long) GlobalAlloc16
-16  pascal -ret16 GlobalReAlloc(word long word) GlobalReAlloc16
-17  pascal -ret16 GlobalFree(word) GlobalFree16
+15  pascal -register GlobalAlloc(word long) WIN16_GlobalAlloc16
+16  pascal -ret16 GlobalReAlloc(word long word) WIN16_GlobalReAlloc16
+17  pascal -ret16 GlobalFree(word) WIN16_GlobalFree16
 18  pascal GlobalLock(word) WIN16_GlobalLock16
-19  pascal -ret16 GlobalUnlock(word) GlobalUnlock16
-20  pascal GlobalSize(word) GlobalSize16
+19  pascal GlobalUnlock(word) WIN16_GlobalUnlock16
+20  pascal GlobalSize(word) WIN16_GlobalSize16
 21  pascal GlobalHandle(word) GlobalHandle16
-22  pascal -ret16 GlobalFlags(word) GlobalFlags16
+22  pascal GlobalFlags(word) WIN16_GlobalFlags16
 23  pascal -ret16 LockSegment(word) LockSegment16
 24  pascal -ret16 UnlockSegment(word) UnlockSegment16
 25  pascal GlobalCompact(long) GlobalCompact16

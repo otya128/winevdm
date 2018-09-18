@@ -502,17 +502,192 @@ SEGPTR WINAPI K32WOWGlobalLock16( HGLOBAL16 handle )
 
 }
 
+/*
+WOW32
+GLOBALALLOC
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=16e7,edi=00000000,esi=00000000,ebx=000016ce,edx=00040002,ecx=000016ce,eax=000016ce
+GLOBALLOCK
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=000016cf,ecx=000016cf,eax=00000000
+GLOBALUNLOCK
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=000016ce,ecx=00000000,eax=00000000
+GLOBALREALLOC
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=16e7,edi=00000000,esi=00000000,ebx=000002a0,edx=00000000,ecx=000016ce,eax=000016ce
+GLOBALSIZE
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=16e7,edi=00000000,esi=00000000,ebx=0000267e,edx=00000000,ecx=00000200,eax=00002000
+GLOBALHANDLE
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00002676,edx=000016cf,ecx=00000000,eax=000016ce
+GLOBALFLAGS
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=16e7,edi=00000000,esi=00000000,ebx=0000267e,edx=000016cf,ecx=00000000,eax=00000000
+GLOBALFREE
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=16e7,edi=00000000,esi=00000000,ebx=00000fc0,edx=00000000,ecx=00000000,eax=00000000
+
+GLOBALALLOC
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=000016ce,edx=00040002,ecx=000016ce,eax=000016ce
+GLOBALLOCK
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcd16cf,ecx=cdcd16cf,eax=00000000
+GLOBALUNLOCK
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcd16ce,ecx=cdcd0000,eax=00000000
+GLOBALREALLOC
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=000002a0,edx=00000000,ecx=000016ce,eax=000016ce
+GLOBALSIZE
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcd267e,edx=cdcd0000,ecx=cdcd0200,eax=00002000
+GLOBALHANDLE
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcd2676,edx=cdcd16cf,ecx=cdcdcdcd,eax=000016ce
+GLOBALFLAGS
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcd267e,edx=cdcd16cf,ecx=cdcd0000,eax=00000000
+GLOBALFREE
+gs=0000,fs=0000,es=16e7,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=16e7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=00000fc0,edx=00000000,ecx=cdcd0000,eax=00000000
+
+WIN31
+GLOBALALLOC
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=1de7,edi=00000000,esi=00000000,ebx=00001dce,edx=810b0002,ecx=00001dce,eax=00001dce
+GLOBALLOCK
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00001dcf,ecx=00001dcf,eax=00000000
+GLOBALUNLOCK
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00001dce,ecx=00000000,eax=00000000
+GLOBALREALLOC
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00001dce,eax=00001dce
+GLOBALSIZE
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=1de7,edi=00000000,esi=00000000,ebx=0000267e,edx=00000000,ecx=00000200,eax=00002000
+GLOBALHANDLE
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00002676,edx=00001dcf,ecx=00000000,eax=00001dce
+GLOBALFLAGS
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=1de7,edi=00000000,esi=00000000,ebx=0000267e,edx=00001dcf,ecx=00000000,eax=00000000
+GLOBALFREE
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=00000000,esi=00000000,ebx=00000000,edx=00000000,ecx=00000000,eax=00000000
+gs=0000,fs=0000,es=0000,ds=1de7,edi=00000000,esi=00000000,ebx=00004c20,edx=00000000,ecx=00000000,eax=00000000
+
+GLOBALALLOC
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=00001dce,edx=810b0002,ecx=00001dce,eax=00001dce
+GLOBALLOCK
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcd1dcf,ecx=cdcd1dcf,eax=00000000
+GLOBALUNLOCK
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcd1dce,ecx=cdcd0000,eax=00000000
+GLOBALREALLOC
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=00000000,edx=00000000,ecx=00001dce,eax=00001dce
+GLOBALSIZE
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcd267e,edx=cdcd0000,ecx=cdcd0200,eax=00002000
+GLOBALHANDLE
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcd2676,edx=cdcd1dcf,ecx=cdcdcdcd,eax=00001dce
+GLOBALFLAGS
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcd267e,edx=cdcd1dcf,ecx=cdcd0000,eax=00000000
+GLOBALFREE
+gs=0000,fs=0000,es=1de7,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=cdcdcdcd,edx=cdcdcdcd,ecx=cdcdcdcd,eax=cdcdcdcd
+gs=0000,fs=0000,es=0000,ds=1de7,edi=cdcdcdcd,esi=cdcdcdcd,ebx=00004bc0,edx=00000000,ecx=cdcd0000,eax=00000000
+
+GLOBALALLOC
+es=0 ecx=ebx=eax=handle
+edx=???
+GLOBALLOCK
+es=0 cx=dx=segment
+eax=offset
+GLOBALUNLOCK
+es=0 dx=handle
+eax=result
+cx=0?result?
+GLOBALREALLOC
+es=0 ecx=eax=handle
+edx=0?
+ebx=???
+GLOBALSIZE
+es=0 eax=size(low)
+cx=size>>4?
+dx=size(high)
+bx=???
+GLOBALHANDLE
+es=es
+eax=handle dx=segment
+bx=???
+GLOBALFLAGS
+es=0 eax=result
+cx=0?result?
+dx=segment
+bx=???
+GLOBALFREE
+es=0 eax=result
+cx=0?result?
+edx=0?result?
+ebx=???
+*/
+/* yes, win16 sets es to 0 */
+
+void WINAPI WIN16_GlobalAlloc16(UINT16 flags, DWORD size, CONTEXT *context)
+{
+    context->SegEs= 0;
+    context->Ecx = context->Ebx = context->Eax = GlobalAlloc16(flags, size);
+}
 
 /***********************************************************************
  *           GlobalLock   (KERNEL.18)
  *
  * This is the GlobalLock16() function used by 16-bit code.
  */
-SEGPTR WINAPI WIN16_GlobalLock16( HGLOBAL16 handle )
+SEGPTR WINAPI WIN16_GlobalLock16(HGLOBAL16 handle)
 {
-    SEGPTR ret = K32WOWGlobalLock16( handle );
-    CURRENT_STACK16->ecx = SELECTOROF(ret);  /* selector must be returned in CX as well */
+    SEGPTR ret = K32WOWGlobalLock16(handle);
+    CURRENT_STACK16->ecx &= ~0xffff;
+    CURRENT_STACK16->ecx |= SELECTOROF(ret);  /* selector must be returned in CX as well */
+    CURRENT_STACK16->es = 0;
     return ret;
+}
+
+HGLOBAL16 WINAPI WIN16_GlobalReAlloc16(HGLOBAL16 handle, DWORD size, UINT16 flags)
+{
+    CURRENT_STACK16->es = 0;
+    return CURRENT_STACK16->ecx = GlobalReAlloc16(handle, size, flags);
+}
+DWORD WINAPI WIN16_GlobalSize16(HGLOBAL16 handle)
+{
+    DWORD size = GlobalSize16(handle);
+    CURRENT_STACK16->es = 0;
+    CURRENT_STACK16->ecx &= ~0xffff;
+    CURRENT_STACK16->ecx |= (WORD)((size >> 4) & 0xffff);
+    return size;
+}
+DWORD WINAPI WIN16_GlobalFlags16(HGLOBAL16 handle)
+{
+    CURRENT_STACK16->es = 0;
+    return MAKELONG(GlobalFlags16(handle), GlobalHandleToSel16(handle));
+}
+HGLOBAL16 WINAPI WIN16_GlobalFree16(HGLOBAL16 handle)
+{
+    CURRENT_STACK16->es = 0;
+    return GlobalFree16(handle);
+}
+DWORD WINAPI WIN16_GlobalUnlock16(HGLOBAL16 handle)
+{
+    CURRENT_STACK16->es = 0;
+    return MAKELONG(GlobalUnlock16(handle), handle);
 }
 
 
