@@ -49,6 +49,12 @@ typedef struct
 } DLGPROCTHUNK;
 #include <poppack.h>
 
+typedef struct
+{
+    HMENU16 hMenu16;
+    DLGPROC16 dlgProc;
+} dialog_data;
+
 /* Dialog control information */
 typedef struct
 {
@@ -393,16 +399,15 @@ INT_PTR CALLBACK DlgProc_Thunk(DLGPROCTHUNK *thunk_data, HWND hDlg, UINT Msg, WP
     if (!thunk_data->hDlg)
     {
         thunk_data->hDlg = hDlg;
-        CREATESTRUCTA* cs = (CREATESTRUCTA*)thunk_data->param;
-        LPARAM *params = cs->lpCreateParams;
-        HMENU hMenu;
-        if (cs->hMenu)
+        dialog_data* cs = (dialog_data*)thunk_data->param;
+        if (cs->hMenu16)
         {
-            BOOL ret = SetMenu(hDlg, HMENU_32(cs->hMenu));
+            BOOL ret = SetMenu(hDlg, HMENU_32(cs->hMenu16));
         }
         HWND16 hWnd16 = HWND_16(hDlg);
-        SetDlgProc16(hWnd16, params[1]);
+        SetDlgProc16(hWnd16, cs->dlgProc);
         SetWindowLongPtrA(hDlg, DWLP_DLGPROC, DlgProc);
+        HeapFree(GetProcessHeap(), 0, cs);
     }
     return DlgProc(hDlg, Msg, wParam, lParam);
 }
@@ -421,8 +426,6 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 		MSG16 msg16;
         switch (msg.message)
         {
-        case WM_INITDIALOG:
-            break;
         default:
         {
             INT_PTR result = WINPROC_CallProc32ATo16(call_dialog_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,
@@ -434,28 +437,6 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
             return result;
         }
         }
-	}
-	switch (Msg) {
-	case WM_INITDIALOG:
-	{
-		CREATESTRUCTA* cs = (CREATESTRUCTA*)lParam;
-		LPARAM *params = cs->lpCreateParams;
-		cs->lpCreateParams = params[0];
-		wndproc16 = GetDlgProc16(hWnd16);
-		if (wndproc16)
-		{
-			LRESULT unused;
-			call_window_proc16(hWnd16, WM_INITDIALOG, HWND_16(wParam), cs->lpCreateParams, &unused, wndproc16);
-		}
-        else
-        {
-            /* remove dialog proc */
-            SetWindowLongPtrA(hDlg, DWLP_DLGPROC, NULL);
-        }
-		free(cs);
-        ret = 1;
-	}
-		break;
 	}
 
 	return ret;
@@ -679,14 +660,24 @@ static void init_proc_thunk()
     MAX_THUNK = 4096 / sizeof(DLGPROCTHUNK);
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(DLGPROCTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 }
-DLGPROCTHUNK *init_thunk_data(LPVOID param, int i)
+HMENU get_dialog_hmenu(HWND hWnd)
+{
+    DLGPROC dlgproc = GetWindowLongPtrA(hWnd, DWLP_DLGPROC);
+    if (thunk_array <= dlgproc && thunk_array + MAX_THUNK > dlgproc)
+    {
+        DLGPROCTHUNK *thunk = (DLGPROCTHUNK*)dlgproc;
+        return HMENU_32(((dialog_data*)thunk->param)->hMenu16);
+    }
+    return 0;
+}
+DLGPROCTHUNK *init_thunk_data(LPVOID param, int i, LPVOID func)
 {
     thunk_array[i].pop_eax = 0x58;
     thunk_array[i].push_imm = 0x68;
     thunk_array[i].this_ = thunk_array + i;
     thunk_array[i].push_eax = 0x50;
     thunk_array[i].jmp = 0xEA;
-    thunk_array[i].DlgProc = DlgProc_Thunk;
+    thunk_array[i].DlgProc = func;
     WORD seg_cs;
     __asm
     {
@@ -698,14 +689,14 @@ DLGPROCTHUNK *init_thunk_data(LPVOID param, int i)
     thunk_array[i].param = param;
     return thunk_array + i;
 }
-DLGPROC allocate_proc_thunk(LPVOID param)
+DLGPROC allocate_proc_thunk(LPVOID param, LPVOID func)
 {
     init_proc_thunk();
     for (int i = 0; i < MAX_THUNK; i++)
     {
         if (!thunk_array[i].used)
         {
-            return (DLGPROC)init_thunk_data(param, i);
+            return (DLGPROC)init_thunk_data(param, i, func);
         }
     }
     for (int i = 0; i < MAX_THUNK; i++)
@@ -714,7 +705,7 @@ DLGPROC allocate_proc_thunk(LPVOID param)
         {
             if (!IsWindow(thunk_array[i].hDlg))
             {
-                return (DLGPROC)init_thunk_data(param, i);
+                return (DLGPROC)init_thunk_data(param, i, func);
             }
         }
     }
@@ -839,32 +830,19 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	GetClassInfoExA(hInst32, template.className, &wc2);
 	if (!wc2.lpszClassName)
 		GetClassInfoExA(GetModuleHandle(NULL), template.className, &wc2);
-	//template32->cdit = 1;
-	void *paramd = malloc(sizeof(param) * 2 + sizeof(CREATESTRUCTA));
-	CREATESTRUCTA *paramcs = (CREATESTRUCTA*)paramd;
-	paramcs->hMenu = LoadMenu16(hInst, wc2.lpszMenuName);
-	paramd = (LPBYTE)paramd + sizeof(CREATESTRUCTA);
-	paramcs->lpCreateParams = paramd;
-	*(LPARAM*)paramd = param;
-	if (dlgProc)
-	{
-		*((LPARAM*)paramd + 1) = dlgProc;
-	}
-	else
-	{
-		*((LPARAM*)paramd + 1) = 0;
-	}
-	paramd = (LPBYTE)paramd - sizeof(CREATESTRUCTA);
+    dialog_data *paramd = (dialog_data*)HeapAlloc(GetProcessHeap(), 0, sizeof(dialog_data));
+    paramd->hMenu16 = LoadMenu16(hInst, wc2.lpszMenuName);
+    paramd->dlgProc = dlgProc;
     DWORD count;
-    DLGPROC proc = allocate_proc_thunk(paramd);
+    DLGPROC proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
     ReleaseThunkLock(&count);
 	if (modal)
-	{
+    {
 		INT_PTR ret = DialogBoxIndirectParamA(
 			hInst32,
 			(DLGTEMPLATE*)template32,
 			owner,
-            proc, paramd);
+            proc, param);
         RestoreThunkLock(count);
 		return ret;
 	}
@@ -873,29 +851,9 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		hInst32,
 		(DLGTEMPLATE*)template32,
 		owner,
-        proc, paramd);
+        proc, param);
     RestoreThunkLock(count);
-	//SetThemeAppProperties(STAP_ALLOW_NONCLIENT | STAP_ALLOW_CONTROLS);
-	//SetWindowTheme(hwnd, "", "");
-    //SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-	//DIALOG_DumpControls32(hwnd, dlgTemplate, &template, hInst, templatew);
 	free(template32);
-	//if (wc2.lpszMenuName) hMenu = LoadMenu16(hInst, wc2.lpszMenuName);
-	//BOOL ret = SetMenu(hwnd, HMENU_32(hMenu));
-	ATOM classatom = GetClassLongA(hwnd, GCW_ATOM);//WNDPROC16
-	HWND16 hWnd16 = HWND_16(hwnd);
-	if (classatom)
-	{
-		if (dlgProc)
-		{
-            SetDlgProc16(hWnd16, dlgProc);
-		}
-		else
-		{
-            //why??
-			//SetWndProc16(hWnd16, WNDCLASS16Info[classatom].wndproc);
-		}
-	}
 	return hwnd;
 }
 /***********************************************************************

@@ -4150,12 +4150,22 @@ void register_wow_handlers(void)
     InitHook();
 }
 
+BOOL is_dialog(HWND hwnd);
+HMENU get_dialog_hmenu(HWND hWnd);
 LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
     HWND16 hWnd16 = HWND_16(hDlg);
     if (!GetWndProc16(hWnd16))
     {
         InitWndProc16(hDlg, hWnd16);
+    }
+    /* some programs don't call DlgProc */
+    if (Msg == WM_INITDIALOG && is_dialog(hDlg))
+    {
+        if (!GetMenu(hDlg))
+        {
+            SetMenu(hDlg, get_dialog_hmenu(hDlg));
+        }
     }
     WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
     if (wndproc16)

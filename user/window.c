@@ -93,7 +93,7 @@ void free_module_classes( HINSTANCE16 inst )
 	}
 }
 
-static BOOL is_dialog(HWND hwnd)
+BOOL is_dialog(HWND hwnd)
 {
     struct WW
     {
