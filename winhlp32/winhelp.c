@@ -44,6 +44,8 @@
 
 #include "wine/debug.h"
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
 
 WINHELP_GLOBALS Globals = {3, NULL, TRUE, NULL, NULL, NULL, NULL, NULL, {{{NULL,NULL}},0}, NULL};

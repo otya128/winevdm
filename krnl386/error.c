@@ -27,6 +27,7 @@
 #include "wine/winbase16.h"
 #include "wine/debug.h"
 
+#include "kernel16_private.h"
 
 /* LogParamError and LogError values */
 

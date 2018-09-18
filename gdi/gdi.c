@@ -32,6 +32,8 @@
 #endif
 #include "wine/debug.h"
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 WINE_DEFAULT_DEBUG_CHANNEL(gdi);
 
 //#define HGDIOBJ_32(handle16)    ((HGDIOBJ)(ULONG_PTR)(handle16))

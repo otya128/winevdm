@@ -21,6 +21,7 @@
 #ifndef __WINE_KERNEL16_PRIVATE_H
 #define __WINE_KERNEL16_PRIVATE_H
 #define inline __inline
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #define USE_NATIVE
 #ifdef USE_NATIVE
 //#define NtCurrentTeb NtCurrentTeb_WINTERNL_H

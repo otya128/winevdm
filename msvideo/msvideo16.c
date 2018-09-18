@@ -36,6 +36,8 @@
 #include "vfw16.h"
 #include "wine/debug.h"
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 WINE_DEFAULT_DEBUG_CHANNEL(msvideo);
 
 /* Drivers32 settings */
