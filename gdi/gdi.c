@@ -27,7 +27,9 @@
 #include "wownt32.h"
 #include "wine/wingdi16.h"
 #include "wine/list.h"
+#if 0
 #include "wine/gdi_driver.h"
+#endif
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(gdi);
@@ -529,6 +531,7 @@ static void free_segptr_bits( HBITMAP16 bmp )
     }
 }
 
+#if 0
 /* window surface used to implement the DIB.DRV driver */
 
 struct dib_window_surface
@@ -651,6 +654,7 @@ static struct window_surface *create_surface( const BITMAPINFO *info )
            surface, surface->header.rect.right, surface->header.rect.bottom, info, surface->bits );
     return &surface->header;
 }
+#endif
 
 
 /***********************************************************************
@@ -1408,6 +1412,7 @@ HDC16 WINAPI CreateCompatibleDC16( HDC16 hdc )
 HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
                          const DEVMODEA *initData )
 {
+#if 0
     if (!lstrcmpiA( driver, "dib" ) || !lstrcmpiA( driver, "dirdib" ))
     {
         struct window_surface *surface;
@@ -1424,6 +1429,7 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
         window_surface_release( surface );
         return HDC_16( hdc );
     }
+#endif
     return HDC_16( CreateDCA( driver, device, output, initData ) );
 }
 
