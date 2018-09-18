@@ -1148,6 +1148,8 @@ int main( int argc, char *argv[] )
     LoadLibrary16( "gdi.exe" );
     LoadLibrary16( "user.exe" );
     LoadLibrary16( "mmsystem.dll" );
+    LoadLibraryW( L"ctl3dv2.dll16" );
+    LoadLibraryW( L"ctl3d.dll16" );
 
     if (krnl386_get_config_int("otvdm", "EnableVisualStyle", FALSE))
     {
