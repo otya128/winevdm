@@ -532,7 +532,7 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		if (info.data)
 		{
 			*dlgItemTemplatew++ = sizeof(WORD) + sizeof(info.data);
-			*((LPCVOID*)dlgItemTemplatew) = info.data;
+			*((LPCVOID*)dlgItemTemplatew) = MapLS(info.data);
 			dlgItemTemplatew += 2;
 		}
 		else
