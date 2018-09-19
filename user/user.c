@@ -3316,6 +3316,11 @@ SEGPTR WINAPI AnsiNext16(SEGPTR current)
 SEGPTR WINAPI AnsiPrev16( LPCSTR start, SEGPTR current )
 {
     char *ptr = MapSL(current);
+    if (start + strlen(start) < current)
+    {
+        start = ptr;
+        while (*--start);
+    }
     return current - (ptr - CharPrevA( start, ptr ));
 }
 
