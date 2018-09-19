@@ -145,6 +145,34 @@ struct ole_client_info *find_ole_client_16(SEGPTR client)
     }
     return NULL;
 }
+
+static LPOLEOBJECT OLEOBJ16(SEGPTR oleobj)
+{
+    return (LPOLEOBJECT)oleobj;
+}
+
+static SEGPTR OLEOBJ32(LPOLEOBJECT oleobj)
+{
+    return (SEGPTR)oleobj;
+}
+typedef struct _OLESTREAM16 *LPOLESTREAM16;
+typedef struct _OLESTREAMVTBL16
+{
+    DWORD(CALLBACK* Get)(LPOLESTREAM16, void*, DWORD);
+    DWORD(CALLBACK* Put)(LPOLESTREAM16, OLE_CONST void*, DWORD);
+} OLESTREAMVTBL16;
+typedef  OLESTREAMVTBL16 FAR*  LPOLESTREAMVTBL16;
+
+typedef struct _OLESTREAM16
+{
+    LPOLESTREAMVTBL16    lpstbl;
+} OLESTREAM16;
+static LPOLESTREAM OLESTREAM32(SEGPTR stream16)
+{
+    FIXME("\n");
+    return NULL;
+}
+
 /******************************************************************************
  *		OleSavedClientDoc	[OLECLI.45]
  */
@@ -189,23 +217,27 @@ OLESTATUS WINAPI OleRevertClientDoc16(LHCLIENTDOC hServerDoc)
 /******************************************************************************
  *		OleEnumObjects	[OLECLI.47]
  */
-OLESTATUS WINAPI OleEnumObjects16(LHCLIENTDOC hServerDoc, SEGPTR data)
+OLESTATUS WINAPI OleEnumObjects16(LHCLIENTDOC hServerDoc, SEGPTR *data)
 {
-    FIXME("(%d, %04x:%04x): stub\n", hServerDoc, HIWORD(data),
-	LOWORD(data));
-    return OLE_OK;
+    /*FIXME("(%d, %04x:%04x): stub\n", hServerDoc, HIWORD(data),
+	LOWORD(data));*/
+    LPOLEOBJECT obj32 = 0;
+    OLESTATUS result = OleEnumObjects(hServerDoc, &obj32);
+    *data = OLEOBJ16(obj32);
+    return result;
 }
 
 /******************************************************************************
  *	     OleCreateLinkFromClip	[OLECLI.11]
  */
 OLESTATUS WINAPI OleCreateLinkFromClip16( LPCSTR name, SEGPTR olecli, LHCLIENTDOC hclientdoc,
-                                          LPCSTR xname, SEGPTR lpoleob, UINT16 render,
-                                          UINT16 clipformat )
+                                          LPCSTR xname, SEGPTR *lpoleob, OLEOPT_RENDER render,
+                                          OLECLIPFORMAT clipformat )
 {
     LPOLECLIENT olecli32 = find_ole_client_16(olecli);
-    LPOLEOBJECT *oleobj = (LPOLEOBJECT*)MapSL(lpoleob);
-    OLESTATUS status = OleCreateLinkFromClip(name, olecli32, hclientdoc, xname, oleobj, render, clipformat);
+    LPOLEOBJECT obj32 = 0;
+    OLESTATUS status = OleCreateLinkFromClip(name, olecli32, hclientdoc, xname, &obj32, render, clipformat);
+    *lpoleob = OLEOBJ16(obj32);
 	return status;
 }
 
@@ -294,34 +326,36 @@ LPOLECLIENT get_ole_client32(SEGPTR client)
     info->vtable16 = clientp->lpvtbl;
     return &info->client;
 }
-OLESTATUS WINAPI OleCreate16(LPCSTR name, SEGPTR client, LPCSTR xname, LHCLIENTDOC hclientdoc, LPCSTR xxname, LPOLEOBJECT FAR *oleobject, OLEOPT_RENDER render, OLECLIPFORMAT format)
+OLESTATUS WINAPI OleCreate16(LPCSTR name, SEGPTR client, LPCSTR xname, LHCLIENTDOC hclientdoc, LPCSTR xxname, SEGPTR *oleobject, OLEOPT_RENDER render, OLECLIPFORMAT format)
 {
     LPOLECLIENT client32 = get_ole_client32(client);
-    OLESTATUS status = OleCreate(name, client32, xname, hclientdoc, xxname, oleobject, render, format);
+    LPOLEOBJECT obj32 = 0;
+    OLESTATUS status = OleCreate(name, client32, xname, hclientdoc, xxname, &obj32, render, format);
+    *oleobject = OLEOBJ16(obj32);
     return status;
 }
 OLESTATUS WINAPI OleSetHostNames16(DWORD oleobj, LPCSTR name, LPCSTR name2)
 {
-    LPOLEOBJECT oleobj32 = (LPOLEOBJECT)oleobj;
+    LPOLEOBJECT oleobj32 = OLEOBJ32(oleobj);
     OLESTATUS status = OleSetHostNames(oleobj32, name, name2);
     return status = OLE_OK/*workaround fir WRITE.EXE*/;
 }
 OLE_RELEASE_METHOD WINAPI OleQueryReleaseMethod16(DWORD oleobj)
 {
-    LPOLEOBJECT oleobj32 = (LPOLEOBJECT)oleobj;
+    LPOLEOBJECT oleobj32 = OLEOBJ32(oleobj);
     OLE_RELEASE_METHOD ret = OleQueryReleaseMethod(oleobj);
     return ret;
 }
 OLESTATUS WINAPI OleQueryReleaseError16(DWORD oleobj)
 {
-    LPOLEOBJECT oleobj32 = (LPOLEOBJECT)oleobj;
+    LPOLEOBJECT oleobj32 = OLEOBJ32(oleobj);
     OLESTATUS ret = OleQueryReleaseError(oleobj);
     return ret;
 }
 
 OLESTATUS WINAPI OleQuerySize16(DWORD oleobj, DWORD *size)
 {
-    LPOLEOBJECT oleobj32 = (LPOLEOBJECT)oleobj;
+    LPOLEOBJECT oleobj32 = OLEOBJ32(oleobj);
     OLESTATUS ret = OleQuerySize(oleobj, size);
     return ret;
 }
@@ -345,7 +379,7 @@ static void RECT32to16(const RECT *from, RECT16 *to)
 
 OLESTATUS WINAPI OleQueryBounds16(DWORD oleobj, RECT16 *rect)
 {
-    LPOLEOBJECT oleobj32 = (LPOLEOBJECT)oleobj;
+    LPOLEOBJECT oleobj32 = OLEOBJ32(oleobj);
     RECT rect32;
     OLESTATUS ret = OleQueryBounds(oleobj, &rect32);
     RECT32to16(&rect32, rect);
@@ -354,7 +388,7 @@ OLESTATUS WINAPI OleQueryBounds16(DWORD oleobj, RECT16 *rect)
 
 OLESTATUS WINAPI OleDraw16(DWORD oleobj, HDC16 hdc1, const RECT16 *rect1, const RECT16 *rect2, HDC16 hdc2)
 {
-    LPOLEOBJECT oleobj32 = (LPOLEOBJECT)oleobj;
+    LPOLEOBJECT oleobj32 = OLEOBJ32(oleobj);
     RECT rect132, rect232;
     if (rect1)
     {
@@ -369,7 +403,7 @@ OLESTATUS WINAPI OleDraw16(DWORD oleobj, HDC16 hdc1, const RECT16 *rect1, const 
 }
 OLESTATUS WINAPI OleActivate16(LPOLEOBJECT oleobj, UINT uint, BOOL b1, BOOL b2, HWND hwnd, const RECT FAR * rect)
 {
-    LPOLEOBJECT oleobj32 = (LPOLEOBJECT)oleobj;
+    LPOLEOBJECT oleobj32 = OLEOBJ32(oleobj);
     RECT rect32;
     if (rect)
     {
@@ -391,8 +425,9 @@ typedef struct {
     BYTE otdData[1];
 } OLETARGETDEVICE16;
 #include <poppack.h>
-OLESTATUS WINAPI OleSetTargetDevice16(LPOLEOBJECT oleobj, HGLOBAL16 hotd)
+OLESTATUS WINAPI OleSetTargetDevice16(LPOLEOBJECT oleobj16, HGLOBAL16 hotd)
 {
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
     OLETARGETDEVICE16 *otd = GlobalLock16(hotd);
     DWORD size = GlobalSize16(hotd);
     DWORD exdata = size - sizeof(OLETARGETDEVICE16) + 1;
@@ -410,5 +445,160 @@ OLESTATUS WINAPI OleSetTargetDevice16(LPOLEOBJECT oleobj, HGLOBAL16 hotd)
     GlobalUnlock(otd32);
     GlobalFree(hotd32);
     GlobalUnlock16(hotd);
+    /* workaround for WRITE.EXE */
+    if (status == OLE_BUSY)
+        return OLE_OK;
     return status;
+}
+
+OLESTATUS WINAPI OleCreateFromFile16(LPCSTR protocol, SEGPTR client, LPCSTR lpszClass, LPCSTR file, LHCLIENTDOC clientdoc, LPCSTR objname, LPOLEOBJECT *lplpObject, OLEOPT_RENDER render, OLECLIPFORMAT fmt)
+{
+    LPOLECLIENT client32 = get_ole_client32(client);
+    LPOLEOBJECT obj32 = 0;
+    OLESTATUS result = OleCreateFromFile(protocol, client32, lpszClass, file, clientdoc, objname, &obj32, render, fmt);
+    *lplpObject = OLEOBJ16(obj32);
+    if (result == OLE_ERROR_OPEN)
+    {
+        int count = 5;
+        while (--count && result == OLE_ERROR_OPEN)
+        {
+            ERR("(%s,%08x,%s,%s,%08x,%s,%p,%d,%d):result == OLE_ERROR_OPEN\n", protocol, client32, lpszClass, file, clientdoc, objname, lplpObject, render, fmt);
+            result = OleCreateFromFile(protocol, client32, lpszClass, file, clientdoc, objname, lplpObject, render, fmt);
+        }
+        ERR("success.\n");
+    }
+    return result;
+}
+
+OLESTATUS WINAPI OleQueryReleaseStatus16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleQueryReleaseStatus(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleLockServer16(LPOLEOBJECT oleobj16, LHSERVER *server)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleLockServer(oleobj, server);
+    return result;
+}
+
+OLESTATUS WINAPI OleUnlockServer16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleUnlockServer(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleDelete16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleDelete(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleQueryOpen16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleQueryOpen(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleRelease16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleRelease(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleUpdate16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleUpdate(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleClose16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleClose(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleReconnect16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleReconnect(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleEqual16(LPOLEOBJECT oleobj16, LPOLEOBJECT oleobj162)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    LPOLEOBJECT oleobj2 = OLEOBJ32(oleobj162);
+    OLESTATUS result = OleEqual(oleobj, oleobj2);
+    return result;
+}
+
+OLESTATUS WINAPI OleRename16(LPOLEOBJECT oleobj16, LPCSTR name)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleRename(oleobj, name);
+    return result;
+}
+
+OLESTATUS WINAPI OleGetData16(LPOLEOBJECT oleobj16, OLECLIPFORMAT fmt, HANDLE16 *handle)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    HANDLE handle32;
+    OLESTATUS result;
+    if (fmt == CF_METAFILEPICT)
+    {
+        FIXME("\n");
+        return OLE_ERROR_OBJECT;
+    }
+    if (fmt == CF_BITMAP)
+    {
+        FIXME("\n");
+        return OLE_ERROR_OBJECT;
+    }
+    result = OleGetData(oleobj, fmt, &handle32);
+    if (result == OLE_OK && handle32)
+    {
+        SIZE_T size = GlobalSize(handle32);
+        HGLOBAL16 handle16 = GlobalAlloc16(GMEM_MOVEABLE, size);
+        *handle = handle16;
+        LPVOID mem = GlobalLock16(handle16);
+        memcpy(mem, GlobalLock(handle32), size);
+        GlobalFree(handle32);
+        GlobalUnlock16(handle16);
+    }
+    return result;
+}
+OLECLIPFORMAT WINAPI OleEnumFormats16(LPOLEOBJECT oleobj16, OLECLIPFORMAT fmt)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    return OleEnumFormats(oleobj, fmt);
+}
+
+OLESTATUS WINAPI OleCopyToClipboard16(LPOLEOBJECT oleobj16)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleCopyToClipboard(oleobj);
+    return result;
+}
+
+OLESTATUS WINAPI OleClone16(LPOLEOBJECT oleobj16, SEGPTR client, LHCLIENTDOC doc, LPCSTR name, LPOLEOBJECT *lplpobj)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    LPOLECLIENT client32 = get_ole_client32(client);
+    OLESTATUS result = OleClone(oleobj, client32, doc, name, lplpobj);
+    return result;
+}
+OLESTATUS OleSaveToStream16(LPOLEOBJECT oleobj16, LPOLESTREAM lpStream)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    LPOLESTREAM stream = OLESTREAM32(lpStream);
+    return OLE_ERROR_OBJECT;
 }

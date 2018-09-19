@@ -1,58 +1,58 @@
 #1 WEP
-2 stub OLEDELETE
+2 pascal -ret16 OleDelete(segptr) OleDelete16
 3 stub OLESAVETOSTREAM
 4 stub OLELOADFROMSTREAM
-6 stub OLECLONE
+6 pascal -ret16 OleClone(segptr segptr long str ptr) OleClone16
 7 stub OLECOPYFROMLINK
-8 stub OLEEQUAL
+8 pascal -ret16 OleEqual(segptr segptr) OleEqual16
 9 pascal -ret16 OleQueryLinkFromClip(str word word) OleQueryLinkFromClip16
 10 pascal -ret16 OleQueryCreateFromClip(str word word) OleQueryCreateFromClip16
-11 pascal -ret16 OleCreateLinkFromClip (str segptr long str segptr word word) OleCreateLinkFromClip16
+11 pascal -ret16 OleCreateLinkFromClip (str segptr long str ptr word word) OleCreateLinkFromClip16
 12 pascal -ret16 OleCreateFromClip(str segptr long str long word word) OleCreateFromClip16
-13 stub OLECOPYTOCLIPBOARD
+13 pascal -ret16 OleCopyToClipboard(segptr) OleCopyToClipboard16
 14 pascal -ret16 OleQueryType(ptr segptr) OleQueryType16
-15 pascal OleSetHostNames(long str str) OleSetHostNames16
-16 pascal OleSetTargetDevice(long word) OleSetTargetDevice16
+15 pascal -ret16 OleSetHostNames(long str str) OleSetHostNames16
+16 pascal -ret16 OleSetTargetDevice(long word) OleSetTargetDevice16
 17 stub OLESETBOUNDS
-18 pascal OleQueryBounds(long ptr) OleQueryBounds16
-19 pascal OleDraw(long word ptr ptr word) OleDraw16
-20 stub OLEQUERYOPEN
-21 pascal OleActivate(long word word word word ptr) OleActivate16
-22 stub OLEUPDATE
-23 stub OLERECONNECT
+18 pascal -ret16 OleQueryBounds(long ptr) OleQueryBounds16
+19 pascal -ret16 OleDraw(long word ptr ptr word) OleDraw16
+20 pascal -ret16 OleQueryOpen(segptr) OleQueryOpen16
+21 pascal -ret16 OleActivate(long word word word word ptr) OleActivate16
+22 pascal -ret16 OleUpdate(segptr) OleUpdate16
+23 pascal -ret16 OleReconnect(segptr) OleReconnect16
 24 stub OLEGETLINKUPDATEOPTIONS
 25 stub OLESETLINKUPDATEOPTIONS
-26 stub OLEENUMFORMATS
-27 stub OLECLOSE
-28 stub OLEGETDATA
+26 pascal -ret16 OleEnumFormats(segptr word) OleEnumFormats16
+27 pascal -ret16 OleClose(segptr) OleClose16
+28 pascal -ret16 OleGetData(segptr word ptr) OleGetData16
 29 stub OLESETDATA
 30 stub OLEQUERYPROTOCOL
 31 stub OLEQUERYOUTOFDATE
 32 stub OLEOBJECTCONVERT
 33 stub OLECREATEFROMTEMPLATE
-34 pascal OleCreate(str segptr str long str ptr word word) OleCreate16
-35 stub OLEQUERYRELEASESTATUS
-36 pascal OleQueryReleaseError(long) OleQueryReleaseError16
+34 pascal -ret16 OleCreate(str segptr str long str ptr word word) OleCreate16
+35 pascal -ret16 OleQueryReleaseStatus(segptr) OleQueryReleaseStatus16
+36 pascal -ret16 OleQueryReleaseError(long) OleQueryReleaseError16
 37 pascal -ret16 OleQueryReleaseMethod(long) OleQueryReleaseMethod16
-38 stub OLECREATEFROMFILE
+38 pascal -ret16 OleCreateFromFile(str segptr str str long str ptr word word) OleCreateFromFile16
 39 stub OLECREATELINKFROMFILE
-40 stub OLERELEASE
-41  pascal OleRegisterClientDoc(ptr ptr long ptr) OleRegisterClientDoc16
-42  pascal OleRevokeClientDoc(long) OleRevokeClientDoc16
-43  pascal OleRenameClientDoc(long ptr) OleRenameClientDoc16
+40 pascal -ret16 OleRelease(segptr) OleRelease16
+41 pascal -ret16 OleRegisterClientDoc(ptr ptr long ptr) OleRegisterClientDoc16
+42 pascal -ret16 OleRevokeClientDoc(long) OleRevokeClientDoc16
+43 pascal -ret16 OleRenameClientDoc(long ptr) OleRenameClientDoc16
 44 pascal -ret16 OleRevertClientDoc(long) OleRevertClientDoc16
-45  pascal OleSavedClientDoc(long) OleSavedClientDoc16
-46 stub OLERENAME
-47 pascal -ret16 OleEnumObjects(long segptr) OleEnumObjects16
+45 pascal -ret16 OleSavedClientDoc(long) OleSavedClientDoc16
+46 pascal -ret16 OleRename(segptr str) OleRename16
+47 pascal -ret16 OleEnumObjects(long ptr) OleEnumObjects16
 48 stub OLEQUERYNAME
 49 stub OLESETCOLORSCHEME
 50 stub OLEREQUESTDATA
-54 stub OLELOCKSERVER
-55 stub OLEUNLOCKSERVER
-56 pascal OleQuerySize(long ptr) OleQuerySize16
+54 pascal -ret16 OleLockServer(segptr ptr) OleLockServer16
+55 pascal -ret16 OleUnlockServer(segptr) OleUnlockServer16
+56 pascal -ret16 OleQuerySize(long ptr) OleQuerySize16
 57 stub OLEEXECUTE
 58 stub OLECREATEINVISIBLE
-59 pascal OleQueryClientVersion() OleQueryClientVersion16
+59 pascal -ret16 OleQueryClientVersion() OleQueryClientVersion16
 60 pascal -ret16 OleIsDcMeta(word) OleIsDcMeta16
 100 stub DOCWNDPROC
 101 stub SRVRWNDPROC
