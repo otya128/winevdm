@@ -712,13 +712,15 @@ INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
         struct class_entry *entry = find_win32_class(className);
         if (!entry)
         {
-            memcpy(buffer, className, min(clen + 1, (SIZE_T)count));
-            buffer[count - 1] = 0;
+            clen = min(clen + 1, (SIZE_T)count);
+            memcpy(buffer, className, clen);
+            buffer[clen - 1] = 0;
         }
         else
         {
-            memcpy(buffer, entry->classInfo.lpszClassName, min(strlen(entry->classInfo.lpszClassName) + 1, (SIZE_T)count));
-            buffer[count - 1] = 0;
+            clen = min(strlen(entry->classInfo.lpszClassName) + 1, (SIZE_T)count);
+            memcpy(buffer, entry->classInfo.lpszClassName, clen);
+            buffer[clen - 1] = 0;
         }
     }
     if (className != sclassName)
