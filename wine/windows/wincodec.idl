@@ -20,6 +20,8 @@ import "wtypes.idl";
 import "propidl.idl";
 import "ocidl.idl";
 
+cpp_quote ("#include \"dcommon.h\"")
+
 cpp_quote("#define WINCODEC_SDK_VERSION 0x0236")
 
 #define CODEC_FORCE_DWORD 0x7fffffff
@@ -146,6 +148,14 @@ typedef enum WICComponentEnumerateOptions {
     WICComponentEnumerateDisabled = 0x80000000
 } WICComponentEnumerateOptions;
 
+typedef enum WICJpegYCrCbSubsamplingOption {
+    WICJpegYCrCbSubsamplingDefault  = 0x00000000,
+    WICJpegYCrCbSubsampling420 = 0x00000001,
+    WICJpegYCrCbSubsampling422 = 0x00000002,
+    WICJpegYCrCbSubsampling444 = 0x00000003,
+    WICJpegYCrCbSubsampling440 = 0x00000004
+} WICJpegYCrCbSubsamplingOption;
+
 typedef enum WICPixelFormatNumericRepresentation {
     WICPixelFormatNumericRepresentationUnspecified = 0x00000000,
     WICPixelFormatNumericRepresentationIndexed = 0x00000001,
@@ -178,6 +188,12 @@ typedef enum WICPngFilterOption {
     WICPngFilterAdaptive = 6,
     WICPNFFILTEROPTION_FORCE_DWORD = CODEC_FORCE_DWORD
 } WICPngFilterOption;
+
+typedef enum WICSectionAccessLevel {
+    WICSectionAccessLevelRead = 0x00000001,
+    WICSectionAccessLevelReadWrite = 0x00000003,
+    WICSectionAccessLevel_FORCE_DWORD = CODEC_FORCE_DWORD
+} WICSectionAccessLevel;
 
 typedef GUID WICPixelFormatGUID;
 typedef REFGUID REFWICPixelFormatGUID;
@@ -215,6 +231,10 @@ cpp_quote("DEFINE_GUID(GUID_WICPixelFormat64bppPRGBA, 0x6fddc324,0x4e03,0x4bfe,0
 
 cpp_quote("DEFINE_GUID(GUID_WICPixelFormat32bppCMYK, 0x6fddc324,0x4e03,0x4bfe,0xb1,0x85,0x3d,0x77,0x76,0x8d,0xc9,0x1c);")
 
+cpp_quote("#if 0")
+typedef DWORD *D2D1_PIXEL_FORMAT;
+cpp_quote ("#endif")
+
 typedef struct WICRect {
     INT X;
     INT Y;
@@ -230,8 +250,21 @@ typedef struct WICBitmapPattern {
     BOOL EndOfStream;
 } WICBitmapPattern;
 
+typedef struct WICImageParameters
+{
+    D2D1_PIXEL_FORMAT PixelFormat;
+    FLOAT DpiX;
+    FLOAT DpiY;
+    FLOAT Top;
+    FLOAT Left;
+    UINT32 PixelWidth;
+    UINT32 PixelHeight;
+} WICImageParameters;
+
 typedef UINT32 WICColor;
 
+interface ID2D1Device;
+interface ID2D1Image;
 interface IWICPalette;
 
 [
@@ -842,7 +875,32 @@ interface IWICFastMetadataEncoder : IUnknown
         [out] IWICMetadataQueryWriter **ppIMetadataQueryWriter);
 }
 
-cpp_quote("DEFINE_GUID(CLSID_WICImagingFactory, 0xcacaf262,0x9370,0x4615,0xa1,0x3b,0x9f,0x55,0x39,0xda,0x4c,0x0a);")
+[
+    object,
+    uuid(04c75bf8-3ce1-473b-acc5-3cc4f5e94999),
+    local
+]
+interface IWICImageEncoder : IUnknown
+{
+    HRESULT WriteFrame(
+        [in] ID2D1Image *image,
+        [in] IWICBitmapFrameEncode *encode,
+        [in, unique] const WICImageParameters *parameters);
+
+    HRESULT WriteFrameThumbnail(
+        [in] ID2D1Image *image,
+        [in] IWICBitmapFrameEncode *encode,
+        [in, unique] const WICImageParameters *parameters);
+
+    HRESULT WriteThumbnail(
+        [in] ID2D1Image *image,
+        [in] IWICBitmapEncoder *encoder,
+        [in, unique] const WICImageParameters *parameters);
+}
+
+cpp_quote("DEFINE_GUID(CLSID_WICImagingFactory,  0xcacaf262,0x9370,0x4615,0xa1,0x3b,0x9f,0x55,0x39,0xda,0x4c,0x0a);")
+cpp_quote("DEFINE_GUID(CLSID_WICImagingFactory1, 0xcacaf262,0x9370,0x4615,0xa1,0x3b,0x9f,0x55,0x39,0xda,0x4c,0x0a);")
+cpp_quote("DEFINE_GUID(CLSID_WICImagingFactory2, 0x317d06e8,0x5f24,0x433d,0xbd,0xf7,0x79,0xce,0x68,0xd8,0xab,0xc2);")
 
 [
     object,
@@ -971,6 +1029,18 @@ interface IWICImagingFactory : IUnknown
 }
 
 [
+   object,
+   uuid(7b816b45-1996-4476-b132-de9e247c8af0),
+   local
+]
+interface IWICImagingFactory2 : IWICImagingFactory
+{
+    HRESULT CreateImageEncoder(
+        [in] ID2D1Device *device,
+        [out] IWICImageEncoder **encoder);
+}
+
+[
     local,
     object,
     uuid(dc2bb46d-3f07-481e-8625-220c4aedbb33)
@@ -994,6 +1064,12 @@ interface IWICEnumMetadataItem : IUnknown
 }
 
 cpp_quote("HRESULT WINAPI WICConvertBitmapSource(REFWICPixelFormatGUID dstFormat, IWICBitmapSource *pISrc, IWICBitmapSource **ppIDst);")
+cpp_quote("HRESULT WINAPI WICCreateBitmapFromSection(UINT width, UINT height, REFWICPixelFormatGUID format, HANDLE section, UINT stride, UINT offset, IWICBitmap **bitmap);")
+cpp_quote("HRESULT WINAPI WICCreateBitmapFromSectionEx(UINT width, UINT height, REFWICPixelFormatGUID format, HANDLE section, UINT stride, UINT offset, WICSectionAccessLevel access, IWICBitmap **bitmap);")
+
+cpp_quote("HRESULT WINAPI WICMapGuidToShortName(REFGUID,UINT,WCHAR *,UINT *);")
+cpp_quote("HRESULT WINAPI WICMapShortNameToGuid(PCWSTR,GUID *);")
+cpp_quote("HRESULT WINAPI WICMapSchemaToName(REFGUID,LPWSTR,UINT,WCHAR *,UINT *);")
 
 cpp_quote("DEFINE_GUID(CLSID_WICBmpDecoder, 0x6b462062,0x7cbf,0x400d,0x9f,0xdb,0x81,0x3d,0xd1,0x0f,0x27,0x78);")
 cpp_quote("DEFINE_GUID(CLSID_WICPngDecoder, 0x389ea17b,0x5078,0x4cde,0xb6,0xef,0x25,0xc1,0x51,0x75,0xc7,0x51);")

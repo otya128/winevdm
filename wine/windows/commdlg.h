@@ -65,6 +65,8 @@ extern "C" {
 #define OFN_DONTADDTORECENT          0x02000000
 #define OFN_FORCESHOWHIDDEN          0x10000000
 
+#define OFN_EX_NOPLACESBAR           0x00000001
+
 #define OFN_SHAREFALLTHROUGH     2
 #define OFN_SHARENOWARN          1
 #define OFN_SHAREWARN            0
@@ -180,10 +182,10 @@ typedef struct {
 	DWORD		lStructSize;
 	HWND		hwndOwner;
 	HWND		hInstance; /* Should be an HINSTANCE but MS made a typo */
-	DWORD	        rgbResult;
-	LPDWORD         lpCustColors;
+	COLORREF        rgbResult;
+	COLORREF       *lpCustColors;
 	DWORD 		Flags;
-	DWORD		lCustData;
+	LPARAM		lCustData;
         LPCCHOOKPROC    lpfnHook;
 	LPCSTR 		lpTemplateName;
 } CHOOSECOLORA;
@@ -193,10 +195,10 @@ typedef struct {
 	DWORD		lStructSize;
 	HWND		hwndOwner;
 	HWND		hInstance; /* Should be an HINSTANCE but MS made a typo */
-	DWORD	        rgbResult;
-	LPDWORD         lpCustColors;
+	COLORREF        rgbResult;
+	COLORREF       *lpCustColors;
 	DWORD 		Flags;
-	DWORD		lCustData;
+	LPARAM		lCustData;
         LPCCHOOKPROC    lpfnHook;
 	LPCWSTR 	lpTemplateName;
 } CHOOSECOLORW;

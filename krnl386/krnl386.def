@@ -156,6 +156,7 @@ EXPORTS
   GetCurrentTask @151
   GetDOSEnvironment16 @152
   GetExePtr @153
+  GetExeVersion16
   GetExpWinVer16 @154
   GetModuleHandle16 @155
   GlobalReAlloc16 @156

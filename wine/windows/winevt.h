@@ -53,6 +53,10 @@ typedef enum _EVT_CHANNEL_CONFIG_PROPERTY_ID {
     EvtChannelConfigPropertyIdEND
 } EVT_CHANNEL_CONFIG_PROPERTY_ID;
 
+typedef enum _EVT_LOGIN_CLASS {
+    EvtRpcLogin = 1
+} EVT_LOGIN_CLASS;
+
 typedef enum _EVT_SUBSCRIBE_NOTIFY_ACTION {
     EvtSubscribeActionError = 0,
     EvtSubscribeActionDeliver
@@ -110,7 +114,8 @@ typedef struct _EVT_VARIANT {
 
 typedef DWORD (WINAPI *EVT_SUBSCRIBE_CALLBACK)(EVT_SUBSCRIBE_NOTIFY_ACTION Action,
                                                PVOID UserContext, EVT_HANDLE Event);
-
+BOOL WINAPI EvtExportLog(EVT_HANDLE session, const WCHAR *path, const WCHAR *query,
+                         const WCHAR *file, DWORD flags);
 BOOL WINAPI EvtGetChannelConfigProperty(EVT_HANDLE ChannelConfig,
                                         EVT_CHANNEL_CONFIG_PROPERTY_ID PropertyId,
                                         DWORD Flags, DWORD PropertyValueBufferSize,

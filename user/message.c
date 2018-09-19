@@ -396,6 +396,7 @@ DWORD call_native_wndproc_context(CONTEXT *context)
 /*static*/ LRESULT call_window_proc16( HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
                                    LRESULT *result, void *arg )
 {
+    DPI_AWARENESS_CONTEXT awareness;
     WNDPROC16 func = arg;
     int index = winproc_to_index( func );
     CONTEXT context;
@@ -453,6 +454,7 @@ DWORD call_native_wndproc_context(CONTEXT *context)
     }
     PVOID old = getWOW32Reserved();
 
+    awareness = SetThreadDpiAwarenessContext( GetWindowDpiAwarenessContext( HWND_32(hwnd) ));
     args.params[4] = hwnd;
     args.params[3] = msg;
     args.params[2] = wParam;
@@ -462,6 +464,7 @@ DWORD call_native_wndproc_context(CONTEXT *context)
     //restore stack
     setWOW32Reserved(old);
     *result = MAKELONG( LOWORD(context.Eax), LOWORD(context.Edx) );
+    SetThreadDpiAwarenessContext( awareness );
     return *result;
 }
 

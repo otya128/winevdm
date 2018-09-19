@@ -148,25 +148,10 @@ SEGPTR CALL32_CBClientEx_RetAddr = 0;
 
 extern int call_entry_point( void *func, int nb_args, const DWORD *args );
 extern void __wine_call_from_16_thunk(void);
-DEFINE_REGS_ENTRYPOINT(FT_Prolog, 0)
-DEFINE_REGS_ENTRYPOINT(FT_PrologPrime, 0)
-DEFINE_REGS_ENTRYPOINT(QT_Thunk, 0)
-DEFINE_REGS_ENTRYPOINT(QT_ThunkPrime, 0)
-
-/* Push a DWORD on the 32-bit stack */
-static inline void stack32_push( CONTEXT *context, DWORD val )
-{
-    context->Esp -= sizeof(DWORD);
-    *(DWORD *)context->Esp = val;
-}
-
-/* Pop a DWORD from the 32-bit stack */
-static inline DWORD stack32_pop( CONTEXT *context )
-{
-    DWORD ret = *(DWORD *)context->Esp;
-    context->Esp += sizeof(DWORD);
-    return ret;
-}
+DEFINE_REGS_ENTRYPOINT( FT_Prolog )
+DEFINE_REGS_ENTRYPOINT( FT_PrologPrime )
+DEFINE_REGS_ENTRYPOINT( QT_Thunk )
+DEFINE_REGS_ENTRYPOINT( QT_ThunkPrime )
 
 /***********************************************************************
  *                                                                     *
@@ -187,33 +172,21 @@ void WINAPI LogApiThk( LPSTR func )
  *
  * NOTE: needs to preserve all registers!
  */
-void WINAPI __regs_LogApiThkLSF( LPSTR func, CONTEXT *context )
-{
-    TRACE( "%s\n", debugstr_a(func) );
-}
-DEFINE_REGS_ENTRYPOINT( LogApiThkLSF, 1 )
+__ASM_STDCALL_FUNC( LogApiThkLSF, 4, "ret $4" )
 
 /***********************************************************************
  *           LogApiThkSL    (KERNEL32.44)
  *
  * NOTE: needs to preserve all registers!
  */
-void WINAPI __regs_LogApiThkSL( LPSTR func, CONTEXT *context )
-{
-    TRACE( "%s\n", debugstr_a(func) );
-}
-DEFINE_REGS_ENTRYPOINT( LogApiThkSL, 1 )
+__ASM_STDCALL_FUNC( LogApiThkSL, 4, "ret $4" )
 
 /***********************************************************************
  *           LogCBThkSL    (KERNEL32.47)
  *
  * NOTE: needs to preserve all registers!
  */
-void WINAPI __regs_LogCBThkSL( LPSTR func, CONTEXT *context )
-{
-    TRACE( "%s\n", debugstr_a(func) );
-}
-DEFINE_REGS_ENTRYPOINT( LogCBThkSL, 1 )
+__ASM_STDCALL_FUNC( LogCBThkSL, 4, "ret $4" )
 
 /***********************************************************************
  * Generates a FT_Prolog call.
@@ -618,7 +591,7 @@ void WINAPI __regs_FT_Thunk( CONTEXT *context )
     /* Copy modified buffers back to 32-bit stack */
     memcpy( oldstack, newstack, argsize );
 }
-DEFINE_REGS_ENTRYPOINT( FT_Thunk, 0 )
+DEFINE_REGS_ENTRYPOINT( FT_Thunk )
 
 /***********************************************************************
  *		FT_Exit0 (KERNEL32.@)
@@ -769,7 +742,7 @@ void WINAPI __regs_Common32ThkLS( CONTEXT *context )
     /* Clean up caller's stack frame */
     context->Esp += LOBYTE(context16.Ebx);
 }
-DEFINE_REGS_ENTRYPOINT( Common32ThkLS, 0 )
+DEFINE_REGS_ENTRYPOINT( Common32ThkLS )
 
 /***********************************************************************
  *		OT_32ThkLSF	(KERNEL32.40)
@@ -824,7 +797,7 @@ void WINAPI __regs_OT_32ThkLSF( CONTEXT *context )
     context->Esp +=   LOWORD(context16.Esp) -
                         ( OFFSETOF(getWOW32Reserved()) - argsize );
 }
-DEFINE_REGS_ENTRYPOINT( OT_32ThkLSF, 0 )
+DEFINE_REGS_ENTRYPOINT( OT_32ThkLSF )
 
 /***********************************************************************
  *		ThunkInitLSF		(KERNEL32.41)
@@ -1058,7 +1031,7 @@ void WINAPI __regs_W32S_BackTo32( CONTEXT *context )
     context->Eax = call_entry_point( proc, 10, stack + 1 );
     context->Eip = stack32_pop(context);
 }
-DEFINE_REGS_ENTRYPOINT( W32S_BackTo32, 0 )
+DEFINE_REGS_ENTRYPOINT( W32S_BackTo32 )
 
 /**********************************************************************
  *			AllocSLCallback		(KERNEL32.@)
@@ -1173,7 +1146,7 @@ void WINAPI __regs_AllocMappedBuffer(
         context->Edi = (DWORD)(buffer + 2);
     }
 }
-DEFINE_REGS_ENTRYPOINT( AllocMappedBuffer, 0 )
+DEFINE_REGS_ENTRYPOINT( AllocMappedBuffer )
 
 /**********************************************************************
  * 		FreeMappedBuffer	(KERNEL32.39)
@@ -1196,7 +1169,7 @@ void WINAPI __regs_FreeMappedBuffer(
         GlobalFree((HGLOBAL)buffer[0]);
     }
 }
-DEFINE_REGS_ENTRYPOINT( FreeMappedBuffer, 0 )
+DEFINE_REGS_ENTRYPOINT( FreeMappedBuffer )
 
 /**********************************************************************
  * 		GetTEBSelectorFS	(KERNEL.475)
@@ -1302,7 +1275,7 @@ void WINAPI __regs_K32Thk1632Prolog( CONTEXT *context )
        been called.  Thus we re-use it to hold the Win16Lock count */
    ReleaseThunkLock(&CURRENT_STACK16->entry_point);
 }
-DEFINE_REGS_ENTRYPOINT( K32Thk1632Prolog, 0 )
+DEFINE_REGS_ENTRYPOINT( K32Thk1632Prolog )
 
 /***********************************************************************
  *           K32Thk1632Epilog			(KERNEL32.@)
@@ -1337,7 +1310,7 @@ void WINAPI __regs_K32Thk1632Epilog( CONTEXT *context )
             context->Ebp, context->Esp, getWOW32Reserved());
    }
 }
-DEFINE_REGS_ENTRYPOINT( K32Thk1632Epilog, 0 )
+DEFINE_REGS_ENTRYPOINT( K32Thk1632Epilog )
 
 /*********************************************************************
  *                   PK16FNF [KERNEL32.91]
@@ -2132,22 +2105,37 @@ LPVOID WINAPI GetPK16SysVar(void)
 /**********************************************************************
  *           CommonUnimpStub    (KERNEL32.17)
  */
-void WINAPI __regs_CommonUnimpStub( CONTEXT *context )
+int WINAPI DECLSPEC_HIDDEN __regs_CommonUnimpStub( const char *name, int type )
 {
-    FIXME("generic stub: %s\n", ((LPSTR)context->Eax ? (LPSTR)context->Eax : "?"));
+    FIXME("generic stub %s\n", debugstr_a(name));
 
-    switch ((context->Ecx >> 4) & 0x0f)
+    switch (type)
     {
-    case 15:  context->Eax = -1;   break;
-    case 14:  context->Eax = 0x78; break;
-    case 13:  context->Eax = 0x32; break;
-    case 1:   context->Eax = 1;    break;
-    default:  context->Eax = 0;    break;
+    case 15:  return -1;
+    case 14:  return ERROR_CALL_NOT_IMPLEMENTED;
+    case 13:  return ERROR_NOT_SUPPORTED;
+    case 1:   return 1;
+    default:  return 0;
     }
-
-    context->Esp += (context->Ecx & 0x0f) * 4;
 }
-DEFINE_REGS_ENTRYPOINT( CommonUnimpStub, 0 )
+__ASM_STDCALL_FUNC( CommonUnimpStub, 0,
+                    "pushl %ecx\n\t"
+                    __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")
+                    "shrl $4,%ecx\n\t"
+                    "andl $0xf,%ecx\n\t"
+                    "pushl %ecx\n\t"
+                    __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")
+                    "pushl %eax\n\t"
+                    __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")
+                    "call " __ASM_NAME("__regs_CommonUnimpStub") __ASM_STDCALL(8) "\n\t"
+                    __ASM_CFI(".cfi_adjust_cfa_offset -8\n\t")
+                    "popl %ecx\n\t"
+                    __ASM_CFI(".cfi_adjust_cfa_offset -4\n\t")
+                    "andl $0xf,%ecx\n\t"
+                    "movl (%esp),%edx\n\t"
+                    "leal (%esp,%ecx,4),%esp\n\t"
+                    "movl %edx,(%esp)\n\t"
+                    "ret" )
 
 /**********************************************************************
  *           HouseCleanLogicallyDeadHandles    (KERNEL32.33)

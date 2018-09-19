@@ -30,6 +30,8 @@
 
 #include "wine/debug.h"
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
 
 /**************************************************/
@@ -154,7 +156,7 @@ void CALLBACK MACRO_About(void)
     WCHAR name[256];
     HICON icon = LoadImageW( Globals.hInstance, MAKEINTRESOURCEW(IDI_WINHELP),
                              IMAGE_ICON, 48, 48, LR_SHARED );
-    LoadStringW( Globals.hInstance, STID_WINE_HELP, name, sizeof(name)/sizeof(WCHAR) );
+    LoadStringW( Globals.hInstance, STID_WINE_HELP, name, ARRAY_SIZE( name ));
     ShellAboutW( MACRO_CurrentWindow()->hMainWnd, name, NULL, icon );
 }
 

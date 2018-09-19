@@ -21,10 +21,15 @@
 
 #include <ntddndis.h>
 
+#ifndef ANY_SIZE
+#define ANY_SIZE 1
+#endif
+
 typedef enum _MIB_IF_TABLE_LEVEL
 {
     MibIfTableNormal,
-    MibIfTableRaw
+    MibIfTableRaw,
+    MibIfTableNormalWithoutStatistics,
 } MIB_IF_TABLE_LEVEL, *PMIB_IF_TABLE_LEVEL;
 
 typedef enum _MIB_NOTIFICATION_TYPE
@@ -157,6 +162,37 @@ typedef struct _MIB_UNICASTIPADDRESS_TABLE
     MIB_UNICASTIPADDRESS_ROW Table[1];
 } MIB_UNICASTIPADDRESS_TABLE, *PMIB_UNICASTIPADDRESS_TABLE;
 
+typedef struct _IP_ADDRESS_PREFIX
+{
+    SOCKADDR_INET Prefix;
+    UINT8         PrefixLength;
+} IP_ADDRESS_PREFIX, *PIP_ADDRESS_PREFIX;
+
+typedef struct _MIB_IPFORWARD_ROW2
+{
+    NET_LUID          InterfaceLuid;
+    NET_IFINDEX       InterfaceIndex;
+    IP_ADDRESS_PREFIX DestinationPrefix;
+    SOCKADDR_INET     NextHop;
+    UCHAR             SitePrefixLength;
+    ULONG             ValidLifetime;
+    ULONG             PreferredLifetime;
+    ULONG             Metric;
+    NL_ROUTE_PROTOCOL Protocol;
+    BOOLEAN           Loopback;
+    BOOLEAN           AutoconfigureAddress;
+    BOOLEAN           Publish;
+    BOOLEAN           Immortal;
+    ULONG             Age;
+    NL_ROUTE_ORIGIN   Origin;
+} MIB_IPFORWARD_ROW2, *PMIB_IPFORWARD_ROW2;
+
+typedef struct _MIB_IPFORWARD_TABLE2
+{
+    ULONG              NumEntries;
+    MIB_IPFORWARD_ROW2 Table[ANY_SIZE];
+} MIB_IPFORWARD_TABLE2, *PMIB_IPFORWARD_TABLE2;
+
 typedef VOID (WINAPI *PIPINTERFACE_CHANGE_CALLBACK)(PVOID, PMIB_IPINTERFACE_ROW,
                                                     MIB_NOTIFICATION_TYPE);
 typedef VOID (WINAPI *PUNICAST_IPADDRESS_CHANGE_CALLBACK)(PVOID, PMIB_UNICASTIPADDRESS_ROW,
@@ -170,9 +206,12 @@ DWORD WINAPI ConvertInterfaceLuidToNameA(const NET_LUID*,char*,SIZE_T);
 DWORD WINAPI ConvertInterfaceLuidToNameW(const NET_LUID*,WCHAR*,SIZE_T);
 DWORD WINAPI ConvertInterfaceNameToLuidA(const char*,NET_LUID*);
 DWORD WINAPI ConvertInterfaceNameToLuidW(const WCHAR*,NET_LUID*);
+DWORD WINAPI ConvertLengthToIpv4Mask(ULONG,ULONG*);
 void WINAPI FreeMibTable(void*);
 DWORD WINAPI GetIfEntry2(MIB_IF_ROW2*);
 DWORD WINAPI GetIfTable2(MIB_IF_TABLE2**);
 DWORD WINAPI GetUnicastIpAddressEntry(MIB_UNICASTIPADDRESS_ROW*);
+PCHAR WINAPI if_indextoname(NET_IFINDEX,PCHAR);
+NET_IFINDEX WINAPI if_nametoindex(PCSTR);
 
 #endif /* __WINE_NETIOAPI_H */

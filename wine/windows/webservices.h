@@ -56,6 +56,7 @@ typedef struct _WS_OPERATION_DESCRIPTION WS_OPERATION_DESCRIPTION;
 typedef struct _WS_PARAMETER_DESCRIPTION WS_PARAMETER_DESCRIPTION;
 typedef struct _WS_OPERATION_CONTEXT WS_OPERATION_CONTEXT;
 typedef struct _WS_CALL_PROPERTY WS_CALL_PROPERTY;
+typedef struct _WS_FLOAT_DESCRIPTION WS_FLOAT_DESCRIPTION;
 typedef struct _WS_DOUBLE_DESCRIPTION WS_DOUBLE_DESCRIPTION;
 typedef struct _WS_DATETIME WS_DATETIME;
 typedef struct _WS_XML_DATETIME_TEXT WS_XML_DATETIME_TEXT;
@@ -423,6 +424,13 @@ typedef struct _WS_XML_STRING_DESCRIPTION {
     ULONG maxByteCount;
 } WS_XML_STRING_DESCRIPTION;
 
+typedef struct _WS_XML_QNAME_DESCRIPTION {
+    ULONG minLocalNameByteCount;
+    ULONG maxLocalNameByteCount;
+    ULONG minNsByteCount;
+    ULONG maxNsByteCount;
+} WS_XML_QNAME_DESCRIPTION;
+
 struct _WS_ENUM_VALUE {
     int value;
     WS_XML_STRING *name;
@@ -433,6 +441,11 @@ struct _WS_ENUM_DESCRIPTION {
     ULONG valueCount;
     ULONG maxByteCount;
     ULONG *nameIndices;
+};
+
+struct _WS_FLOAT_DESCRIPTION {
+    float minValue;
+    float maxValue;
 };
 
 struct _WS_DOUBLE_DESCRIPTION {
@@ -523,6 +536,21 @@ typedef struct _WS_STRUCT_DESCRIPTION {
     ULONG subTypeCount;
     ULONG structOptions;
 } WS_STRUCT_DESCRIPTION;
+
+typedef struct _WS_UNION_FIELD_DESCRIPTION {
+    int value;
+    WS_FIELD_DESCRIPTION field;
+} WS_UNION_FIELD_DESCRIPTION;
+
+typedef struct _WS_UNION_DESCRIPTION {
+    ULONG size;
+    ULONG alignment;
+    WS_UNION_FIELD_DESCRIPTION **fields;
+    ULONG fieldCount;
+    ULONG enumOffset;
+    int noneEnumValue;
+    ULONG *valueIndices;
+} WS_UNION_DESCRIPTION;
 
 typedef struct _WS_ATTRIBUTE_DESCRIPTION {
     WS_XML_STRING *attributeLocalName;
@@ -632,6 +660,11 @@ typedef struct _WS_XML_UINT64_TEXT {
     unsigned __int64 DECLSPEC_ALIGN(8) value;
 } WS_XML_UINT64_TEXT;
 
+typedef struct _WS_XML_FLOAT_TEXT {
+    WS_XML_TEXT text;
+    float value;
+} WS_XML_FLOAT_TEXT;
+
 typedef struct _WS_XML_DOUBLE_TEXT {
     WS_XML_TEXT text;
     double DECLSPEC_ALIGN(8) value;
@@ -646,6 +679,13 @@ typedef struct _WS_XML_UNIQUE_ID_TEXT {
     WS_XML_TEXT text;
     GUID value;
 } WS_XML_UNIQUE_ID_TEXT;
+
+typedef struct _WS_XML_QNAME_TEXT {
+    WS_XML_TEXT text;
+    WS_XML_STRING *prefix;
+    WS_XML_STRING *localName;
+    WS_XML_STRING *ns;
+} WS_XML_QNAME_TEXT;
 
 typedef enum {
     WS_BOOL_VALUE_TYPE,
@@ -699,6 +739,11 @@ typedef struct _WS_XML_NODE_POSITION {
     WS_XML_BUFFER *buffer;
     void *node;
 } WS_XML_NODE_POSITION;
+
+typedef struct _WS_XML_QNAME {
+    WS_XML_STRING localName;
+    WS_XML_STRING ns;
+} WS_XML_QNAME;
 
 typedef enum {
     WS_SERVICE_PROXY_STATE_CREATED,
@@ -1647,6 +1692,7 @@ HRESULT WINAPI WsReadToStartElement(WS_XML_READER*, const WS_XML_STRING*, const 
 HRESULT WINAPI WsReadType(WS_XML_READER*, WS_TYPE_MAPPING, WS_TYPE, const void*, WS_READ_OPTION,
                           WS_HEAP*, void*, ULONG, WS_ERROR*);
 HRESULT WINAPI WsReadValue(WS_XML_READER*, WS_VALUE_TYPE, void*, ULONG, WS_ERROR*);
+HRESULT WINAPI WsReadXmlBuffer(WS_XML_READER*, WS_HEAP*, WS_XML_BUFFER**, WS_ERROR*);
 HRESULT WINAPI WsReceiveMessage(WS_CHANNEL*, WS_MESSAGE*, const WS_MESSAGE_DESCRIPTION**, ULONG,
                                 WS_RECEIVE_OPTION, WS_READ_OPTION, WS_HEAP*, void*, ULONG, ULONG*,
                                 const WS_ASYNC_CONTEXT*, WS_ERROR*);
@@ -1686,6 +1732,7 @@ HRESULT WINAPI WsSetOutputToBuffer(WS_XML_WRITER*, WS_XML_BUFFER*, const WS_XML_
                                    ULONG, WS_ERROR*);
 HRESULT WINAPI WsSetReaderPosition(WS_XML_READER*, const WS_XML_NODE_POSITION*, WS_ERROR*);
 HRESULT WINAPI WsSetWriterPosition(WS_XML_WRITER*, const WS_XML_NODE_POSITION*, WS_ERROR*);
+HRESULT WINAPI WsShutdownSessionChannel(WS_CHANNEL*, const WS_ASYNC_CONTEXT*, WS_ERROR*);
 HRESULT WINAPI WsSkipNode(WS_XML_READER*, WS_ERROR*);
 HRESULT WINAPI WsWriteArray(WS_XML_WRITER*, const WS_XML_STRING*, const WS_XML_STRING*, WS_VALUE_TYPE,
                             const void*, ULONG, ULONG, ULONG, WS_ERROR*);

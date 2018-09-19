@@ -86,7 +86,10 @@ cpp_quote("#define DXVA2_ModeVC1_VLD           DXVA2_ModeVC1_D")
 /* Encryption */
 cpp_quote("DEFINE_GUID(DXVA_NoEncrypt,         0x1b81bed0, 0xa0c7,0x11d3, 0xb9,0x84,0x00,0xc0,0x4f,0x2e,0x73,0xc5);")
 
+cpp_quote("#ifndef REFERENCE_TIME_DEFINED")
+cpp_quote("#define REFERENCE_TIME_DEFINED")
 typedef LONGLONG REFERENCE_TIME;
+cpp_quote("#endif")
 
 enum
 {
@@ -292,6 +295,13 @@ typedef struct _DXVA2_VideoSample
     DWORD SampleData;
 } DXVA2_VideoSample;
 
+typedef enum
+{
+    DXVA2_SurfaceType_DecoderRenderTarget,
+    DXVA2_SurfaceType_ProcessorRenderTarget,
+    DXVA2_SurfaceType_D3DRenderTargetTexture,
+} DXVA2_SurfaceType;
+
 interface IDirectXVideoDecoder;
 interface IDirectXVideoProcessor;
 
@@ -331,7 +341,7 @@ interface IDirect3DDeviceManager9 : IUnknown
         [in] HANDLE hDevice,
         [in] REFIID riid,
         [out] void** ppService);
-};
+}
 
 /*****************************************************************************
  * IDirectXVideoAccelerationService interface
@@ -353,7 +363,7 @@ interface IDirectXVideoAccelerationService : IUnknown
         [in] DWORD dxvaType,
         [out] IDirect3DSurface9 **ppSurface,
         [in, out] HANDLE *pSharedHandle);
-};
+}
 
 /*****************************************************************************
  * IDirectXVideoDecoderService interface
@@ -388,7 +398,7 @@ interface IDirectXVideoDecoderService : IDirectXVideoAccelerationService
         [in] IDirect3DSurface9 **ppDecoderRenderTargets,
         [in] UINT NumSurfaces,
         [out] IDirectXVideoDecoder **ppDecode);
-};
+}
 
 /*****************************************************************************
  * IDirectXVideoDecoder interface
@@ -427,7 +437,7 @@ interface IDirectXVideoDecoder : IUnknown
 
     HRESULT Execute(
         [in] const DXVA2_DecodeExecuteParams* pExecuteParams);
-};
+}
 
 /*****************************************************************************
  * IDirectXVideoProcessorService interface
@@ -486,7 +496,7 @@ interface IDirectXVideoProcessorService : IDirectXVideoAccelerationService
         [in] D3DFORMAT RenderTargetFormat,
         [in] UINT MaxNumSubStreams,
         [out] IDirectXVideoProcessor** ppVidProcess);
-};
+}
 
 /*****************************************************************************
  * IDirectXVideoProcessor interface
@@ -524,4 +534,22 @@ interface IDirectXVideoProcessor : IUnknown
         [in] const DXVA2_VideoSample* pSamples,
         [in] UINT NumSamples,
         [out] HANDLE* pHandleCompleteIDirect3DDeviceManager9);
-};
+}
+
+/*****************************************************************************
+ * IDirectXVideoMemoryConfiguration interface
+ */
+[
+    object,
+    uuid(b7f916dd-db3b-49c1-84d7-e45ef99ec726),
+    local
+]
+interface IDirectXVideoMemoryConfiguration : IUnknown
+{
+    HRESULT GetAvailableSurfaceTypeByIndex(
+        [in] DWORD wTypeIndex,
+        [out] DXVA2_SurfaceType *pdwType);
+
+    HRESULT SetSurfaceType(
+        [in] DXVA2_SurfaceType dwType);
+}

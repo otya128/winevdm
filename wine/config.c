@@ -330,6 +330,16 @@ static int is_valid_bindir( const char *bindir )
     return ret;
 }
 
+/* check if dlldir is valid by checking for ntdll */
+static int is_valid_dlldir( const char *dlldir )
+{
+    struct stat st;
+    char *path = build_path( dlldir, "ntdll.dll.so" );
+    int ret = (stat( path, &st ) != -1);
+    free( path );
+    return ret;
+}
+
 /* check if basedir is a valid build dir by checking for wineserver and ntdll */
 /* helper for running_from_build_dir */
 static inline int is_valid_build_dir( char *basedir, int baselen )
@@ -374,54 +384,68 @@ static char *running_from_build_dir( const char *basedir )
     return path;
 }
 
+/* try to set the specified directory as bindir, or set build_dir if it's inside the build directory */
+static int set_bindir( char *dir )
+{
+    if (!dir) return 0;
+    if (is_valid_bindir( dir ))
+    {
+        bindir = dir;
+        dlldir = build_path( bindir, BIN_TO_DLLDIR );
+    }
+    else
+    {
+        build_dir = running_from_build_dir( dir );
+        free( dir );
+    }
+    return bindir || build_dir;
+}
+
+/* try to set the specified directory as dlldir, or set build_dir if it's inside the build directory */
+static int set_dlldir( char *libdir )
+{
+    char *path;
+
+    if (!libdir) return 0;
+
+    path = build_path( libdir, LIB_TO_DLLDIR );
+    if (is_valid_dlldir( path ))
+    {
+        dlldir = path;
+        bindir = build_path( libdir, LIB_TO_BINDIR );
+    }
+    else
+    {
+        build_dir = running_from_build_dir( libdir );
+        free( path );
+    }
+    free( libdir );
+    return dlldir || build_dir;
+}
+
 /* initialize the argv0 path */
 void wine_init_argv0_path( const char *argv0 )
 {
-    const char *basename;
-    char *libdir;
+    const char *basename, *wineloader;
 
     if (!(basename = strrchr( argv0, '/' ))) basename = argv0;
     else basename++;
 
-    bindir = get_runtime_exedir();
-    if (bindir && !is_valid_bindir( bindir ))
-    {
-        build_dir = running_from_build_dir( bindir );
-        free( bindir );
-        bindir = NULL;
-    }
+    if (set_bindir( get_runtime_exedir() )) goto done;
+    if (set_dlldir( get_runtime_libdir() )) goto done;
+    if (set_bindir( get_runtime_argvdir( argv0 ))) goto done;
+    if ((wineloader = getenv( "WINELOADER" ))) set_bindir( get_runtime_argvdir( wineloader ));
 
-    libdir = get_runtime_libdir();
-    if (libdir && !bindir && !build_dir)
-    {
-        build_dir = running_from_build_dir( libdir );
-        if (!build_dir) bindir = build_path( libdir, LIB_TO_BINDIR );
-    }
-
-    if (!libdir && !bindir && !build_dir)
-    {
-        bindir = get_runtime_argvdir( argv0 );
-        if (bindir && !is_valid_bindir( bindir ))
-        {
-            build_dir = running_from_build_dir( bindir );
-            free( bindir );
-            bindir = NULL;
-        }
-    }
-
+done:
     if (build_dir)
     {
         argv0_name = build_path( "loader/", basename );
     }
     else
     {
-        if (libdir) dlldir = build_path( libdir, LIB_TO_DLLDIR );
-        else if (bindir) dlldir = build_path( bindir, BIN_TO_DLLDIR );
-
         if (bindir) datadir = build_path( bindir, BIN_TO_DATADIR );
         argv0_name = xstrdup( basename );
     }
-    free( libdir );
 }
 
 /* return the configuration directory ($WINEPREFIX or $HOME/.wine) */

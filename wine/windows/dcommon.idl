@@ -16,10 +16,15 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef __WINE_DCOMMON_H
-#define __WINE_DCOMMON_H
+import "dxgiformat.idl";
 
-#include "dxgiformat.h"
+cpp_quote("#if 0")
+typedef struct
+{
+    long x, y;
+} POINT;
+typedef unsigned int UINT32;
+cpp_quote("#endif")
 
 typedef enum DWRITE_MEASURING_MODE
 {
@@ -45,8 +50,8 @@ typedef struct D2D1_PIXEL_FORMAT
 
 typedef struct D2D_POINT_2F
 {
-    FLOAT x;
-    FLOAT y;
+    float x;
+    float y;
 } D2D_POINT_2F, D2D1_POINT_2F;
 
 typedef POINT D2D_POINT_2L, D2D1_POINT_2L;
@@ -57,4 +62,18 @@ typedef struct D2D_SIZE_U
     UINT32 height;
 } D2D_SIZE_U, D2D1_SIZE_U;
 
-#endif /* __WINE_DCOMMON_H */
+typedef struct D2D_MATRIX_4X4_F
+{
+    union
+    {
+        struct
+        {
+            float _11, _12, _13, _14;
+            float _21, _22, _23, _24;
+            float _31, _32, _33, _34;
+            float _41, _42, _43, _44;
+        };
+
+        float m[4][4];
+    };
+} D2D_MATRIX_4X4_F;

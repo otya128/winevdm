@@ -58,22 +58,46 @@ typedef LONG NTSTATUS;
 #define BCRYPT_PROVIDER_HANDLE (const WCHAR []){'P','r','o','v','i','d','e','r','H','a','n','d','l','e',0}
 #define BCRYPT_SIGNATURE_LENGTH (const WCHAR []){'S','i','g','n','a','t','u','r','e','L','e','n','g','t','h',0}
 
+#define BCRYPT_OPAQUE_KEY_BLOB   (const WCHAR []){'O','p','a','q','u','e','K','e','y','B','l','o','b',0}
+#define BCRYPT_KEY_DATA_BLOB     (const WCHAR []){'K','e','y','D','a','t','a','B','l','o','b',0}
+#define BCRYPT_AES_WRAP_KEY_BLOB (const WCHAR []){'R','f','c','3','5','6','5','K','e','y','W','r','a','p','B','l','o','b',0}
+#define BCRYPT_ECCPUBLIC_BLOB    (const WCHAR []){'E','C','C','P','U','B','L','I','C','B','L','O','B',0}
+#define BCRYPT_ECCPRIVATE_BLOB   (const WCHAR []){'E','C','C','P','R','I','V','A','T','E','B','L','O','B',0}
+#define BCRYPT_RSAPUBLIC_BLOB    (const WCHAR []){'R','S','A','P','U','B','L','I','C','B','L','O','B',0}
+#define BCRYPT_RSAPRIVATE_BLOB   (const WCHAR []){'R','S','A','P','R','I','V','A','T','E','B','L','O','B',0}
+
 #define MS_PRIMITIVE_PROVIDER (const WCHAR [])\
     {'M','i','c','r','o','s','o','f','t',' ','P','r','i','m','i','t','i','v','e',' ','P','r','o','v','i','d','e','r',0}
 #define MS_PLATFORM_CRYPTO_PROVIDER (const WCHAR [])\
     {'M','i','c','r','o','s','o','f','t',' ','P','l','a','t','f','o','r','m',' ','C','r','y','p','t','o',' ','P','r','o','v','i','d','e','r',0}
 
 #define BCRYPT_AES_ALGORITHM        (const WCHAR []){'A','E','S',0}
+#define BCRYPT_MD2_ALGORITHM        (const WCHAR []){'M','D','2',0}
+#define BCRYPT_MD4_ALGORITHM        (const WCHAR []){'M','D','4',0}
 #define BCRYPT_MD5_ALGORITHM        (const WCHAR []){'M','D','5',0}
 #define BCRYPT_RNG_ALGORITHM        (const WCHAR []){'R','N','G',0}
+#define BCRYPT_RSA_ALGORITHM        (const WCHAR []){'R','S','A',0}
 #define BCRYPT_SHA1_ALGORITHM       (const WCHAR []){'S','H','A','1',0}
 #define BCRYPT_SHA256_ALGORITHM     (const WCHAR []){'S','H','A','2','5','6',0}
 #define BCRYPT_SHA384_ALGORITHM     (const WCHAR []){'S','H','A','3','8','4',0}
 #define BCRYPT_SHA512_ALGORITHM     (const WCHAR []){'S','H','A','5','1','2',0}
+#define BCRYPT_ECDSA_P256_ALGORITHM (const WCHAR []){'E','C','D','S','A','_','P','2','5','6',0}
+#define BCRYPT_ECDSA_P384_ALGORITHM (const WCHAR []){'E','C','D','S','A','_','P','3','8','4',0}
+#define BCRYPT_ECDSA_P521_ALGORITHM (const WCHAR []){'E','C','D','S','A','_','P','5','2','1',0}
 
 #define BCRYPT_CHAIN_MODE_NA        (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','N','/','A',0}
 #define BCRYPT_CHAIN_MODE_CBC       (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','C','B','C',0}
 #define BCRYPT_CHAIN_MODE_ECB       (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','E','C','B',0}
+#define BCRYPT_CHAIN_MODE_CFB       (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','C','F','B',0}
+#define BCRYPT_CHAIN_MODE_CCM       (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','C','C','M',0}
+#define BCRYPT_CHAIN_MODE_GCM       (const WCHAR []){'C','h','a','i','n','i','n','g','M','o','d','e','G','C','M',0}
+
+#define BCRYPT_ECDSA_PUBLIC_P256_MAGIC  0x31534345
+#define BCRYPT_ECDSA_PRIVATE_P256_MAGIC 0x32534345
+#define BCRYPT_ECDSA_PUBLIC_P384_MAGIC  0x33534345
+#define BCRYPT_ECDSA_PRIVATE_P384_MAGIC 0x34534345
+#define BCRYPT_ECDSA_PUBLIC_P521_MAGIC  0x35534345
+#define BCRYPT_ECDSA_PRIVATE_P521_MAGIC 0x36534345
 
 typedef struct _BCRYPT_ALGORITHM_IDENTIFIER
 {
@@ -81,6 +105,99 @@ typedef struct _BCRYPT_ALGORITHM_IDENTIFIER
     ULONG  dwClass;
     ULONG  dwFlags;
 } BCRYPT_ALGORITHM_IDENTIFIER;
+
+typedef struct __BCRYPT_KEY_LENGTHS_STRUCT
+{
+    ULONG dwMinLength;
+    ULONG dwMaxLength;
+    ULONG dwIncrement;
+} BCRYPT_KEY_LENGTHS_STRUCT, BCRYPT_AUTH_TAG_LENGTHS_STRUCT;
+
+typedef struct _BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO
+{
+    ULONG cbSize;
+    ULONG dwInfoVersion;
+    UCHAR *pbNonce;
+    ULONG cbNonce;
+    UCHAR *pbAuthData;
+    ULONG cbAuthData;
+    UCHAR *pbTag;
+    ULONG cbTag;
+    UCHAR *pbMacContext;
+    ULONG cbMacContext;
+    ULONG cbAAD;
+    ULONGLONG cbData;
+    ULONG dwFlags;
+} BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO, *PBCRYPT_AUTHENTICATED_CIPHER_MODE_INFO;
+
+typedef struct _BCRYPT_ECCKEY_BLOB
+{
+    ULONG dwMagic;
+    ULONG cbKey;
+} BCRYPT_ECCKEY_BLOB, *PBCRYPT_ECCKEY_BLOB;
+
+#define BCRYPT_RSAPUBLIC_MAGIC      0x31415352
+#define BCRYPT_RSAPRIVATE_MAGIC     0x32415352
+#define BCRYPT_RSAFULLPRIVATE_MAGIC 0x33415352
+
+typedef struct _BCRYPT_RSAKEY_BLOB
+{
+    ULONG Magic;
+    ULONG BitLength;
+    ULONG cbPublicExp;
+    ULONG cbModulus;
+    ULONG cbPrime1;
+    ULONG cbPrime2;
+} BCRYPT_RSAKEY_BLOB;
+
+typedef struct _BCRYPT_PKCS1_PADDING_INFO
+{
+    LPCWSTR pszAlgId;
+} BCRYPT_PKCS1_PADDING_INFO;
+
+#define BCRYPT_PAD_NONE                     0x00000001
+#define BCRYPT_PAD_PKCS1                    0x00000002
+#define BCRYPT_PAD_OAEP                     0x00000004
+#define BCRYPT_PAD_PSS                      0x00000008
+#define BCRYPT_PAD_PKCS1_OPTIONAL_HASH_OID  0x00000010
+
+#define BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO_VERSION 1
+
+#define BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG 0x00000001
+#define BCRYPT_AUTH_MODE_IN_PROGRESS_FLAG 0x00000002
+
+typedef struct _CRYPT_INTERFACE_REG
+{
+    ULONG dwInterface;
+    ULONG dwFlags;
+    ULONG cFunctions;
+    PWSTR *rgpszFunctions;
+} CRYPT_INTERFACE_REG, *PCRYPT_INTERFACE_REG;
+
+typedef struct _CRYPT_IMAGE_REG
+{
+    PWSTR pszImage;
+    ULONG cInterfaces;
+    PCRYPT_INTERFACE_REG *rgpInterfaces;
+} CRYPT_IMAGE_REG, *PCRYPT_IMAGE_REG;
+
+typedef struct _CRYPT_PROVIDER_REG
+{
+    ULONG cAliases;
+    PWSTR *rgpszAliases;
+    PCRYPT_IMAGE_REG pUM;
+    PCRYPT_IMAGE_REG pKM;
+} CRYPT_PROVIDER_REG, *PCRYPT_PROVIDER_REG;
+
+typedef struct _BCRYPT_KEY_DATA_BLOB_HEADER
+{
+    ULONG dwMagic;
+    ULONG dwVersion;
+    ULONG cbKeyData;
+} BCRYPT_KEY_DATA_BLOB_HEADER, *PBCRYPT_KEY_DATA_BLOB_HEADER;
+
+#define BCRYPT_KEY_DATA_BLOB_MAGIC    0x4d42444b
+#define BCRYPT_KEY_DATA_BLOB_VERSION1 1
 
 typedef PVOID BCRYPT_ALG_HANDLE;
 typedef PVOID BCRYPT_KEY_HANDLE;
@@ -111,7 +228,10 @@ NTSTATUS WINAPI BCryptGetFipsAlgorithmMode(BOOLEAN *);
 NTSTATUS WINAPI BCryptGetProperty(BCRYPT_HANDLE, LPCWSTR, PUCHAR, ULONG, ULONG *, ULONG);
 NTSTATUS WINAPI BCryptHash(BCRYPT_ALG_HANDLE, PUCHAR, ULONG, PUCHAR, ULONG, PUCHAR, ULONG);
 NTSTATUS WINAPI BCryptHashData(BCRYPT_HASH_HANDLE, PUCHAR, ULONG, ULONG);
+NTSTATUS WINAPI BCryptImportKeyPair(BCRYPT_ALG_HANDLE, BCRYPT_KEY_HANDLE, LPCWSTR, BCRYPT_KEY_HANDLE *, UCHAR *, ULONG, ULONG);
 NTSTATUS WINAPI BCryptOpenAlgorithmProvider(BCRYPT_ALG_HANDLE *, LPCWSTR, LPCWSTR, ULONG);
 NTSTATUS WINAPI BCryptSetProperty(BCRYPT_HANDLE, LPCWSTR, PUCHAR, ULONG, ULONG);
+NTSTATUS WINAPI BCryptDuplicateHash(BCRYPT_HASH_HANDLE, BCRYPT_HASH_HANDLE *, UCHAR *, ULONG, ULONG);
+NTSTATUS WINAPI BCryptVerifySignature(BCRYPT_KEY_HANDLE, void *, UCHAR *, ULONG, UCHAR *, ULONG, ULONG);
 
 #endif  /* __WINE_BCRYPT_H */

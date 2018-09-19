@@ -152,6 +152,30 @@ BOOL WINAPI SHObjectProperties(HWND,DWORD,LPCWSTR,LPCWSTR);
 
 int WINAPI PathCleanupSpec(LPCWSTR,LPWSTR);
 
+/* SHOpenWithDialog API */
+
+typedef enum
+{
+    OAIF_ALLOW_REGISTRATION = 0x00000001,
+    OAIF_REGISTER_EXT       = 0x00000002,
+    OAIF_EXEC               = 0x00000004,
+    OAIF_FORCE_REGISTRATION = 0x00000008,
+    OAIF_HIDE_REGISTRATION  = 0x00000020,
+    OAIF_URL_PROTOCOL       = 0x00000040,
+    OAIF_FILE_IS_URI        = 0x00000080
+} OPEN_AS_INFO_FLAGS;
+
+#include <pshpack8.h>
+typedef struct
+{
+    LPCWSTR pcszFile;
+    LPCWSTR pcszClass;
+    OPEN_AS_INFO_FLAGS oaifInFlags;
+} OPENASINFO;
+#include <poppack.h>
+
+HRESULT WINAPI SHOpenWithDialog(HWND,const OPENASINFO*);
+
 /* Shell_MergeMenus flags */
 #define MM_ADDSEPARATOR     0x00000001
 #define MM_SUBMENUSHAVEIDS  0x00000002
@@ -1451,6 +1475,22 @@ int WINAPI SHCreateDirectoryExW(HWND, LPCWSTR, LPSECURITY_ATTRIBUTES);
 /****************************************************************************
 * SHGetSetFolderCustomSettings API
 */
+
+#define FCS_READ       0x00000001
+#define FCS_FORCEWRITE 0x00000002
+#define FCS_WRITE      (FCS_READ | FCS_FORCEWRITE)
+
+#define FCS_FLAG_DRAGDROP    0x00000002
+
+#define FCSM_VIEWID          0x00000001
+#define FCSM_WEBVIEWTEMPLATE 0x00000002
+#define FCSM_INFOTIP         0x00000004
+#define FCSM_CLSID           0x00000008
+#define FCSM_ICONFILE        0x00000010
+#define FCSM_LOGO            0x00000020
+#define FCSM_FLAGS           0x00000040
+
+#include <pshpack8.h>
 typedef struct {
     DWORD dwSize;
     DWORD dwMask;
@@ -1468,8 +1508,9 @@ typedef struct {
     LPWSTR pszLogo;
     DWORD cchLogo;
 } SHFOLDERCUSTOMSETTINGS, *LPSHFOLDERCUSTOMSETTINGS;
+#include <poppack.h>
 
-HRESULT WINAPI SHGetSetFolderCustomSettings(LPSHFOLDERCUSTOMSETTINGS pfcs, LPCSTR pszPath, DWORD dwReadWrite);
+HRESULT WINAPI SHGetSetFolderCustomSettings(LPSHFOLDERCUSTOMSETTINGS pfcs, PCWSTR pszPath, DWORD dwReadWrite);
 
 /****************************************************************************
 * SHGetSpecialFolderLocation API
@@ -1775,6 +1816,9 @@ HRESULT WINAPI CDefFolderMenu_Create2(LPCITEMIDLIST pidlFolder, HWND hwnd, UINT 
                                       LPCITEMIDLIST *apidl, IShellFolder *psf,
                                       LPFNDFMCALLBACK lpfn, UINT nKeys, const HKEY *ahkeys,
                                       IContextMenu **ppcm);
+
+int WINAPI PickIconDlg(HWND owner, WCHAR *path, UINT path_len, int *index);
+HRESULT WINAPI SHLimitInputEdit(HWND hwnd, IShellFolder *folder);
 
 #include <poppack.h>
 

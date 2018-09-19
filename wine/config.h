@@ -11,6 +11,12 @@
 /* Define to the file extension for executables. */
 #define EXEEXT ".exe"
 
+/* Define to 1 if you have the `acosh' function. */
+/* #undef HAVE_ACOSH */
+
+/* Define to 1 if you have the `acoshf' function. */
+/* #undef HAVE_ACOSHF */
+
 /* Define to 1 if you have the <alias.h> header file. */
 /* #undef HAVE_ALIAS_H */
 
@@ -45,6 +51,12 @@
 /* Define to 1 if you have the <asm/user.h> header file. */
 /* #undef HAVE_ASM_USER_H */
 
+/* Define to 1 if you have the `atanh' function. */
+/* #undef HAVE_ATANH */
+
+/* Define to 1 if you have the `atanhf' function. */
+/* #undef HAVE_ATANHF */
+
 /* Define to 1 if you have the <AudioToolbox/AudioConverter.h> header file. */
 /* #undef HAVE_AUDIOTOOLBOX_AUDIOCONVERTER_H */
 
@@ -78,8 +90,8 @@
 /* Define to 1 if you have the <CL/cl.h> header file. */
 /* #undef HAVE_CL_CL_H */
 
-/* Define to 1 if you have the <CommonCrypto/CommonDigest.h> header file. */
-/* #undef HAVE_COMMONCRYPTO_COMMONDIGEST_H */
+/* Define to 1 if you have the <CommonCrypto/CommonCryptor.h> header file. */
+/* #undef HAVE_COMMONCRYPTO_COMMONCRYPTOR_H */
 
 /* Define to 1 if you have the <CoreAudio/CoreAudio.h> header file. */
 /* #undef HAVE_COREAUDIO_COREAUDIO_H */
@@ -118,6 +130,9 @@
 /* Define to 1 if you have the `dlopen' function. */
 //#define HAVE_DLOPEN 1
 
+/* Define to 1 if you have the <EGL/egl.h> header file. */
+/* #undef HAVE_EGL_EGL_H */
+
 /* Define to 1 if you have the <elf.h> header file. */
 //#define HAVE_ELF_H 1
 
@@ -127,6 +142,12 @@
 /* Define to 1 if you have the `erf' function. */
 /* #undef HAVE_ERF */
 
+/* Define to 1 if you have the `erfc' function. */
+/* #undef HAVE_ERFC */
+
+/* Define to 1 if you have the `erfcf' function. */
+/* #undef HAVE_ERFCF */
+
 /* Define to 1 if you have the `erff' function. */
 /* #undef HAVE_ERFF */
 
@@ -135,6 +156,12 @@
 
 /* Define to 1 if you have the `exp2f' function. */
 #define HAVE_EXP2F 1
+
+/* Define to 1 if you have the `expm1' function. */
+/* #undef HAVE_EXPM1 */
+
+/* Define to 1 if you have the `expm1f' function. */
+/* #undef HAVE_EXPM1F */
 
 /* Define to 1 if you have the `fallocate' function. */
 /* #undef HAVE_FALLOCATE */
@@ -205,6 +232,9 @@
 /* Define to 1 if you have the `getauxval' function. */
 /* #undef HAVE_GETAUXVAL */
 
+/* Define to 1 if you have the `getifaddrs' function. */
+/* #undef HAVE_GETIFADDRS */
+
 /* Define to 1 if you have the `getnameinfo' function. */
 #define HAVE_GETNAMEINFO 1
 
@@ -238,8 +268,8 @@
 /* Define to 1 if you have the `getuid' function. */
 //#define HAVE_GETUID 1
 
-/* Define to 1 if you have the `gnutls_hash' function. */
-/* #undef HAVE_GNUTLS_HASH */
+/* Define to 1 if you have the `gnutls_cipher_init' function. */
+/* #undef HAVE_GNUTLS_CIPHER_INIT */
 
 /* Define if we have the libgphoto2 development environment */
 /* #undef HAVE_GPHOTO2 */
@@ -255,6 +285,12 @@
 
 /* Define to 1 if you have the <gsm.h> header file. */
 /* #undef HAVE_GSM_H */
+
+/* Define to 1 if you have the <gssapi/gssapi_ext.h> header file. */
+/* #undef HAVE_GSSAPI_GSSAPI_EXT_H */
+
+/* Define to 1 if you have the <gssapi/gssapi.h> header file. */
+/* #undef HAVE_GSSAPI_GSSAPI_H */
 
 /* Define to 1 if you have the <ieeefp.h> header file. */
 #define HAVE_IEEEFP_H 1
@@ -307,11 +343,23 @@
 /* Define to 1 if you have the `isnanf' function. */
 #define HAVE_ISNANF 1
 
+/* Define to 1 if you have the `j0' function. */
+/* #undef HAVE_J0 */
+
+/* Define to 1 if you have the `j1' function. */
+/* #undef HAVE_J1 */
+
+/* Define to 1 if you have the `jn' function. */
+/* #undef HAVE_JN */
+
 /* Define to 1 if you have the <jpeglib.h> header file. */
 #define HAVE_JPEGLIB_H 1
 
 /* Define to 1 if you have the `kqueue' function. */
 /* #undef HAVE_KQUEUE */
+
+/* Define to 1 if you have the <krb5/krb5.h> header file. */
+/* #undef HAVE_KRB5_KRB5_H */
 
 /* Define to 1 if you have the <kstat.h> header file. */
 /* #undef HAVE_KSTAT_H */
@@ -493,6 +541,12 @@
 /* Define to 1 if you have the `llroundf' function. */
 #define HAVE_LLROUNDF 1
 
+/* Define to 1 if you have the `log1p' function. */
+/* #undef HAVE_LOG1P */
+
+/* Define to 1 if you have the `log1pf' function. */
+/* #undef HAVE_LOG1PF */
+
 /* Define to 1 if you have the `log2' function. */
 #define HAVE_LOG2 1
 
@@ -549,6 +603,9 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
+
+/* Define to 1 if you have the <Metal/Metal.h> header file. */
+/* #undef HAVE_METAL_METAL_H */
 
 /* Define to 1 if you have the `mmap' function. */
 //#define HAVE_MMAP 1
@@ -676,9 +733,6 @@
 /* Define to 1 if you have the <png.h> header file. */
 #define HAVE_PNG_H 1
 
-/* Define to 1 if libpng has the png_set_expand_gray_1_2_4_to_8 function. */
-#define HAVE_PNG_SET_EXPAND_GRAY_1_2_4_TO_8 1
-
 /* Define to 1 if you have the `poll' function. */
 #define HAVE_POLL 1
 
@@ -799,6 +853,9 @@
 /* Define to 1 if you have the <scsi/sg.h> header file. */
 /* #undef HAVE_SCSI_SG_H */
 
+/* Define to 1 if you have the <SDL2/SDL.h> header file. */
+/* #undef HAVE_SDL2_SDL_H */
+
 /* Define to 1 if you have the <Security/Security.h> header file. */
 /* #undef HAVE_SECURITY_SECURITY_H */
 
@@ -885,6 +942,9 @@
 
 /* Define to 1 if you have the `strncasecmp' function. */
 /* #define HAVE_STRNCASECMP 1 */
+
+/* Define to 1 if you have the `strnlen' function. */
+/* #undef HAVE_STRNLEN */
 
 /* Define to 1 if you have the <stropts.h> header file. */
 /* #undef HAVE_STROPTS_H */
@@ -1321,6 +1381,15 @@
 /* Define if Xrandr has the XRRGetScreenResources function */
 /* #undef HAVE_XRRGETSCREENRESOURCES */
 
+/* Define to 1 if you have the `y0' function. */
+/* #undef HAVE_Y0 */
+
+/* Define to 1 if you have the `y1' function. */
+/* #undef HAVE_Y1 */
+
+/* Define to 1 if you have the `yn' function. */
+/* #undef HAVE_YN */
+
 /* Define to 1 if you have the `z' library (-lz). */
 #define HAVE_ZLIB 1
 
@@ -1369,6 +1438,10 @@
 /* Define to 1 if you have the `__builtin_popcount' built-in function. */
 /* #undef HAVE___BUILTIN_POPCOUNT */
 
+/* Define to 1 if you have the `__clear_cache' (potentially built-in)
+   function. */
+/* #undef HAVE___CLEAR_CACHE */
+
 /* Define to 1 if you have the `__res_getservers' function. */
 /* #undef HAVE___RES_GETSERVERS */
 
@@ -1413,6 +1486,9 @@
 /* Define to the soname of the libdbus-1 library. */
 #define SONAME_LIBDBUS_1 "	cygdbus-1-3.dll"
 
+/* Define to the soname of the libEGL library. */
+/* #undef SONAME_LIBEGL */
+
 /* Define to the soname of the libfontconfig library. */
 #define SONAME_LIBFONTCONFIG "	cygfontconfig-1.dll"
 
@@ -1421,6 +1497,9 @@
 
 /* Define to the soname of the libGL library. */
 /* #undef SONAME_LIBGL */
+
+/* Define to the soname of the libGLESv2 library. */
+/* #undef SONAME_LIBGLESV2 */
 
 /* Define to the soname of the libGLU library. */
 /* #undef SONAME_LIBGLU */
@@ -1431,11 +1510,20 @@
 /* Define to the soname of the libgsm library. */
 #define SONAME_LIBGSM "	cyggsm-1.dll"
 
+/* Define to the soname of the libgssapi_krb5 library. */
+/* #undef SONAME_LIBGSSAPI_KRB5 */
+
 /* Define to the soname of the libhal library. */
 /* #undef SONAME_LIBHAL */
 
 /* Define to the soname of the libjpeg library. */
 #define SONAME_LIBJPEG "	cygjpeg-8.dll"
+
+/* Define to the soname of the libkrb5 library. */
+/* #undef SONAME_LIBKRB5 */
+
+/* Define to the soname of the libMoltenVK library. */
+/* #undef SONAME_LIBMOLTENVK */
 
 /* Define to the soname of the libncurses library. */
 #define SONAME_LIBNCURSES "	cygncursesw-10.dll"
@@ -1458,11 +1546,20 @@
 /* Define to the soname of the libsane library. */
 /* #undef SONAME_LIBSANE */
 
+/* Define to the soname of the libSDL2 library. */
+/* #undef SONAME_LIBSDL2 */
+
 /* Define to the soname of the libtiff library. */
 #define SONAME_LIBTIFF "	cygtiff-5.dll"
 
 /* Define to the soname of the libv4l1 library. */
 /* #undef SONAME_LIBV4L1 */
+
+/* Define to the soname of the libvkd3d library. */
+/* #undef SONAME_LIBVKD3D */
+
+/* Define to the soname of the libvulkan library. */
+/* #undef SONAME_LIBVULKAN */
 
 /* Define to the soname of the libX11 library. */
 /* #undef SONAME_LIBX11 */

@@ -102,6 +102,18 @@ enum _DMO_INPLACE_PROCESS_FLAGS {
     DMO_INPLACE_ZERO   = 0x00000001
 };
 
+enum _DMO_SET_TYPE_FLAGS {
+    DMO_SET_TYPEF_TEST_ONLY = 0x00000001,
+    DMO_SET_TYPEF_CLEAR     = 0x00000002,
+};
+
+enum _DMO_OUTPUT_DATA_BUFFERF_FLAGS {
+    DMO_OUTPUT_DATA_BUFFERF_SYNCPOINT   = 0x00000001,
+    DMO_OUTPUT_DATA_BUFFERF_TIME        = 0x00000002,
+    DMO_OUTPUT_DATA_BUFFERF_TIMELENGTH  = 0x00000004,
+    DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE  = 0x01000000,
+};
+
 /*****************************************************************************
  * IMediaObject interface
  */
@@ -213,7 +225,7 @@ interface IMediaObject : IUnknown
     );
 
     HRESULT Lock(LONG bLock);
-};
+}
 
 /*****************************************************************************
  * IMediaObjectInPlace interface

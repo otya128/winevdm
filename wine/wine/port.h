@@ -272,6 +272,22 @@ int isinf(double x);
 int isnan(double x);
 #endif
 
+#ifndef HAVE_LLRINT
+__int64 llrint(double x);
+#endif
+
+#ifndef HAVE_LLRINTF
+__int64 llrintf(float x);
+#endif
+
+#ifndef HAVE_LRINT
+long lrint(double x);
+#endif
+
+#ifndef HAVE_LRINTF
+long lrintf(float x);
+#endif
+
 #ifndef HAVE_LSTAT
 int lstat(const char *file_name, struct stat *buf);
 #endif /* HAVE_LSTAT */
@@ -308,6 +324,14 @@ ssize_t pwrite( int fd, const void *buf, size_t count, off_t offset );
 int readlink( const char *path, char *buf, size_t size );
 #endif /* HAVE_READLINK */
 
+#ifndef HAVE_RINT
+double rint(double x);
+#endif
+
+#ifndef HAVE_RINTF
+float rintf(float x);
+#endif
+
 #ifndef HAVE_STATVFS
 int statvfs( const char *path, struct statvfs *buf );
 #endif
@@ -319,6 +343,10 @@ int strncasecmp(const char *str1, const char *str2, size_t n);
 # define strncasecmp _strnicmp
 # endif
 #endif /* !defined(HAVE_STRNCASECMP) */
+
+#ifndef HAVE_STRNLEN
+size_t strnlen( const char *str, size_t maxlen );
+#endif /* !defined(HAVE_STRNLEN) */
 
 #ifndef HAVE_STRERROR
 const char *strerror(int err);
@@ -514,6 +542,7 @@ extern __int64 interlocked_cmpxchg64( __int64 *dest, __int64 xchg, __int64 compa
 #define strcasecmp              __WINE_NOT_PORTABLE(strcasecmp)
 #define strerror                __WINE_NOT_PORTABLE(strerror)
 #define strncasecmp             __WINE_NOT_PORTABLE(strncasecmp)
+#define strnlen                 __WINE_NOT_PORTABLE(strnlen)
 #define usleep                  __WINE_NOT_PORTABLE(usleep)
 
 #endif /* NO_LIBWINE_PORT */

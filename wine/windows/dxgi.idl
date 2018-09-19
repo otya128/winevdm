@@ -18,7 +18,7 @@
 
 import "oaidl.idl";
 import "ocidl.idl";
-import "dxgitype.h";
+import "dxgitype.idl";
 
 const UINT _FACDXGI = 0x87a;
 
@@ -44,6 +44,16 @@ const DXGI_USAGE DXGI_USAGE_UNORDERED_ACCESS        = 0x400L;
 
 const UINT DXGI_ENUM_MODES_INTERLACED               = 1;
 const UINT DXGI_ENUM_MODES_SCALING                  = 2;
+
+const UINT DXGI_RESOURCE_PRIORITY_MINIMUM           = 0x28000000;
+const UINT DXGI_RESOURCE_PRIORITY_LOW               = 0x50000000;
+const UINT DXGI_RESOURCE_PRIORITY_NORMAL            = 0x78000000;
+const UINT DXGI_RESOURCE_PRIORITY_HIGH              = 0xa0000000;
+const UINT DXGI_RESOURCE_PRIORITY_MAXIMUM           = 0xc8000000;
+
+const UINT DXGI_MAP_READ                            = 0x1;
+const UINT DXGI_MAP_WRITE                           = 0x2;
+const UINT DXGI_MAP_DISCARD                         = 0x4;
 
 typedef enum DXGI_SWAP_EFFECT {
     DXGI_SWAP_EFFECT_DISCARD    = 0,
@@ -98,10 +108,21 @@ typedef struct DXGI_ADAPTER_DESC {
     LUID AdapterLuid;
 } DXGI_ADAPTER_DESC;
 
-typedef enum DXGI_SWAP_CHAIN_FLAG {
-    DXGI_SWAP_CHAIN_FLAG_NONPREROTATED      = 1,
-    DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH  = 2,
-    DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE     = 4
+typedef enum DXGI_SWAP_CHAIN_FLAG
+{
+    DXGI_SWAP_CHAIN_FLAG_NONPREROTATED                          = 0x0001,
+    DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH                      = 0x0002,
+    DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE                         = 0x0004,
+    DXGI_SWAP_CHAIN_FLAG_RESTRICTED_CONTEXT                     = 0x0008,
+    DXGI_SWAP_CHAIN_FLAG_RESTRICT_SHARED_RESOURCE_DRIVER        = 0x0010,
+    DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY                           = 0x0020,
+    DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT          = 0x0040,
+    DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER                       = 0x0080,
+    DXGI_SWAP_CHAIN_FLAG_FULLSCREEN_VIDEO                       = 0x0100,
+    DXGI_SWAP_CHAIN_FLAG_YUV_VIDEO                              = 0x0200,
+    DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED                           = 0x0400,
+    DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING                          = 0x0800,
+    DXGI_SWAP_CHAIN_FLAG_RESTRICTED_TO_ALL_HOLOGRAPHIC_DISPLAYS = 0x1000,
 } DXGI_SWAP_CHAIN_FLAG;
 
 typedef struct DXGI_SWAP_CHAIN_DESC {
@@ -297,6 +318,8 @@ cpp_quote("#define DXGI_PRESENT_DO_NOT_WAIT            __MSABI_LONG(0x00000008U)
 cpp_quote("#define DXGI_PRESENT_STEREO_PREFER_RIGHT    __MSABI_LONG(0x00000010U)")
 cpp_quote("#define DXGI_PRESENT_STEREO_TEMPORARY_MONO  __MSABI_LONG(0x00000020U)")
 cpp_quote("#define DXGI_PRESENT_RESTRICT_TO_OUTPUT     __MSABI_LONG(0x00000040U)")
+cpp_quote("#define DXGI_PRESENT_USE_DURATION           __MSABI_LONG(0x00000100U)")
+cpp_quote("#define DXGI_PRESENT_ALLOW_TEARING          __MSABI_LONG(0x00000200U)")
 
 [
     object,

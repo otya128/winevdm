@@ -69,6 +69,10 @@ extern "C" {
 #  else
 #   define __stdcall __attribute__((ms_abi))
 #  endif
+# elif defined(__arm__) && defined (__GNUC__) && !defined(__SOFTFP__)
+#   define __stdcall __attribute__((pcs("aapcs-vfp")))
+# elif defined(__aarch64__) && defined (__GNUC__)
+#  define __stdcall __attribute__((ms_abi))
 # else  /* __i386__ */
 #  define __stdcall
 # endif  /* __i386__ */
@@ -87,13 +91,17 @@ extern "C" {
 #  else
 #   define __cdecl __attribute__((ms_abi))
 #  endif
+# elif defined(__arm__) && defined (__GNUC__) && !defined(__SOFTFP__)
+#   define __cdecl __attribute__((pcs("aapcs-vfp")))
+# elif defined(__aarch64__) && defined (__GNUC__)
+#  define __cdecl __attribute__((ms_abi))
 # elif !defined(_MSC_VER)
 #  define __cdecl
 # endif
 #endif /* __cdecl */
 
 #ifndef __ms_va_list
-# if defined(__x86_64__) && defined (__GNUC__)
+# if (defined(__x86_64__) || defined(__aarch64__)) && defined (__GNUC__)
 #  define __ms_va_list __builtin_ms_va_list
 #  define __ms_va_start(list,arg) __builtin_ms_va_start(list,arg)
 #  define __ms_va_end(list) __builtin_ms_va_end(list)
@@ -108,6 +116,12 @@ extern "C" {
 #   define __ms_va_copy(dest,src) ((dest) = (src))
 #  endif
 # endif
+#endif
+
+#if defined(__arm__) && defined (__GNUC__) && !defined(__SOFTFP__)
+# define WINAPIV __attribute__((pcs("aapcs")))
+#else
+# define WINAPIV __cdecl
 #endif
 
 #ifdef __WINESRC__
@@ -179,7 +193,6 @@ extern "C" {
 #define PASCAL      __stdcall
 #define CDECL       __cdecl
 #define _CDECL      __cdecl
-#define WINAPIV     __cdecl
 #define APIENTRY    WINAPI
 #define CONST       __ONLY_IN_WINELIB(const)
 
@@ -280,6 +293,7 @@ typedef DWORD           COLORREF, *LPCOLORREF;
 /* Handle types */
 
 typedef int HFILE;
+DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 DECLARE_HANDLE(HACCEL);
 DECLARE_HANDLE(HBITMAP);
 DECLARE_HANDLE(HBRUSH);
@@ -422,6 +436,20 @@ typedef struct _RECTL
 } RECTL, *PRECTL, *LPRECTL;
 
 typedef const RECTL *LPCRECTL;
+
+/* DPI awareness */
+typedef enum DPI_AWARENESS
+{
+    DPI_AWARENESS_INVALID = -1,
+    DPI_AWARENESS_UNAWARE = 0,
+    DPI_AWARENESS_SYSTEM_AWARE,
+    DPI_AWARENESS_PER_MONITOR_AWARE
+} DPI_AWARENESS;
+
+#define DPI_AWARENESS_CONTEXT_UNAWARE              ((DPI_AWARENESS_CONTEXT)-1)
+#define DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         ((DPI_AWARENESS_CONTEXT)-2)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    ((DPI_AWARENESS_CONTEXT)-3)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT)-4)
 
 #ifdef __cplusplus
 }

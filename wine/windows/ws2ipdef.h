@@ -152,6 +152,12 @@ typedef struct WS(ip_mreq)
     struct WS(in_addr) imr_interface;
 } WS(IP_MREQ), *WS(PIP_MREQ);
 
+typedef struct WS(ipv6_mreq)
+{
+    struct WS(in6_addr) ipv6mr_multiaddr;
+    unsigned int ipv6mr_interface;
+} WS(IPV6_MREQ), *WS(PIPV6_MREQ);
+
 typedef struct WS(ip_mreq_source) {
     struct WS(in_addr) imr_multiaddr;
     struct WS(in_addr) imr_sourceaddr;
@@ -278,16 +284,33 @@ typedef struct WS(in_pktinfo) {
 extern "C" {
 #endif
 
-static inline BOOL WS(IN6_IS_ADDR_LOOPBACK) ( const IN6_ADDR *a )
+static inline BOOLEAN WS(IN6_IS_ADDR_LOOPBACK) ( const IN6_ADDR *a )
 {
-    return (BOOL)((a->s6_words[0] == 0) &&
-                  (a->s6_words[1] == 0) &&
-                  (a->s6_words[2] == 0) &&
-                  (a->s6_words[3] == 0) &&
-                  (a->s6_words[4] == 0) &&
-                  (a->s6_words[5] == 0) &&
-                  (a->s6_words[6] == 0) &&
-                  (a->s6_words[7] == 0x0100));
+    return ((a->s6_words[0] == 0) &&
+            (a->s6_words[1] == 0) &&
+            (a->s6_words[2] == 0) &&
+            (a->s6_words[3] == 0) &&
+            (a->s6_words[4] == 0) &&
+            (a->s6_words[5] == 0) &&
+            (a->s6_words[6] == 0) &&
+            (a->s6_words[7] == 0x0100));
+}
+
+static inline BOOLEAN WS(IN6_IS_ADDR_MULTICAST) ( const IN6_ADDR *a )
+{
+    return (a->s6_bytes[0] == 0xff);
+}
+
+static inline BOOLEAN WS(IN6_IS_ADDR_UNSPECIFIED) ( const IN6_ADDR *a )
+{
+    return ((a->s6_words[0] == 0) &&
+            (a->s6_words[1] == 0) &&
+            (a->s6_words[2] == 0) &&
+            (a->s6_words[3] == 0) &&
+            (a->s6_words[4] == 0) &&
+            (a->s6_words[5] == 0) &&
+            (a->s6_words[6] == 0) &&
+            (a->s6_words[7] == 0));
 }
 
 #ifdef __cplusplus
