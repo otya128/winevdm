@@ -972,7 +972,11 @@ int main( int argc, char *argv[] )
     char **argv_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*argv) * (argc + 1));
     BOOL compat_success = set_peb_compatible_flag();
 #ifdef __CI_VERSION
-    fprintf(stderr, "version: %s\n", __CI_VERSION);
+#define STR(x) #x
+#define STRSTR(x) STR(x)
+    fprintf(stderr, "version: %s\n", STRSTR(__CI_VERSION));
+#undef STR
+#undef STRSTR
 #endif
     memcpy(argv_copy, argv, argc * sizeof(*argv));
     argv = argv_copy;
