@@ -487,7 +487,7 @@ int relay_call_from_16( void *entry_point, unsigned char *args16, CONTEXT *conte
     if (!TRACE_ON(relay) || !RELAY_ShowDebugmsgRelay( module, ordinal, func ))
         return relay_call_from_16_no_debug( entry_point, args16, context, call );
 
-    TRACE( "\1Call %s.%d: %s(", module, ordinal, func );
+    DPRINTF( "%04x:Call %s.%d: %s(",GetCurrentThreadId(), module, ordinal, func );
 
     /* look for the ret instruction */
     for (j = 0; j < ARRAY_SIZE(call->ret); j++)
@@ -500,42 +500,43 @@ int relay_call_from_16( void *entry_point, unsigned char *args16, CONTEXT *conte
             int type = (call->arg_types[i / 10] >> (3 * (i % 10))) & 7;
 
             if (type == ARG_NONE) break;
-            if (i) TRACE( "," );
+            if (i) DPRINTF( "," );
             switch(type)
             {
             case ARG_WORD:
-                TRACE( "%04x", *(WORD *)args16 );
+                DPRINTF( "%04x", *(WORD *)args16 );
                 args32[nb_args] = *(WORD *)args16;
                 args16 += sizeof(WORD);
                 break;
             case ARG_SWORD:
-                TRACE( "%04x", *(WORD *)args16 );
+                DPRINTF( "%04x", *(WORD *)args16 );
                 args32[nb_args] = *(short *)args16;
                 args16 += sizeof(WORD);
                 break;
             case ARG_LONG:
-                TRACE( "%08x", *(int *)args16 );
+                DPRINTF( "%08x", *(int *)args16 );
                 args32[nb_args] = *(int *)args16;
                 args16 += sizeof(int);
                 break;
             case ARG_PTR:
-                TRACE( "%04x:%04x", *(WORD *)(args16+2), *(WORD *)args16 );
+                DPRINTF( "%04x:%04x", *(WORD *)(args16+2), *(WORD *)args16 );
                 args32[nb_args] = (int)MapSL( *(SEGPTR *)args16 );
                 args16 += sizeof(SEGPTR);
                 break;
             case ARG_STR:
-                TRACE( "%08x %s", *(int *)args16, debugstr_a( MapSL(*(SEGPTR *)args16 )));
+                DPRINTF( "%08x %s", *(int *)args16,
+                         debugstr_a( MapSL(*(SEGPTR *)args16 )));
                 args32[nb_args] = (int)MapSL( *(SEGPTR *)args16 );
                 args16 += sizeof(int);
                 break;
             case ARG_SEGSTR:
-                TRACE( "%04x:%04x %s", *(WORD *)(args16+2), *(WORD *)args16,
-                       debugstr_a( MapSL(*(SEGPTR *)args16 )) );
+                DPRINTF( "%04x:%04x %s", *(WORD *)(args16+2), *(WORD *)args16,
+                         debugstr_a( MapSL(*(SEGPTR *)args16 )) );
                 args32[nb_args] = *(SEGPTR *)args16;
                 args16 += sizeof(SEGPTR);
                 break;
             case ARG_VARARG:
-                TRACE( "..." );
+                DPRINTF( "..." );
                 args32[nb_args] = (int)args16;
                 break;
             default:
@@ -552,42 +553,43 @@ int relay_call_from_16( void *entry_point, unsigned char *args16, CONTEXT *conte
             int type = (call->arg_types[i / 10] >> (3 * (i % 10))) & 7;
 
             if (type == ARG_NONE) break;
-            if (i) TRACE( "," );
+            if (i) DPRINTF( "," );
             switch(type)
             {
             case ARG_WORD:
                 args16 -= sizeof(WORD);
                 args32[nb_args] = *(WORD *)args16;
-                TRACE( "%04x", *(WORD *)args16 );
+                DPRINTF( "%04x", *(WORD *)args16 );
                 break;
             case ARG_SWORD:
                 args16 -= sizeof(WORD);
                 args32[nb_args] = *(short *)args16;
-                TRACE( "%04x", *(WORD *)args16 );
+                DPRINTF( "%04x", *(WORD *)args16 );
                 break;
             case ARG_LONG:
                 args16 -= sizeof(int);
                 args32[nb_args] = *(int *)args16;
-                TRACE( "%08x", *(int *)args16 );
+                DPRINTF( "%08x", *(int *)args16 );
                 break;
             case ARG_PTR:
                 args16 -= sizeof(SEGPTR);
                 args32[nb_args] = (int)MapSL( *(SEGPTR *)args16 );
-                TRACE( "%04x:%04x", *(WORD *)(args16+2), *(WORD *)args16 );
+                DPRINTF( "%04x:%04x", *(WORD *)(args16+2), *(WORD *)args16 );
                 break;
             case ARG_STR:
                 args16 -= sizeof(int);
                 args32[nb_args] = (int)MapSL( *(SEGPTR *)args16 );
-                TRACE( "%08x %s", *(int *)args16, debugstr_a( MapSL(*(SEGPTR *)args16 )));
+                DPRINTF( "%08x %s", *(int *)args16,
+                         debugstr_a( MapSL(*(SEGPTR *)args16 )));
                 break;
             case ARG_SEGSTR:
                 args16 -= sizeof(SEGPTR);
                 args32[nb_args] = *(SEGPTR *)args16;
-                TRACE( "%04x:%04x %s", *(WORD *)(args16+2), *(WORD *)args16,
-                       debugstr_a( MapSL(*(SEGPTR *)args16 )) );
+                DPRINTF( "%04x:%04x %s", *(WORD *)(args16+2), *(WORD *)args16,
+                         debugstr_a( MapSL(*(SEGPTR *)args16 )) );
                 break;
             case ARG_VARARG:
-                TRACE( "..." );
+                DPRINTF( "..." );
                 args32[nb_args] = (int)args16;
                 break;
             default:
@@ -596,15 +598,16 @@ int relay_call_from_16( void *entry_point, unsigned char *args16, CONTEXT *conte
         }
     }
 
+    DPRINTF( ") ret=%04x:%04x ds=%04x\n", frame->cs, frame->ip, frame->ds );
+
     if (!j)  /* register function */
     {
         args32[nb_args++] = (int)context;
-        TRACE( ") ret=%04x:%04x ax=%04x bx=%04x cx=%04x dx=%04x si=%04x di=%04x ds=%04x es=%04x efl=%08x\n",
-               frame->cs, frame->ip, (WORD)context->Eax, (WORD)context->Ebx, (WORD)context->Ecx,
-               (WORD)context->Edx, (WORD)context->Esi, (WORD)context->Edi, (WORD)context->SegDs,
-               (WORD)context->SegEs, context->EFlags );
+        DPRINTF("     AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x ES=%04x EFL=%08x\n",
+                (WORD)context->Eax, (WORD)context->Ebx, (WORD)context->Ecx,
+                (WORD)context->Edx, (WORD)context->Esi, (WORD)context->Edi,
+                (WORD)context->SegEs, context->EFlags );
     }
-    else TRACE( ") ret=%04x:%04x ds=%04x\n", frame->cs, frame->ip, frame->ds );
 
     SYSLEVEL_CheckNotLevel( 2 );
 
@@ -612,22 +615,24 @@ int relay_call_from_16( void *entry_point, unsigned char *args16, CONTEXT *conte
 
     SYSLEVEL_CheckNotLevel( 2 );
 
-    TRACE( "\1Ret  %s.%d: %s() ", module, ordinal, func );
+    DPRINTF( "%04x:Ret  %s.%d: %s() ",GetCurrentThreadId(), module, ordinal, func );
     if (!j)  /* register function */
     {
-        TRACE( "retval=none ret=%04x:%04x ax=%04x bx=%04x cx=%04x dx=%04x si=%04x di=%04x ds=%04x es=%04x efl=%08x\n",
-               (WORD)context->SegCs, LOWORD(context->Eip), (WORD)context->Eax, (WORD)context->Ebx,
-               (WORD)context->Ecx, (WORD)context->Edx, (WORD)context->Esi, (WORD)context->Edi,
-               (WORD)context->SegDs, (WORD)context->SegEs, context->EFlags );
+        DPRINTF("retval=none ret=%04x:%04x ds=%04x\n",
+                (WORD)context->SegCs, LOWORD(context->Eip), (WORD)context->SegDs);
+        DPRINTF("     AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x ES=%04x EFL=%08x\n",
+                (WORD)context->Eax, (WORD)context->Ebx, (WORD)context->Ecx,
+                (WORD)context->Edx, (WORD)context->Esi, (WORD)context->Edi,
+                (WORD)context->SegEs, context->EFlags );
     }
     else
     {
         frame = CURRENT_STACK16;  /* might have be changed by the entry point */
         if (j == 1)  /* 16-bit return sequence */
-            TRACE( "retval=%04x ret=%04x:%04x ds=%04x\n",
+            DPRINTF( "retval=%04x ret=%04x:%04x ds=%04x\n",
                      ret_val & 0xffff, frame->cs, frame->ip, frame->ds );
         else
-            TRACE( "retval=%08x ret=%04x:%04x ds=%04x\n",
+            DPRINTF( "retval=%08x ret=%04x:%04x ds=%04x\n",
                      ret_val, frame->cs, frame->ip, frame->ds );
     }
     return ret_val;

@@ -620,14 +620,16 @@ BOOL WINAPI K32WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
             DWORD count = cbArgs / sizeof(WORD);
             WORD * wstack = (WORD *)stack;
 
-            TRACE_(relay)( "\1CallTo16(func=%04x:%04x", context->SegCs, LOWORD(context->Eip) );
-            while (count) TRACE_(relay)( ",%04x", wstack[--count] );
-            TRACE_(relay)( ") ss:sp=%04x:%04x ax=%04x bx=%04x cx=%04x dx=%04x si=%04x di=%04x bp=%04x ds=%04x es=%04x\n",
-                           SELECTOROF(getWOW32Reserved()),
-                           OFFSETOF(getWOW32Reserved()),
-                           (WORD)context->Eax, (WORD)context->Ebx, (WORD)context->Ecx,
-                           (WORD)context->Edx, (WORD)context->Esi, (WORD)context->Edi,
-                           (WORD)context->Ebp, (WORD)context->SegDs, (WORD)context->SegEs );
+            DPRINTF("%04x:CallTo16(func=%04x:%04x,ds=%04x",
+                    GetCurrentThreadId(),
+                    context->SegCs, LOWORD(context->Eip), context->SegDs );
+            while (count) DPRINTF( ",%04x", wstack[--count] );
+            DPRINTF(") ss:sp=%04x:%04x",
+                    SELECTOROF(getWOW32Reserved()), OFFSETOF(getWOW32Reserved()) );
+            DPRINTF(" ax=%04x bx=%04x cx=%04x dx=%04x si=%04x di=%04x bp=%04x es=%04x fs=%04x\n",
+                    (WORD)context->Eax, (WORD)context->Ebx, (WORD)context->Ecx,
+                    (WORD)context->Edx, (WORD)context->Esi, (WORD)context->Edi,
+                    (WORD)context->Ebp, (WORD)context->SegEs, (WORD)context->SegFs );
             SYSLEVEL_CheckNotLevel( 2 );
         }
 
@@ -687,11 +689,12 @@ BOOL WINAPI K32WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
 
         if (TRACE_ON(relay))
         {
-            TRACE_(relay)( "\1RetFrom16() ss:sp=%04x:%04x ax=%04x bx=%04x cx=%04x dx=%04x bp=%04x sp=%04x\n",
-                           SELECTOROF(getWOW32Reserved()),
-                           OFFSETOF(getWOW32Reserved()),
-                           (WORD)context->Eax, (WORD)context->Ebx, (WORD)context->Ecx,
-                           (WORD)context->Edx, (WORD)context->Ebp, (WORD)context->Esp );
+            DPRINTF("%04x:RetFrom16() ss:sp=%04x:%04x ",
+                    GetCurrentThreadId(), SELECTOROF(getWOW32Reserved()),
+                    OFFSETOF(getWOW32Reserved()));
+            DPRINTF(" ax=%04x bx=%04x cx=%04x dx=%04x bp=%04x sp=%04x\n",
+                    (WORD)context->Eax, (WORD)context->Ebx, (WORD)context->Ecx,
+                    (WORD)context->Edx, (WORD)context->Ebp, (WORD)context->Esp );
             SYSLEVEL_CheckNotLevel( 2 );
         }
     }
@@ -704,11 +707,12 @@ BOOL WINAPI K32WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
             DWORD count = cbArgs / sizeof(WORD);
             WORD * wstack = (WORD *)stack;
 
-            TRACE_(relay)( "\1CallTo16(func=%04x:%04x,ds=%04x",
-                           HIWORD(vpfn16), LOWORD(vpfn16), SELECTOROF(getWOW32Reserved()) );
-            while (count) TRACE_(relay)( ",%04x", wstack[--count] );
-            TRACE_(relay)( ") ss:sp=%04x:%04x\n", SELECTOROF(getWOW32Reserved()),
-                           OFFSETOF(getWOW32Reserved()) );
+            DPRINTF("%04x:CallTo16(func=%04x:%04x,ds=%04x",
+                    GetCurrentThreadId(), HIWORD(vpfn16), LOWORD(vpfn16),
+					SELECTOROF(getWOW32Reserved()));
+            while (count) DPRINTF( ",%04x", wstack[--count] );
+            DPRINTF(") ss:sp=%04x:%04x\n",
+                    SELECTOROF(getWOW32Reserved()), OFFSETOF(getWOW32Reserved()) );
             SYSLEVEL_CheckNotLevel( 2 );
         }
 
@@ -730,9 +734,9 @@ BOOL WINAPI K32WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
 
         if (TRACE_ON(relay))
         {
-            TRACE_(relay)( "\1RetFrom16() ss:sp=%04x:%04x retval=%08x\n",
-                           SELECTOROF(getWOW32Reserved()),
-                           OFFSETOF(getWOW32Reserved()), ret );
+            DPRINTF("%04x:RetFrom16() ss:sp=%04x:%04x retval=%08x\n",
+                    GetCurrentThreadId(), SELECTOROF(getWOW32Reserved()),
+                    OFFSETOF(getWOW32Reserved()), ret);
             SYSLEVEL_CheckNotLevel( 2 );
         }
     }
