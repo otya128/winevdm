@@ -4489,7 +4489,7 @@ extern "C"
 	}
     __declspec(dllexport) void fsave(char *ptr)
     {
-        UINT32 ea = (UINT32)ptr;
+        UINT32 ea = (UINT32)ptr + 6;
         *(UINT16*)(ptr + 0) = m_x87_cw;
         *(UINT16*)(ptr + 2) = m_x87_sw;
         *(UINT16*)(ptr + 4) = m_x87_tw;
