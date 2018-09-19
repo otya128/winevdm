@@ -1911,7 +1911,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             }
 
             if (GlobalGetAtomNameA((ATOM)hi, buf, sizeof(buf)) > 0) flag |= 1;
-            if (GlobalSize((HANDLE)hi) != 0) flag |= 2;
+            if (HIWORD(hi) && GlobalSize((HANDLE)hi) != 0) flag |= 2;
             switch (flag)
             {
             case 0:
