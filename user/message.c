@@ -1749,7 +1749,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             lParam = MapLS( &mis );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
-            mis32->itemWidth  = mis.itemWidth;
+            mis32->itemWidth  = (INT16)mis.itemWidth;
             mis32->itemHeight = mis.itemHeight;
         }
         break;
