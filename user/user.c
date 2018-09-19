@@ -3770,3 +3770,165 @@ BOOL16 WINAPI CheckMenuRadioItem16(HMENU16 hMenu, UINT16 first, UINT16 last,
 {
      return CheckMenuRadioItem( HMENU_32(hMenu), first, last, check, bypos );
 }
+#if 0
+/* wow32 */
+#define SYSERRORBOX_NONE 0
+#define SYSERRORBOX_OK 1
+#define SYSERRORBOX_CANCEL 2
+#define SYSERRORBOX_YES 3
+#define SYSERRORBOX_NO 4
+#define SYSERRORBOX_ABORT 5
+#define SYSERRORBOX_RETRY 6
+#define SYSERRORBOX_IGNORE 7
+#define SYSERRORBOX_CLOSE 8
+#define SYSERRORBOX_HELP 9
+#define SYSERRORBOX_TRYAGAIN 10
+#define SYSERRORBOX_CONTINUE 11
+#define SYSERRORBOX_MAX 12
+#else
+/* win31 */
+#define SYSERRORBOX_NONE 0
+#define SYSERRORBOX_OK 1
+#define SYSERRORBOX_CANCEL 2
+#define SYSERRORBOX_YES 3
+#define SYSERRORBOX_NO 4
+#define SYSERRORBOX_RETRY 5
+#define SYSERRORBOX_ABORT 6
+#define SYSERRORBOX_IGNORE 7
+/* 終了(&C) (win31JP) 閉じる(&C) (windows) */
+#define SYSERRORBOX_CLOSE 8
+/* crash! */
+#define SYSERRORBOX_HELP 9
+#define SYSERRORBOX_TRYAGAIN 10
+#define SYSERRORBOX_CONTINUE 11
+#define SYSERRORBOX_MAX 12
+#endif
+#define SYSERRORBOX_DEFBUTTON 0x8000
+DWORD SysErrorBox_table[] =
+{
+    [SYSERRORBOX_OK] = IDOK,
+    [SYSERRORBOX_CANCEL] = IDCANCEL,
+    [SYSERRORBOX_YES] = IDYES,
+    [SYSERRORBOX_NO] = IDNO,
+    [SYSERRORBOX_ABORT] = IDABORT,
+    [SYSERRORBOX_RETRY] = IDRETRY,
+    [SYSERRORBOX_IGNORE] = IDIGNORE,
+    [SYSERRORBOX_CLOSE] = IDCLOSE,
+    [SYSERRORBOX_HELP] = IDHELP,
+    [SYSERRORBOX_TRYAGAIN] = IDTRYAGAIN,
+    [SYSERRORBOX_CONTINUE] = IDCONTINUE,
+};
+//Based on 65bfc47fd6ed628f7696080f04857318aef82226 reactos/include/reactos/undocuser.h
+typedef struct _MSGBOXDATA
+{
+    MSGBOXPARAMSW mbp;          // Size: 0x28 (on x86), 0x50 (on x64)
+    HWND     hwndOwner;
+#if defined(_WIN32) && (_WIN32_WINNT >= _WIN32_WINNT_WIN7) /* (NTDDI_VERSION >= NTDDI_WIN7) */
+    DWORD    dwPadding;
+#endif
+    WORD     wLanguageId;
+    INT*     pidButton;         // Array of button IDs
+    LPCWSTR* ppszButtonText;    // Array of button text strings
+    DWORD    dwButtons;         // Number of buttons
+    UINT     uDefButton;        // Default button ID
+    UINT     uCancelId;         // Button ID for Cancel action
+#if (_WIN32_WINNT >= _WIN32_WINNT_WINXP)    /* (NTDDI_VERSION >= NTDDI_WINXP) */
+    DWORD    dwTimeout;         // Message box timeout
+#endif
+    DWORD    dwReserved0;
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)     /* (NTDDI_VERSION >= NTDDI_WIN7) */
+    DWORD    dwReserved[4];
+    /* win10 (WOW64) has an extra field */
+    DWORD    dwReserved2;
+#endif
+} MSGBOXDATA, *PMSGBOXDATA, *LPMSGBOXDATA;
+typedef int (WINAPI*SoftModalMessageBox_t)(IN LPMSGBOXDATA lpMsgBoxData);
+SoftModalMessageBox_t SoftModalMessageBox;
+LPCWSTR(WINAPI*MB_GetString)(int);
+/* FIXME:wine does not have SoftModalMessageBox implementation */
+INT16 WINAPI SysErrorBox16(LPCSTR text, LPCSTR caption, UINT16 btn1, UINT16 btn2, UINT16 btn3)
+{
+    MSGBOXDATA data;
+    int res = 0;
+
+    INT pids[3] = { 0 };
+    LPCWSTR ppText[3] = { 0 };
+    int i = 0;
+    UINT16 a1 = btn1 & ~SYSERRORBOX_DEFBUTTON;
+    UINT16 a2 = btn2 & ~SYSERRORBOX_DEFBUTTON;
+    UINT16 a3 = btn3 & ~SYSERRORBOX_DEFBUTTON;
+    if (!SoftModalMessageBox)
+    {
+        HMODULE user32 = GetModuleHandleW(L"user32");
+        SoftModalMessageBox = GetProcAddress(user32, "SoftModalMessageBox");
+        MB_GetString = (LPCWSTR(WINAPI*)(int))GetProcAddress(user32, "MB_GetString");
+    }
+    if (a1 != SYSERRORBOX_NONE && a1 < SYSERRORBOX_MAX)
+    {
+        pids[i] = 1;
+        ppText[i] = MB_GetString(SysErrorBox_table[a1] - 1);
+        if (ppText[i])
+        {
+            i++;
+        }
+    }
+    if (a2 != SYSERRORBOX_NONE && a2 < SYSERRORBOX_MAX)
+    {
+        pids[i] = 2;
+        ppText[i] = MB_GetString(SysErrorBox_table[a2] - 1);
+        if (ppText[i])
+        {
+            i++;
+        }
+    }
+    if (a3 != SYSERRORBOX_NONE && a3 < SYSERRORBOX_MAX)
+    {
+        pids[i] = 3;
+        ppText[i] = MB_GetString(SysErrorBox_table[a3] - 1);
+        if (ppText[i])
+        {
+            i++;
+        }
+    }
+    ZeroMemory(&data, sizeof(data));
+    data.mbp.cbSize = sizeof(data.mbp);
+    data.mbp.hwndOwner = NULL;
+    data.mbp.hInstance = NULL;
+    SIZE_T textwc = MultiByteToWideChar(CP_ACP, 0, text, -1, NULL, 0);
+    SIZE_T capwc = MultiByteToWideChar(CP_ACP, 0, caption, -1, NULL, 0);
+    LPWSTR wtext = HeapAlloc(GetProcessHeap(), 0, textwc * sizeof(WCHAR));
+    LPWSTR wcaption = HeapAlloc(GetProcessHeap(), 0, capwc * sizeof(WCHAR));
+    MultiByteToWideChar(CP_ACP, 0, text, -1, wtext, textwc);
+    MultiByteToWideChar(CP_ACP, 0, caption, -1, wcaption, capwc);
+    data.mbp.lpszText = wtext;
+    data.mbp.lpszCaption = wcaption;
+    data.mbp.lpfnMsgBoxCallback = NULL;
+    data.mbp.dwStyle = MB_TASKMODAL | MB_OKCANCEL;
+
+    data.wLanguageId = 0;
+    data.pidButton = pids;
+    data.ppszButtonText = ppText;
+    data.dwButtons = i;
+    data.uDefButton = 4;
+    if (btn3 & SYSERRORBOX_DEFBUTTON)
+    {
+        data.uDefButton = 2;
+    }
+    if (btn2 & SYSERRORBOX_DEFBUTTON)
+    {
+        data.uDefButton = 1;
+    }
+    if (btn1 & SYSERRORBOX_DEFBUTTON)
+    {
+        data.uDefButton = 0;
+    }
+    data.uCancelId = 0;
+
+#if (_WIN32_WINNT >= _WIN32_WINNT_WINXP) /* (NTDDI_VERSION >= NTDDI_WINXP) */
+    data.dwTimeout = INFINITE;
+#endif
+    int result = SoftModalMessageBox(&data);
+    HeapFree(GetProcessHeap(), 0, wtext);
+    HeapFree(GetProcessHeap(), 0, wcaption);
+    return result;
+}
