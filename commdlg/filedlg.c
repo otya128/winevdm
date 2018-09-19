@@ -223,12 +223,7 @@ BOOL16 CALLBACK FileSaveDlgProc16(HWND16 hWnd16, UINT16 wMsg, WPARAM16 wParam, L
 
 DWORD get_ofn_flag(DWORD flag)
 {
-	//LFN
-	if (TRUE)
-	{
-		return flag | OFN_NOLONGNAMES;
-	}
-	return flag;
+    return (flag | OFN_NOLONGNAMES) & ~OFN_ENABLETEMPLATE;
 }
 #pragma comment(lib, "dbghelp.lib")
 DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size);
@@ -319,7 +314,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
     ofn32.lCustData         = lpofn->lCustData;
     ofn32.lpfnHook          = dummy_hook;  /* this is to force old 3.1 dialog style */
-    ofn32.lpTemplateName    = dynamic_resource(lpofn->hInstance, lpofn->lpTemplateName);
+    ofn32.lpTemplateName    = NULL;
     ofn32.hInstance         = GetModuleHandleW(L"commdlg.dll16");
 
     if (lpofn->Flags & OFN_ENABLETEMPLATE)
@@ -400,7 +395,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
     ofn32.lCustData         = lpofn->lCustData;
     ofn32.lpfnHook          = dummy_hook;  /* this is to force old 3.1 dialog style */
-    ofn32.lpTemplateName    = dynamic_resource(lpofn->hInstance, lpofn->lpTemplateName);
+    ofn32.lpTemplateName    = NULL;
     ofn32.hInstance         = GetModuleHandleW(L"commdlg.dll16");
 
     if (lpofn->Flags & OFN_ENABLETEMPLATE)
