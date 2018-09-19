@@ -1,7 +1,7 @@
 #1 WEP
 2 pascal -ret16 OleDelete(segptr) OleDelete16
-3 stub OLESAVETOSTREAM
-4 stub OLELOADFROMSTREAM
+3 pascal -ret16 OleSaveToStream(segptr segptr) OleSaveToStream16
+4 pascal -ret16 OleLoadFromStream(segptr str segptr long str ptr) OleLoadFromStream16
 6 pascal -ret16 OleClone(segptr segptr long str ptr) OleClone16
 7 stub OLECOPYFROMLINK
 8 pascal -ret16 OleEqual(segptr segptr) OleEqual16

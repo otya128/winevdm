@@ -155,6 +155,8 @@ static SEGPTR OLEOBJ32(LPOLEOBJECT oleobj)
 {
     return (SEGPTR)oleobj;
 }
+#include "wine/list.h"
+
 typedef struct _OLESTREAM16 *LPOLESTREAM16;
 typedef struct _OLESTREAMVTBL16
 {
@@ -167,10 +169,112 @@ typedef struct _OLESTREAM16
 {
     LPOLESTREAMVTBL16    lpstbl;
 } OLESTREAM16;
-static LPOLESTREAM OLESTREAM32(SEGPTR stream16)
+struct olestream_entry
 {
+    struct list entry;
+    SEGPTR olestream16;
+    OLESTREAM olestream32;
+};
+/***********************************************************************
+ *           SELECTOR_SetEntries
+ *
+ * Set the LDT entries for an array of selectors.
+ */
+static BOOL SELECTOR_SetEntries(WORD sel, const void *base, DWORD size, unsigned char flags)
+{
+    LDT_ENTRY entry;
+    WORD i, count;
+
+    wine_ldt_set_base(&entry, base);
+    wine_ldt_set_limit(&entry, size - 1);
+    wine_ldt_set_flags(&entry, flags);
+    count = (size + 0xffff) / 0x10000;
+    for (i = 0; i < count; i++)
+    {
+        if (wine_ldt_set_entry(sel + (i << __AHSHIFT), &entry) < 0) return FALSE;
+        wine_ldt_set_base(&entry, (char*)wine_ldt_get_base(&entry) + 0x10000);
+        /* yep, Windows sets limit like that, not 64K sel units */
+        wine_ldt_set_limit(&entry, wine_ldt_get_limit(&entry) - 0x10000);
+    }
+    return TRUE;
+}
+static SEGPTR OLESTREAM_16(LPOLESTREAM stream32);
+DWORD CALLBACK OLESTREAM32_Get(LPOLESTREAM this_, void *a, DWORD b)
+{
+    WORD args[2 + 2 + 2];
+    SEGPTR a16 = MapLS(a);
+    SEGPTR this16 = OLESTREAM_16(this_);
+    LPOLESTREAM16 o16 = MapSL(this16);
+    WORD seg = AllocSelectorArray16(b / 0x10000 + 1);
+    SELECTOR_SetEntries(seg, a, b, WINE_LDT_FLAGS_DATA);
+    LPOLESTREAMVTBL16 vtbnl16 = MapSL(o16->lpstbl);
+    DWORD ret;
+    args[5] = HIWORD(this16);
+    args[4] = LOWORD(this16);
+    args[3] = seg;
+    args[2] = 0;
+    args[1] = HIWORD(b);
+    args[0] = LOWORD(b);
+    TRACE("seg=%04x size=%08x\n", seg, b);
+    WOWCallback16Ex(vtbnl16->Get, WCB16_PASCAL, sizeof(args), args, &ret);
+    for (int i = 0; i <= b / 0x10000; i++)
+        FreeSelector16(seg + i);
+    TRACE("result=%08x\n", ret);
+    return ret;
+}
+DWORD CALLBACK OLESTREAM32_Put(LPOLESTREAM this_, OLE_CONST void *a, DWORD b)
+{
+    WORD args[2 + 2 + 2];
+    SEGPTR a16 = MapLS(a);
+    SEGPTR this16 = OLESTREAM_16(this_);
+    LPOLESTREAM16 o16 = MapSL(this16);
+    WORD seg = AllocSelectorArray16(b / 0x10000 + 1);
+    SELECTOR_SetEntries(seg, a, b, WINE_LDT_FLAGS_DATA);
+    LPOLESTREAMVTBL16 vtbnl16 = MapSL(o16->lpstbl);
+    DWORD ret;
+    args[5] = HIWORD(this16);
+    args[4] = LOWORD(this16);
+    args[3] = seg;
+    args[2] = 0;
+    args[1] = HIWORD(b);
+    args[0] = LOWORD(b);
+    TRACE("seg=%04x size=%08x\n", seg, b);
+    WOWCallback16Ex(vtbnl16->Put, WCB16_PASCAL, sizeof(args), args, &ret);
+    for (int i = 0; i <= b / 0x10000; i++)
+        FreeSelector16(seg + i);
+    TRACE("result=%08x\n", ret);
+    return ret;
+}
+static struct list olestream_list = LIST_INIT(olestream_list);
+OLESTREAMVTBL olestream32_vtbl = { OLESTREAM32_Get, OLESTREAM32_Put };
+static struct olestream_entry *add_olestream_thunk(SEGPTR s16)
+{
+    struct olestream_entry *data = HeapAlloc(GetProcessHeap(), 0, sizeof(struct olestream_entry));
+    data->olestream16 = s16;
+    data->olestream32.lpstbl = &olestream32_vtbl;
+    list_add_tail(&olestream_list, &data->entry);
+    return data;
+}
+static SEGPTR OLESTREAM_16(LPOLESTREAM stream32)
+{
+    struct olestream_entry *cur, *next;
+    LIST_FOR_EACH_ENTRY_SAFE(cur, next, &olestream_list, struct olestream_entry, entry)
+    {
+        if (&cur->olestream32 == stream32)
+            return cur->olestream16;
+    }
     FIXME("\n");
     return NULL;
+}
+static LPOLESTREAM OLESTREAM_32(SEGPTR stream16)
+{
+    struct olestream_entry *cur, *next;
+    LIST_FOR_EACH_ENTRY_SAFE(cur, next, &olestream_list, struct olestream_entry, entry)
+    {
+        if (cur->olestream16 == stream16)
+            return &cur->olestream32;
+    }
+    return &add_olestream_thunk(stream16)->olestream32;
 }
 
 /******************************************************************************
@@ -596,9 +700,19 @@ OLESTATUS WINAPI OleClone16(LPOLEOBJECT oleobj16, SEGPTR client, LHCLIENTDOC doc
     OLESTATUS result = OleClone(oleobj, client32, doc, name, lplpobj);
     return result;
 }
-OLESTATUS OleSaveToStream16(LPOLEOBJECT oleobj16, LPOLESTREAM lpStream)
+OLESTATUS WINAPI OleSaveToStream16(LPOLEOBJECT oleobj16, LPOLESTREAM lpStream)
 {
     LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
-    LPOLESTREAM stream = OLESTREAM32(lpStream);
-    return OLE_ERROR_OBJECT;
+    LPOLESTREAM stream = OLESTREAM_32(lpStream);
+    OLESTATUS result = OleSaveToStream(oleobj, stream);
+    return result;
+}
+OLESTATUS WINAPI OleLoadFromStream16(SEGPTR lpStream16, LPCSTR protocol, SEGPTR client, LHCLIENTDOC doc, LPCSTR objname, SEGPTR *lplpoleobj16)
+{
+    LPOLESTREAM stream32 = OLESTREAM_32(lpStream16);
+    LPOLECLIENT client32 = get_ole_client32(client);
+    LPOLEOBJECT obj = 0;
+    OLESTATUS result = OleLoadFromStream(stream32, protocol, client32, doc, objname, &obj);
+    *lplpoleobj16 = OLEOBJ16(obj);
+    return result;
 }
