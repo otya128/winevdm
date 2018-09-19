@@ -199,16 +199,21 @@ static BOOL SELECTOR_SetEntries(WORD sel, const void *base, DWORD size, unsigned
     return TRUE;
 }
 static SEGPTR OLESTREAM_16(LPOLESTREAM stream32);
+LPOLESTREAMVTBL16 get_olestream16_vtbl(SEGPTR this16)
+{
+    LPOLESTREAM16 o16 = (LPOLESTREAM16)MapSL(this16);
+    LPOLESTREAMVTBL16 vtbnl16 = (LPOLESTREAMVTBL16)MapSL(o16->lpstbl);
+    return vtbnl16;
+}
 DWORD CALLBACK OLESTREAM32_Get(LPOLESTREAM this_, void *a, DWORD b)
 {
     WORD args[2 + 2 + 2];
-    SEGPTR a16 = MapLS(a);
     SEGPTR this16 = OLESTREAM_16(this_);
-    LPOLESTREAM16 o16 = MapSL(this16);
     WORD seg = AllocSelectorArray16(b / 0x10000 + 1);
-    SELECTOR_SetEntries(seg, a, b, WINE_LDT_FLAGS_DATA);
-    LPOLESTREAMVTBL16 vtbnl16 = MapSL(o16->lpstbl);
     DWORD ret;
+    if (!seg)
+        return 0;
+    SELECTOR_SetEntries(seg, a, b, WINE_LDT_FLAGS_DATA);
     args[5] = HIWORD(this16);
     args[4] = LOWORD(this16);
     args[3] = seg;
@@ -216,7 +221,7 @@ DWORD CALLBACK OLESTREAM32_Get(LPOLESTREAM this_, void *a, DWORD b)
     args[1] = HIWORD(b);
     args[0] = LOWORD(b);
     TRACE("seg=%04x size=%08x\n", seg, b);
-    WOWCallback16Ex(vtbnl16->Get, WCB16_PASCAL, sizeof(args), args, &ret);
+    WOWCallback16Ex(get_olestream16_vtbl(this16)->Get, WCB16_PASCAL, sizeof(args), args, &ret);
     for (int i = 0; i <= b / 0x10000; i++)
         FreeSelector16(seg + i);
     TRACE("result=%08x\n", ret);
@@ -225,12 +230,11 @@ DWORD CALLBACK OLESTREAM32_Get(LPOLESTREAM this_, void *a, DWORD b)
 DWORD CALLBACK OLESTREAM32_Put(LPOLESTREAM this_, OLE_CONST void *a, DWORD b)
 {
     WORD args[2 + 2 + 2];
-    SEGPTR a16 = MapLS(a);
     SEGPTR this16 = OLESTREAM_16(this_);
-    LPOLESTREAM16 o16 = MapSL(this16);
     WORD seg = AllocSelectorArray16(b / 0x10000 + 1);
+    if (!seg)
+        return 0;
     SELECTOR_SetEntries(seg, a, b, WINE_LDT_FLAGS_DATA);
-    LPOLESTREAMVTBL16 vtbnl16 = MapSL(o16->lpstbl);
     DWORD ret;
     args[5] = HIWORD(this16);
     args[4] = LOWORD(this16);
@@ -239,7 +243,7 @@ DWORD CALLBACK OLESTREAM32_Put(LPOLESTREAM this_, OLE_CONST void *a, DWORD b)
     args[1] = HIWORD(b);
     args[0] = LOWORD(b);
     TRACE("seg=%04x size=%08x\n", seg, b);
-    WOWCallback16Ex(vtbnl16->Put, WCB16_PASCAL, sizeof(args), args, &ret);
+    WOWCallback16Ex(get_olestream16_vtbl(this16)->Put, WCB16_PASCAL, sizeof(args), args, &ret);
     for (int i = 0; i <= b / 0x10000; i++)
         FreeSelector16(seg + i);
     TRACE("result=%08x\n", ret);
@@ -372,11 +376,9 @@ BOOL16 WINAPI OleIsDcMeta16(HDC16 hdc)
 /******************************************************************************
  *		OleQueryType	[OLECLI.14]
  */
-OLESTATUS WINAPI OleQueryType16(OLEOBJECT16 *oleob,  SEGPTR xlong) {
-    OLEOBJECT oleobject32;
-    oleobject32.lpvtbl = MapSL(oleob->lpvtbl);
-    OLESTATUS result =  OleQueryType(&oleobject32, MapSL(xlong));
-    oleob->lpvtbl = MapLS(oleobject32.lpvtbl);
+OLESTATUS WINAPI OleQueryType16(SEGPTR oleobj16,  SEGPTR xlong) {
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    OLESTATUS result =  OleQueryType(oleobj, MapSL(xlong));
     return result;
 	//FIXME("(%p, %p): stub!\n", oleob, MapSL(xlong));
 	//return OLE_OK;
@@ -714,5 +716,25 @@ OLESTATUS WINAPI OleLoadFromStream16(SEGPTR lpStream16, LPCSTR protocol, SEGPTR 
     LPOLEOBJECT obj = 0;
     OLESTATUS result = OleLoadFromStream(stream32, protocol, client32, doc, objname, &obj);
     *lplpoleobj16 = OLEOBJ16(obj);
+    return result;
+}
+
+OLESTATUS WINAPI OleSetBounds16(SEGPTR oleobj16, RECT16 *rect)
+{
+    RECT rect32;
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    if (rect)
+        RECT16to32(rect, &rect32);
+    OLESTATUS result = OleSetBounds(oleobj, rect ? &rect32 : NULL);
+    return result;
+}
+
+OLESTATUS WINAPI OleQueryName16(SEGPTR oleobj16, LPSTR name, UINT16 *lpbufsize)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    UINT bufsize = 0;
+    bufsize = *lpbufsize;
+    OLESTATUS result = OleQueryName(oleobj, name, &bufsize);
+    *lpbufsize = bufsize;
     return result;
 }

@@ -13,7 +13,7 @@
 14 pascal -ret16 OleQueryType(ptr segptr) OleQueryType16
 15 pascal -ret16 OleSetHostNames(long str str) OleSetHostNames16
 16 pascal -ret16 OleSetTargetDevice(long word) OleSetTargetDevice16
-17 stub OLESETBOUNDS
+17 pascal -ret16 OleSetBounds(segptr ptr) OleSetBounds16
 18 pascal -ret16 OleQueryBounds(long ptr) OleQueryBounds16
 19 pascal -ret16 OleDraw(long word ptr ptr word) OleDraw16
 20 pascal -ret16 OleQueryOpen(segptr) OleQueryOpen16
@@ -44,7 +44,7 @@
 45 pascal -ret16 OleSavedClientDoc(long) OleSavedClientDoc16
 46 pascal -ret16 OleRename(segptr str) OleRename16
 47 pascal -ret16 OleEnumObjects(long ptr) OleEnumObjects16
-48 stub OLEQUERYNAME
+48 pascal -ret16 OleQueryName(segptr str ptr) OleQueryName16
 49 stub OLESETCOLORSCHEME
 50 stub OLEREQUESTDATA
 54 pascal -ret16 OleLockServer(segptr ptr) OleLockServer16
