@@ -971,6 +971,9 @@ int main( int argc, char *argv[] )
     const char *cmdline1 = strstr(argv[0], "  --ntvdm64:");
     char **argv_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*argv) * (argc + 1));
     BOOL compat_success = set_peb_compatible_flag();
+#ifdef __CI_VERSION
+    fprintf(stderr, "version: %s\n", __CI_VERSION);
+#endif
     memcpy(argv_copy, argv, argc * sizeof(*argv));
     argv = argv_copy;
     /*
