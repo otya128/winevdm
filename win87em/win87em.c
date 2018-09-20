@@ -379,9 +379,16 @@ void WINAPI _fpMath( CONTEXT *context )
         break;
 
     case 10: /* dunno. but looks like returning nr. of things on stack in AX */
-        context->Eax &= ~0xffff;  /* set AX to 0 */
+    {
+        char fpustate[100];
+        WORD count = 0;
+        x87.fsave(fpustate);
+        WORD tagword = ((WORD *)fpustate)[2];
+        for (int i = 0; i < 8; i++)
+            count += (((tagword >> (i * 2)) & 3) != 3);
+        context->Eax = (context->Eax & ~0xffff) | count;
         break;
-
+    }
     case 11: /* just returns the installed flag in DX:AX */
         context->Edx &= ~0xffff;  /* set DX to 0 */
         context->Eax = (context->Eax & ~0xffff) | Installed;
