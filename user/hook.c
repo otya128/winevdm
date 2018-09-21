@@ -49,7 +49,7 @@ static const HOOKPROC hook_procs[NB_HOOKS16] =
 {
     call_WH_MSGFILTER,   /* WH_MSGFILTER	*/
     NULL,                /* WH_JOURNALRECORD */
-    NULL,                /* WH_JOURNALPLAYBACK */
+    (HOOKPROC)-1,        /* WH_JOURNALPLAYBACK */
     call_WH_KEYBOARD,    /* WH_KEYBOARD */
     call_WH_GETMESSAGE,  /* WH_GETMESSAGE */
     call_WH_CALLWNDPROC, /* WH_CALLWNDPROC */
@@ -491,16 +491,6 @@ HHOOK WINAPI SetWindowsHookEx16( INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, H
     HHOOK hook;
     int index = id - WH_MINHOOK;
 
-    if (id == WH_JOURNALPLAYBACK)
-    {
-        info = get_hook_info( TRUE );
-        info->hook[index] = (HHOOK)SetTimer( NULL, 0, 100, journal_playback_cb );
-        info->proc[index] = proc;
-        info->hinst16[index] = hInst;
-        info->htask16[index] = hTask;
-        return -1;
-    }
-    
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return 0;
     if (!hook_procs[index])
     {
@@ -520,7 +510,11 @@ HHOOK WINAPI SetWindowsHookEx16( INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, H
         FIXME( "Multiple hooks (%d) for the same task not supported yet\n", id );
         return 0;
     }
-    if (!(hook = SetWindowsHookExA( id, hook_procs[index], 0, GetCurrentThreadId() ))) return 0;
+    if (id == WH_JOURNALPLAYBACK)
+    {
+        if (!(hook = (HHOOK)SetTimer( NULL, 0, 100, journal_playback_cb ))) return 0;
+    }
+    else if (!(hook = SetWindowsHookExA( id, hook_procs[index], 0, GetCurrentThreadId() ))) return 0;
     info->hook[index] = hook;
     info->proc[index] = proc;
     info->hinst16[index] = hInst;
@@ -540,7 +534,10 @@ BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return FALSE;
     if (!(info = get_hook_info( FALSE ))) return FALSE;
     if (info->proc[index] != proc) return FALSE;
-    if (id == WH_JOURNALPLAYBACK && KillTimer( NULL, (UINT_PTR)info->hook[index] )) return FALSE;
+    if (id == WH_JOURNALPLAYBACK)
+    {
+        if (!KillTimer( NULL, (UINT_PTR)info->hook[index] )) return FALSE;
+    }
     else if (!UnhookWindowsHookEx( info->hook[index] )) return FALSE;
     info->hook[index] = 0;
     info->proc[index] = 0;
