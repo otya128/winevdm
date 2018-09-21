@@ -433,6 +433,41 @@ static LRESULT CALLBACK call_WH_SHELL( INT code, WPARAM wp, LPARAM lp )
 }
 
 
+// TODO: key delay and mouse messages
+static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, int id, DWORD sysTime )
+{
+    EVENTMSG16 emsg;
+    LPARAM lp;
+    INPUT input;
+    lp = MapLS( &emsg );
+    call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp );
+    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0 );
+    UnMapLS( &msg );
+    TRACE("WH_JOURNALPLAYBACK message: %x paramL: %x paramH: %x\n", emsg.message, emsg.paramL, emsg.paramH);
+    switch( emsg.message )
+       {
+            case WM_KEYDOWN:
+                input.type = 1;
+                input.ki.wVk = emsg.paramL;
+                input.ki.wScan = emsg.paramH;
+                input.ki.dwFlags = 0;
+                input.ki.time = 0;
+                input.ki.dwExtraInfo = 0;
+                SendInput( 1, &input, sizeof(input) );
+                break;
+            case WM_KEYUP:
+                input.type = 1;
+                input.ki.wVk = emsg.paramL;
+                input.ki.wScan = emsg.paramH;
+                input.ki.dwFlags = 2;
+                input.ki.time = 0;
+                input.ki.dwExtraInfo = 0;
+                SendInput( 1, &input, sizeof(input) );
+                break;
+        }
+}
+
+
 /***********************************************************************
  *		SetWindowsHook (USER.121)
  */
@@ -456,6 +491,16 @@ HHOOK WINAPI SetWindowsHookEx16( INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, H
     HHOOK hook;
     int index = id - WH_MINHOOK;
 
+    if (id == WH_JOURNALPLAYBACK)
+    {
+        info = get_hook_info( TRUE );
+        info->hook[index] = (HHOOK)SetTimer( NULL, 0, 100, journal_playback_cb );
+        info->proc[index] = proc;
+        info->hinst16[index] = hInst;
+        info->htask16[index] = hTask;
+        return -1;
+    }
+    
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return 0;
     if (!hook_procs[index])
     {
@@ -495,7 +540,8 @@ BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return FALSE;
     if (!(info = get_hook_info( FALSE ))) return FALSE;
     if (info->proc[index] != proc) return FALSE;
-    if (!UnhookWindowsHookEx( info->hook[index] )) return FALSE;
+    if (id == WH_JOURNALPLAYBACK && KillTimer( NULL, (UINT_PTR)info->hook[index] )) return FALSE;
+    else if (!UnhookWindowsHookEx( info->hook[index] )) return FALSE;
     info->hook[index] = 0;
     info->proc[index] = 0;
     info->hinst16[index] = 0;
@@ -513,12 +559,15 @@ BOOL16 WINAPI UnhookWindowsHookEx16( HHOOK hhook )
     int index;
 
     if (!(info = get_hook_info( FALSE ))) return FALSE;
+
     for (index = 0; index < NB_HOOKS16; index++)
     {
         if (info->hook[index] == hhook)
         {
             info->hook[index] = 0;
             info->proc[index] = 0;
+            if (index == 1)
+                return KillTimer( NULL, (UINT_PTR)hhook );
             return UnhookWindowsHookEx( hhook );
         }
     }
