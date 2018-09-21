@@ -33,6 +33,19 @@ typedef LPCSTR LPCOLESTR16;
 #define STDMETHOD16(m) HRESULT (STDMETHOD16CALLTYPE *m)
 #define STDMETHOD16_(t,m) t (STDMETHOD16CALLTYPE *m)
 
+#undef INTERFACE
+#define INTERFACE IUnknown16
+
+DECLARE_INTERFACE(IUnknown16)
+{
+    STDMETHOD16(QueryInterface) (THIS_ REFIID riid, void** ppvObject) PURE;
+    STDMETHOD16_(ULONG, AddRef) (THIS)  PURE;
+    STDMETHOD16_(ULONG, Release) (THIS) PURE;
+};
+
+typedef IUnknown16 FAR* LPUNKNOWN16;
+
+
 /**********************************************************************/
 
 typedef struct ILockBytes16 *LPLOCKBYTES16;

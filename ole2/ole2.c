@@ -70,9 +70,13 @@ DWORD WINAPI OleBuildVersion16(void)
 /***********************************************************************
  *           OleInitialize       (OLE2.2)
  */
-HRESULT WINAPI OleInitialize16(LPVOID reserved)
+HRESULT WINAPI OleInitialize16(LPMALLOC pMalloc)
 {
-    return OleInitialize( reserved );
+    if (pMalloc)
+    {
+        FIXME("OleInitialize(pMalloc) is not supported.\n");
+    }
+    return OleInitialize( NULL );
 }
 
 /******************************************************************************

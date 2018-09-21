@@ -34,6 +34,7 @@
 #include "wine/windef16.h"
 #include "wine/winbase16.h"
 
+#include "../ole2/ifs.h"
 #include "ole2disp.h"
 
 #include "wine/debug.h"
@@ -289,6 +290,12 @@ HRESULT WINAPI SafeArrayDestroyData16(SAFEARRAY16 *sa)
     return S_OK;
 }
 
+HRESULT WINAPI SafeArrayCopy16(SAFEARRAY16 *sa, SAFEARRAY16 **ppsaout)
+{
+    FIXME("(%p,%p) stub!\n", sa, ppsaout);
+    return E_INVALIDARG;
+}
+
 /* This implementation of the BSTR API is 16-bit only. It
    represents BSTR as a 16:16 far pointer, and the strings
    as ISO-8859 */
@@ -506,7 +513,7 @@ HRESULT WINAPI RegisterActiveObject16(
 	IUnknown *punk, REFCLSID rclsid, DWORD dwFlags, unsigned long *pdwRegister
 ) {
 	FIXME("(%p,%s,0x%08x,%p):stub\n",punk,debugstr_guid(rclsid),dwFlags,pdwRegister);
-	return E_NOTIMPL;
+	return S_OK;
 }
 
 /******************************************************************************
@@ -534,4 +541,143 @@ void WINAPI VariantInit16(VARIANTARG16 *v)
 {
     TRACE("(%p)\n", v);
     v->vt = VT_EMPTY;
+}
+
+HRESULT IUnknown16_Release(SEGPTR unk16)
+{
+    LPUNKNOWN16 iunk = (LPUNKNOWN16)MapSL(unk16);
+    IUnknown16Vtbl *vtbl = MapSL(iunk->lpVtbl);
+    SEGPTR func = vtbl->Release;
+    WORD args[2];
+    DWORD result;
+    args[1] = HIWORD(unk16);
+    args[0] = LOWORD(unk16);
+    WOWCallback16Ex(func, WCB16_PASCAL, sizeof(args), &args, &result);
+    return (HRESULT)result;
+}
+
+HRESULT IUnknown16_AddRef(SEGPTR unk16)
+{
+    LPUNKNOWN16 iunk = (LPUNKNOWN16)MapSL(unk16);
+    IUnknown16Vtbl *vtbl = MapSL(iunk->lpVtbl);
+    SEGPTR func = vtbl->AddRef;
+    WORD args[2];
+    DWORD result;
+    args[1] = HIWORD(unk16);
+    args[0] = LOWORD(unk16);
+    WOWCallback16Ex(func, WCB16_PASCAL, sizeof(args), &args, &result);
+    return (HRESULT)result;
+}
+
+HRESULT WINAPI VariantClear16(VARIANTARG16 *v)
+{
+    TRACE("(%p)\n", v);
+    HRESULT hres = S_OK;
+    if (!V_ISBYREF(v))
+    {
+        if (V_ISARRAY(v) || V_VT(v) == VT_SAFEARRAY)
+        {
+            FIXME("V_ISARRAY\n");
+            hres = S_OK;
+        }
+        if (V_VT(v) == VT_BSTR)
+        {
+            /* free string */
+            SysFreeString16(V_BSTR(v));
+        }
+        if (V_VT(v) == VT_DISPATCH)
+        {
+            /* free object */
+            IUnknown16_Release(V_UNKNOWN(v));
+        }
+    }
+    v->vt = VT_EMPTY;
+    v->wReserved1 = 0;
+    v->wReserved2 = 0;
+    v->wReserved3 = 0;
+    return S_OK;
+}
+/* based on wine */
+
+
+/* Get just the type from a variant pointer */
+#define V_TYPE(v)  (V_VT((v)) & VT_TYPEMASK)
+
+/* Flags set in V_VT, other than the actual type value */
+#define VT_EXTRA_TYPE (VT_VECTOR|VT_ARRAY|VT_BYREF|VT_RESERVED)
+
+/* Get the extra flags from a variant pointer */
+#define V_EXTRA_TYPE(v) (V_VT((v)) & VT_EXTRA_TYPE)
+
+/******************************************************************************
+ * Check if a variants type is valid.
+ */
+static inline HRESULT VARIANT_ValidateType(VARTYPE vt)
+{
+  VARTYPE vtExtra = vt & VT_EXTRA_TYPE;
+
+  vt &= VT_TYPEMASK;
+
+  if (!(vtExtra & (VT_VECTOR|VT_RESERVED)))
+  {
+    if (vt < VT_VOID || vt == VT_RECORD || vt == VT_CLSID)
+    {
+      if ((vtExtra & (VT_BYREF|VT_ARRAY)) && vt <= VT_NULL)
+        return DISP_E_BADVARTYPE;
+      if (vt != (VARTYPE)15)
+        return S_OK;
+    }
+  }
+  return DISP_E_BADVARTYPE;
+}
+
+
+HRESULT WINAPI VariantCopy16(VARIANTARG16* pvargDest, VARIANTARG16* pvargSrc)
+{
+    HRESULT hres = S_OK;
+    if (V_TYPE(pvargSrc) == VT_CLSID || /* VT_CLSID is a special case */
+        FAILED(VARIANT_ValidateType(V_VT(pvargSrc))))
+        return DISP_E_BADVARTYPE;
+
+    if (pvargSrc != pvargDest &&
+        SUCCEEDED(hres = VariantClear16(pvargDest)))
+    {
+        *pvargDest = *pvargSrc; /* Shallow copy the value */
+
+        if (!V_ISBYREF(pvargSrc))
+        {
+            switch (V_VT(pvargSrc))
+            {
+            case VT_BSTR:
+                V_BSTR(pvargDest) = SysAllocStringLen16((char*)MapSL(V_BSTR(pvargSrc)), SysStringLen16(MapSL(V_BSTR(pvargSrc))));
+                if (!V_BSTR(pvargDest))
+                    hres = E_OUTOFMEMORY;
+                break;
+            case VT_RECORD:
+            {
+                FIXME("VT_RECORD, stub\n");
+            }
+                break;
+            case VT_DISPATCH:
+            case VT_UNKNOWN:
+                V_UNKNOWN(pvargDest) = V_UNKNOWN(pvargSrc);
+                if (V_UNKNOWN(pvargSrc))
+                    IUnknown16_AddRef(V_UNKNOWN(pvargSrc));
+                break;
+            default:
+                if (V_ISARRAY(pvargSrc))
+                    hres = SafeArrayCopy16(MapSL(V_ARRAY(pvargSrc)), &V_ARRAY(pvargDest));
+            }
+        }
+    }
+    return hres;
+}
+
+HRESULT WINAPI VariantCopyInd16(VARIANT16 *v, VARIANTARG16 *src)
+{
+    if (!V_ISBYREF(v))
+        return VariantCopy16(v, src);
+    FIXME("(%p, %p) stub.\n", v, src);
+    *v = *src;
+    return E_INVALIDARG;
 }

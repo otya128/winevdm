@@ -6,9 +6,9 @@
 6 pascal SysFreeString(segstr)		SysFreeString16
 7 pascal SysStringLen(segstr)		SysStringLen16
 8 pascal VariantInit(ptr) VariantInit16
-9 stub VARIANTCLEAR
-10 stub VARIANTCOPY
-11 stub VARIANTCOPYIND
+9 pascal VariantClear(ptr) VariantClear16
+10 pascal VariantCopy(ptr ptr) VariantCopy16
+11 pascal VariantCopyInd(ptr ptr) VariantCopyInd16
 12 pascal VariantChangeType(ptr ptr word word) VariantChangeType16
 13 stub VARIANTTIMETODOSDATETIME
 14 stub DOSDATETIMETOVARIANTTIME
@@ -24,7 +24,7 @@
 24 pascal SafeArrayUnaccessData(ptr) SafeArrayUnaccessData16
 25 stub SAFEARRAYGETELEMENT
 26 stub SAFEARRAYPUTELEMENT
-27 stub SAFEARRAYCOPY
+27 pascal SafeArrayCopy(ptr ptr) SafeArrayCopy16
 28 stub DISPGETPARAM
 29 stub DISPGETIDSOFNAMES
 30 stub DISPINVOKE
