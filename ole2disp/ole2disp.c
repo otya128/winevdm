@@ -473,7 +473,7 @@ int WINAPI SysStringLen16(BSTR16 str)
 /******************************************************************************
  * VariantChangeType [OLE2DISP.12]
  */
-HRESULT WINAPI VariantChangeType16(VARIANTARG *vargDest, VARIANTARG *varSrc, unsigned short flags, VARTYPE vt)
+HRESULT WINAPI VariantChangeType16(VARIANTARG16 *vargDest, VARIANTARG16 *varSrc, unsigned short flags, VARTYPE vt)
 {
     FIXME("stub: (%p, %p, %d, %d)\n", vargDest, varSrc, flags, vt);
     return E_NOTIMPL;
@@ -496,7 +496,7 @@ HRESULT WINAPI CreateDispTypeInfo16(
  * CreateStdDispatch [OLE2DISP.32]
  */
 HRESULT WINAPI CreateStdDispatch16(
-        IUnknown* punkOuter,
+        IUnknown16* punkOuter,
         void* pvThis,
 	ITypeInfo* ptinfo,
 	IUnknown** ppunkStdDisp)
@@ -519,7 +519,7 @@ HRESULT WINAPI RegisterActiveObject16(
 /******************************************************************************
  * VariantChangeTypeEx [OLE2DISP.108]
  */
-HRESULT WINAPI VariantChangeTypeEx16(VARIANTARG *dest, const VARIANTARG *src, LCID lcid, USHORT flags, VARTYPE vt)
+HRESULT WINAPI VariantChangeTypeEx16(VARIANTARG16 *dest, const VARIANTARG16 *src, LCID lcid, USHORT flags, VARTYPE vt)
 {
         FIXME("stub: %p %p %d %d %d\n", dest, src, lcid, flags, vt);
         return E_INVALIDARG;

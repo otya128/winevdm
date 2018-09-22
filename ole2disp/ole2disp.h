@@ -73,7 +73,7 @@ typedef struct tagVARIANT16 {
 /* IUnknown** */    SEGPTR ppunkVal;
 /* IDispatch** */   SEGPTR ppdispVal;
 /* SAFEARRAY** */   SEGPTR pparray;
-    };// u;
+    } DUMMYUNIONNAME;
 } VARIANT16;
 
 typedef VARIANT16 VARIANTARG16;
