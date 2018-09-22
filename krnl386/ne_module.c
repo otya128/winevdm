@@ -852,7 +852,6 @@ static BOOL NE_LoadDLLs( NE_MODULE *pModule )
             {
                 LPSTR buf = buffer + strlen(buffer);
                 without_ext = TRUE;
-                strcat( buffer, (GetExeVersion16() >= 0x0300) ? ".DLL" : ".EXE" );
                 hDLL = MODULE_LoadModule16(buffer, TRUE, TRUE);
                 if (hDLL < 32)
                 {
@@ -1079,7 +1078,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
 
         strcpy( dllname, basename );
         q = strrchr( dllname, '.' );
-        if (!q) strcat( dllname, (GetExeVersion16() >= 0x0300) ? ".dll" : ".exe" );
+        if (!q) strcat( dllname, ".dll" );
         for (q = dllname; *q; q++) if (*q >= 'A' && *q <= 'Z') *q += 32;
 
         strcpy( q, "16" );
@@ -1141,8 +1140,12 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
     }
     else
     {
-        TRACE("Trying native dll '%s'\n", libname);
-        hinst = NE_LoadModule(libname, lib_only);
+        char *q;
+        strcpy( dllname, basename );
+        q = strrchr( dllname, '.' );
+        if (!q) strcat( dllname, (GetExeVersion16() >= 0x0300) ? ".dll" : ".exe" );
+        TRACE("Trying native dll '%s'\n", !q ? dllname : libname);
+        hinst = NE_LoadModule(!q ? dllname : libname, lib_only);
         if (hinst > 32) TRACE_(loaddll)("Loaded module %s : native\n", debugstr_a(libname));
     }
 
