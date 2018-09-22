@@ -307,6 +307,7 @@ void WINAPI _fpMath( CONTEXT *context )
 			x87.fldcw(&mask);
 			x87.wait();
 			x87.frndint();
+			x87.fldcw(&save);
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
