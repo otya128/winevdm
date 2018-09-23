@@ -2610,6 +2610,16 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     cs.cx = (width == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)width;
     cs.cy = (height == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)height;
 
+    // make windows 1.0 programs appear in a usable window
+    BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
+    if (IsOldWindowsTask(GetCurrentTask()) && !(style & WS_CHILD) && (!cs.cx || !cs.cy))
+    {
+        cs.x = CW_USEDEFAULT;
+        cs.y = CW_USEDEFAULT;
+        cs.cx = CW_USEDEFAULT;
+        cs.cy = CW_USEDEFAULT;
+    }
+
     /* Create the window */
 
     cs.lpCreateParams = data;
