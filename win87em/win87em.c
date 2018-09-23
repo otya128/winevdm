@@ -301,13 +301,12 @@ void WINAPI _fpMath( CONTEXT *context )
 #if USE_VM86_DLL
 			x87.fstcw(&save);
 			x87.wait();
-			x87.fstcw(&mask);
+			mask = (save & ~0xc00) | (context->Eax & 0xc00);
 			x87.wait();
-			mask |= 0xC00;
-			x87.fldcw(&mask);
+			x87.fldcw(mask);
 			x87.wait();
 			x87.frndint();
-			x87.fldcw(&save);
+			x87.fldcw(save);
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
