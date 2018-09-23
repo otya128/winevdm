@@ -35,8 +35,8 @@
 35 pascal RegisterDragDrop(word segptr) RegisterDragDrop16
 36 pascal RevokeDragDrop(word) RevokeDragDrop16
 37 pascal DoDragDrop(ptr ptr long ptr) DoDragDrop16
-38 stub CREATEOLEADVISEHOLDER
-39 stub CREATEDATAADVISEHOLDER
+38 pascal CreateOleAdviseHolder(ptr) CreateOleAdviseHolder16
+39 pascal CreateDataAdviseHolder(ptr) CreateDataAdviseHolder16
 40 stub OLECREATEMENUDESCRIPTOR
 41 pascal OleSetMenuDescriptor(word word word ptr ptr) OleSetMenuDescriptor16
 42 stub OLEDESTROYMENUDESCRIPTOR
@@ -156,3 +156,21 @@
 507 cdecl HGLOBALLockBytesImpl16_LockRegion(ptr int64 int64 long) HGLOBALLockBytesImpl16_LockRegion
 508 cdecl HGLOBALLockBytesImpl16_UnlockRegion(ptr int64 int64 long) HGLOBALLockBytesImpl16_UnlockRegion
 509 cdecl HGLOBALLockBytesImpl16_Stat(ptr ptr long) HGLOBALLockBytesImpl16_Stat
+
+510 cdecl IOleAdviseHolder16_QueryInterface(segptr ptr ptr) IOleAdviseHolder16_QueryInterface
+511 cdecl IOleAdviseHolder16_AddRef(ptr) IOleAdviseHolder16_AddRef
+512 cdecl IOleAdviseHolder16_Release(ptr) IOleAdviseHolder16_Release
+513 cdecl IOleAdviseHolder16_Advise(ptr ptr ptr) IOleAdviseHolder16_Advise
+514 cdecl IOleAdviseHolder16_Unadvise(ptr long) IOleAdviseHolder16_Unadvise
+515 cdecl IOleAdviseHolder16_EnumAdvise(ptr ptr) IOleAdviseHolder16_EnumAdvise
+516 cdecl IOleAdviseHolder16_SendOnRename(ptr ptr) IOleAdviseHolder16_SendOnRename
+517 cdecl IOleAdviseHolder16_SendOnSave(ptr) IOleAdviseHolder16_SendOnSave
+518 cdecl IOleAdviseHolder16_SendOnClose(ptr) IOleAdviseHolder16_SendOnClose
+
+519 cdecl IDataAdviseHolder16_QueryInterface(segptr ptr ptr) IDataAdviseHolder16_QueryInterface
+520 cdecl IDataAdviseHolder16_AddRef(ptr) IDataAdviseHolder16_AddRef
+521 cdecl IDataAdviseHolder16_Release(ptr) IDataAdviseHolder16_Release
+522 cdecl IDataAdviseHolder16_Advise(ptr ptr ptr long ptr ptr) IDataAdviseHolder16_Advise
+523 cdecl IDataAdviseHolder16_Unadvise(ptr long) IDataAdviseHolder16_Unadvise
+524 cdecl IDataAdviseHolder16_EnumAdvise(ptr ptr) IDataAdviseHolder16_EnumAdvise
+525 cdecl IDataAdviseHolder16_SendOnDataChange(ptr ptr long long) IDataAdviseHolder16_SendOnDataChange

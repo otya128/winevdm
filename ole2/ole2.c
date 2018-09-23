@@ -431,13 +431,13 @@ HRESULT WINAPI OleIsCurrentClipboard16(LPDATAOBJECT pDataObj)
     return S_OK;
 }
 
-HRESULT WINAPI ReadFmtUserTypeStg16(IStorage *pstg, CLIPFORMAT *pcf, LPOLESTR16 *lplpszUserType)
+HRESULT WINAPI ReadFmtUserTypeStg16(LPSTORAGE16 *pstg, CLIPFORMAT *pcf, LPOLESTR16 *lplpszUserType)
 {
     FIXME("(%p,%p,%p),stub!\n", pstg, pcf, lplpszUserType);
     return E_NOTIMPL;
 }
 
-HRESULT WINAPI WriteFmtUserTypeStg16(IStorage *pstg, CLIPFORMAT cf, LPOLESTR16 lpszUserType)
+HRESULT WINAPI WriteFmtUserTypeStg16(LPSTORAGE16 *pstg, CLIPFORMAT cf, LPOLESTR16 lpszUserType)
 {
     FIXME("(%p,%04x,%s),stub!\n", pstg, cf, lpszUserType);
     return E_NOTIMPL;

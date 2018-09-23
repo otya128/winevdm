@@ -142,4 +142,42 @@ DECLARE_INTERFACE_(IStorage16,IUnknown)
 };
 #undef INTERFACE
 
+
+#undef INTERFACE
+#define INTERFACE IOleAdviseHolder16
+
+DECLARE_INTERFACE_(IOleAdviseHolder16, IUnknown)
+{
+    /*** IUnknown methods ***/
+    STDMETHOD16_(HRESULT, QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
+    STDMETHOD16_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD16_(ULONG, Release)(THIS) PURE;
+    /*** IOleAdviseHolder16 methods ***/
+    STDMETHOD16(Advise)(THIS_ LPADVISESINK pAdvise, DWORD *pdwConnection) PURE;
+    STDMETHOD16(Unadvise)(THIS_ DWORD dwConnection) PURE;
+    STDMETHOD16(EnumAdvise)(THIS_ LPENUMSTATDATA *ppenumAdvise) PURE;
+    STDMETHOD16(SendOnRename)(THIS_ LPMONIKER pmk) PURE;
+    STDMETHOD16(SendOnSave)(THIS) PURE;
+    STDMETHOD16(SendOnClose)(THIS) PURE;
+};
+typedef IOleAdviseHolder16 *LPOLEADVISEHOLDER16;
+
+
+#undef INTERFACE
+#define INTERFACE IDataAdviseHolder16
+
+DECLARE_INTERFACE_(IDataAdviseHolder16, IUnknown)
+{
+    /*** IUnknown methods ***/
+    STDMETHOD16_(HRESULT, QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
+    STDMETHOD16_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD16_(ULONG, Release)(THIS) PURE;
+    /*** IDataAdviseHolder methods ***/
+    STDMETHOD16(Advise)(THIS_ LPDATAOBJECT pDataObject, FORMATETC * pFetc, DWORD advf, LPADVISESINK pAdvise, DWORD *pdwConnection) PURE;
+    STDMETHOD16(Unadvise)(THIS_ DWORD dwConnection) PURE;
+    STDMETHOD16(EnumAdvise)(THIS_ LPENUMSTATDATA *ppenumAdvise) PURE;
+    STDMETHOD16(SendOnDataChange)(THIS_ LPDATAOBJECT pDataObject, DWORD dwReserved, DWORD advf) PURE;
+};
+typedef IDataAdviseHolder16 * LPDATAADVISEHOLDER16;
+
 #endif /* __WINE_OLE_IFS_H */
