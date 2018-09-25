@@ -4209,7 +4209,7 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
            fixme_once = TRUE;
            FIXME("WRITE CHARACTER TO STDAUX\n");
        }
-       printf("%c", DL_reg(context));
+       DPRINTF("%c", DL_reg(context));
    }
        break;
     case 0x03: /* READ CHARACTER FROM STDAUX  */
