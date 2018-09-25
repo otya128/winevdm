@@ -313,7 +313,7 @@
 #317 CompUpdateRgn
 #318 GetWC2
 319 pascal -ret16 ScrollWindowEx(word s_word s_word ptr ptr word ptr word) ScrollWindowEx16 # W1.1, W2.0: SETWC2
-320 stub SysErrorBox # W1.1: ICONNAMEWNDPROC, W2.0: nothing !
+320 pascal -ret16 SysErrorBox(str str word word word) SysErrorBox16 # W1.1: ICONNAMEWNDPROC, W2.0: nothing !
 321 pascal   SetEventHook(segptr) SetEventHook16 # W1.1, W2.0: DESTROYTASKWINDOWS2
 322 stub WinOldAppHackOMatic # W1.1, W2.0: POSTSYSERROR
 323 stub GetMessage2
