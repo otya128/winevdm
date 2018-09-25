@@ -4201,8 +4201,18 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
         DOSVM_PutChar(DL_reg(context));
         break;
 
+   case 0x04: /* WRITE CHARACTER TO STDAUX */
+   {
+       static BOOL fixme_once;
+       if (!fixme_once)
+       {
+           fixme_once = TRUE;
+           FIXME("WRITE CHARACTER TO STDAUX\n");
+       }
+       printf("%c", DL_reg(context));
+   }
+       break;
     case 0x03: /* READ CHARACTER FROM STDAUX  */
-    case 0x04: /* WRITE CHARACTER TO STDAUX */
     case 0x05: /* WRITE CHARACTER TO PRINTER */
         INT_BARF( context, 0x21 );
         break;
