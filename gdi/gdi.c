@@ -2080,14 +2080,139 @@ LONG WINAPI SetBitmapBits16( HBITMAP16 hbitmap, LONG count, LPCVOID buffer )
     return SetBitmapBits( HBITMAP_32(hbitmap), count, buffer );
 }
 
+#include <pshpack1.h>
+typedef struct
+{
+    SHORT dfVersion;		/* Version */
+    LONG dfSize;		/* Total File Size */
+    char dfCopyright[60];	/* Copyright notice */
+    FONTINFO16 fi;		/* FONTINFO structure */
+} WINFNT;
+#include <poppack.h>
 
 /***********************************************************************
  *           AddFontResource    (GDI.119)
  */
 INT16 WINAPI AddFontResource16( LPCSTR filename )
 {
+    int ret = 0;
+    HINSTANCE16 module;
     ERR("(%s)\n", debugstr_a(filename));
-    return AddFontResourceA(filename);
+    ret = AddFontResourceA(filename);
+    if (ret) return ret;
+
+    // try to load 0x100 version bitmap font by converting to a 0x200 font
+    // which Windows can load
+    HINSTANCE16 mod = 0;
+    HANDLE fh, mh;
+    NE_NAMEINFO *name;
+    int count = 0;
+    LPVOID font;
+    if((mod = LoadLibrary16(filename)) >= 32)
+    {
+        char *fon = GlobalLock16(GetExePtr(mod));
+        WORD ne_resrctab = ((WORD *)fon)[18];
+        NE_TYPEINFO *type = fon + ne_resrctab + 2;
+        while(type->type_id & 0x8000)
+        {
+            if (type->type_id == 0x8008)
+                break;
+            type = (char *)type + sizeof(NE_TYPEINFO) + (type->count * sizeof(NE_NAMEINFO));
+        }
+        if(type->type_id != 0x8008)
+        {
+            FreeLibrary16(mod);
+            return 0;
+        }
+        count = type->count;
+        name = (char *)type + sizeof(NE_TYPEINFO);
+    }
+    else
+    {
+        fh = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if(fh == INVALID_HANDLE_VALUE)
+            return 0;
+        mh = CreateFileMapping(fh, filename, PAGE_READONLY, 0, 0, NULL);
+        font = MapViewOfFile(mh, FILE_MAP_READ, 0, 0, 0);
+        count = 1;
+        mod = 0;
+    }
+    char *dst = HeapAlloc(GetProcessHeap(), 0, 65536);
+    __try
+    {
+        HGLOBAL16 mem = 0;
+        for(int num = 0; num < count; num++)
+        {
+            WINFNT *fnt;
+            if(mod)
+            {
+                if(mem)
+                    FreeResource16(mem);
+                HRSRC16 res = FindResource16(mod, name->id, 8);
+                mem = LoadResource16(mod, res);
+                font = LockResource16(mem);
+                name++;
+            }
+            fnt = font;
+            if((fnt->dfVersion != 0x100) || (fnt->fi.dfType & 1))
+                continue;
+
+            memcpy(dst, font, 118);
+            int fontsize = (unsigned char)fnt->fi.dfLastChar - (unsigned char)fnt->fi.dfFirstChar + 2;
+            WORD *charoff = (char *)font + 117;
+            WORD *ncharoff = dst + 118;
+            int hdrsize = 118 + (fontsize * 4);
+            for(int i = 0; i < (fontsize - 1); i++)
+            {
+                ncharoff[i * 2] = fnt->fi.dfPixWidth ? fnt->fi.dfPixWidth : charoff[i + 1] - charoff[i];
+                ncharoff[(i * 2) + 1] = i ? (((ncharoff[(i * 2) - 2] + 7) / 8) * fnt->fi.dfPixHeight) + ncharoff[(i * 2) - 1] : hdrsize;
+            }
+            ncharoff[(fontsize - 1) * 2] = ncharoff[((fontsize - 1) * 2) + 1] = 0;
+            int rowwid = fnt->fi.dfWidthBytes;
+            int nbitsize = ncharoff[(fontsize * 2) - 3] + (((ncharoff[(fontsize * 2) - 4] + 7) / 8) * fnt->fi.dfPixHeight) - hdrsize;
+            char *bitdata = (char *)font + fnt->fi.dfBitsOffset;
+            char *nbitdata = dst + hdrsize;
+            for(int i = 0; i < (fontsize - 1); i++)
+            {
+                int addr = ncharoff[(i * 2) + 1] - hdrsize;
+                int bytewid = (ncharoff[i * 2] + 7) / 8;
+                for(int j = 0; j < fnt->fi.dfPixHeight; j++)
+                {
+                    for(int k = 0; k < bytewid; k++)
+                    {
+                        WORD bits = *(WORD *)(bitdata + (rowwid * j) + (charoff[i] / 8) + k);
+                        bits = (bits >> 8) | (bits << 8);
+                        bits <<= charoff[i] % 8;
+                        nbitdata[addr + j + (k * fnt->fi.dfPixHeight)] = bits >> 8;
+                    }
+                }
+            }
+            strncpy(dst + hdrsize + nbitsize, (char *)font + fnt->fi.dfFace, 256);
+            int namelen = strnlen(dst + hdrsize + nbitsize, 256);
+            fnt = dst;
+            fnt->dfVersion = 0x200;
+            fnt->fi.dfBitsOffset = hdrsize;
+            fnt->fi.dfFace = hdrsize + nbitsize;
+            fnt->dfSize = fnt->fi.dfFace + namelen + 1;
+            int fnum;
+            AddFontMemResourceEx(dst, fnt->dfSize, 0, &fnum);
+            TRACE("Added %d fonts\n", fnum);
+        }
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER)
+    {
+        ERR("Failed to load old font\n");
+    }
+    if(mod)
+        FreeLibrary16(mod);
+    else
+    {
+        UnmapViewOfFile(font);
+        CloseHandle(mh);
+        CloseHandle(fh);
+    }
+    HeapFree(GetProcessHeap(), 0, dst);
+    return ret;
 }
 
 
