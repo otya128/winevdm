@@ -1574,7 +1574,13 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
     /* Clear magic number just in case */
 
     pModule->ne_magic = pModule->self = 0;
-    if (pModule->owner32) FreeLibrary( pModule->owner32 );
+    if (pModule->owner32)
+    {
+        DWORD count;
+        ReleaseThunkLock(&count);
+        FreeLibrary(pModule->owner32);
+        RestoreThunkLock(count);
+    }
     else if (pModule->mapping) UnmapViewOfFile( pModule->mapping );
 
       /* Remove it from the linked list */
