@@ -414,6 +414,7 @@ static void TASK_DeleteTask( HTASK16 hTask )
     {
         task_old = 0;
         task_old_data = NULL;
+        TlsSetValue(curdir_tls_index, 0xdead);
     }
     hPDB = pTask->hPDB;
 
@@ -1707,6 +1708,12 @@ void switch_directory(struct kernel_thread_data *thread_data)
             GetShortPathNameA(thread_data->true_curdir, thread_data->true_curdir, thread_data->curdir_len);
             memcpy(thread_data->curdir_buf, thread_data->true_curdir, thread_data->curdir_len);
             SetCurrentDirectory16(thread_data->true_curdir);
+        }
+        if (TlsGetValue(curdir_tls_index) == 0xdead)
+        {
+            task_old = NULL;
+            task_old_data = NULL;
+            return;
         }
         if (!task_old || !task_old_data || !task_old_data->curdir_buf)
         {
