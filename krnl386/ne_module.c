@@ -682,7 +682,11 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
     if (pModule->ne_exetyp != 0x02 && pModule->ne_exetyp != 0x04)
     {
         ERR("exe type is not windows or windows/386. (typ:%02x, ver:%04x)\n", pModule->ne_exetyp, pModule->ne_expver);
-        pModule->ne_expver = 0;
+        /* win95:0x400 */
+        if (pModule->ne_expver >= 0x500)
+        {
+            pModule->ne_expver = 0;
+        }
     }
     pModule->count = 0;
     /* check programs for default minimal stack size */
