@@ -2096,7 +2096,6 @@ typedef struct
 INT16 WINAPI AddFontResource16( LPCSTR filename )
 {
     int ret = 0;
-    HINSTANCE16 module;
     ERR("(%s)\n", debugstr_a(filename));
     ret = AddFontResourceA(filename);
     if (ret) return ret;
@@ -2144,6 +2143,7 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
         for(int num = 0; num < count; num++)
         {
             WINFNT *fnt;
+            int size;
             if(mod)
             {
                 if(mem)
@@ -2151,10 +2151,15 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
                 HRSRC16 res = FindResource16(mod, name->id, 8);
                 mem = LoadResource16(mod, res);
                 font = LockResource16(mem);
+                size = SizeofResource16(mod, res);
                 name++;
             }
+	    else
+                size = GetFileSize(fh, NULL);
+
             fnt = font;
-            if((fnt->dfVersion != 0x100) || (fnt->fi.dfType & 1))
+
+            if((size < 117) || (fnt->dfVersion != 0x100) || (fnt->fi.dfType & 1))
                 continue;
 
             memcpy(dst, font, 118);
@@ -2162,6 +2167,13 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
             WORD *charoff = (char *)font + 117;
             WORD *ncharoff = dst + 118;
             int hdrsize = 118 + (fontsize * 4);
+
+            if(size < (117 + (fnt->fi.dfPixWidth ? (fontsize * 2) : 0) + (fnt->fi.dfWidthBytes * fnt->fi.dfPixHeight)))
+            {
+                TRACE("Font corrupt\n");
+                continue;
+            }
+
             for(int i = 0; i < (fontsize - 1); i++)
             {
                 ncharoff[i * 2] = fnt->fi.dfPixWidth ? fnt->fi.dfPixWidth : charoff[i + 1] - charoff[i];
@@ -2197,6 +2209,7 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
             int fnum;
             AddFontMemResourceEx(dst, fnt->dfSize, 0, &fnum);
             TRACE("Added %d fonts\n", fnum);
+            ret += fnum;
         }
     }
     __except(EXCEPTION_EXECUTE_HANDLER)
