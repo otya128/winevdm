@@ -2129,10 +2129,10 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
     }
     else
     {
-        fh = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        fh = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if(fh == INVALID_HANDLE_VALUE)
             return 0;
-        mh = CreateFileMapping(fh, filename, PAGE_READONLY, 0, 0, NULL);
+        mh = CreateFileMappingA(fh, filename, PAGE_READONLY, 0, 0, NULL);
         font = MapViewOfFile(mh, FILE_MAP_READ, 0, 0, 0);
         count = 1;
         mod = 0;
