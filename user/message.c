@@ -299,7 +299,7 @@ BOOL WINPROC_IsNativeProc(WNDPROC16 func)
  */
 WNDPROC WINPROC_AllocProc16( WNDPROC16 func )
 {
-    int index;
+    unsigned int index;
     WNDPROC ret;
 
     if (!func) return NULL;
@@ -328,7 +328,7 @@ done:
 
 WNDPROC16 WINPROC_AllocProc16_2(WNDPROC func)
 {
-    int index;
+    unsigned int index;
     WNDPROC ret;
 
     if (!func) return NULL;
@@ -375,13 +375,6 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
     if ((ULONG_PTR)winproc >> 16 != WINPROC_HANDLE) return (WNDPROC16)winproc;
     return alloc_win16_thunk( winproc );
 }
-DWORD TEST(WNDPROC16 func)
-{
-    int index = winproc_to_index(func);
-    if (index == -1)
-        return func;
-    return winproc16_array[index - MAX_WINPROCS32];
-}
 /* vm functions */
 WORD get_native_wndproc_segment()
 {
@@ -407,7 +400,7 @@ DWORD call_native_wndproc_context(CONTEXT *context)
     WPARAM16 wParam = POP16(context);
     UINT16 msg = POP16(context);
     HWND16 hwnd = POP16(context);
-    LRESULT result = CallWindowProc16(MAKESEGPTR(context->SegCs, context->Eip), hwnd, msg, wParam, lParam);
+    LRESULT result = CallWindowProc16((WNDPROC16)MAKESEGPTR(context->SegCs, context->Eip), hwnd, msg, wParam, lParam);
     context->Edx = HIWORD(result);
     context->Eax = LOWORD(result);
     context->Eip = LOWORD(ret);
@@ -688,7 +681,7 @@ static void CREATESTRUCT32Ato16( HWND hwnd32, const CREATESTRUCTA* from, CREATES
     }
     else
     {
-        to->hMenu      = from->hMenu;
+        to->hMenu      = (HMENU16)from->hMenu;
     }
     to->hwndParent     = HWND_16(from->hwndParent);
     to->cy             = from->cy;
@@ -709,7 +702,7 @@ static void CREATESTRUCT16to32A( HWND hwnd32, const CREATESTRUCT16* from, CREATE
     }
     else
     {
-        to->hMenu      = from->hMenu;
+        to->hMenu      = (HMENU)from->hMenu;
     }
     to->hwndParent     = WIN_Handle32(from->hwndParent);
     to->cy             = from->cy;
@@ -1092,6 +1085,16 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 	ret = callback(hwnd, msg, wParam, lParam, result, arg);
 	return ret;//wow_handlers32.listbox_proc(hwnd, msg, wParam, lParam, FALSE);
 }
+static LRESULT combo_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f);
+static LRESULT button_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f);
+static LRESULT edit_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f);
+static LRESULT scrollbar_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f);
+static LRESULT static_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
+    , LRESULT *result, void *arg, BOOL *f);
 /**********************************************************************
  *	     WINPROC_CallProc16To32A
  */
@@ -1178,7 +1181,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 
             MDICREATESTRUCT16to32A( cs16, &cs );
             ret = callback( hwnd32, msg, wParam, (LPARAM)&cs, result, arg );
-			*result = HWND_16(*result);
+			*result = HWND_16((HWND)*result);
             MDICREATESTRUCT32Ato16( &cs, cs16 );
         }
         break;
@@ -1193,14 +1196,14 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         {
             BOOL maximized = FALSE;
             ret = callback( hwnd32, msg, wParam, (LPARAM)&maximized, result, arg );
-            *result = MAKELRESULT( LOWORD(HWND_16(*result)), maximized );
+            *result = MAKELRESULT( LOWORD(HWND_16((HWND)*result)), maximized );
         }
         break;
     case WM_MDISETMENU:
         ret = callback( hwnd32, wParam ? WM_MDIREFRESHMENU : WM_MDISETMENU,
                         (WPARAM)HMENU_32(LOWORD(lParam)), (LPARAM)HMENU_32(HIWORD(lParam)),
                         result, arg );
-        *result = HMENU_16(*result);
+        *result = HMENU_16((HMENU)*result);
         break;
     case WM_MDIRESTORE:
         ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
@@ -1366,7 +1369,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             ret = callback( hwnd32, WM_CTLCOLORMSGBOX + HIWORD(lParam),
                             (WPARAM)HDC_32(wParam), (LPARAM)WIN_Handle32( LOWORD(lParam) ),
                             result, arg );
-        *result = HBRUSH_16(*result);
+        *result = HBRUSH_16((HBRUSH)*result);
         break;
     case WM_GETTEXT:
     case WM_SETTEXT:
@@ -1455,49 +1458,49 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         break; /* FIXME don't know how to free allocated memory (handle) !! */
     case WM_DDE_EXECUTE:
         lParam = convert_handle_16_to_32( HIWORD(lParam), GMEM_DDESHARE );
-        ret = callback( hwnd32, msg, HWND_32(wParam), lParam, result, arg );
+        ret = callback( hwnd32, msg, (WPARAM)HWND_32(wParam), lParam, result, arg );
         break; /* FIXME don't know how to free allocated memory (handle) !! */
     case WM_PAINTCLIPBOARD:
     case WM_SIZECLIPBOARD:
         FIXME_(msg)( "message %04x needs translation\n", msg );
         break;
 	case WM_NCPAINT:
-        ret = callback(hwnd32, msg, HRGN_32(wParam), lParam, result, arg);
+        ret = callback(hwnd32, msg, (WPARAM)HRGN_32(wParam), lParam, result, arg);
 		break;
     case WM_ERASEBKGND:
-        ret = callback(hwnd32, msg, HDC_32(wParam), lParam, result, arg);
+        ret = callback(hwnd32, msg, (WPARAM)HDC_32(wParam), lParam, result, arg);
         break;
     case WM_SETFONT:
-        ret = callback(hwnd32, msg, HFONT_32(wParam), lParam, result, arg);
+        ret = callback(hwnd32, msg, (WPARAM)HFONT_32(wParam), lParam, result, arg);
         break;
     case WM_MOUSEACTIVATE:
-        ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
+        ret = callback(hwnd32, msg, (WPARAM)HWND_32(wParam), lParam, result, arg);
         break;
     case WM_SETFOCUS:
     case WM_SETCURSOR:
-        ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
+        ret = callback(hwnd32, msg, (WPARAM)HWND_32(wParam), lParam, result, arg);
         break;
     case WM_INITMENU:
     case WM_INITMENUPOPUP:
     case WM_UNINITMENUPOPUP:
-        ret = callback(hwnd32, msg, HMENU_32(wParam), lParam, result, arg);
+        ret = callback(hwnd32, msg, (WPARAM)HMENU_32(wParam), lParam, result, arg);
         break;
     case WM_THEMECHANGED:
         ret = callback(hwnd32, msg, (INT)((INT16)wParam), lParam, result, arg);
         break;
     case WM_NCACTIVATE:
-        ret = callback(hwnd32, msg, wParam, HWND_32(lParam), result, arg);
+        ret = callback(hwnd32, msg, wParam, (LPARAM)HWND_32((HWND16)lParam), result, arg);
         break;
     case WM_GETICON:
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
-        *result = get_icon_16(*result);
+        *result = get_icon_16((HICON)*result);
         break;
     case WM_SETICON:
-        ret = callback(hwnd32, msg, wParam, get_icon_32(lParam), result, arg);
+        ret = callback(hwnd32, msg, wParam, (LPARAM)get_icon_32((HICON16)lParam), result, arg);
         break;
     case WM_QUERYDRAGICON:
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
-        *result = get_icon_16(*result);
+        *result = get_icon_16((HICON)*result);
         break;
     case WM_MOUSEWHEEL:
     case WM_SYSTIMER:
@@ -1523,15 +1526,15 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         }
     case WM_GETFONT:
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
-        *result = HFONT_16(*result);
+        *result = HFONT_16((HFONT)*result);
         break;
     case WM_KILLFOCUS:
     case WM_INITDIALOG:
     case WM_MDIDESTROY:
-        ret = callback(hwnd32, msg, HWND_32(wParam), lParam, result, arg);
+        ret = callback(hwnd32, msg, (WPARAM)HWND_32((HWND16)wParam), lParam, result, arg);
         break;
     case WM_ENTERIDLE:
-        ret = callback(hwnd32, msg, wParam, HWND_32(lParam), result, arg);
+        ret = callback(hwnd32, msg, wParam, (LPARAM)HWND_32((HWND16)lParam), result, arg);
         break;
     case WM_UPDATEUISTATE:
         ret = callback(hwnd32, msg, lParam, lParam, result, arg);
@@ -1638,9 +1641,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_MDIACTIVATE:
         if (GetWindowLongW( hwnd, GWL_EXSTYLE ) & WS_EX_MDICHILD)
             ret = callback( HWND_16(hwnd), msg, ((HWND)lParam == hwnd),
-                            MAKELPARAM( HWND_16(lParam), HWND_16(wParam) ), result, arg );
+                            MAKELPARAM( HWND_16((HWND)lParam), HWND_16((HWND)wParam) ), result, arg );
         else
-            ret = callback( HWND_16(hwnd), msg, HWND_16( wParam ), 0, result, arg );
+            ret = callback( HWND_16(hwnd), msg, (WPARAM16)HWND_16( (HWND)wParam ), 0, result, arg );
         break;
     case WM_MDIGETACTIVE:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
@@ -1650,7 +1653,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_MDISETMENU:
         ret = callback( HWND_16(hwnd), msg, (lParam == 0),
                         MAKELPARAM( LOWORD(wParam), LOWORD(lParam) ), result, arg );
-        *result = HMENU_32(*result);
+        *result = (LRESULT)HMENU_32((HMENU16)*result);
         break;
     case WM_GETMINMAXINFO:
         {
@@ -1832,12 +1835,12 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CHARTOITEM:
     case WM_COMMAND:
     case WM_VKEYTOITEM:
-        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( HWND_16(lParam), HIWORD(wParam) ),
+        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( HWND_16((HWND)lParam), HIWORD(wParam) ),
                         result, arg );
         break;
     case WM_HSCROLL:
     case WM_VSCROLL:
-        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( HIWORD(wParam), HWND_16(lParam) ),
+        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( HIWORD(wParam), HWND_16((HWND)lParam) ),
                         result, arg );
         break;
     case WM_CTLCOLORMSGBOX:
@@ -1847,9 +1850,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
-        ret = callback( HWND_16(hwnd), WM_CTLCOLOR, HDC_16(wParam),
-                        MAKELPARAM( HWND_16(lParam), msg - WM_CTLCOLORMSGBOX ), result, arg );
-        *result = HBRUSH_32(*result);
+        ret = callback( HWND_16(hwnd), WM_CTLCOLOR, HDC_16((HDC)wParam),
+                        MAKELPARAM( HWND_16((HWND)lParam), msg - WM_CTLCOLORMSGBOX ), result, arg );
+        *result = HBRUSH_32((HBRUSH16)*result);
         break;
     case WM_MENUSELECT:
         if(HIWORD(wParam) & MF_POPUP)
@@ -1873,7 +1876,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_PARENTNOTIFY:
         if ((LOWORD(wParam) == WM_CREATE) || (LOWORD(wParam) == WM_DESTROY))
             ret = callback( HWND_16(hwnd), msg, wParam,
-                            MAKELPARAM( HWND_16(lParam), HIWORD(wParam) ), result, arg );
+                            MAKELPARAM( HWND_16((HWND)lParam), HIWORD(wParam) ), result, arg );
         else
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
@@ -1887,23 +1890,23 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             ret = callback( HWND_16(hwnd), WM_PAINT, wParam, lParam, result, arg );
         break;
 	case WM_NCPAINT:
-        ret = callback(HWND_16(hwnd), WM_NCPAINT, HRGN_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), WM_NCPAINT, HRGN_16((HRGN)wParam), lParam, result, arg);
 		break;
 	case WM_NCACTIVATE:
-		ret = callback(HWND_16(hwnd), WM_NCACTIVATE, wParam, HWND_16(lParam), result, arg);
+		ret = callback(HWND_16(hwnd), WM_NCACTIVATE, wParam, HWND_16((HWND)lParam), result, arg);
 		break;
     case WM_ERASEBKGND:
         if (IsIconic( hwnd ) && GetClassLongPtrW( hwnd, GCLP_HICON )) msg = WM_ICONERASEBKGND;
-        ret = callback( HWND_16(hwnd), msg, HDC_16(wParam), lParam, result, arg );
+        ret = callback( HWND_16(hwnd), msg, HDC_16((HDC)wParam), lParam, result, arg );
         break;
     case WM_SETFONT:
-        ret = callback(HWND_16(hwnd), msg, HFONT_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), msg, HFONT_16((HFONT)wParam), lParam, result, arg);
         break;
     case WM_DDE_INITIATE:
     case WM_DDE_TERMINATE:
     case WM_DDE_UNADVISE:
     case WM_DDE_REQUEST:
-        ret = callback( HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg );
+        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), lParam, result, arg );
         break;
     case WM_DDE_ADVISE:
     case WM_DDE_DATA:
@@ -1914,7 +1917,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 
             UnpackDDElParam( msg, lParam, &lo32, &hi );
             if (lo32 && !(lo16 = convert_handle_32_to_16(lo32, GMEM_DDESHARE))) break;
-            ret = callback( HWND_16(hwnd), msg, HWND_16(wParam),
+            ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam),
                             MAKELPARAM(lo16, hi), result, arg );
         }
         break; /* FIXME don't know how to free allocated memory (handle)  !! */
@@ -1950,13 +1953,13 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                 hi = convert_handle_32_to_16(hi, GMEM_DDESHARE);
                 break;
             }
-            ret = callback( HWND_16(hwnd), msg, HWND_16(wParam),
+            ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam),
                             MAKELPARAM(lo, hi), result, arg );
         }
         break; /* FIXME don't know how to free allocated memory (handle) !! */
     case WM_DDE_EXECUTE:
         lParam = MAKELPARAM( 0, convert_handle_32_to_16( lParam, GMEM_DDESHARE ));
-        ret = callback( HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg );
+        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), lParam, result, arg );
         break; /* FIXME don't know how to free allocated memory (handle) !! */
     case SBM_SETRANGE:
         ret = callback( HWND_16(hwnd), SBM_SETRANGE16, 0, MAKELPARAM(wParam, lParam), result, arg );
@@ -2146,38 +2149,38 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_STYLECHANGED:
         break;
     case WM_MOUSEACTIVATE:
-        ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), msg, HWND_16((HWND)wParam), lParam, result, arg);
         break;
     case WM_SETFOCUS:
     case WM_SETCURSOR:
-        ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), msg, HWND_16((HWND)wParam), lParam, result, arg);
         break;
     case WM_INITMENU:
     case WM_INITMENUPOPUP:
     case WM_UNINITMENUPOPUP:
-        ret = callback(HWND_16(hwnd), msg, HMENU_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), msg, HMENU_16((HMENU)wParam), lParam, result, arg);
         break;
     case WM_GETICON:
         ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
-        *result = get_icon_32(*result);
+        *result = (LRESULT)get_icon_32((HICON16)*result);
         break;
     case WM_SETICON:
-        ret = callback(HWND_16(hwnd), msg, wParam, get_icon_16(lParam), result, arg);
+        ret = callback(HWND_16(hwnd), msg, wParam, get_icon_16((HICON)lParam), result, arg);
         break;
     case WM_QUERYDRAGICON:
         ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
-        *result = get_icon_32(*result);
+        *result = (LRESULT)get_icon_32((HICON16)*result);
         break;
     //some applications (afx?) crash when processing this message
     case WM_THEMECHANGED:
         break;
     case MM_WOM_OPEN:
     case MM_WOM_CLOSE:
-        ret = callback(HWND_16(hwnd), msg, HDRVR_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), msg, HDRVR_16((HDRVR)wParam), lParam, result, arg);
         break;
     case MM_WOM_DONE:
     {
-        ret = callback(HWND_16(hwnd), msg, HDRVR_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), msg, HDRVR_16((HDRVR)wParam), lParam, result, arg);
         break;
     }
     case WM_MOUSEWHEEL:
@@ -2214,15 +2217,15 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         }
     case WM_GETFONT:
         ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
-        *result = HFONT_32(*result);
+        *result = (LRESULT)HFONT_32((HFONT16)*result);
         break;
     case WM_KILLFOCUS:
     case WM_MDIDESTROY:
     case WM_INITDIALOG:
-        ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
+        ret = callback(HWND_16(hwnd), msg, HWND_16((HWND)wParam), lParam, result, arg);
         break;
     case WM_ENTERIDLE:
-        ret = callback(HWND_16(hwnd), msg, wParam, HWND_16(lParam), result, arg);
+        ret = callback(HWND_16(hwnd), msg, wParam, HWND_16((HWND)lParam), result, arg);
         break;
     case WM_UPDATEUISTATE:
         ret = callback(HWND_16(hwnd), msg, wParam, wParam, result, arg);
@@ -2520,7 +2523,7 @@ BOOL16 WINAPI TranslateMessage16( const MSG16 *msg )
 LRESULT call_native_wndproc(HWND16 hWnd16, UINT16 msg, WPARAM16 wParam, LPARAM lParam)
 {
 	LRESULT result;
-	WNDPROC wndproc32 = GetWindowLong(HWND_32(hWnd16), GWLP_WNDPROC);
+	WNDPROC wndproc32 = (WNDPROC)GetWindowLongPtrA(HWND_32(hWnd16), GWLP_WNDPROC);
 	if (!wndproc32)
 	{
 		SetLastError(ERROR_INVALID_WINDOW_HANDLE);
@@ -2572,7 +2575,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
     if (!msg->hwnd || !(winproc = (WNDPROC16)GetWndProc16( msg->hwnd )))
 	{
 		LRESULT result;
-		WNDPROC wndproc32 = GetWindowLong(HWND_32(msg->hwnd), GWLP_WNDPROC);
+		WNDPROC wndproc32 = (WNDPROC)GetWindowLongPtrA(HWND_32(msg->hwnd), GWLP_WNDPROC);
 		if (!wndproc32)
 		{
 			SetLastError(ERROR_INVALID_WINDOW_HANDLE);
@@ -3316,7 +3319,7 @@ static LRESULT edit_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd,
     }
     //edit_unlock_buffer( hwnd );
     *f = FALSE;
-    return result;
+    return *result;
 }
 
 
@@ -3952,7 +3955,7 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
     if (code < 0)
         return CallNextHookEx(hook, code, wParam, lParam);
     if (code == HC_ACTION) {
-        if (wParam == NULL) {
+        if (wParam == 0) {
             CWPSTRUCT *pcwp = (CWPSTRUCT *)lParam;
             //I don't know.
             if (pcwp->message == WM_SHOWWINDOW)
@@ -4017,12 +4020,12 @@ void InitNewThreadHook()
 }
 void InitHook()
 {
-    isStatic(NULL, NULL);
-    isListBox(NULL, NULL);
-    isButton(NULL, NULL);
-    isEdit(NULL, NULL);
-    isComboBox(NULL, NULL);
-    isScrollBar(NULL, NULL);
+    isStatic(0, NULL);
+    isListBox(0, NULL);
+    isButton(0, NULL);
+    isEdit(0, NULL);
+    isComboBox(0, NULL);
+    isScrollBar(0, NULL);
     hhook_tls_index = TlsAlloc();
     InitNewThreadHook();
 }
@@ -4102,20 +4105,20 @@ typedef struct tagHWND16Data
 
 HWND get_win_handle(HWND hWnd16)
 {
-	return HWND_32(hWnd16);
+	return HWND_32((HWND16)hWnd16);
 }
 HWND create_window(CREATESTRUCTW* cs, LPCWSTR className, HINSTANCE instance, BOOL unicode)
 {
-	if (!strncasecmp(className, "MDICLIENT", strlen(className)))
+	if (!strncasecmp((LPCSTR)className, "MDICLIENT", strlen((LPCSTR)className)))
 		cs->lpCreateParams = MapSL(cs->lpCreateParams);
 	SetLastError(0);
-	HWND hWnd = CreateWindowExA(cs->dwExStyle, className, cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance, cs->lpCreateParams);
+	HWND hWnd = CreateWindowExA(cs->dwExStyle, (LPCSTR)className, (LPCSTR)cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance, cs->lpCreateParams);
 	if (hWnd == 0)
 	{
 		if (GetLastError() == ERROR_INVALID_MENU_HANDLE)
 		{
-			cs->hMenu = HMENU_32(cs->hMenu);
-			hWnd = CreateWindowExA(cs->dwExStyle, className, cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance, cs->lpCreateParams);
+			cs->hMenu = HMENU_32((HMENU16)cs->hMenu);
+			hWnd = CreateWindowExA(cs->dwExStyle, (LPCSTR)className, (LPCSTR)cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance, cs->lpCreateParams);
 		}
 	}
 	return hWnd;
@@ -4141,6 +4144,7 @@ struct tagDIALOGINFO *get_dialog_info(HWND hWnd, BOOL b)
 INT dialog_box_loop(HWND hWnd, HWND owner)
 {
     ERR("should not be called.\n");
+    return 0;
 }
 void register_wow_handlers(void)
 {
@@ -4194,7 +4198,7 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
             SetMenu(hDlg, get_dialog_hmenu(hDlg));
         }
     }
-    WNDPROC16 wndproc16 = GetWndProc16(hWnd16);
+    WNDPROC16 wndproc16 = (WNDPROC16)GetWndProc16(hWnd16);
     if (wndproc16)
     {
         MSG msg = { 0 };
@@ -4202,7 +4206,6 @@ LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
         msg.message = Msg;
         msg.wParam = wParam;
         msg.lParam = lParam;
-        MSG16 msg16;
         LRESULT result;
         if (WINPROC_IsNativeProc(wndproc16))
         {
