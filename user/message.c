@@ -34,14 +34,10 @@
 #include "message_table.h"
 /* undocumented messages */
 //reactos sdk/include/reactos/undocuser.h
-#define WM_SETVISIBLE       0x00000009
-#define WM_ALTTABACTIVE     0x00000029
-#define WM_ISACTIVEICON     0x00000035
 #define WM_QUERYPARKICON    0x00000036
 #define WM_CLIENTSHUTDOWN   0x0000003B
 #define WM_COPYGLOBALDATA   0x00000049
 #define WM_LOGONNOTIFY      0x0000004C
-#define WM_KEYF1            0x0000004D
 #define WM_KLUDGEMINRECT    0x0000008B
 #define WM_UAHDRAWMENU      0x00000091
 #define WM_UAHDRAWITEM      0x00000092 // WM_DRAWITEM
@@ -50,18 +46,8 @@
 #define WM_UAHDRAWMENUNC    0x00000095
 #define WM_NCUAHDRAWCAPTION 0x000000AE
 #define WM_NCUAHDRAWFRAME   0x000000AF
-#define WM_SYSTIMER         0x00000118
-#define WM_LBTRACKPOINT     0x00000131
 #define WM_CBLOSTTEXTFOCUS  0x00000167
-#define LB_CARETON          0x000001a3
-#define LB_CARETOFF         0x000001a4
 #define MN_SETHMENU         0x000001e0
-#define WM_DROPOBJECT       0x0000022A
-#define WM_QUERYDROPOBJECT  0x0000022B
-#define WM_BEGINDRAG        0x0000022C
-#define WM_DRAGLOOP	        0x0000022D
-#define WM_DRAGSELECT       0x0000022E
-#define WM_DRAGMOVE	        0x0000022F
 #define WM_POPUPSYSTEMMENU  0x00000313
 #define WM_UAHINIT          0x0000031b
 
