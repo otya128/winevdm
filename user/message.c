@@ -1957,6 +1957,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         UnMapLS(lParam);
     }
     break;
+    case EM_GETLINE:
+        ret = callback(HWND_16(hwnd), msg + EM_GETSEL16 - EM_GETSEL, wParam, (LPARAM)MapLS(lParam), result, arg);
+        break;
     case EM_GETSEL:
     case EM_SETRECT:
     case EM_SETRECTNP:
@@ -1972,7 +1975,6 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case EM_GETTHUMB:
     case EM_LINELENGTH:
     case EM_REPLACESEL:
-    case EM_GETLINE:
     case EM_LIMITTEXT:
     case EM_CANUNDO:
     case EM_UNDO:
