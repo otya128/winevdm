@@ -82,6 +82,7 @@ typedef enum
     WINDOW_TYPE_EDIT,
     WINDOW_TYPE_SCROLLBAR,
     WINDOW_TYPE_COMBOBOX,
+    WINDOW_TYPE_MDICLIENT,
 } WINDOW_TYPE;
 LPBYTE window_type_table;
 static void dump_hmenu(HMENU menu)
@@ -924,6 +925,27 @@ BOOL isButton(HWND16 hWnd16, HWND hWnd)
     return is_button_wndproc(lpfnWndProc);
 }
 
+BOOL is_mdiclient_wndproc(WNDPROC lpfnWndProc)
+{
+    static WNDPROC lpfnWndProc1 = 0;
+    static WNDPROC lpfnWndProc2 = 0;
+    if (!lpfnWndProc1)
+        lpfnWndProc1 = get_classinfo_wndproc("MDICLIENT");
+    if (!lpfnWndProc2)
+    {
+        CLIENTCREATESTRUCT ccs = { 0 };
+        HWND hwnd = CreateWindowExA(0, "MDICLIENT", "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), &ccs);
+        lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hwnd, GWLP_WNDPROC);
+    }
+    return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
+}
+BOOL is_mdiclient(HWND16 hWnd16, HWND hWnd)
+{
+    if (window_type_table[hWnd16] == WINDOW_TYPE_MDICLIENT)
+        return TRUE;
+    WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+    return is_mdiclient_wndproc(lpfnWndProc);
+}
 /***********************************************************************
 *           listbox_proc16
 */
@@ -1164,7 +1186,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             MDICREATESTRUCTA mdi_cs;
 
             CREATESTRUCT16to32A( hwnd32, cs16, &cs );
-            if (GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD)
+            if (GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD || is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg)))
             {
                 MDICREATESTRUCT16 *mdi_cs16 = MapSL(cs16->lpCreateParams);
                 MDICREATESTRUCT16to32A(mdi_cs16, &mdi_cs);
@@ -3862,6 +3884,10 @@ void detect_window_type(HWND16 hwnd, HWND hwnd32)
     {
         window_type_table[hwnd] = (BYTE)WINDOW_TYPE_STATIC;
     }
+    if (is_mdiclient(hwnd, hwnd32) || !stricmp(name, "MDICLIENT"))
+    {
+        window_type_table[hwnd] = (BYTE)WINDOW_TYPE_MDICLIENT;
+    }
 }
 DWORD hhook_tls_index;
 typedef struct
@@ -4026,6 +4052,7 @@ void InitHook()
     isEdit(0, NULL);
     isComboBox(0, NULL);
     isScrollBar(0, NULL);
+    is_mdiclient(0, NULL);
     hhook_tls_index = TlsAlloc();
     InitNewThreadHook();
 }
