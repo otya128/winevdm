@@ -88,17 +88,18 @@ LPBYTE window_type_table;
 static void dump_hmenu(HMENU menu)
 {
     int count = GetMenuItemCount(menu);
-    MENUINFO info = { 0 };
-
-    GetMenuInfo(menu, &info);
     for (int i = 0; i < count; i++)
     {
-        MENUITEMINFOA item = { 0 };
-        GetMenuItemInfoA(menu, TRUE, i, &item);
+        MENUITEMINFOA item = { sizeof(MENUITEMINFOA) };
+        item.fMask = MIIM_BITMAP | MIIM_ID | MIIM_STRING;
         char buf[1000];
         buf[0] = 0;
-        GetMenuStringA(menu, i, buf, sizeof(buf), MF_BYPOSITION);
-        MESSAGE("%s bmp:%p\n", buf, item.hbmpItem);
+        item.dwTypeData = buf;
+        item.cch = 1000;
+        if (!GetMenuItemInfoA(menu, i, TRUE, &item))
+        {
+        }
+        MESSAGE("%s bmp:%p id:%04x\n", buf, item.hbmpItem, item.wID);
         if (item.hSubMenu)
         {
             MESSAGE("====BEGIN SUB MENU %p/%p ====\n", menu, item.hSubMenu);
