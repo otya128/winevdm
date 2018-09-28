@@ -979,7 +979,7 @@ DWORD WINAPI GlobalDOSAlloc16(
        WORD	 wSelector;
        GLOBALARENA *pArena;
 
-       wSelector = GLOBAL_CreateBlock(GMEM_FIXED, lpBlock, size, hModule, WINE_LDT_FLAGS_DATA );
+       wSelector = GLOBAL_CreateBlock(GMEM_FIXED, lpBlock, (size + 31) >> 5 << 5, hModule, WINE_LDT_FLAGS_DATA );
        pArena = GET_ARENA_PTR(wSelector);
        pArena->flags |= GA_DOSMEM;
        return MAKELONG(wSelector,uParagraph);
