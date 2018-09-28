@@ -397,7 +397,11 @@ void WINAPI GetClientRect16( HWND16 hwnd, LPRECT16 rect )
  */
 BOOL16 WINAPI EnableWindow16( HWND16 hwnd, BOOL16 enable )
 {
-    return EnableWindow( WIN_Handle32(hwnd), enable );
+    DWORD count;
+    ReleaseThunkLock(&count);
+    BOOL16 result = EnableWindow( WIN_Handle32(hwnd), enable );
+    RestoreThunkLock(count);
+    return result;
 }
 
 
@@ -602,7 +606,11 @@ HWND16 WINAPI FindWindow16( LPCSTR className, LPCSTR title )
  */
 BOOL16 WINAPI DestroyWindow16( HWND16 hwnd )
 {
-    return DestroyWindow( WIN_Handle32(hwnd) );
+    DWORD count;
+    BOOL result;
+    ReleaseThunkLock(&count);
+    result = DestroyWindow(WIN_Handle32(hwnd));
+    RestoreThunkLock(count);
 }
 
 
@@ -1865,6 +1873,9 @@ HWND16 WINAPI GetLastActivePopup16( HWND16 hwnd )
 BOOL16 WINAPI RedrawWindow16( HWND16 hwnd, const RECT16 *rectUpdate,
                               HRGN16 hrgnUpdate, UINT16 flags )
 {
+    DWORD count;
+    BOOL result;
+    ReleaseThunkLock(&count);
     if (rectUpdate)
     {
         RECT r;
@@ -1872,9 +1883,13 @@ BOOL16 WINAPI RedrawWindow16( HWND16 hwnd, const RECT16 *rectUpdate,
         r.top    = rectUpdate->top;
         r.right  = rectUpdate->right;
         r.bottom = rectUpdate->bottom;
-        return RedrawWindow(WIN_Handle32(hwnd), &r, HRGN_32(hrgnUpdate), flags);
+        result = RedrawWindow(WIN_Handle32(hwnd), &r, HRGN_32(hrgnUpdate), flags);
     }
-    return RedrawWindow(WIN_Handle32(hwnd), NULL, HRGN_32(hrgnUpdate), flags);
+    else
+    {
+        result = RedrawWindow(WIN_Handle32(hwnd), NULL, HRGN_32(hrgnUpdate), flags);
+    }
+    RestoreThunkLock(count);
 }
 
 
