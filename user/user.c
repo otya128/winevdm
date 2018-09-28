@@ -535,8 +535,14 @@ INT16 WINAPI InitApp16( HINSTANCE16 hInstance )
 BOOL16 WINAPI ExitWindows16( DWORD dwReturnCode, UINT16 wReserved )
 {
     int result = MessageBoxA(NULL, "ExitWindows?", "ExitWindows", MB_SYSTEMMODAL | MB_YESNO);
-    if (result == IDOK)
-        return ExitWindowsEx( EWX_LOGOFF, 0xffffffff );
+    if (result == IDYES)
+    {
+        result = MessageBoxA(NULL, "ExitWindows?????", "ExitWindows?????", MB_SYSTEMMODAL | MB_YESNO);
+        if (result == IDYES)
+        {
+            return ExitWindowsEx( EWX_LOGOFF, 0xffffffff );
+        }
+    }
     ExitProcess(0);
 }
 
