@@ -2359,7 +2359,7 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
     context->Esi = lpbuf[4];
     context->Edi = lpbuf[5];
     context->SegDs  = lpbuf[6];
-
+    context->Esp += 0x0c;
     if (lpbuf[8] != context->SegSs)
         ERR("Switching stack segment with Throw() not supported; expect crash now\n" );
 }
