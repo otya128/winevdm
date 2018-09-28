@@ -180,7 +180,7 @@
 177 pascal -ret16 PrestoChangoSelector(word word) PrestoChangoSelector16
 178 equate __WINFLAGS 0x413
 179 equate __D000H 0
-180 pascal -ret16 LongPtrAdd(long long) LongPtrAdd16
+180 pascal LongPtrAdd(long long) LongPtrAdd16
 181 equate __B000H 0
 182 equate __B800H 0
 183 equate __0000H 0

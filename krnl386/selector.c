@@ -243,12 +243,14 @@ WORD WINAPI AllocDStoCSAlias16( WORD sel )
 /***********************************************************************
  *           LongPtrAdd   (KERNEL.180)
  */
-void WINAPI LongPtrAdd16( DWORD ptr, DWORD add )
+SEGPTR WINAPI LongPtrAdd16( DWORD ptr, DWORD add )
 {
     LDT_ENTRY entry;
     wine_ldt_get_entry( SELECTOROF(ptr), &entry );
     wine_ldt_set_base( &entry, (char *)wine_ldt_get_base(&entry) + add );
     wine_ldt_set_entry( SELECTOROF(ptr), &entry );
+    CURRENT_STACK16->es = 0;
+    return ptr;
 }
 
 
