@@ -3225,6 +3225,10 @@ INT16 WINAPI GetDIBits16( HDC16 hdc, HBITMAP16 hbitmap, UINT16 startscan,
                           UINT16 lines, LPVOID bits, BITMAPINFO * info,
                           UINT16 coloruse )
 {
+    if (lines > info->bmiHeader.biHeight)
+    {
+        lines = info->bmiHeader.biHeight;
+    }
     return GetDIBits( HDC_32(hdc), HBITMAP_32(hbitmap), startscan, lines, bits, info, coloruse );
 }
 
