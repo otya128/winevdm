@@ -2192,7 +2192,7 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
                 {
                     for(int k = 0; k < bytewid; k++)
                     {
-                        WORD bits = *(WORD *)(bitdata + (rowwid * j) + (charoff[i] / 8) + k);
+                        WORD bits = *(WORD *)(bitdata + (rowwid * j) + ((fnt->fi.dfPixWidth ? fnt->fi.dfPixWidth : charoff[i]) / 8) + k);
                         bits = (bits >> 8) | (bits << 8);
                         bits <<= charoff[i] % 8;
                         nbitdata[addr + j + (k * fnt->fi.dfPixHeight)] = bits >> 8;
