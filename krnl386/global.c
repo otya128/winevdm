@@ -249,6 +249,7 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
     }
 
     if (flags & GMEM_ZEROINIT) memset( ptr, 0, size );
+    else ((char *)ptr)[size - 1] = 0xff; // some programs depend on the block not being cleared
     return handle;
 }
 
