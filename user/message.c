@@ -937,6 +937,7 @@ BOOL is_mdiclient_wndproc(WNDPROC lpfnWndProc)
         CLIENTCREATESTRUCT ccs = { 0 };
         HWND hwnd = CreateWindowExA(0, "MDICLIENT", "", 0, 0, 0, 1, 1, 0, 0, GetModuleHandleA(NULL), &ccs);
         lpfnWndProc2 = (WNDPROC)GetWindowLongPtrA(hwnd, GWLP_WNDPROC);
+        DestroyWindow(hwnd);
     }
     return lpfnWndProc ? (lpfnWndProc == lpfnWndProc1 || lpfnWndProc == lpfnWndProc2) : FALSE;
 }
