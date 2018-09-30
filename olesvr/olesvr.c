@@ -32,6 +32,7 @@
 
 #include "windef.h"
 #include "winbase.h"
+#include "wownt32.h"
 #include "wine/windef16.h"
 #include "wine/winbase16.h"
 #include "objbase.h"
@@ -210,13 +211,21 @@ typedef struct _OLESERVERDOCVTBL16 {
     SEGPTR Release;
     SEGPTR SetColorScheme;
     SEGPTR Execute;
-} OLESERVERDOCVTBL16;
-struct ole_server_doc_wrapper
+} OLESERVERDOCVTBL16, *LPOLESERVERDOCVTBL16;
+typedef struct
 {
     OLESERVERDOC document;
-    OLESERVERDOCVTBL vtable;
-    OLESERVERDOCVTBL16 *vtable16;
-};
+    SEGPTR doc16;
+} ole_server_doc_wrapper;
+ole_server_doc_wrapper ole_docs[MAX_OLESERVER];
+ole_server_doc_wrapper *impl_from_oleserverdoc(LPOLESERVERDOC document)
+{
+    return (ole_server_doc_wrapper*)CONTAINING_RECORD(document, ole_server_doc_wrapper, document);
+}
+LPOLESERVERDOCVTBL16 get_oleserverdocvtbl16(ole_server_doc_wrapper *doc)
+{
+    return ((LPOLESERVERDOCVTBL16)MapSL(((LPOLESERVERDOC16)MapSL(doc->doc16))->lpvtbl));
+}
 OLESTATUS CALLBACK ole_doc_Save(LPOLESERVERDOC document)
 {
     return OLE_OK;
@@ -239,7 +248,14 @@ OLESTATUS CALLBACK ole_doc_GetObject(LPOLESERVERDOC document, OLE_LPCSTR name, L
 }
 OLESTATUS CALLBACK ole_doc_Release(LPOLESERVERDOC document)
 {
-    return OLE_OK;
+    WORD args[2];
+    ole_server_doc_wrapper *doc = impl_from_oleserverdoc(document);
+    LPOLESERVERDOCVTBL16 vtbl16 = get_oleserverdocvtbl16(doc);
+    DWORD ret;
+    args[1] = HIWORD(doc->doc16);
+    args[0] = LOWORD(doc->doc16);
+    WOWCallback16Ex(vtbl16->Release, WCB16_PASCAL, sizeof(args), args, &ret);
+    return (OLESTATUS)(WORD)ret;
 }
 OLESTATUS CALLBACK ole_doc_SetColorScheme(LPOLESERVERDOC document, OLE_CONST LOGPALETTE FAR* palette)
 {
@@ -249,34 +265,36 @@ OLESTATUS CALLBACK ole_doc_Execute(LPOLESERVERDOC document, HGLOBAL h)
 {
     return OLE_OK;
 }
-struct ole_server_doc_wrapper ole_docs[MAX_OLESERVER];
+OLESERVERDOCVTBL oleserverdoc_vtable =
+{
+    ole_doc_Save,
+    ole_doc_Close,
+    ole_doc_SetHostNames,
+    ole_doc_SetDocDimensions,
+    ole_doc_GetObject,
+    ole_doc_Release,
+    ole_doc_SetColorScheme,
+    ole_doc_Execute
+};
 int current_oleserver_doc = 0;
-static LPOLESERVERDOC register_oleserver_doc(OLESERVERDOCVTBL16 *vtbl16)
+static LPOLESERVERDOC register_oleserver_doc(SEGPTR doc16)
 {
     if (current_oleserver_doc >= MAX_OLESERVER)
         return NULL;
     current_oleserver_doc++;
     LPOLESERVERDOC doc = &ole_docs[current_oleserver_doc - 1].document;
-    doc->lpvtbl = &ole_docs[current_oleserver_doc - 1].vtable;
-    doc->lpvtbl->Save = ole_doc_Save;
-    doc->lpvtbl->Close = ole_doc_Close;
-    doc->lpvtbl->SetHostNames = ole_doc_SetHostNames;
-    doc->lpvtbl->SetDocDimensions = ole_doc_SetDocDimensions;
-    doc->lpvtbl->GetObject = ole_doc_GetObject;
-    doc->lpvtbl->Release = ole_doc_Release;
-    doc->lpvtbl->SetColorScheme = ole_doc_SetColorScheme;
-    doc->lpvtbl->Execute = ole_doc_Execute;
-    ole_docs[current_oleserver_doc - 1].vtable16 = vtbl16;
+    doc->lpvtbl = &oleserverdoc_vtable;
+    ole_docs[current_oleserver_doc - 1].doc16 = doc16;
     return doc;
 }
 /***********************************************************************
  *		OleRegisterServerDoc	[OLESVR.6]
  */
 OLESTATUS WINAPI OleRegisterServerDoc16( LHSERVER hServer, LPCSTR docname,
-                                         LPOLESERVERDOC document,
+                                         SEGPTR document,
                                          LHSERVERDOC *hRet)
 {
-    LPOLESERVERDOC doc32 = register_oleserver_doc(document->lpvtbl);
+    LPOLESERVERDOC doc32 = register_oleserver_doc(document);
     OLESTATUS result = OleRegisterServerDoc(hServer, docname, doc32, hRet);
     return result;
 }

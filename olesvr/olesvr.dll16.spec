@@ -3,7 +3,7 @@
 3  pascal OleRevokeServer(long) OleRevokeServer16
 4  pascal OleBlockServer(long) OleBlockServer16
 5  pascal OleUnblockServer(long ptr) OleUnblockServer16
-6  pascal OleRegisterServerDoc(long str ptr ptr) OleRegisterServerDoc16
+6  pascal OleRegisterServerDoc(long str segptr ptr) OleRegisterServerDoc16
 7  pascal OleRevokeServerDoc(long) OleRevokeServerDoc16
 8  pascal OleRenameServerDoc(long str) OleRenameServerDoc16
 9  pascal OleRevertServerDoc(long) OleRevertServerDoc16
