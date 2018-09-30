@@ -1,5 +1,5 @@
 #1 WEP
-2  pascal OleRegisterServer(str ptr ptr word word) OleRegisterServer16
+2  pascal OleRegisterServer(str segptr ptr word word) OleRegisterServer16
 3  pascal OleRevokeServer(long) OleRevokeServer16
 4  pascal OleBlockServer(long) OleBlockServer16
 5  pascal OleUnblockServer(long ptr) OleUnblockServer16

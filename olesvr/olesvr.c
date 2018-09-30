@@ -52,7 +52,6 @@ struct _OLESERVERDOCVTBL16;
 typedef struct _OLESERVERDOC16
 {
     const struct _OLESERVERDOCVTBL16 *lpvtbl;
-    /* server provided state info */
 } OLESERVERDOC16;
 
 typedef struct _OLESERVER16 *LPOLESERVER16;
@@ -70,54 +69,25 @@ typedef struct _OLESERVERVTBL16
 typedef struct _OLESERVER16
 {
     const OLESERVERVTBL16 *lpvtbl;
-    /* server specific data */
 } OLESERVER16;
 
 static LONG OLE_current_handle;
-//
-//OLESTATUS(CALLBACK* Open)  (LPOLESERVER, LHSERVERDOC, OLE_LPCSTR, LPOLESERVERDOC FAR*);
-///* long handle to doc(privtate to DLL)  */
-///* lp to OLESERVER                      */
-///* document name                        */
-///* place holder for returning oledoc.   */
-//
-//OLESTATUS(CALLBACK* Create)(LPOLESERVER, LHSERVERDOC, OLE_LPCSTR, OLE_LPCSTR, LPOLESERVERDOC FAR*);
-///* long handle to doc(privtate to DLL)  */
-///* lp to OLESERVER                      */
-///* lp class name                        */
-///* lp doc name                          */
-///* place holder for returning oledoc.   */
-//
-//OLESTATUS(CALLBACK* CreateFromTemplate)(LPOLESERVER, LHSERVERDOC, OLE_LPCSTR, OLE_LPCSTR, OLE_LPCSTR, LPOLESERVERDOC FAR*);
-///* long handle to doc(privtate to DLL)  */
-///* lp to OLESERVER                      */
-///* lp class name                        */
-///* lp doc name                          */
-///* lp template name                     */
-///* place holder for returning oledoc.   */
-//
-//OLESTATUS(CALLBACK* Edit)  (LPOLESERVER, LHSERVERDOC, OLE_LPCSTR, OLE_LPCSTR, LPOLESERVERDOC FAR*);
-///* long handle to doc(privtate to DLL)  */
-///* lp to OLESERVER                      */
-///* lp class name                        */
-///* lp doc name                          */
-///* place holder for returning oledoc.   */
-//
-//_Analysis_noreturn_
-//OLESTATUS(CALLBACK* Exit)  (LPOLESERVER);
-///* lp OLESERVER                         */
-//
-//OLESTATUS(CALLBACK* Release)  (LPOLESERVER);
-///* lp OLESERVER                         */
-//
-//OLESTATUS(CALLBACK* Execute)(LPOLESERVER, HGLOBAL);
-///* lp OLESERVER                         */
-///* handle to command strings            */
 #define MAX_OLESERVER 32
 int current_oleserver = 0;
-OLESERVER oleservers[MAX_OLESERVER];
-OLESERVERVTBL oleservervtbls[MAX_OLESERVER];
-LPOLESERVERVTBL16 oleservervtbl16s[MAX_OLESERVER];
+typedef struct
+{
+    OLESERVER server;
+    SEGPTR server16;
+} ole_server_wrapper;
+ole_server_wrapper ole_servers[MAX_OLESERVER];
+ole_server_wrapper *impl_from_oleserver(LPOLESERVER server)
+{
+    return (ole_server_wrapper*)CONTAINING_RECORD(server, ole_server_wrapper, server);
+}
+LPOLESERVERVTBL16 get_oleservervtbl16(ole_server_wrapper *server)
+{
+    return ((LPOLESERVERVTBL16)MapSL(((LPOLESERVER16)MapSL(server->server16))->lpvtbl));
+}
 static OLESTATUS CALLBACK ole_open_callback(LPOLESERVER a, LHSERVERDOC b, OLE_LPCSTR doc_name, LPOLESERVERDOC FAR* d)
 {
     return OLE_OK;
@@ -140,28 +110,37 @@ static OLESTATUS CALLBACK ole_exit_callback(LPOLESERVER a)
 }
 static OLESTATUS CALLBACK ole_release_callback(LPOLESERVER a)
 {
-    return OLE_OK;
+    ole_server_wrapper *server = impl_from_oleserver(a);
+    WORD args[2];
+    LPOLESERVERVTBL16 vtbl16 = get_oleservervtbl16(server);
+    DWORD ret;
+    args[1] = HIWORD(server->server16);
+    args[0] = LOWORD(server->server16);
+    WOWCallback16Ex(vtbl16->Release, WCB16_PASCAL, sizeof(args), args, &ret);
+    return (OLESTATUS)(WORD)ret;
 }
 static OLESTATUS CALLBACK ole_excute_callback(LPOLESERVER a, HGLOBAL b)
 {
     return OLE_OK;
 }
-static OLESERVER *register_oleserver(LPOLESERVERVTBL16 vtbl16)
+static OLESERVERVTBL oleserver_vtbl =
+{
+    ole_open_callback,
+    ole_create_callback,
+    ole_create_from_template_callback,
+    ole_edit_callback,
+    ole_exit_callback,
+    ole_release_callback,
+    ole_excute_callback
+};
+static OLESERVER *register_oleserver(SEGPTR s16)
 {
     if (current_oleserver >= MAX_OLESERVER)
         return NULL;
+    ole_servers[current_oleserver].server16 = s16;
+    ole_servers[current_oleserver].server.lpvtbl = &oleserver_vtbl;
     current_oleserver++;
-    LPOLESERVER server = &oleservers[current_oleserver - 1];
-    server->lpvtbl = &oleservervtbls[current_oleserver - 1];
-    server->lpvtbl->Open = ole_open_callback;
-    server->lpvtbl->Create = ole_create_callback;
-    server->lpvtbl->CreateFromTemplate = ole_create_from_template_callback;
-    server->lpvtbl->Edit = ole_edit_callback;
-    server->lpvtbl->Exit = ole_exit_callback;
-    server->lpvtbl->Release = ole_release_callback;
-    server->lpvtbl->Execute = ole_excute_callback;
-    oleservervtbl16s[current_oleserver - 1] = vtbl16;
-    return server;
+    return &ole_servers[current_oleserver - 1].server;
 }
 
 /******************************************************************************
@@ -171,7 +150,7 @@ OLESTATUS WINAPI OleRegisterServer16( LPCSTR name, LPOLESERVER16 serverStruct,
                                       LHSERVER *hRet, HINSTANCE16 hServer,
                                       OLE_SERVER_USE use )
 {
-    OLESERVER *s = register_oleserver(MapSL(serverStruct->lpvtbl));
+    OLESERVER *s = register_oleserver(serverStruct);
     OLESTATUS status = OleRegisterServer(name, s, hRet, HINSTANCE_32(hServer), use);
     return status;
 }
