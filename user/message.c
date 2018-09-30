@@ -2208,6 +2208,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         break;
     }
     case WM_MOUSEWHEEL:
+        ret = callback(HWND_16(hwnd), WM_VSCROLL, ((INT16)HIWORD(wParam) < 0) ? SB_LINEDOWN : SB_LINEUP, NULL, result, arg);
+        break;
     case WM_SYSTIMER:
     case WM_TIMER:
         if (!HIWORD(wParam))
