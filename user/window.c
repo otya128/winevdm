@@ -1130,21 +1130,28 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
             return h16;
         }
         HINSTANCE h = GetWindowLongPtrW(WIN_Handle32(hwnd), offset);
+        /* 32-bit dll -> 16-bit hinst mapping? */
+        /* LoadLibrary16 returns hinst GetModuleHandle16 returns hmodule */
+        if (h && h == GetModuleHandleW(L"COMDLG32.DLL"))
+            return LoadLibrary16("COMMDLG");
+        if (h && h == GetModuleHandleW(L"COMMDLG.DLL16"))
+            return LoadLibrary16("COMMDLG");
+
         if (h == 0xFFFF0000)
-            return GetModuleHandle16("USER");
+            return LoadLibrary16("USER");
         if (HIWORD(h))
         {
             HTASK16 task = GetWindowTask16(hwnd);
             if (!task)
             {
-                return 0;
+                return LoadLibrary16("USER");
             }
             TDB *tdb = GlobalLock16(task);
             h16 = tdb->hInstance;
             GlobalUnlock16(task);
             return h16;
         }
-        return !HIWORD(h) ? h : 0;
+        return LOWORD(h);
     }
     case GWL_ID:
     {
