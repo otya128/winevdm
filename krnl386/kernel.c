@@ -151,6 +151,7 @@ void init__wine_spec_dos_header()
 }
 #endif
 const char *GetRedirectWindowsDir();
+void init_wow_handle();
 /**************************************************************************
  *		DllMain
  */
@@ -190,6 +191,7 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
         }
         /* init redirect dir */
         GetRedirectWindowsDir();
+        init_wow_handle();
     }
         if (LoadLibrary16( "krnl386.exe" ) < 32) return FALSE;
         /* fall through */
