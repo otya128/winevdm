@@ -192,16 +192,25 @@ static BOOL is_gdiobj(WOW_HANDLE_TYPE type)
         type == WOW_TYPE_HFONT || type == WOW_TYPE_HMETAFILE || type == WOW_TYPE_HPALETTE ||
         type == WOW_TYPE_HPEN || type == WOW_TYPE_HRGN;
 }
-__declspec(dllexport) void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type)
+void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type)
 {
     if (is_gdiobj(type))
     {
-        destroy_handle16(&handle_list[HANDLE_TYPE_HGDI], K32WOWHandle16HGDI(handle));
+        HGDIOBJ16 h16 = K32WOWHandle16HGDI(handle);
+        if (handle_trace)
+            DPRINTF("destroy HGDI %p %04X\n", handle, h16);
+        destroy_handle16(&handle_list[HANDLE_TYPE_HGDI], h16);
         return;
     }
-    destroy_handle16(&handle_list[HANDLE_TYPE_HANDLE], K32WOWHandle16HWND(handle));
+    else
+    {
+        HANDLE16 h16 = K32WOWHandle16HWND(handle);
+        if (handle_trace)
+            DPRINTF("destroy HANDLE %p %04X\n", handle, h16);
+        destroy_handle16(&handle_list[HANDLE_TYPE_HANDLE], h16);
+    }
 }
-__declspec(dllexport) void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type)
+void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type)
 {
     if (type == WOW_TYPE_HWND)
     {

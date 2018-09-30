@@ -26,6 +26,7 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
+void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
 /* size of buffer needed to store an atom string */
 #define ATOM_BUFFER_SIZE 256
 
@@ -476,7 +477,12 @@ BOOL16 WINAPI EndPaint16( HWND16 hwnd, const PAINTSTRUCT16* lps )
 	ps.rcPaint.bottom = lps->rcPaint.bottom;
 	ps.fRestore = lps->fRestore;
 	ps.fIncUpdate = lps->fIncUpdate;
-    return EndPaint( WIN_Handle32(hwnd), &ps );
+    BOOL result = EndPaint( WIN_Handle32(hwnd), &ps );
+    if (result)
+    {
+        K32WOWHandle16DestroyHint(ps.hdc, WOW_TYPE_HDC);
+    }
+    return result;
 }
 
 
@@ -849,7 +855,12 @@ HDC16 WINAPI GetWindowDC16( HWND16 hwnd )
  */
 INT16 WINAPI ReleaseDC16( HWND16 hwnd, HDC16 hdc )
 {
-    return (INT16)ReleaseDC( WIN_Handle32(hwnd), HDC_32(hdc) );
+    INT16 result = (INT16)ReleaseDC( WIN_Handle32(hwnd), HDC_32(hdc) );
+    if (result)
+    {
+        K32WOWHandle16DestroyHint(HDC_32(hdc), WOW_TYPE_HDC);
+    }
+    return result;
 }
 
 

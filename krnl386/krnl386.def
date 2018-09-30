@@ -207,3 +207,5 @@ EXPORTS
   RegQueryValueEx16
   RegSetValue16
   RegSetValueEx16
+  K32WOWHandle16Destroy
+  K32WOWHandle16DestroyHint
