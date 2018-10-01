@@ -747,3 +747,10 @@ OLESTATUS WINAPI OleCreateInvisible16(LPCSTR protocol, SEGPTR olecli16, LPCSTR c
     *lplpoleobj16 = OLEOBJ16(obj32);
     return result;
 }
+
+OLESTATUS WINAPI OleSetColorScheme16(SEGPTR oleobj16, const LOGPALETTE *pal)
+{
+    LPOLEOBJECT obj32 = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleSetColorScheme(obj32, pal);
+    return result;
+}

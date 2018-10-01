@@ -45,7 +45,7 @@
 46 pascal -ret16 OleRename(segptr str) OleRename16
 47 pascal -ret16 OleEnumObjects(long ptr) OleEnumObjects16
 48 pascal -ret16 OleQueryName(segptr str ptr) OleQueryName16
-49 stub OLESETCOLORSCHEME
+49 pascal -ret16 OleSetColorScheme(segptr ptr) OleSetColorScheme16
 50 stub OLEREQUESTDATA
 54 pascal -ret16 OleLockServer(segptr ptr) OleLockServer16
 55 pascal -ret16 OleUnlockServer(segptr) OleUnlockServer16
