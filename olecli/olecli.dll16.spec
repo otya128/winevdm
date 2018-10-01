@@ -51,7 +51,7 @@
 55 pascal -ret16 OleUnlockServer(segptr) OleUnlockServer16
 56 pascal -ret16 OleQuerySize(long ptr) OleQuerySize16
 57 stub OLEEXECUTE
-58 stub OLECREATEINVISIBLE
+58 pascal -ret16 OleCreateInvisible(str segptr str long str ptr word word word) OleCreateInvisible16
 59 pascal -ret16 OleQueryClientVersion() OleQueryClientVersion16
 60 pascal -ret16 OleIsDcMeta(word) OleIsDcMeta16
 100 stub DOCWNDPROC

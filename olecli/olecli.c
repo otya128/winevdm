@@ -738,3 +738,12 @@ OLESTATUS WINAPI OleQueryName16(SEGPTR oleobj16, LPSTR name, UINT16 *lpbufsize)
     *lpbufsize = bufsize;
     return result;
 }
+
+OLESTATUS WINAPI OleCreateInvisible16(LPCSTR protocol, SEGPTR olecli16, LPCSTR cls, LHCLIENTDOC doc, LPCSTR obj, SEGPTR *lplpoleobj16, OLEOPT_RENDER renderopt, OLECLIPFORMAT fmt, BOOL actv)
+{
+    LPOLECLIENT client32 = get_ole_client32(olecli16);
+    LPOLEOBJECT obj32 = NULL;
+    OLESTATUS result = OleCreateInvisible(protocol, client32, cls, doc, obj, &obj32, renderopt, fmt, actv);
+    *lplpoleobj16 = OLEOBJ16(obj32);
+    return result;
+}
