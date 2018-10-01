@@ -33,6 +33,7 @@
 #include "winnetwk.h"
 #include "wine/winnet16.h"
 #include "wine/debug.h"
+#include "wownt32.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(wnet);
 
@@ -355,10 +356,9 @@ WORD WINAPI WNetBrowseDialog16( HWND16 hParent, WORD nType, LPSTR szPath )
 /********************************************************************
  *              WNetConnectDialog       [USER.525]
  */
-WORD WINAPI WNetConnectDialog( HWND16 hWndParent, WORD iType )
+WORD WINAPI WNetConnectDialog16( HWND16 hWndParent, WORD iType )
 {
-    FIXME( "(%04x, %x): stub\n", hWndParent, iType );
-    return WN16_SUCCESS;
+    return WNetConnectionDialog(HWND_32(hWndParent), iType);
 }
 
 /**************************************************************************
@@ -366,8 +366,7 @@ WORD WINAPI WNetConnectDialog( HWND16 hWndParent, WORD iType )
  */
 WORD WINAPI WNetDisconnectDialog16( HWND16 hwndOwner, WORD iType )
 {
-    FIXME( "(%04x, %x): stub\n", hwndOwner, iType );
-    return WN16_NOT_SUPPORTED;
+    return WNetDisconnectDialog(HWND_32(hwndOwner), iType);
 }
 
 /**************************************************************************
@@ -375,8 +374,7 @@ WORD WINAPI WNetDisconnectDialog16( HWND16 hwndOwner, WORD iType )
  */
 WORD WINAPI WNetConnectionDialog16( HWND16 hWndParent, WORD iType )
 {
-    FIXME( "(%04x, %x): stub\n", hWndParent, iType );
-    return WN16_SUCCESS;
+    return WNetConnectionDialog(HWND_32(hWndParent), iType);
 }
 
 /**************************************************************************
