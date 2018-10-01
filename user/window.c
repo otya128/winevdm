@@ -150,11 +150,15 @@ INT16 WINAPI MessageBox16( HWND16 hwnd, LPCSTR text, LPCSTR title, UINT16 type )
 {
     DWORD count;
     ReleaseThunkLock(&count);
+#ifdef ATTACH_THREAD_INPUT
     //Force to set window to foreground.
     DWORD foregroundID = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
     AttachThreadInput(GetCurrentThreadId(), foregroundID, TRUE);
+#endif
     int ret = MessageBoxA( WIN_Handle32(hwnd), text, title, type );
+#ifdef ATTACH_THREAD_INPUT
     AttachThreadInput(GetCurrentThreadId(), foregroundID, FALSE);
+#endif
     RestoreThunkLock(count);
     return ret;
 }
@@ -507,12 +511,16 @@ BOOL16 WINAPI ShowWindow16( HWND16 hwnd, INT16 cmd )
     DWORD count;
 
     ReleaseThunkLock(&count);
+#ifdef ATTACH_THREAD_INPUT
     DWORD foregroundID = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
     //Attach
     AttachThreadInput(GetCurrentThreadId(), foregroundID, TRUE);
+#endif
     BOOL ret = ShowWindow( WIN_Handle32(hwnd), cmd );
+#ifdef ATTACH_THREAD_INPUT
     //Dettach
     AttachThreadInput(GetCurrentThreadId(), foregroundID, FALSE);
+#endif
     RestoreThunkLock(count);
     return ret;
 }
@@ -548,11 +556,15 @@ BOOL16 WINAPI BringWindowToTop16( HWND16 hwnd )
     DWORD count;
     BOOL16 result;
     ReleaseThunkLock(&count);
+#ifdef ATTACH_THREAD_INPUT
     //Force to set window to foreground.
     DWORD foregroundID = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
     AttachThreadInput(GetCurrentThreadId(), foregroundID, TRUE);
+#endif
     result = (BOOL16)BringWindowToTop( WIN_Handle32(hwnd) );
+#ifdef ATTACH_THREAD_INPUT
     AttachThreadInput(GetCurrentThreadId(), foregroundID, FALSE);
+#endif
     RestoreThunkLock(count);
     return result;
 }
