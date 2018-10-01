@@ -32,6 +32,7 @@
  //#include "windef.h"
 #include "wine/windef16.h"
 #include "wine/winbase16.h"
+#include "wine/wingdi16.h"
 #include "winbase.h"
 #include "wingdi.h"
 #include "wownt32.h"
@@ -659,15 +660,55 @@ OLESTATUS WINAPI OleGetData16(LPOLEOBJECT oleobj16, OLECLIPFORMAT fmt, HANDLE16 
     LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
     HANDLE handle32;
     OLESTATUS result;
+    if (TRACE_ON(ole))
+    {
+        char buf[100];
+        if (GetClipboardFormatNameA(fmt, buf, 100))
+        {
+            TRACE("(%p,%04x(%s),%p)\n", oleobj, fmt, debugstr_a(buf), handle);
+        }
+        else
+        {
+            TRACE("(%p,%04x,%p)\n", oleobj, fmt, handle);
+        }
+    }
     if (fmt == CF_METAFILEPICT)
     {
-        FIXME("\n");
-        return OLE_ERROR_OBJECT;
+        /* user.c SetClipboardData16 */
+        HMETAFILE16 hm16;
+        HANDLE16 data16 = 0;
+        UINT size;
+        void *ptr;
+        result = OleGetData(oleobj, fmt, &handle32);
+        METAFILEPICT16 *pict16;
+        METAFILEPICT *pict32 = GlobalLock(handle32);
+
+        if (pict32)
+        {
+            if (!(data16 = GlobalAlloc16(GMEM_MOVEABLE, sizeof(*pict16)))) return 0;
+            pict16 = GlobalLock16(data16);
+            pict16->mm = pict32->mm;
+            pict16->xExt = pict32->xExt;
+            pict16->yExt = pict32->yExt;
+            size = GetMetaFileBitsEx(pict32->hMF, 0, NULL);
+            pict16->hMF = GlobalAlloc16(GMEM_MOVEABLE, size);
+            ptr = GlobalLock16(pict16->hMF);
+            GetMetaFileBitsEx(pict32->hMF, size, ptr);
+            GlobalUnlock16(pict16->hMF);
+            GlobalUnlock16(data16);
+        }
+        *handle = data16;
+        return result;
     }
     if (fmt == CF_BITMAP)
     {
-        FIXME("\n");
-        return OLE_ERROR_OBJECT;
+        result = OleGetData(oleobj, fmt, &handle32);
+        *handle = HBITMAP_16(handle32);
+        return result;
+    }
+    if (fmt < 0xc000)
+    {
+        FIXME("unknown format %04x\n", fmt);
     }
     result = OleGetData(oleobj, fmt, &handle32);
     if (result == OLE_OK && handle32)
