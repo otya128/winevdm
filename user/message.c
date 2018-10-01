@@ -2208,8 +2208,6 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         break;
     }
     case WM_MOUSEWHEEL:
-        ret = callback(HWND_16(hwnd), WM_VSCROLL, ((INT16)HIWORD(wParam) < 0) ? SB_LINEDOWN : SB_LINEUP, NULL, result, arg);
-        break;
     case WM_SYSTIMER:
     case WM_TIMER:
         if (!HIWORD(wParam))
@@ -2426,10 +2424,69 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
 }
 
 
+typedef struct
+{
+    BOOL down;
+    BOOL found;
+    BOOL scrollable;
+    HWND hwnd;
+} enum_scrollbar_data;
+static void check_scrollable(enum_scrollbar_data *d, HWND hwnd)
+{
+    SCROLLINFO si = { 0 };
+    si.cbSize = sizeof(si);
+    si.fMask = SIF_ALL;
+    char ctrl[12];
+    RealGetWindowClassA(hwnd, ctrl, 12);
+    if (!stricmp(ctrl, "SCROLLBAR"))
+    {
+        if (GetScrollInfo(hwnd, SB_CTL, &si))
+        {
+            if (GetWindowLongW(hwnd, GWL_STYLE) & SBS_VERT)
+            {
+                d->found = TRUE;
+                if ((d->down && si.nMax > si.nPos) || (!d->down && si.nMin < si.nPos))
+                {
+                    d->scrollable = TRUE;
+                    d->hwnd = hwnd;
+                }
+            }
+            return;
+        }
+    }
+    if (GetScrollInfo(hwnd, SB_VERT, &si))
+    {
+        d->found = TRUE;
+        if ((d->down && si.nMax > si.nPos) || (!d->down && si.nMin < si.nPos))
+        {
+            d->scrollable = TRUE;
+            d->hwnd = NULL;
+        }
+        return;
+    }
+}
+static BOOL CALLBACK enum_scrollbar_proc(HWND hwnd, LPARAM lp)
+{
+    enum_scrollbar_data *d = (enum_scrollbar_data*)lp;
+    check_scrollable(d, hwnd);
+    return TRUE;
+}
 static LRESULT defwindow_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
     LRESULT *result, void *arg)
 {
     _LeaveWin16Lock();
+    if (msg == WM_MOUSEWHEEL)
+    {
+        enum_scrollbar_data d = { 0 };
+        d.down = (INT16)HIWORD(wp) < 0;
+        check_scrollable(&d, hwnd);
+        EnumChildWindows(hwnd, (WNDENUMPROC)enum_scrollbar_proc, (LPARAM)&d);
+        if (d.scrollable)
+        {
+            SendMessage16(HWND_16(hwnd), WM_VSCROLL, d.down ? SB_LINEDOWN : SB_LINEUP, MAKELONG(0, (WORD)HWND_16(d.hwnd)));
+            SendMessage16(HWND_16(hwnd), WM_VSCROLL, SB_ENDSCROLL, MAKELONG(0, (WORD)HWND_16(d.hwnd)));
+        }
+    }
     *result = DefWindowProcA(hwnd, msg, wp, lp);
     _EnterWin16Lock();
     return *result;
