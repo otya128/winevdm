@@ -723,6 +723,50 @@ OLESTATUS WINAPI OleGetData16(LPOLEOBJECT oleobj16, OLECLIPFORMAT fmt, HANDLE16 
     }
     return result;
 }
+
+OLESTATUS WINAPI OleSetData16(SEGPTR oleobj16, OLECLIPFORMAT fmt, HANDLE16 handle)
+{
+    LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
+    HANDLE handle32;
+    OLESTATUS result;
+    if (TRACE_ON(ole))
+    {
+        char buf[100];
+        if (GetClipboardFormatNameA(fmt, buf, 100))
+        {
+            TRACE("(%p,%04x(%s),%04x)\n", oleobj, fmt, debugstr_a(buf), handle);
+        }
+        else
+        {
+            TRACE("(%p,%04x,%04x)\n", oleobj, fmt, handle);
+        }
+    }
+    if (fmt == CF_METAFILEPICT)
+    {
+        FIXME("fmt == CF_METAFILEPICT\n");
+        return OLE_ERROR_OBJECT;
+    }
+    if (fmt == CF_BITMAP)
+    {
+        FIXME("fmt == CF_BITMAP\n");
+        return OLE_ERROR_OBJECT;
+    }
+    if (fmt < 0xc000)
+    {
+        FIXME("unknown format %04x\n", fmt);
+    }
+    DWORD size = GlobalSize16(handle);
+    LPVOID mem = GlobalLock16(handle);
+    HGLOBAL hg = GlobalAlloc(0, size);
+    LPVOID mem32 = GlobalLock(hg);
+    memcpy(mem32, mem, size);
+    GlobalUnlock(hg);
+    GlobalUnlock16(handle);
+    result = OleSetData(oleobj, fmt, hg);
+    GlobalFree(hg);
+    return result;
+}
+
 OLECLIPFORMAT WINAPI OleEnumFormats16(LPOLEOBJECT oleobj16, OLECLIPFORMAT fmt)
 {
     LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);

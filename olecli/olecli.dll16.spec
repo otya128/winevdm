@@ -25,7 +25,7 @@
 26 pascal -ret16 OleEnumFormats(segptr word) OleEnumFormats16
 27 pascal -ret16 OleClose(segptr) OleClose16
 28 pascal -ret16 OleGetData(segptr word ptr) OleGetData16
-29 stub OLESETDATA
+29 pascal -ret16 OleSetData(segptr word word) OleSetData16
 30 stub OLEQUERYPROTOCOL
 31 stub OLEQUERYOUTOFDATE
 32 stub OLEOBJECTCONVERT
