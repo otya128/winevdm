@@ -12,12 +12,12 @@
 13 pascal -ret16 OleCopyToClipboard(segptr) OleCopyToClipboard16
 14 pascal -ret16 OleQueryType(segptr ptr) OleQueryType16
 15 pascal -ret16 OleSetHostNames(long str str) OleSetHostNames16
-16 pascal -ret16 OleSetTargetDevice(long word) OleSetTargetDevice16
+16 pascal -ret16 OleSetTargetDevice(segptr word) OleSetTargetDevice16
 17 pascal -ret16 OleSetBounds(segptr ptr) OleSetBounds16
 18 pascal -ret16 OleQueryBounds(long ptr) OleQueryBounds16
 19 pascal -ret16 OleDraw(long word ptr ptr word) OleDraw16
 20 pascal -ret16 OleQueryOpen(segptr) OleQueryOpen16
-21 pascal -ret16 OleActivate(long word word word word ptr) OleActivate16
+21 pascal -ret16 OleActivate(segptr word word word word ptr) OleActivate16
 22 pascal -ret16 OleUpdate(segptr) OleUpdate16
 23 pascal -ret16 OleReconnect(segptr) OleReconnect16
 24 stub OLEGETLINKUPDATEOPTIONS
