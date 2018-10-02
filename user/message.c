@@ -1088,7 +1088,7 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 		if ((count = (INT16)wParam) > 0)
 		{
 			if (!(tabs = HeapAlloc(GetProcessHeap(), 0, wParam * sizeof(*tabs)))) return LB_ERRSPACE;
-			for (i = 0; i < count; i++) tabs[i] = tabs16[i] << 1; /* FIXME */
+			for (i = 0; i < count; i++) tabs[i] = tabs16[i];
 		}
 		ret = callback(hwnd, LB_SETTABSTOPS, count, (LPARAM)tabs, result, arg);
 		//ret = wow_handlers32.listbox_proc(hwnd, LB_SETTABSTOPS, count, (LPARAM)tabs, FALSE);
@@ -3679,7 +3679,7 @@ static LRESULT listbox_proc16( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
         if ((count = (INT16)wParam) > 0)
         {
             if (!(tabs = HeapAlloc( GetProcessHeap(), 0, wParam * sizeof(*tabs) ))) return LB_ERRSPACE;
-            for (i = 0; i < count; i++) tabs[i] = tabs16[i] << 1; /* FIXME */
+            for (i = 0; i < count; i++) tabs[i] = tabs16[i];
         }
         ret = wow_handlers32.listbox_proc( hwnd, LB_SETTABSTOPS, count, (LPARAM)tabs, FALSE );
         HeapFree( GetProcessHeap(), 0, tabs );
