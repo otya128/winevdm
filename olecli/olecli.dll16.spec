@@ -10,7 +10,7 @@
 11 pascal -ret16 OleCreateLinkFromClip (str segptr long str ptr word word) OleCreateLinkFromClip16
 12 pascal -ret16 OleCreateFromClip(str segptr long str long word word) OleCreateFromClip16
 13 pascal -ret16 OleCopyToClipboard(segptr) OleCopyToClipboard16
-14 pascal -ret16 OleQueryType(ptr segptr) OleQueryType16
+14 pascal -ret16 OleQueryType(segptr ptr) OleQueryType16
 15 pascal -ret16 OleSetHostNames(long str str) OleSetHostNames16
 16 pascal -ret16 OleSetTargetDevice(long word) OleSetTargetDevice16
 17 pascal -ret16 OleSetBounds(segptr ptr) OleSetBounds16

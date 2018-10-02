@@ -377,12 +377,10 @@ BOOL16 WINAPI OleIsDcMeta16(HDC16 hdc)
 /******************************************************************************
  *		OleQueryType	[OLECLI.14]
  */
-OLESTATUS WINAPI OleQueryType16(SEGPTR oleobj16,  SEGPTR xlong) {
+OLESTATUS WINAPI OleQueryType16(SEGPTR oleobj16,  LPLONG xlong) {
     LPOLEOBJECT oleobj = OLEOBJ32(oleobj16);
-    OLESTATUS result =  OleQueryType(oleobj, MapSL(xlong));
+    OLESTATUS result =  OleQueryType(oleobj, xlong);
     return result;
-	//FIXME("(%p, %p): stub!\n", oleob, MapSL(xlong));
-	//return OLE_OK;
 }
 
 /******************************************************************************
