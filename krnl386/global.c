@@ -150,7 +150,7 @@ HGLOBAL16 GLOBAL_CreateBlock( WORD flags, void *ptr, DWORD size,
       /* Fill the arena block */
 
     pArena->base = ptr;
-    pArena->size = GetSelectorLimit16(sel) + 1;
+    pArena->size = size == 1 && ptr == NULL ? 0 : GetSelectorLimit16(sel) + 1;
     pArena->handle = (flags & GMEM_MOVEABLE) ? sel - 1 : sel;
     pArena->hOwner = hOwner;
     pArena->lockCount = 0;
