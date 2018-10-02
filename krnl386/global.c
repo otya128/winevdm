@@ -230,9 +230,14 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
     if (size == 0) return GLOBAL_CreateBlock( flags, NULL, 1, hOwner, selflags );
 
     /* Fixup the size */
+    DWORD fixup_size = 0x1f;
+    if (IsOldWindowsTask(GetCurrentTask()))
+    {
+        fixup_size = 0xff;
+    }
 
-    if (size >= GLOBAL_MAX_ALLOC_SIZE - 0xff) return 0;
-    size = (size + 0xff) & ~0xff;
+    if (size >= GLOBAL_MAX_ALLOC_SIZE - fixup_size) return 0;
+    size = (size + fixup_size) & ~fixup_size;
 
     /* Allocate the linear memory */
     ptr = HeapAlloc( get_win16_heap(), 0, size );
@@ -338,10 +343,15 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
     }
 
       /* Fixup the size */
+    DWORD fixup_size = 0x1f;
+    if (IsOldWindowsTask(GetCurrentTask()))
+    {
+        fixup_size = 0xff;
+    }
 
-    if (size > GLOBAL_MAX_ALLOC_SIZE - 0x100) return 0;
-    if (size == 0) size = 0x100;
-    else size = (size + 0xff) & ~0xff;
+    if (size > GLOBAL_MAX_ALLOC_SIZE - (fixup_size + 1)) return 0;
+    if (size == 0) size = fixup_size + 1;
+    else size = (size + fixup_size) & ~fixup_size;
 
       /* Change the flags */
 
@@ -1117,7 +1127,6 @@ DWORD WINAPI GlobalMasterHandle16(void)
     DWORD ret = 0;
     FIXME(": stub\n");
     // some real mode programs don't check for null, provide enough to prevent crashes
-    BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16);
     if (IsOldWindowsTask(GetCurrentTask()))
     {
         // this is an early form of LOCALHEAPINFO

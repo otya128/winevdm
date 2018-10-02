@@ -934,4 +934,6 @@ extern wine_call_to_16_regs_vm86_t func_wine_call_to_16_regs_vm86;
 char *get_search_path(void);
 
 void switch_directory(struct kernel_thread_data *thread_data);
+
+BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16);
 #endif  /* __WINE_KERNEL16_PRIVATE_H */
