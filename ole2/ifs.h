@@ -50,6 +50,7 @@ typedef IUnknown16 FAR* LPUNKNOWN16;
 
 typedef struct ILockBytes16 *LPLOCKBYTES16;
 
+#undef INTERFACE
 #define INTERFACE ILockBytes16
 DECLARE_INTERFACE_(ILockBytes16,IUnknown)
 {
@@ -180,4 +181,24 @@ DECLARE_INTERFACE_(IDataAdviseHolder16, IUnknown)
 };
 typedef IDataAdviseHolder16 * LPDATAADVISEHOLDER16;
 
+#undef GetObject
+typedef struct
+{
+    SEGPTR QueryInterface;
+    SEGPTR AddRef;
+    SEGPTR Release;
+    SEGPTR Register;
+    SEGPTR Revoke;
+    SEGPTR IsRunning;
+    SEGPTR GetObject;
+    SEGPTR NoteChangeTime;
+    SEGPTR GetTimeOfLastChange;
+    SEGPTR EnumRunning;
+} IRunningObjectTable16Vtbl;
+typedef struct
+{
+    SEGPTR lpVtbl;
+} IRunningObjectTable16;
+
+typedef IRunningObjectTable16 *LPRUNNINGOBJECTTABLE16;
 #endif /* __WINE_OLE_IFS_H */

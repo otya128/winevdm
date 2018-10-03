@@ -96,15 +96,6 @@ HRESULT WINAPI DllGetClassObject16(REFCLSID rclsid, REFIID iid, LPVOID *ppv)
   return E_NOTIMPL;
 }
 
-/******************************************************************************
- *		GetRunningObjectTable (OLE2.30)
- */
-HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, LPRUNNINGOBJECTTABLE *pprot)
-{
-    FIXME("(%d,%p),stub!\n",reserved,pprot);
-    return E_NOTIMPL;
-}
-
 /***********************************************************************
  *           RegisterDragDrop (OLE2.35)
  */

@@ -174,3 +174,14 @@
 523 cdecl IDataAdviseHolder16_Unadvise(ptr long) IDataAdviseHolder16_Unadvise
 524 cdecl IDataAdviseHolder16_EnumAdvise(ptr ptr) IDataAdviseHolder16_EnumAdvise
 525 cdecl IDataAdviseHolder16_SendOnDataChange(ptr ptr long long) IDataAdviseHolder16_SendOnDataChange
+
+526 cdecl IRunningObjectTable16_QueryInterface(segptr ptr ptr) IRunningObjectTable16_QueryInterface
+527 cdecl IRunningObjectTable16_AddRef(ptr) IRunningObjectTable16_AddRef
+528 cdecl IRunningObjectTable16_Release(ptr) IRunningObjectTable16_Release
+529 cdecl IRunningObjectTable16_Register(ptr long ptr ptr ptr) IRunningObjectTable16_Register
+530 cdecl IRunningObjectTable16_Revoke(ptr long) IRunningObjectTable16_Revoke
+531 cdecl IRunningObjectTable16_IsRunning(ptr ptr) IRunningObjectTable16_IsRunning
+532 cdecl IRunningObjectTable16_GetObject(ptr ptr ptr) IRunningObjectTable16_GetObject
+533 cdecl IRunningObjectTable16_NoteChangeTime(ptr long ptr) IRunningObjectTable16_NoteChangeTime
+534 cdecl IRunningObjectTable16_GetTimeOfLastChange(ptr ptr ptr) IRunningObjectTable16_GetTimeOfLastChange
+535 cdecl IRunningObjectTable16_EnumRunning(ptr ptr) IRunningObjectTable16_EnumRunning

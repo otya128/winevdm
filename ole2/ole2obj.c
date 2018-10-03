@@ -248,3 +248,138 @@ HRESULT WINAPI CreateOleAdviseHolder16(LPOLEADVISEHOLDER16 *ppOAHolder)
     *ppOAHolder = (LPOLEADVISEHOLDER16)IOleAdviseHolder16_Construct(iface32);
     return S_OK;
 }
+typedef struct
+{
+    IRunningObjectTable16 iface;
+    LONG ref;
+    LPRUNNINGOBJECTTABLE iface32;
+} IRunningObjectTableImpl16;
+
+static inline IRunningObjectTableImpl16 *impl_from_IRunningObjectTable16(IRunningObjectTable16 *iface)
+{
+    return CONTAINING_RECORD(iface, IRunningObjectTableImpl16, iface);
+}
+static IRunningObjectTableImpl16* IRunningObjectTable16_Construct(LPRUNNINGOBJECTTABLE iface32)
+{
+    IRunningObjectTableImpl16* impl;
+    static IRunningObjectTable16Vtbl vt16;
+    static SEGPTR msegvt16;
+    HMODULE16 hmod = GetModuleHandle16("OLE2");
+    TRACE("\n");
+    impl = HeapAlloc(GetProcessHeap(), 0, sizeof(IRunningObjectTableImpl16));
+    if (impl == NULL)
+        return NULL;
+    /*
+     * Set up the virtual function table and reference count.
+     */
+    if (!msegvt16)
+    {
+#define VTENT(x) vt16.x = (SEGPTR)GetProcAddress16(hmod,"IRunningObjectTable16_"#x);assert(vt16.x)
+        VTENT(QueryInterface);
+        VTENT(AddRef);
+        VTENT(Release);
+        VTENT(Register);
+        VTENT(Revoke);
+        VTENT(IsRunning);
+        VTENT(GetObject);
+        VTENT(NoteChangeTime);
+        VTENT(GetTimeOfLastChange);
+        VTENT(EnumRunning);
+#undef VTENT
+        msegvt16 = MapLS(&vt16);
+    }
+    impl->iface.lpVtbl = msegvt16;
+    impl->ref = 0;
+    impl->iface32 = iface32;
+    return (IRunningObjectTableImpl16*)MapLS(impl);
+}
+ULONG CDECL IRunningObjectTable16_AddRef(IRunningObjectTable16 *iface);
+HRESULT CDECL IRunningObjectTable16_QueryInterface(SEGPTR iface, REFIID riid, void **ppvObject)
+{
+    IRunningObjectTableImpl16* const This = impl_from_IRunningObjectTable16((IRunningObjectTable16*)(MapSL((SEGPTR)iface)));
+    TRACE("(%p,%s,%p)\n", iface, debugstr_guid(riid), ppvObject);
+    if (ppvObject == 0)
+        return E_INVALIDARG;
+    *ppvObject = 0;
+    if (!memcmp(&IID_IUnknown, riid, sizeof(IID_IUnknown)) ||
+        !memcmp(&IID_IRunningObjectTable, riid, sizeof(IID_IRunningObjectTable))
+        )
+        *ppvObject = (void*)iface;
+    if ((*ppvObject) == 0) {
+        FIXME("Unknown IID %s\n", debugstr_guid(riid));
+        return E_NOINTERFACE;
+    }
+    IRunningObjectTable16_AddRef(&This->iface);
+    return S_OK;
+}
+ULONG CDECL IRunningObjectTable16_AddRef(IRunningObjectTable16 *iface)
+{
+    FIXME("\n");
+    IRunningObjectTableImpl16 *impl = impl_from_IRunningObjectTable16(iface);
+    return impl->iface32->lpVtbl->AddRef(impl->iface32);
+}
+ULONG CDECL IRunningObjectTable16_Release(IRunningObjectTable16 *iface)
+{
+    FIXME("\n");
+    IRunningObjectTableImpl16 *impl = impl_from_IRunningObjectTable16(iface);
+    ULONG result = impl->iface32->lpVtbl->Release(impl->iface32);
+    if (result == 0)
+    {
+        TRACE("free %p\n", iface);
+        HeapFree(GetProcessHeap(), 0, impl);
+    }
+    return result;
+}
+HRESULT CDECL IRunningObjectTable16_Register(IRunningObjectTable16 *iface, DWORD flags, LPUNKNOWN16 punkObject, LPMONIKER pmkObjectName, DWORD *pdwRegister)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT CDECL IRunningObjectTable16_Revoke(IRunningObjectTable16 *iface, DWORD dwRegister)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT CDECL IRunningObjectTable16_IsRunning(IRunningObjectTable16 *iface, LPMONIKER pmkObjectName)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT CDECL IRunningObjectTable16_GetObject(IRunningObjectTable16 *iface, LPMONIKER pmkObjectName, LPUNKNOWN16 FAR* ppunkObject)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT CDECL IRunningObjectTable16_NoteChangeTime(IRunningObjectTable16 *iface, DWORD dwRegister, FILETIME FAR * pfiletime)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT CDECL IRunningObjectTable16_GetTimeOfLastChange(IRunningObjectTable16 *iface, LPMONIKER pmkObjectName, FILETIME FAR * pfiletime)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT CDECL IRunningObjectTable16_EnumRunning(IRunningObjectTable16 *iface, LPENUMMONIKER *ppenumMoniker)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+/******************************************************************************
+ *		GetRunningObjectTable (OLE2.30)
+ */
+HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, LPRUNNINGOBJECTTABLE16 *pprot)
+{
+    LPRUNNINGOBJECTTABLE prot;
+
+    TRACE("(%d,%p)\n", reserved, pprot);
+    HRESULT result = GetRunningObjectTable(0, &prot);
+    *pprot = 0;
+    if (!SUCCEEDED(result))
+    {
+        return result;
+    }
+    *pprot = &IRunningObjectTable16_Construct(prot)->iface;
+    return result;
+}
