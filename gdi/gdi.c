@@ -288,8 +288,8 @@ static BYTE fix_font_quality(LOGFONT16 *font16)
     return NONANTIALIASED_QUALITY;
 }
 
-/* convert a LOGFONT16 to a LOGFONTW */
-static void logfont_16_to_W( const LOGFONT16 *font16, LPLOGFONTW font32 )
+/* convert a LOGFONT16 to a LOGFONTA */
+static void logfont_16_to_A( const LOGFONT16 *font16, LPLOGFONTA font32 )
 {
     font32->lfHeight = font16->lfHeight;
     font32->lfWidth = font16->lfWidth;
@@ -304,12 +304,12 @@ static void logfont_16_to_W( const LOGFONT16 *font16, LPLOGFONTW font32 )
     font32->lfClipPrecision = font16->lfClipPrecision;
     font32->lfQuality = fix_font_quality(font16);
     font32->lfPitchAndFamily = font16->lfPitchAndFamily;
-    MultiByteToWideChar( CP_ACP, 0, font16->lfFaceName, -1, font32->lfFaceName, LF_FACESIZE );
+    memcpy(font32->lfFaceName, font16->lfFaceName, LF_FACESIZE);
     font32->lfFaceName[LF_FACESIZE-1] = 0;
 }
 
-/* convert a LOGFONTW to a LOGFONT16 */
-static void logfont_W_to_16( const LOGFONTW* font32, LPLOGFONT16 font16 )
+/* convert a LOGFONTA to a LOGFONT16 */
+static void logfont_A_to_16( const LOGFONTA* font32, LPLOGFONT16 font16 )
 {
     font16->lfHeight = font32->lfHeight;
     font16->lfWidth = font32->lfWidth;
@@ -324,65 +324,62 @@ static void logfont_W_to_16( const LOGFONTW* font32, LPLOGFONT16 font16 )
     font16->lfClipPrecision = font32->lfClipPrecision;
     font16->lfQuality = font32->lfQuality;
     font16->lfPitchAndFamily = font32->lfPitchAndFamily;
-    WideCharToMultiByte( CP_ACP, 0, font32->lfFaceName, -1, font16->lfFaceName, LF_FACESIZE, NULL, NULL );
+    memcpy(font16->lfFaceName, font32->lfFaceName, LF_FACESIZE);
     font16->lfFaceName[LF_FACESIZE-1] = 0;
 }
 
-/* convert a ENUMLOGFONTEXW to a ENUMLOGFONTEX16 */
-static void enumlogfontex_W_to_16( const ENUMLOGFONTEXW *fontW,
+/* convert a ENUMLOGFONTEXA to a ENUMLOGFONTEX16 */
+static void enumlogfontex_A_to_16( const ENUMLOGFONTEXA *fontA,
                                    LPENUMLOGFONTEX16 font16 )
 {
-    logfont_W_to_16( (const LOGFONTW *)fontW, (LPLOGFONT16)font16);
+    logfont_A_to_16( (const LOGFONTA *)fontA, (LPLOGFONT16)font16);
 
-    WideCharToMultiByte( CP_ACP, 0, fontW->elfFullName, -1,
-                         (LPSTR) font16->elfFullName, LF_FULLFACESIZE, NULL, NULL );
+    memcpy(font16->elfFullName, fontA->elfFullName, LF_FULLFACESIZE);
     font16->elfFullName[LF_FULLFACESIZE-1] = '\0';
-    WideCharToMultiByte( CP_ACP, 0, fontW->elfStyle, -1,
-                         (LPSTR) font16->elfStyle, LF_FACESIZE, NULL, NULL );
+    memcpy(font16->elfStyle, fontA->elfStyle, LF_FACESIZE);
     font16->elfStyle[LF_FACESIZE-1] = '\0';
-    WideCharToMultiByte( CP_ACP, 0, fontW->elfScript, -1,
-                         (LPSTR) font16->elfScript, LF_FACESIZE, NULL, NULL );
+    memcpy(font16->elfScript, fontA->elfScript, LF_FACESIZE);
     font16->elfScript[LF_FACESIZE-1] = '\0';
 }
 
-/* convert a NEWTEXTMETRICEXW to a NEWTEXTMETRICEX16 */
-static void newtextmetricex_W_to_16( const NEWTEXTMETRICEXW *ptmW,
+/* convert a NEWTEXTMETRICEXA to a NEWTEXTMETRICEX16 */
+static void newtextmetricex_A_to_16( const NEWTEXTMETRICEXA *ptmA,
                                      LPNEWTEXTMETRICEX16 ptm16 )
 {
-    ptm16->ntmTm.tmHeight = ptmW->ntmTm.tmHeight;
-    ptm16->ntmTm.tmAscent = ptmW->ntmTm.tmAscent;
-    ptm16->ntmTm.tmDescent = ptmW->ntmTm.tmDescent;
-    ptm16->ntmTm.tmInternalLeading = ptmW->ntmTm.tmInternalLeading;
-    ptm16->ntmTm.tmExternalLeading = ptmW->ntmTm.tmExternalLeading;
-    ptm16->ntmTm.tmAveCharWidth = ptmW->ntmTm.tmAveCharWidth;
-    ptm16->ntmTm.tmMaxCharWidth = ptmW->ntmTm.tmMaxCharWidth;
-    ptm16->ntmTm.tmWeight = ptmW->ntmTm.tmWeight;
-    ptm16->ntmTm.tmOverhang = ptmW->ntmTm.tmOverhang;
-    ptm16->ntmTm.tmDigitizedAspectX = ptmW->ntmTm.tmDigitizedAspectX;
-    ptm16->ntmTm.tmDigitizedAspectY = ptmW->ntmTm.tmDigitizedAspectY;
-    ptm16->ntmTm.tmFirstChar = ptmW->ntmTm.tmFirstChar > 255 ? 255 : ptmW->ntmTm.tmFirstChar;
-    ptm16->ntmTm.tmLastChar = ptmW->ntmTm.tmLastChar > 255 ? 255 : ptmW->ntmTm.tmLastChar;
-    ptm16->ntmTm.tmDefaultChar = ptmW->ntmTm.tmDefaultChar > 255 ? 255 : ptmW->ntmTm.tmDefaultChar;
-    ptm16->ntmTm.tmBreakChar = ptmW->ntmTm.tmBreakChar > 255 ? 255 : ptmW->ntmTm.tmBreakChar;
-    ptm16->ntmTm.tmItalic = ptmW->ntmTm.tmItalic;
-    ptm16->ntmTm.tmUnderlined = ptmW->ntmTm.tmUnderlined;
-    ptm16->ntmTm.tmStruckOut = ptmW->ntmTm.tmStruckOut;
-    ptm16->ntmTm.tmPitchAndFamily = ptmW->ntmTm.tmPitchAndFamily;
-    ptm16->ntmTm.tmCharSet = ptmW->ntmTm.tmCharSet;
-    ptm16->ntmTm.ntmFlags = ptmW->ntmTm.ntmFlags;
-    ptm16->ntmTm.ntmSizeEM = ptmW->ntmTm.ntmSizeEM;
-    ptm16->ntmTm.ntmCellHeight = ptmW->ntmTm.ntmCellHeight;
-    ptm16->ntmTm.ntmAvgWidth = ptmW->ntmTm.ntmAvgWidth;
-    ptm16->ntmFontSig = ptmW->ntmFontSig;
+    ptm16->ntmTm.tmHeight = ptmA->ntmTm.tmHeight;
+    ptm16->ntmTm.tmAscent = ptmA->ntmTm.tmAscent;
+    ptm16->ntmTm.tmDescent = ptmA->ntmTm.tmDescent;
+    ptm16->ntmTm.tmInternalLeading = ptmA->ntmTm.tmInternalLeading;
+    ptm16->ntmTm.tmExternalLeading = ptmA->ntmTm.tmExternalLeading;
+    ptm16->ntmTm.tmAveCharWidth = ptmA->ntmTm.tmAveCharWidth;
+    ptm16->ntmTm.tmMaxCharWidth = ptmA->ntmTm.tmMaxCharWidth;
+    ptm16->ntmTm.tmWeight = ptmA->ntmTm.tmWeight;
+    ptm16->ntmTm.tmOverhang = ptmA->ntmTm.tmOverhang;
+    ptm16->ntmTm.tmDigitizedAspectX = ptmA->ntmTm.tmDigitizedAspectX;
+    ptm16->ntmTm.tmDigitizedAspectY = ptmA->ntmTm.tmDigitizedAspectY;
+    ptm16->ntmTm.tmFirstChar = ptmA->ntmTm.tmFirstChar;
+    ptm16->ntmTm.tmLastChar = ptmA->ntmTm.tmLastChar;
+    ptm16->ntmTm.tmDefaultChar = ptmA->ntmTm.tmDefaultChar;
+    ptm16->ntmTm.tmBreakChar = ptmA->ntmTm.tmBreakChar;
+    ptm16->ntmTm.tmItalic = ptmA->ntmTm.tmItalic;
+    ptm16->ntmTm.tmUnderlined = ptmA->ntmTm.tmUnderlined;
+    ptm16->ntmTm.tmStruckOut = ptmA->ntmTm.tmStruckOut;
+    ptm16->ntmTm.tmPitchAndFamily = ptmA->ntmTm.tmPitchAndFamily;
+    ptm16->ntmTm.tmCharSet = ptmA->ntmTm.tmCharSet;
+    ptm16->ntmTm.ntmFlags = ptmA->ntmTm.ntmFlags;
+    ptm16->ntmTm.ntmSizeEM = ptmA->ntmTm.ntmSizeEM;
+    ptm16->ntmTm.ntmCellHeight = ptmA->ntmTm.ntmCellHeight;
+    ptm16->ntmTm.ntmAvgWidth = ptmA->ntmTm.ntmAvgWidth;
+    ptm16->ntmFontSig = ptmA->ntmFontSig;
 }
 
 /*
  * callback for EnumFontFamiliesEx16
- * Note: plf is really an ENUMLOGFONTEXW, and ptm is a NEWTEXTMETRICEXW.
- *       We have to use other types because of the FONTENUMPROCW definition.
+ * Note: plf is really an ENUMLOGFONTEXA, and ptm is a NEWTEXTMETRICEXA.
+ *       We have to use other types because of the FONTENUMPROCA definition.
  */
-static INT CALLBACK enum_font_callback( const LOGFONTW *plf,
-                                        const TEXTMETRICW *ptm, DWORD fType,
+static INT CALLBACK enum_font_callback( const LOGFONTA *plf,
+                                        const TEXTMETRICA *ptm, DWORD fType,
                                         LPARAM param )
 {
     struct callback16_info *info = (struct callback16_info *)param;
@@ -395,8 +392,8 @@ static INT CALLBACK enum_font_callback( const LOGFONTW *plf,
     static BOOL enum_font_limitation_init;
     static BOOL enum_font_limitation;
 
-    enumlogfontex_W_to_16((const ENUMLOGFONTEXW *)plf, &elfe16);
-    newtextmetricex_W_to_16((const NEWTEXTMETRICEXW *)ptm, &ntm16);
+    enumlogfontex_A_to_16((const ENUMLOGFONTEXA *)plf, &elfe16);
+    newtextmetricex_A_to_16((const NEWTEXTMETRICEXA *)ptm, &ntm16);
     /* some old programs can not process many fonts(1000+) */
     if (!enum_font_limitation_init)
     {
@@ -1476,14 +1473,14 @@ HFONT16 WINAPI CreateFontIndirect16( const LOGFONT16 *plf16 )
     HFONT ret;
     if (plf16)
     {
-        LOGFONTW lfW;
-        logfont_16_to_W( plf16, &lfW );
-        ret = CreateFontIndirectW( &lfW );
+        LOGFONTA lfA;
+        logfont_16_to_A( plf16, &lfA );
+        ret = CreateFontIndirectA( &lfA );
         TRACE("(%d, %d, %04X, %04X, %04X, %02X, %02X, %02X, %02X, %02X, %02X, %02X, %s) = %04X\n", plf16->lfHeight, plf16->lfWidth, plf16->lfEscapement, plf16->lfOrientation, plf16->lfWeight
             , plf16->lfItalic, plf16->lfUnderline, plf16->lfStrikeOut, plf16->lfCharSet, plf16->lfOutPrecision, plf16->lfClipPrecision
             , plf16->lfPitchAndFamily, debugstr_a(plf16->lfFaceName), (int)HFONT_16(ret));
     }
-    else ret = CreateFontIndirectW( NULL );
+    else ret = CreateFontIndirectA( NULL );
     return HFONT_16(ret);
 }
 
@@ -1822,11 +1819,11 @@ INT16 WINAPI GetObject16( HGDIOBJ16 handle16, INT16 count, LPVOID buffer )
     case OBJ_FONT:
         if (buffer)
         {
-            LOGFONTW font;
+            LOGFONTA font;
             LOGFONT16 font16;
 
-            if (!GetObjectW( handle, sizeof(font), &font )) return 0;
-            logfont_W_to_16( &font, &font16 );
+            if (!GetObjectA( handle, sizeof(font), &font )) return 0;
+            logfont_A_to_16( &font, &font16 );
             if (count > sizeof(font16)) count = sizeof(font16);
             memcpy( buffer, &font16, count );
             return count;
@@ -3995,19 +3992,20 @@ INT16 WINAPI EnumFontFamiliesEx16( HDC16 hdc, LPLOGFONT16 plf,
                                    DWORD dwFlags)
 {
     struct callback16_info info;
-    LOGFONTW lfW, *plfW;
+    LOGFONTA lfA, *plfA;
 
     info.proc  = (FARPROC16)proc;
     info.param = lParam;
+    info.result = 1;
 
     if (plf)
     {
-        logfont_16_to_W(plf, &lfW);
-        plfW = &lfW;
+        logfont_16_to_A(plf, &lfA);
+        plfA = &lfA;
     }
-    else plfW = NULL;
+    else plfA = NULL;
 
-    return EnumFontFamiliesExW( HDC_32(hdc), plfW, enum_font_callback,
+    return EnumFontFamiliesExA( HDC_32(hdc), plfA, enum_font_callback,
                                 (LPARAM)&info, dwFlags );
 }
 
