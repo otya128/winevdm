@@ -444,17 +444,19 @@ static IMonikerImpl16* IMoniker16_Construct(LPMONIKER iface32)
 }
 ULONG CDECL IMoniker16_AddRef(IMoniker16 *iface);
 
-HRESULT CDECL IMoniker16_QueryInterface(IMoniker16 *iface, REFIID riid, void **ppvObject)
+HRESULT CDECL IMoniker16_QueryInterface(SEGPTR iface, REFIID riid, SEGPTR *ppvObject)
 {
-    IMonikerImpl16* const This = impl_from_IMoniker16(iface);
-    TRACE("(%p,%s,%p)\n", iface, debugstr_guid(riid), ppvObject);
+    IMonikerImpl16* const This = impl_from_IMoniker16((IMoniker16*)MapSL(iface));
+    TRACE("(%08x,%s,%p)\n", iface, debugstr_guid(riid), ppvObject);
     if (ppvObject == 0)
         return E_INVALIDARG;
     *ppvObject = 0;
     if (!memcmp(&IID_IUnknown, riid, sizeof(IID_IUnknown)) ||
+        !memcmp(&IID_IPersist, riid, sizeof(IID_IPersist)) ||
+        !memcmp(&IID_IPersistStream, riid, sizeof(IID_IPersistStream)) ||
         !memcmp(&IID_IMoniker, riid, sizeof(IID_IMoniker))
         )
-        *ppvObject = (void*)iface;
+        *ppvObject = iface;
     if ((*ppvObject) == 0) {
         FIXME("Unknown IID %s\n", debugstr_guid(riid));
         return E_NOINTERFACE;

@@ -186,7 +186,7 @@
 534 cdecl IRunningObjectTable16_GetTimeOfLastChange(ptr ptr ptr) IRunningObjectTable16_GetTimeOfLastChange
 535 cdecl IRunningObjectTable16_EnumRunning(ptr ptr) IRunningObjectTable16_EnumRunning
 
-536 cdecl IMoniker16_QueryInterface(ptr ptr ptr) IMoniker16_QueryInterface
+536 cdecl IMoniker16_QueryInterface(segptr ptr ptr) IMoniker16_QueryInterface
 537 cdecl IMoniker16_AddRef(ptr) IMoniker16_AddRef
 538 cdecl IMoniker16_Release(ptr) IMoniker16_Release
 539 cdecl IMoniker16_GetClassID(ptr ptr) IMoniker16_GetClassID
