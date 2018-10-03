@@ -330,7 +330,7 @@ ULONG CDECL IRunningObjectTable16_Release(IRunningObjectTable16 *iface)
     }
     return result;
 }
-HRESULT CDECL IRunningObjectTable16_Register(IRunningObjectTable16 *iface, DWORD flags, LPUNKNOWN16 punkObject, LPMONIKER pmkObjectName, DWORD *pdwRegister)
+HRESULT CDECL IRunningObjectTable16_Register(IRunningObjectTable16 *iface, DWORD flags, LPUNKNOWN16 punkObject, LPMONIKER16 pmkObjectName, DWORD *pdwRegister)
 {
     FIXME("\n");
     return E_NOTIMPL;
@@ -340,12 +340,12 @@ HRESULT CDECL IRunningObjectTable16_Revoke(IRunningObjectTable16 *iface, DWORD d
     FIXME("\n");
     return E_NOTIMPL;
 }
-HRESULT CDECL IRunningObjectTable16_IsRunning(IRunningObjectTable16 *iface, LPMONIKER pmkObjectName)
+HRESULT CDECL IRunningObjectTable16_IsRunning(IRunningObjectTable16 *iface, LPMONIKER16 pmkObjectName)
 {
     FIXME("\n");
     return E_NOTIMPL;
 }
-HRESULT CDECL IRunningObjectTable16_GetObject(IRunningObjectTable16 *iface, LPMONIKER pmkObjectName, LPUNKNOWN16 FAR* ppunkObject)
+HRESULT CDECL IRunningObjectTable16_GetObject(IRunningObjectTable16 *iface, LPMONIKER16 pmkObjectName, LPUNKNOWN16 FAR* ppunkObject)
 {
     FIXME("\n");
     return E_NOTIMPL;
@@ -355,12 +355,12 @@ HRESULT CDECL IRunningObjectTable16_NoteChangeTime(IRunningObjectTable16 *iface,
     FIXME("\n");
     return E_NOTIMPL;
 }
-HRESULT CDECL IRunningObjectTable16_GetTimeOfLastChange(IRunningObjectTable16 *iface, LPMONIKER pmkObjectName, FILETIME FAR * pfiletime)
+HRESULT CDECL IRunningObjectTable16_GetTimeOfLastChange(IRunningObjectTable16 *iface, LPMONIKER16 pmkObjectName, FILETIME FAR * pfiletime)
 {
     FIXME("\n");
     return E_NOTIMPL;
 }
-HRESULT CDECL IRunningObjectTable16_EnumRunning(IRunningObjectTable16 *iface, LPENUMMONIKER *ppenumMoniker)
+HRESULT CDECL IRunningObjectTable16_EnumRunning(IRunningObjectTable16 *iface, LPENUMMONIKER16 *ppenumMoniker)
 {
     FIXME("\n");
     return E_NOTIMPL;
@@ -516,19 +516,19 @@ HRESULT CDECL IMoniker16_GetSizeMax(IMoniker16 *iface, ULARGE_INTEGER *pcbSize)
     return E_NOTIMPL;
 }
 
-HRESULT CDECL IMoniker16_BindToObject(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, REFIID riidResult, LPVOID *ppvResult)
+HRESULT CDECL IMoniker16_BindToObject(IMoniker16 *iface, LPBC16 pbc, LPMONIKER16 pmkToLeft, REFIID riidResult, LPVOID *ppvResult)
 {
     FIXME("\n");
     return E_NOTIMPL;
 }
 
-HRESULT CDECL IMoniker16_BindToStorage(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, REFIID riid, LPVOID *ppvObj)
+HRESULT CDECL IMoniker16_BindToStorage(IMoniker16 *iface, LPBC16 pbc, LPMONIKER16 pmkToLeft, REFIID riid, LPVOID *ppvObj)
 {
     FIXME("\n");
     return E_NOTIMPL;
 }
 
-HRESULT CDECL IMoniker16_Reduce(IMoniker16 *iface, LPBC pbc, DWORD dwReduceHowFar, LPMONIKER16 *ppmkToLeft, LPMONIKER16 *ppmkReduced)
+HRESULT CDECL IMoniker16_Reduce(IMoniker16 *iface, LPBC16 pbc, DWORD dwReduceHowFar, LPMONIKER16 *ppmkToLeft, LPMONIKER16 *ppmkReduced)
 {
     FIXME("\n");
     return E_NOTIMPL;
@@ -540,7 +540,7 @@ HRESULT CDECL IMoniker16_ComposeWith(IMoniker16 *iface, LPMONIKER16 pmkRight, BO
     return E_NOTIMPL;
 }
 
-HRESULT CDECL IMoniker16_Enum(IMoniker16 *iface, BOOL fForward, LPENUMMONIKER *ppenumMoniker)
+HRESULT CDECL IMoniker16_Enum(IMoniker16 *iface, BOOL fForward, LPENUMMONIKER16 *ppenumMoniker)
 {
     FIXME("\n");
     return E_NOTIMPL;
@@ -558,13 +558,13 @@ HRESULT CDECL IMoniker16_Hash(IMoniker16 *iface, LPDWORD pdwHash)
     return E_NOTIMPL;
 }
 
-HRESULT CDECL IMoniker16_IsRunning(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, LPMONIKER16 pmkNewlyRunning)
+HRESULT CDECL IMoniker16_IsRunning(IMoniker16 *iface, LPBC16 pbc, LPMONIKER16 pmkToLeft, LPMONIKER16 pmkNewlyRunning)
 {
     FIXME("\n");
     return E_NOTIMPL;
 }
 
-HRESULT CDECL IMoniker16_GetTimeOfLastChange(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, FILETIME *pfiletime)
+HRESULT CDECL IMoniker16_GetTimeOfLastChange(IMoniker16 *iface, LPBC16 pbc, LPMONIKER16 pmkToLeft, FILETIME *pfiletime)
 {
     FIXME("\n");
     return E_NOTIMPL;
@@ -588,13 +588,13 @@ HRESULT CDECL IMoniker16_RelativePathTo(IMoniker16 *iface, LPMONIKER16 pmkOther,
     return E_NOTIMPL;
 }
 
-HRESULT CDECL IMoniker16_GetDisplayName(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, LPSTR *lplpszDisplayName)
+HRESULT CDECL IMoniker16_GetDisplayName(IMoniker16 *iface, LPBC16 pbc, LPMONIKER16 pmkToLeft, LPSTR *lplpszDisplayName)
 {
     FIXME("\n");
     return E_NOTIMPL;
 }
 
-HRESULT CDECL IMoniker16_ParseDisplayName(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, LPSTR lpszDisplayName, ULONG *pchEaten, LPMONIKER16 *ppmkOut)
+HRESULT CDECL IMoniker16_ParseDisplayName(IMoniker16 *iface, LPBC16 pbc, LPMONIKER16 pmkToLeft, LPSTR lpszDisplayName, ULONG *pchEaten, LPMONIKER16 *ppmkOut)
 {
     FIXME("\n");
     return E_NOTIMPL;

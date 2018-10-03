@@ -184,9 +184,11 @@ typedef IDataAdviseHolder16 * LPDATAADVISEHOLDER16;
 #undef GetObject
 typedef struct
 {
+    /* IUnknown */
     SEGPTR QueryInterface;
     SEGPTR AddRef;
     SEGPTR Release;
+    /* IRunningObjectTable */
     SEGPTR Register;
     SEGPTR Revoke;
     SEGPTR IsRunning;
@@ -201,6 +203,31 @@ typedef struct
 } IRunningObjectTable16;
 
 typedef IRunningObjectTable16 *LPRUNNINGOBJECTTABLE16;
+
+typedef struct
+{
+    /* IUnknown */
+    SEGPTR QueryInterface;
+    SEGPTR AddRef;
+    SEGPTR Release;
+    /* IBindCtx */
+    SEGPTR RegisterObjectBound;
+    SEGPTR RevokeObjectBound;
+    SEGPTR ReleaseBoundObjects;
+    SEGPTR SetBindOptions;
+    SEGPTR GetBindOptions;
+    SEGPTR GetRunningObjectTable;
+    SEGPTR RegisterObjectParam;
+    SEGPTR GetObjectParam;
+    SEGPTR EnumObjectParam;
+    SEGPTR RevokeObjectParam;
+} IBindCtx16Vtbl;
+typedef struct
+{
+    SEGPTR lpVtbl;
+} IBindCtx16;
+typedef IBindCtx16 *LPBC16;
+typedef IBindCtx16 *LPBINDCTX16;
 
 typedef struct
 {
@@ -237,4 +264,22 @@ typedef struct
     SEGPTR lpVtbl;
 } IMoniker16;
 typedef IMoniker16 *LPMONIKER16;
+
+typedef struct
+{
+    /* IUnknown */
+    SEGPTR QueryInterface;
+    SEGPTR AddRef;
+    SEGPTR Release;
+    /* IEnumMoniker16 */
+    SEGPTR Next;
+    SEGPTR Skip;
+    SEGPTR Reset;
+    SEGPTR Clone;
+} IEnumMoniker16Vtbl;
+typedef struct
+{
+    SEGPTR lpVtbl;
+} IEnumMoniker16;
+typedef IEnumMoniker16 *LPENUMMONIKER16;
 #endif /* __WINE_OLE_IFS_H */
