@@ -1651,7 +1651,13 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
 INT16 WINAPI EnumFonts16( HDC16 hDC, LPCSTR lpName, FONTENUMPROC16 efproc,
                           LPARAM lpData )
 {
-    return EnumFontFamilies16( hDC, lpName, efproc, lpData );
+    struct callback16_info info;
+
+    info.proc = (FARPROC16)efproc;
+    info.param = lpData;
+    info.result = 1;
+    /* Don't call EnumFontFamilies! */
+    return EnumFontsA(HDC_32(hDC), lpName, enum_font_callback, (LPARAM)&info);
 }
 
 
