@@ -191,15 +191,6 @@ HRESULT WINAPI CreateItemMoniker16(LPCOLESTR16 lpszDelim,LPCOLESTR16 lpszItem,LP
 
 
 /******************************************************************************
- *        CreateFileMoniker (OLE2.28)
- */
-HRESULT WINAPI CreateFileMoniker16(LPCOLESTR16 lpszPathName,LPMONIKER* ppmk)
-{
-    FIXME("(%s,%p),stub!\n",lpszPathName,ppmk);
-    return E_NOTIMPL;
-}
-
-/******************************************************************************
  *        OleSetMenuDescriptor (OLE2.41)
  *
  * PARAMS

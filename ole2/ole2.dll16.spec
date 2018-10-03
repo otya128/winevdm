@@ -185,3 +185,27 @@
 533 cdecl IRunningObjectTable16_NoteChangeTime(ptr long ptr) IRunningObjectTable16_NoteChangeTime
 534 cdecl IRunningObjectTable16_GetTimeOfLastChange(ptr ptr ptr) IRunningObjectTable16_GetTimeOfLastChange
 535 cdecl IRunningObjectTable16_EnumRunning(ptr ptr) IRunningObjectTable16_EnumRunning
+
+536 cdecl IMoniker16_QueryInterface(ptr ptr ptr) IMoniker16_QueryInterface
+537 cdecl IMoniker16_AddRef(ptr) IMoniker16_AddRef
+538 cdecl IMoniker16_Release(ptr) IMoniker16_Release
+539 cdecl IMoniker16_GetClassID(ptr ptr) IMoniker16_GetClassID
+540 cdecl IMoniker16_IsDirty(ptr) IMoniker16_IsDirty
+541 cdecl IMoniker16_Load(ptr ptr) IMoniker16_Load
+542 cdecl IMoniker16_Save(ptr ptr word) IMoniker16_Save
+543 cdecl IMoniker16_GetSizeMax(ptr ptr) IMoniker16_GetSizeMax
+544 cdecl IMoniker16_BindToObject(ptr ptr ptr ptr ptr) IMoniker16_BindToObject
+545 cdecl IMoniker16_BindToStorage(ptr ptr ptr ptr ptr) IMoniker16_BindToStorage
+546 cdecl IMoniker16_Reduce(ptr ptr long ptr ptr) IMoniker16_Reduce
+547 cdecl IMoniker16_ComposeWith(ptr ptr word ptr) IMoniker16_ComposeWith
+548 cdecl IMoniker16_Enum(ptr word ptr) IMoniker16_Enum
+549 cdecl IMoniker16_IsEqual(ptr ptr) IMoniker16_IsEqual
+550 cdecl IMoniker16_Hash(ptr ptr) IMoniker16_Hash
+551 cdecl IMoniker16_IsRunning(ptr ptr ptr ptr) IMoniker16_IsRunning
+552 cdecl IMoniker16_GetTimeOfLastChange(ptr ptr ptr ptr) IMoniker16_GetTimeOfLastChange
+553 cdecl IMoniker16_Inverse(ptr ptr) IMoniker16_Inverse
+554 cdecl IMoniker16_CommonPrefixWith(ptr ptr ptr) IMoniker16_CommonPrefixWith
+555 cdecl IMoniker16_RelativePathTo(ptr ptr ptr) IMoniker16_RelativePathTo
+556 cdecl IMoniker16_GetDisplayName(ptr ptr ptr ptr) IMoniker16_GetDisplayName
+557 cdecl IMoniker16_ParseDisplayName(ptr ptr ptr str ptr ptr) IMoniker16_ParseDisplayName
+558 cdecl IMoniker16_IsSystemMoniker(ptr ptr) IMoniker16_IsSystemMoniker

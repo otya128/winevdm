@@ -201,4 +201,40 @@ typedef struct
 } IRunningObjectTable16;
 
 typedef IRunningObjectTable16 *LPRUNNINGOBJECTTABLE16;
+
+typedef struct
+{
+    /* IUnknown */
+    SEGPTR QueryInterface;
+    SEGPTR AddRef;
+    SEGPTR Release;
+    /* IPersist */
+    SEGPTR GetClassID;
+    /* IPersistStream */
+    SEGPTR IsDirty;
+    SEGPTR Load;
+    SEGPTR Save;
+    SEGPTR GetSizeMax;
+    /* IMoniker */
+    SEGPTR BindToObject;
+    SEGPTR BindToStorage;
+    SEGPTR Reduce;
+    SEGPTR ComposeWith;
+    SEGPTR Enum;
+    SEGPTR IsEqual;
+    SEGPTR Hash;
+    SEGPTR IsRunning;
+    SEGPTR GetTimeOfLastChange;
+    SEGPTR Inverse;
+    SEGPTR CommonPrefixWith;
+    SEGPTR RelativePathTo;
+    SEGPTR GetDisplayName;
+    SEGPTR ParseDisplayName;
+    SEGPTR IsSystemMoniker;
+} IMoniker16Vtbl;
+typedef struct
+{
+    SEGPTR lpVtbl;
+} IMoniker16;
+typedef IMoniker16 *LPMONIKER16;
 #endif /* __WINE_OLE_IFS_H */

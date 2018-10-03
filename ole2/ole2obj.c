@@ -383,3 +383,244 @@ HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, LPRUNNINGOBJECTTABLE16 *p
     *pprot = &IRunningObjectTable16_Construct(prot)->iface;
     return result;
 }
+
+typedef struct
+{
+    IMoniker16 iface;
+    LONG ref;
+    LPMONIKER iface32;
+} IMonikerImpl16;
+
+static inline IMonikerImpl16 *impl_from_IMoniker16(IMoniker16 *iface)
+{
+    return CONTAINING_RECORD(iface, IMonikerImpl16, iface);
+}
+static IMonikerImpl16* IMoniker16_Construct(LPMONIKER iface32)
+{
+    IMonikerImpl16* impl;
+    static IMoniker16Vtbl vt16;
+    static SEGPTR msegvt16;
+    HMODULE16 hmod = GetModuleHandle16("OLE2");
+    TRACE("\n");
+    impl = HeapAlloc(GetProcessHeap(), 0, sizeof(IMonikerImpl16));
+    if (impl == NULL)
+        return NULL;
+    /*
+     * Set up the virtual function table and reference count.
+     */
+    if (!msegvt16)
+    {
+#define VTENT(x) vt16.x = (SEGPTR)GetProcAddress16(hmod,"IMoniker16_"#x);assert(vt16.x)
+        VTENT(QueryInterface);
+        VTENT(AddRef);
+        VTENT(Release);
+        VTENT(GetClassID);
+        VTENT(IsDirty);
+        VTENT(Load);
+        VTENT(Save);
+        VTENT(GetSizeMax);
+        VTENT(BindToObject);
+        VTENT(BindToStorage);
+        VTENT(Reduce);
+        VTENT(ComposeWith);
+        VTENT(Enum);
+        VTENT(IsEqual);
+        VTENT(Hash);
+        VTENT(IsRunning);
+        VTENT(GetTimeOfLastChange);
+        VTENT(Inverse);
+        VTENT(CommonPrefixWith);
+        VTENT(RelativePathTo);
+        VTENT(GetDisplayName);
+        VTENT(ParseDisplayName);
+        VTENT(IsSystemMoniker);
+#undef VTENT
+        msegvt16 = MapLS(&vt16);
+    }
+    impl->iface.lpVtbl = msegvt16;
+    impl->ref = 0;
+    impl->iface32 = iface32;
+    return (IMonikerImpl16*)MapLS(impl);
+}
+ULONG CDECL IMoniker16_AddRef(IMoniker16 *iface);
+
+HRESULT CDECL IMoniker16_QueryInterface(IMoniker16 *iface, REFIID riid, void **ppvObject)
+{
+    IMonikerImpl16* const This = impl_from_IMoniker16(iface);
+    TRACE("(%p,%s,%p)\n", iface, debugstr_guid(riid), ppvObject);
+    if (ppvObject == 0)
+        return E_INVALIDARG;
+    *ppvObject = 0;
+    if (!memcmp(&IID_IUnknown, riid, sizeof(IID_IUnknown)) ||
+        !memcmp(&IID_IMoniker, riid, sizeof(IID_IMoniker))
+        )
+        *ppvObject = (void*)iface;
+    if ((*ppvObject) == 0) {
+        FIXME("Unknown IID %s\n", debugstr_guid(riid));
+        return E_NOINTERFACE;
+    }
+    IMoniker16_AddRef(&This->iface);
+    return S_OK;
+}
+
+ULONG CDECL IMoniker16_AddRef(IMoniker16 *iface)
+{
+    IMonikerImpl16 *impl = impl_from_IMoniker16(iface);
+    TRACE("(%p)\n", iface);
+    ULONG result = impl->iface32->lpVtbl->AddRef(impl->iface32);
+    return result;
+}
+
+ULONG CDECL IMoniker16_Release(IMoniker16 *iface)
+{
+    IMonikerImpl16 *impl = impl_from_IMoniker16(iface);
+    TRACE("(%p)\n", iface);
+    ULONG result = impl->iface32->lpVtbl->Release(impl->iface32);
+    if (result == 0)
+    {
+        TRACE("free %p\n", iface);
+        HeapFree(GetProcessHeap(), 0, impl);
+    }
+    return result;
+}
+
+HRESULT CDECL IMoniker16_GetClassID(IMoniker16 *iface, LPCLSID lpClassID)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_IsDirty(IMoniker16 *iface)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_Load(IMoniker16 *iface, LPSTREAM16 pStm)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_Save(IMoniker16 *iface, LPSTREAM16 pStm, BOOL fClearDirty)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_GetSizeMax(IMoniker16 *iface, ULARGE_INTEGER *pcbSize)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_BindToObject(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, REFIID riidResult, LPVOID *ppvResult)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_BindToStorage(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, REFIID riid, LPVOID *ppvObj)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_Reduce(IMoniker16 *iface, LPBC pbc, DWORD dwReduceHowFar, LPMONIKER16 *ppmkToLeft, LPMONIKER16 *ppmkReduced)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_ComposeWith(IMoniker16 *iface, LPMONIKER16 pmkRight, BOOL fOnlyIfNotGeneric, LPMONIKER16 *ppmkComposite)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_Enum(IMoniker16 *iface, BOOL fForward, LPENUMMONIKER *ppenumMoniker)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_IsEqual(IMoniker16 *iface, LPMONIKER16 pmkOtherMoniker)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_Hash(IMoniker16 *iface, LPDWORD pdwHash)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_IsRunning(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, LPMONIKER16 pmkNewlyRunning)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_GetTimeOfLastChange(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, FILETIME *pfiletime)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_Inverse(IMoniker16 *iface, LPMONIKER16 *ppmk)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_CommonPrefixWith(IMoniker16 *iface, LPMONIKER16 pmkOther, LPMONIKER16 *ppmkPrefix)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_RelativePathTo(IMoniker16 *iface, LPMONIKER16 pmkOther, LPMONIKER16 *ppmkRelPath)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_GetDisplayName(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, LPSTR *lplpszDisplayName)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_ParseDisplayName(IMoniker16 *iface, LPBC pbc, LPMONIKER16 pmkToLeft, LPSTR lpszDisplayName, ULONG *pchEaten, LPMONIKER16 *ppmkOut)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT CDECL IMoniker16_IsSystemMoniker(IMoniker16 *iface, LPDWORD pdwMksys)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+
+/******************************************************************************
+ *        CreateFileMoniker (OLE2.28)
+ */
+HRESULT WINAPI CreateFileMoniker16(LPCOLESTR16 lpszPathName, LPMONIKER16* ppmk)
+{
+    TRACE("(%s,%p)\n", lpszPathName, ppmk);
+    LPMONIKER pmk = NULL;
+    SIZE_T len = MultiByteToWideChar(CP_ACP, 0, lpszPathName, -1, NULL, 0);
+    LPCOLESTR name = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    MultiByteToWideChar(CP_ACP, 0, lpszPathName, -1, name, len);
+    HRESULT result = CreateFileMoniker(name, &pmk);
+    HeapFree(GetProcessHeap(), 0, name);
+    if (!SUCCEEDED(result))
+    {
+        return result;
+    }
+    *ppmk = &IMoniker16_Construct(pmk)->iface;
+    return result;
+}
