@@ -209,3 +209,6 @@ EXPORTS
   RegSetValueEx16
   K32WOWHandle16Destroy
   K32WOWHandle16DestroyHint
+
+  DOSVM_inport
+  DOSVM_outport

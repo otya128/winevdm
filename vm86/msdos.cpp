@@ -473,11 +473,15 @@ int pic_ack()
 	return 0;
 }
 
-// i/o bus
+typedef DWORD (*DOSVM_inport_t)(int port, int size);
+typedef void (*DOSVM_outport_t)(int port, int size, DWORD value);
+DOSVM_inport_t DOSVM_inport;
+DOSVM_outport_t DOSVM_outport;
 
+// i/o bus
 UINT8 read_io_byte(offs_t addr)
 {
-	return(0xff);
+    return (UINT8)DOSVM_inport(addr, 1);
 }
 
 UINT16 read_io_word(offs_t addr)
@@ -492,6 +496,7 @@ UINT32 read_io_dword(offs_t addr)
 
 void write_io_byte(offs_t addr, UINT8 val)
 {
+    DOSVM_outport(addr, 1, val);
 }
 
 void write_io_word(offs_t addr, UINT16 val)
@@ -855,6 +860,10 @@ extern "C"
             get_native_wndproc_segment = (get_native_wndproc_segment_t)GetProcAddress(user, "get_native_wndproc_segment");
             native_wndproc_segment = get_native_wndproc_segment();
         }
+        if (!krnl386)
+            krnl386 = LoadLibraryA(KRNL386);
+        DOSVM_inport = (DOSVM_inport_t)GetProcAddress(krnl386, "DOSVM_inport");
+        DOSVM_outport = (DOSVM_outport_t)GetProcAddress(krnl386, "DOSVM_outport");
         //SetConsoleCtrlHandler(dump, TRUE);
 		AddVectoredExceptionHandler(TRUE, vm86_vectored_exception_handler);
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
