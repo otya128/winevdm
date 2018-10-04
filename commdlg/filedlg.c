@@ -42,6 +42,7 @@ UINT WMHELPMSG;
 UINT WMFINDMSG;
 UINT WMCOLOROK;
 UINT WMSHAREVI;
+UINT WMWOWDirChange;
 
 LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC proc);
 static UINT_PTR CALLBACK thunk_hook(COMMDLGTHUNK *thunk, HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -64,6 +65,8 @@ static void init_thunk()
     WMFINDMSG = RegisterWindowMessageW(FINDMSGSTRINGW);
     WMCOLOROK = RegisterWindowMessageW(COLOROKSTRINGW);
     WMSHAREVI = RegisterWindowMessageW(SHAREVISTRINGW);
+    /* undocumented */
+    WMWOWDirChange = RegisterWindowMessageW(L"WOWDirChange");
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(COMMDLGTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 }
 
@@ -292,6 +295,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     LPDLGTEMPLATEA template = NULL;
     OPENFILENAMEA ofn32;
     BOOL ret;
+    DWORD count;
 
     if (!lpofn) return FALSE;
     OPENFILENAME16 ofn16 = *lpofn;
@@ -343,12 +347,14 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         }
     }
 
+    ReleaseThunkLock(&count);
     if ((ret = GetOpenFileNameA( &ofn32 )))
     {
 	lpofn->nFilterIndex   = ofn32.nFilterIndex;
 	lpofn->nFileOffset    = ofn32.nFileOffset;
 	lpofn->nFileExtension = ofn32.nFileExtension;
     }
+    RestoreThunkLock(count);
     delete_thunk(ofn32.lpfnHook);
     HeapFree( GetProcessHeap(), 0, template );
     return ret;
@@ -372,6 +378,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     LPDLGTEMPLATEA template = NULL;
     OPENFILENAMEA ofn32;
     BOOL ret;
+    DWORD count;
 
     if (!lpofn) return FALSE;
     OPENFILENAME16 ofn16 = *lpofn;
@@ -423,12 +430,14 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
             ofn32.lpfnHook = dummy_hook;
         }
     }
+    ReleaseThunkLock(&count);
     if ((ret = GetSaveFileNameA( &ofn32 )))
     {
 	lpofn->nFilterIndex   = ofn32.nFilterIndex;
 	lpofn->nFileOffset    = ofn32.nFileOffset;
 	lpofn->nFileExtension = ofn32.nFileExtension;
     }
+    RestoreThunkLock(count);
     delete_thunk(ofn32.lpfnHook);
     HeapFree( GetProcessHeap(), 0, template );
     return ret;
