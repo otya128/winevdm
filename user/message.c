@@ -3988,7 +3988,7 @@ LRESULT CALLBACK WndProcRetHook(int code, WPARAM wParam, LPARAM lParam)
     HHOOK hook = hd ? hd->wndprocret : NULL;
     if (code < 0)
         return CallNextHookEx(hook, code, wParam, lParam);
-    if (code >= 0)
+    if (code == HC_ACTION)
     {
         CWPRETSTRUCT *pcwp = (CWPRETSTRUCT *)lParam;
         HWND hwnd = pcwp->hwnd;
