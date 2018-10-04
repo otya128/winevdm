@@ -472,7 +472,7 @@
 522 stub WNetDisable
 523 pascal -ret16 WNetRestoreConnection(word ptr) WNetRestoreConnection16
 524 pascal -ret16 WNetWriteJob(word ptr ptr) WNetWriteJob16
-525 pascal -ret16 WNetConnectDialog16(word word) WNetConnectDialog16
+525 pascal -ret16 WNetConnectDialog(word word) WNetConnectDialog16
 526 pascal -ret16 WNetDisconnectDialog(word word) WNetDisconnectDialog16
 527 pascal -ret16 WNetConnectionDialog(word word) WNetConnectionDialog16
 528 pascal -ret16 WNetViewQueueDialog(word ptr) WNetViewQueueDialog16
