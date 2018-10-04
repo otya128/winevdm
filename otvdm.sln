@@ -359,6 +359,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nddeapi", "nddeapi\nddeapi.
 		{D3F34C25-272C-4E4F-9B6F-BE7ABB472966} = {D3F34C25-272C-4E4F-9B6F-BE7ABB472966}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "widl", "widl\widl.vcxproj", "{8A7A52D0-4772-475F-AB85-9C074CFEFDE8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wpp", "wpp\wpp.vcxproj", "{433BAA32-23BE-4B63-B24B-B89938F4FF35}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -569,6 +573,14 @@ Global
 		{72482539-7702-455E-81E0-F3AF237CF57F}.Debug|Win32.Build.0 = Debug|Win32
 		{72482539-7702-455E-81E0-F3AF237CF57F}.Release|Win32.ActiveCfg = Release|Win32
 		{72482539-7702-455E-81E0-F3AF237CF57F}.Release|Win32.Build.0 = Release|Win32
+		{8A7A52D0-4772-475F-AB85-9C074CFEFDE8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8A7A52D0-4772-475F-AB85-9C074CFEFDE8}.Debug|Win32.Build.0 = Debug|Win32
+		{8A7A52D0-4772-475F-AB85-9C074CFEFDE8}.Release|Win32.ActiveCfg = Release|Win32
+		{8A7A52D0-4772-475F-AB85-9C074CFEFDE8}.Release|Win32.Build.0 = Release|Win32
+		{433BAA32-23BE-4B63-B24B-B89938F4FF35}.Debug|Win32.ActiveCfg = Debug|Win32
+		{433BAA32-23BE-4B63-B24B-B89938F4FF35}.Debug|Win32.Build.0 = Debug|Win32
+		{433BAA32-23BE-4B63-B24B-B89938F4FF35}.Release|Win32.ActiveCfg = Release|Win32
+		{433BAA32-23BE-4B63-B24B-B89938F4FF35}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
