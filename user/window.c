@@ -2639,6 +2639,8 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     CREATESTRUCTA cs;
     char buffer[256];
     HWND hwnd;
+    BOOL release = FALSE;
+    DWORD count;
 
     if (instance == NULL)
     {
@@ -2677,6 +2679,16 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     cs.lpszClass      = className;
     cs.dwExStyle      = exStyle;
 
+    if (cs.hwndParent && IsWindow(cs.hwndParent))
+    {
+        HTASK16 parenttask = GetWindowTask16(parent);
+        if (parenttask != 0 && parenttask != GetCurrentTask())
+        {
+            TRACE("GetWindowTask16(parent) != GetCurrentTask()\n");
+            release = TRUE;
+        }
+    }
+
     /* load the menu */
     if (!IS_INTRESOURCE(className))
     {
@@ -2706,8 +2718,15 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     {
         cs.style &= ~(WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
     }
+    if (release)
+    {
+        ReleaseThunkLock(&count);
+    }
     hwnd = create_window16((CREATESTRUCTW *)&cs, (LPCWSTR)cs.lpszClass, HINSTANCE_32(instance), FALSE);
-
+    if (release)
+    {
+        RestoreThunkLock(count);
+    }
     if (hwnd == NULL)
     {
         ERR("Could not create window(%08x,\"%s\"(\"%s\"),\"%s\",%08x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%08x)\n", exStyle, className, cs.lpszClass, windowName, style, x, y, width, height, parent, menu, instance, data);
