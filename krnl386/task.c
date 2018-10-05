@@ -575,6 +575,24 @@ static DWORD CALLBACK task_start( LPVOID p )
     _EnterWin16Lock();
     TASK_LinkTask( pTask->hSelf );
     pTask->teb = NtCurrentTeb();
+    typedef HRESULT(WINAPI *SetThreadDescription_t)(HANDLE hThread, PCWSTR lpThreadDescription);
+    static BOOL init_SetThreadDescription = FALSE;
+    static SetThreadDescription_t SetThreadDescription;
+    if (!init_SetThreadDescription)
+    {
+        init_SetThreadDescription = TRUE;
+        SetThreadDescription = (SetThreadDescription_t)GetProcAddress(GetModuleHandleW(L"kernel32"), "SetThreadDescription");
+    }
+    if (SetThreadDescription) /* Windows 10 1607~ */
+    {
+        WCHAR buf[1025];
+        buf[0] = 0;
+        CHAR mod_name[9];
+        memcpy(mod_name, pTask->module_name, 8);
+        mod_name[8] = 0;
+        wsprintfW(buf, L"%S(%s)", mod_name, data->tib->exe_name->Buffer);
+        SetThreadDescription(GetCurrentThread(), buf);
+    }
     if (data->curdir)
         SetCurrentDirectory16(data->curdir);
     HeapFree(GetProcessHeap(), 0, data);
