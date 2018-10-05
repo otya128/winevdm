@@ -2778,9 +2778,18 @@ DWORD WINAPI GetFontData16( HDC16 hdc, DWORD table, DWORD offset, LPVOID buffer,
  */
 BOOL16 WINAPI GetRasterizerCaps16( LPRASTERIZER_STATUS lprs, UINT16 cbNumBytes )
 {
-    //return GetRasterizerCaps( lprs, cbNumBytes );
-    lprs->wFlags = TT_AVAILABLE | TT_ENABLED;
-    return TRUE;
+    /* LPRASTERIZER_STATUS must be aligned */
+    BYTE caps_buf[100] = { 0 };
+    LPRASTERIZER_STATUS cap = caps_buf + (sizeof(SIZE_T) - (SIZE_T)caps_buf % sizeof(SIZE_T));
+    if (GetRasterizerCaps(cap, cbNumBytes))
+    {
+        memcpy(lprs, cap, min(cbNumBytes, sizeof(RASTERIZER_STATUS)));
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
 }
 
 
