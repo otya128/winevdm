@@ -156,7 +156,7 @@ INT16 WINAPI SetVoiceSound16(INT16 nVoice, DWORD lFrequency, INT16 nDuration)
 
   TRACE("freq: %d duration: %d\n", freq, nDuration);
   queue[nextnote].freq = freq;
-  queue[nextnote].duration = nDuration * 5; // 5 ms per tick
+  queue[nextnote].duration = ((nDuration + 1) / 2) * 5; // 2.5 ms per tick rounded up
   nextnote++;
   return 0;
 }
