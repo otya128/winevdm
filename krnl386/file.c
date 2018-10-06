@@ -622,7 +622,11 @@ UINT16 WINAPI GetTempFileName16( BYTE drive, LPCSTR prefix, UINT16 unique,
     if (drive & TF_FORCEDRIVE)
         sprintf(temppath,"%c:", drive & ~TF_FORCEDRIVE );
     else
-        GetTempPathA( MAX_PATH, temppath );
+    {
+        GetTempPathA(MAX_PATH, temppath);
+        if (temppath[0] != drive)
+            sprintf(temppath, "%c:", drive);
+    }
 
     if (prefix)
     {
