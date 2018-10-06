@@ -231,22 +231,20 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
 
     /* Fixup the size */
     DWORD fixup_size = 0x1f;
-    if (IsOldWindowsTask(GetCurrentTask()))
-    {
-        fixup_size = 0xff;
-    }
+    BOOL old = IsOldWindowsTask(GetCurrentTask());
+    DWORD add_size = old ? 0x100 : 0;
 
     if (size >= GLOBAL_MAX_ALLOC_SIZE - fixup_size) return 0;
     size = (size + fixup_size) & ~fixup_size;
 
     /* Allocate the linear memory */
-    ptr = HeapAlloc( get_win16_heap(), 0, size );
+    ptr = HeapAlloc( get_win16_heap(), 0, size + add_size);
       /* FIXME: free discardable blocks and try again? */
     if (!ptr) return 0;
 
       /* Allocate the selector(s) */
 
-    handle = GLOBAL_CreateBlock( flags, ptr, size, hOwner, selflags );
+    handle = GLOBAL_CreateBlock( flags, ptr, size + add_size, hOwner, selflags );
     if (!handle)
     {
         HeapFree( get_win16_heap(), 0, ptr );
@@ -255,6 +253,8 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
 
     if (flags & GMEM_ZEROINIT) memset( ptr, 0, size );
     else ((char *)ptr)[size - 1] = 0xff; // some programs depend on the block not being cleared
+    if (add_size)
+        GET_ARENA_PTR(handle)->size -= add_size;
     return handle;
 }
 
@@ -344,10 +344,8 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
 
       /* Fixup the size */
     DWORD fixup_size = 0x1f;
-    if (IsOldWindowsTask(GetCurrentTask()))
-    {
-        fixup_size = 0xff;
-    }
+    BOOL old = IsOldWindowsTask(GetCurrentTask());
+    DWORD add_size = old ? 0x100 : 0;
 
     if (size > GLOBAL_MAX_ALLOC_SIZE - (fixup_size + 1)) return 0;
     if (size == 0) size = fixup_size + 1;
@@ -397,9 +395,9 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
 	if (ptr)
             newptr = HeapReAlloc( heap,
 		(pArena->pageLockCount > 0) ? HEAP_REALLOC_IN_PLACE_ONLY : 0, 
-                              ptr, size );
+                              ptr, size + add_size );
 	else
-            newptr = HeapAlloc( heap, 0, size );
+            newptr = HeapAlloc( heap, 0, size + add_size );
 
     }
 
@@ -448,7 +446,7 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
 
     if (pNewArena != pArena) memmove( pNewArena, pArena, sizeof(GLOBALARENA) );
     pNewArena->base = ptr;
-    pNewArena->size = GetSelectorLimit16(sel) + 1;
+    pNewArena->size = GetSelectorLimit16(sel) + 1 - add_size;
     pNewArena->selCount = selcount;
     pNewArena->handle = (pNewArena->flags & GA_MOVEABLE) ? sel - 1 : sel;
 
