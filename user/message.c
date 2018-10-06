@@ -1563,6 +1563,11 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_UPDATEUISTATE:
         ret = callback(hwnd32, msg, lParam, lParam, result, arg);
         break;
+    case WM_PRINT:
+    case WM_PRINTCLIENT:
+    case WM_NCUAHDRAWFRAME: /* undocumented wparam: hdc */
+        ret = callback(hwnd32, msg, (WPARAM)HDC_32(wParam), lParam, result, arg);
+        break;
     default:
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
@@ -2253,6 +2258,11 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         break;
     case WM_UPDATEUISTATE:
         ret = callback(HWND_16(hwnd), msg, wParam, wParam, result, arg);
+        break;
+    case WM_PRINT:
+    case WM_PRINTCLIENT:
+    case WM_NCUAHDRAWFRAME: /* undocumented wparam: hdc */
+        ret = callback(HWND_16(hwnd), msg, HDC_16((HDC)wParam), lParam, result, arg);
         break;
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
