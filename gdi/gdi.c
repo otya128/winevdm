@@ -2319,9 +2319,17 @@ BOOL16 WINAPI RemoveFontResource16( LPCSTR str )
  */
 DWORD WINAPI SetBrushOrg16( HDC16 hdc, INT16 x, INT16 y )
 {
+    POINT dcpt;
     POINT pt;
 
-    if (!SetBrushOrgEx( HDC_32(hdc), x, y, &pt )) return 0;
+    if (GetDCOrgEx(HDC_32(hdc), &dcpt))
+    {
+        x -= dcpt.x;
+        y -= dcpt.y;
+        if (!SetBrushOrgEx(HDC_32(hdc), x, y, &pt)) return 0;
+        pt.x += dcpt.x;
+        pt.y += dcpt.y;
+    }
     return MAKELONG( pt.x, pt.y );
 }
 
