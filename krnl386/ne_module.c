@@ -1580,10 +1580,17 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
     pModule->ne_magic = pModule->self = 0;
     if (pModule->owner32)
     {
-        DWORD count;
-        ReleaseThunkLock(&count);
-        FreeLibrary(pModule->owner32);
-        RestoreThunkLock(count);
+        /*
+        FreeLibrary causes deadlock.
+        However, ReleaseThunkLock breaks the module list.
+        */
+        if (0)
+        {
+            DWORD count;
+            ReleaseThunkLock(&count);
+            FreeLibrary(pModule->owner32);
+            RestoreThunkLock(count);
+        }
     }
     else if (pModule->mapping) UnmapViewOfFile( pModule->mapping );
 
