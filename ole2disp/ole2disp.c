@@ -452,6 +452,8 @@ int WINAPI SysReAllocStringLen16(BSTR16 *old,const char *in,int len)
 {
 	/* FIXME: Check input length */
 	BSTR16 new=SysAllocStringLen16(in,len);
+	TRACE("free %08x alloc %08x\n", *old, new);
+	memcpy(BSTR_GetAddr(new), BSTR_GetAddr(*old), min(len, SysStringLen16(*old)));
 	BSTR_Free(*old);
 	*old=new;
 	return 1;
