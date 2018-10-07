@@ -844,11 +844,69 @@ BOOL16 WINAPI GetScrollRange16( HWND16 hwnd, INT16 nBar, LPINT16 lpMin, LPINT16 
 }
 
 
+/* layered-window based desktop DC emulation for DWM */
+LRESULT WINAPI DesktopDCEmulationWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    switch (msg)
+    {
+    case WM_NCCALCSIZE:
+        return 0;
+    default:
+        return DefWindowProcW(hwnd, msg, wparam, lparam);
+    }
+}
+static HWND dcemu_hwnd;
+static COLORREF DWMDesktopDCFixBackgroundColor = RGB(254, 254, 254);
+void init_dcemu()
+{
+    WNDCLASSW wc = { 0 };
+    RECT wkara = { 0 };
+    HWND hwnd;
+    COLORREF colorkey = DWMDesktopDCFixBackgroundColor;
+    if (dcemu_hwnd)
+        return;
+    wc.lpfnWndProc = DesktopDCEmulationWindowProc;
+    wc.style = CS_OWNDC;
+    wc.hbrBackground = CreateSolidBrush(colorkey);
+    wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    wc.lpszClassName = L"DesktopDCEmulation";
+    RegisterClassW(&wc);
+    SystemParametersInfoW(SPI_GETWORKAREA, 0, &wkara, 0);
+    hwnd = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST, L"DesktopDCEmulation", L"", 0, wkara.left, wkara.top, wkara.right - wkara.left, wkara.bottom - wkara.top, NULL, NULL, NULL, NULL);
+    if (!hwnd)
+        return;
+    SetWindowLongW(hwnd, GWL_STYLE, GetWindowLongW(hwnd, GWL_STYLE) & ~WS_BORDER & ~WS_SIZEBOX &~WS_DLGFRAME);
+    SetLayeredWindowAttributes(hwnd, colorkey, 0, LWA_COLORKEY);
+    ShowWindow(hwnd, SW_NORMAL);
+    UpdateWindow(hwnd);
+    dcemu_hwnd = hwnd;
+}
 /**************************************************************************
  *              GetDC   (USER.66)
  */
 HDC16 WINAPI GetDC16( HWND16 hwnd )
 {
+    static BOOL DWMDesktopDCFix_init;
+    static BOOL DWMDesktopDCFix;
+    if (!DWMDesktopDCFix_init)
+    {
+        DWMDesktopDCFix_init = TRUE;
+        DWMDesktopDCFix = krnl386_get_config_int("otvdm", "DWMDesktopDCFix", FALSE);
+        int R = krnl386_get_config_int("otvdm", "DWMDesktopDCFixBackgroundColorR", 254);
+        int G = krnl386_get_config_int("otvdm", "DWMDesktopDCFixBackgroundColorG", 254);
+        int B = krnl386_get_config_int("otvdm", "DWMDesktopDCFixBackgroundColorB", 254);
+        DWMDesktopDCFixBackgroundColor = RGB(R, G, B);
+    }
+    if (DWMDesktopDCFix && hwnd == 0)
+    {
+        init_dcemu();
+        SetWindowPos(dcemu_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOREDRAW);
+        HDC dc = GetDC(dcemu_hwnd);
+        SetWindowOrgEx(dc, 0, 0, NULL);
+        MoveToEx(dc, 0, 0, NULL);
+        SelectClipRgn(dc, NULL);
+        return HDC_16(dc);
+    }
     return HDC_16(GetDC( WIN_Handle32(hwnd) ));
 }
 
