@@ -62,6 +62,14 @@ typedef struct tagSAFEARRAY16
     SAFEARRAYBOUND16 rgsabound[1];
 } SAFEARRAY16;
 
+#include <pshpack1.h>
+/* BSTR structure */
+typedef struct
+{
+    ULONG clSize;
+    byte abData[1];
+} BYTE_BLOB16;
+#include <poppack.h>
 static SEGPTR safearray_alloc(ULONG size)
 {
     HANDLE16 h;
@@ -300,13 +308,22 @@ HRESULT WINAPI SafeArrayCopy16(SAFEARRAY16 *sa, SAFEARRAY16 **ppsaout)
    represents BSTR as a 16:16 far pointer, and the strings
    as ISO-8859 */
 
+SEGPTR get_blob16_from_bstr16(BSTR16 bstr)
+{
+    return bstr - sizeof(BYTE_BLOB16) + sizeof(OLECHAR16);
+}
+SEGPTR get_bstr16_from_blob16(SEGPTR blob)
+{
+    return blob + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16);
+}
 /******************************************************************************
  *		BSTR_AllocBytes	[Internal]
  */
 static BSTR16 BSTR_AllocBytes(int n)
 {
-    void *ptr = HeapAlloc( GetProcessHeap(), 0, n );
-    return (BSTR16)MapLS(ptr);
+    BYTE_BLOB16 *ptr = (BYTE_BLOB16*)HeapAlloc( GetProcessHeap(), 0, n + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16));
+    ptr->clSize = n;
+    return get_bstr16_from_blob16((SEGPTR)MapLS((LPCVOID)ptr));
 }
 
 /******************************************************************************
@@ -314,9 +331,11 @@ static BSTR16 BSTR_AllocBytes(int n)
  */
 static void BSTR_Free(BSTR16 in)
 {
-    void *ptr = MapSL( (SEGPTR)in );
-    UnMapLS( (SEGPTR)in );
-    HeapFree( GetProcessHeap(), 0, ptr );
+    if (!in)
+        return;
+   void *ptr = MapSL( (SEGPTR)get_blob16_from_bstr16(in) );
+   UnMapLS( (SEGPTR)get_blob16_from_bstr16(in) );
+   HeapFree( GetProcessHeap(), 0, ptr );
 }
 
 /******************************************************************************
@@ -467,7 +486,10 @@ void WINAPI SysFreeString16(BSTR16 str)
  */
 int WINAPI SysStringLen16(BSTR16 str)
 {
-	return strlen(BSTR_GetAddr(str));
+    if (!str)
+        return 0;
+    BYTE_BLOB16 *bb16 = (BYTE_BLOB16*)MapSL(get_blob16_from_bstr16(str));
+    return bb16->clSize;
 }
 
 /******************************************************************************
