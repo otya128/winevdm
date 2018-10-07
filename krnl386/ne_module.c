@@ -1556,6 +1556,8 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
     if (!(pModule = NE_GetPtr( hModule ))) return FALSE;
     hModule = pModule->self;
 
+    HMODULE owner32 = pModule->owner32;
+
     TRACE("%04x count %d\n", hModule, pModule->count );
 
     if (((INT16)(--pModule->count)) > 0 ) return TRUE;
@@ -1578,21 +1580,7 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
     /* Clear magic number just in case */
 
     pModule->ne_magic = pModule->self = 0;
-    if (pModule->owner32)
-    {
-        /*
-        FreeLibrary causes deadlock.
-        However, ReleaseThunkLock breaks the module list.
-        */
-        if (0)
-        {
-            DWORD count;
-            ReleaseThunkLock(&count);
-            FreeLibrary(pModule->owner32);
-            RestoreThunkLock(count);
-        }
-    }
-    else if (pModule->mapping) UnmapViewOfFile( pModule->mapping );
+    if (!owner32 && pModule->mapping) UnmapViewOfFile( pModule->mapping );
 
       /* Remove it from the linked list */
 
@@ -1614,6 +1602,14 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
     /* Free the module storage */
 
     GlobalFreeAll16( hModule );
+    
+    if (owner32)
+    {
+        DWORD count;
+        ReleaseThunkLock(&count);
+        FreeLibrary(owner32);
+        RestoreThunkLock(count);
+    }       
     return TRUE;
 }
 
