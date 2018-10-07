@@ -322,7 +322,7 @@ SEGPTR get_bstr16_from_blob16(SEGPTR blob)
 static BSTR16 BSTR_AllocBytes(int n)
 {
     BYTE_BLOB16 *ptr = (BYTE_BLOB16*)HeapAlloc( GetProcessHeap(), 0, n + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16));
-    ptr->clSize = n;
+    ptr->clSize = n - 1;
     return get_bstr16_from_blob16((SEGPTR)MapLS((LPCVOID)ptr));
 }
 
