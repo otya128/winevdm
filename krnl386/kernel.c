@@ -471,6 +471,17 @@ void WINAPI OutputDebugString16( LPCSTR str )
     OutputDebugStringA( str );
 }
 
+static BOOL config_IAmNotNT()
+{
+    BOOL init = FALSE;
+    BOOL IAmNotNT = FALSE;
+    if (init)
+        return IAmNotNT;
+    IAmNotNT = krnl386_get_config_int("otvdm", "IAmNotNT", FALSE);
+    init = TRUE;
+    return IAmNotNT;
+}
+
 /***********************************************************************
  *          GetWinFlags   (KERNEL.132)
  */
@@ -488,7 +499,7 @@ DWORD WINAPI GetWinFlags16(void)
     if (si.wProcessorLevel >= 4) result |= WF_HASCPUID;
     ovi.dwOSVersionInfoSize = sizeof(ovi);
     GetVersionExA(&ovi);
-    if (ovi.dwPlatformId == VER_PLATFORM_WIN32_NT)
+    if (!config_IAmNotNT() && ovi.dwPlatformId == VER_PLATFORM_WIN32_NT)
         result |= WF_WIN32WOW; /* undocumented WF_WINNT */
     return result;
 }
