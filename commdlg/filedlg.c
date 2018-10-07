@@ -327,12 +327,19 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         HGLOBAL16 handle = LoadResource16( lpofn->hInstance, res );
         DWORD size = SizeofResource16( lpofn->hInstance, res );
         void *ptr = LockResource16( handle );
+        DWORD size2;
 
-        if (ptr && (template = convert_dialog( ptr, size )))
+        if (0)
         {
-            ofn32.hInstance = (HINSTANCE)template;
-            ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
+            if (ptr && (template = convert_dialog(ptr, size)))
+            {
+                ofn32.hInstance = (HINSTANCE)template;
+                ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
+            }
         }
+        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr, &size2);
+        template = (LPDLGTEMPLATEA)ofn32.hInstance;
+        ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
         FreeResource16( handle );
     }
 
@@ -411,12 +418,19 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         HGLOBAL16 handle = LoadResource16( lpofn->hInstance, res );
         DWORD size = SizeofResource16( lpofn->hInstance, res );
         void *ptr = LockResource16( handle );
+        DWORD size2;
 
-        if (ptr && (template = convert_dialog( ptr, size )))
+        if (0)
         {
-            ofn32.hInstance = (HINSTANCE)template;
-            ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
+            if (ptr && (template = convert_dialog(ptr, size)))
+            {
+                ofn32.hInstance = (HINSTANCE)template;
+                ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
+            }
         }
+        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr, &size2);
+        template = (LPDLGTEMPLATEA)ofn32.hInstance;
+        ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
         FreeResource16( handle );
     }
 
