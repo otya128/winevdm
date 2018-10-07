@@ -423,9 +423,14 @@ BSTR16 WINAPI SysAllocStringLen16(const char *oleStr, int len)
     * buffer to nul if it is the case.
     */
     if (oleStr != 0)
-        memcpy(BSTR_GetAddr(out),oleStr, len + 1);
+    {
+        memcpy(BSTR_GetAddr(out), oleStr, len);
+        ((char*)BSTR_GetAddr(out))[len] = '\0';
+    }
     else
+    {
         memset(BSTR_GetAddr(out), 0, len+1);
+    }
 
     return out;
 }
