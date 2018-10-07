@@ -40,6 +40,20 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
+/* same as win32 */
+#define NORM_IGNORECASE16           0x00000001
+#define NORM_IGNORENONSPACE16       0x00000002
+#define NORM_IGNORESYMBOLS16        0x00000004
+/* different from win32 */
+#define NORM_IGNOREWIDTH16          0x00000008
+#define NORM_IGNOREKANATYPE16       0x00000040
+
+/* deleted? */
+#define NORM_IGNOREJAPANACCENT16    0x00000080
+#define NORM_IGNOREKASHIDA16        0x00040000
+
+#define NORM_ALL16 (NORM_IGNORECASE16 | NORM_IGNORENONSPACE16 | NORM_IGNORESYMBOLS16 | NORM_IGNOREWIDTH16 | NORM_IGNOREKANATYPE16 | NORM_IGNOREJAPANACCENT16 | NORM_IGNOREKASHIDA16)
+
 static LPVOID lpNLSInfo = NULL;
 
 /******************************************************************************
@@ -104,8 +118,33 @@ INT16 WINAPI LCMapString16(LCID lcid, DWORD mapflags, LPCSTR srcstr, INT16 srcle
 /***********************************************************************
  *           CompareStringA       (OLE2NLS.8)
  */
-INT16 WINAPI CompareString16(LCID lcid, DWORD flags, LPCSTR str1, INT16 len1, LPCSTR str2, INT16 len2)
+INT16 WINAPI CompareString16(LCID lcid, DWORD flags16, LPCSTR str1, INT16 len1, LPCSTR str2, INT16 len2)
 {
+    DWORD flags = 0;
+    if ((flags16 & ~NORM_ALL16) != 0)
+    {
+        return 0;
+    }
+    if (flags16 & NORM_IGNORECASE16)
+        flags |= NORM_IGNORECASE;
+    if (flags16 & NORM_IGNORENONSPACE16)
+        flags |= NORM_IGNORENONSPACE;
+    if (flags16 & NORM_IGNORESYMBOLS16)
+        flags |= NORM_IGNORESYMBOLS;
+    if (flags16 & NORM_IGNOREWIDTH16)
+        flags |= NORM_IGNOREWIDTH;
+    if (flags16 & NORM_IGNOREKANATYPE16)
+        flags |= NORM_IGNOREKANATYPE;
+    if (flags16 & NORM_IGNOREJAPANACCENT16)
+    {
+        FIXME("NORM_IGNOREJAPANACCENT\n");
+        flags |= 0;
+    }
+    if (flags16 & NORM_IGNOREKASHIDA16)
+    {
+        FIXME("NORM_IGNOREKASHIDA\n");
+        flags |= 0;
+    }
     return CompareStringA(lcid, flags, str1, len1, str2, len2);
 }
 
