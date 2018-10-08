@@ -712,7 +712,18 @@ extern "C"
 			DWORD d = 0;
 			auto success = SymGetLineFromAddr(process, (DWORD64)current_stack_frame[i], &d, &line);
 			SymFromAddr(process, (DWORD64)(current_stack_frame[i]), 0, symbol);
-			fprintf(stderr, "%i: %s+0x%llx - 0x%llx %s(%d)\n", current_stack_frame_size - i - 1, symbol->Name, (ULONG64)current_stack_frame[i] - symbol->Address, symbol->Address, line.FileName, line.LineNumber);
+            IMAGEHLP_MODULE mod_info = { 0 };
+            mod_info.SizeOfStruct = sizeof(mod_info);
+            const char *imgname = "";
+            if (SymGetModuleInfo(process, (ULONG_PTR)current_stack_frame[i], &mod_info))
+            {
+                imgname = strrchr(mod_info.ImageName, '\\');
+                if (!imgname)
+                    imgname = mod_info.ImageName;
+                else
+                    imgname = imgname + 1;
+            }
+            fprintf(stderr, "%i: %s!%s+0x%llx - 0x%llx %s(%d)\n", current_stack_frame_size - i - 1, imgname, symbol->Name, (ULONG64)current_stack_frame[i] - symbol->Address, symbol->Address, line.FileName, line.LineNumber);
 			if (!strcmp(symbol->Name, "KiUserExceptionDispatcher"))
 			{
 				fprintf(stderr, "=============================\n");
@@ -1813,7 +1824,9 @@ REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG16(BP), REG16(SI)
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buffer2, buffer, buf_pre);
         dump_stack_trace();
         fprintf(stderr, "========================\n");
+#if 0
         print_stack();
+#endif
         fprintf(stderr, "%s", buf);
         fflush(stderr);
 
