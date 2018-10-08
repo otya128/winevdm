@@ -308,7 +308,7 @@ HRESULT WINAPI SafeArrayCopy16(SAFEARRAY16 *sa, SAFEARRAY16 **ppsaout)
    represents BSTR as a 16:16 far pointer, and the strings
    as ISO-8859 */
 
-SEGPTR get_blob16_from_bstr16(BSTR16 bstr)
+SEGPTR get_blob16_from_bstr16(SEGPTR bstr)
 {
     return bstr - sizeof(BYTE_BLOB16) + sizeof(OLECHAR16);
 }
@@ -319,7 +319,7 @@ SEGPTR get_bstr16_from_blob16(SEGPTR blob)
 /******************************************************************************
  *		BSTR_AllocBytes	[Internal]
  */
-static BSTR16 BSTR_AllocBytes(int n)
+static SEGPTR BSTR_AllocBytes(int n)
 {
     BYTE_BLOB16 *ptr = (BYTE_BLOB16*)HeapAlloc( GetProcessHeap(), 0, n + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16));
     ptr->clSize = n - 1;
@@ -329,21 +329,21 @@ static BSTR16 BSTR_AllocBytes(int n)
 /******************************************************************************
  * BSTR_Free [INTERNAL]
  */
-static void BSTR_Free(BSTR16 in)
+static void BSTR_Free(SEGPTR in)
 {
     if (!in)
         return;
-   void *ptr = MapSL( (SEGPTR)get_blob16_from_bstr16(in) );
-   UnMapLS( (SEGPTR)get_blob16_from_bstr16(in) );
+   void *ptr = MapSL( get_blob16_from_bstr16(in) );
+   UnMapLS( get_blob16_from_bstr16(in) );
    HeapFree( GetProcessHeap(), 0, ptr );
 }
 
 /******************************************************************************
  * BSTR_GetAddr [INTERNAL]
  */
-static void* BSTR_GetAddr(BSTR16 in)
+static void* BSTR_GetAddr(SEGPTR in)
 {
-    return in ? MapSL((SEGPTR)in) : 0;
+    return in ? MapSL(in) : 0;
 }
 
 /******************************************************************************
@@ -358,15 +358,15 @@ static void* BSTR_GetAddr(BSTR16 in)
  *  Success: A BSTR16 allocated with SysAllocStringLen16().
  *  Failure: NULL, if oleStr is NULL.
  */
-BSTR16 WINAPI SysAllocString16(LPCOLESTR16 oleStr)
+SEGPTR WINAPI SysAllocString16(LPCOLESTR16 oleStr)
 {
-	BSTR16 out;
+	SEGPTR out;
 
 	if (!oleStr) return 0;
 
 	out = BSTR_AllocBytes(strlen(oleStr)+1);
 	if (!out) return 0;
-	strcpy(BSTR_GetAddr(out),oleStr);
+	strcpy((char*)BSTR_GetAddr(out),oleStr);
 	return out;
 }
 
@@ -386,9 +386,9 @@ BSTR16 WINAPI SysAllocString16(LPCOLESTR16 oleStr)
  * NOTES
  *  SysAllocStringStringLen16().
  */
-INT16 WINAPI SysReAllocString16(LPBSTR16 pbstr,LPCOLESTR16 oleStr)
+INT16 WINAPI SysReAllocString16(SEGPTR *pbstr,LPCOLESTR16 oleStr)
 {
-	BSTR16 new=SysAllocString16(oleStr);
+	SEGPTR new=SysAllocString16(oleStr);
 	BSTR_Free(*pbstr);
 	*pbstr=new;
 	return 1;
@@ -410,9 +410,9 @@ INT16 WINAPI SysReAllocString16(LPBSTR16 pbstr,LPCOLESTR16 oleStr)
  * NOTES
  *  See SysAllocStringByteLen16().
  */
-BSTR16 WINAPI SysAllocStringLen16(const char *oleStr, int len)
+SEGPTR WINAPI SysAllocStringLen16(const char *oleStr, int len)
 {
-    BSTR16 out=BSTR_AllocBytes(len+1);
+    SEGPTR out=BSTR_AllocBytes(len+1);
 
     if (!out)
         return 0;
@@ -453,10 +453,10 @@ BSTR16 WINAPI SysAllocStringLen16(const char *oleStr, int len)
  *  See SysAllocStringByteLen16().
  *  *pbstr may be changed by this function.
  */
-int WINAPI SysReAllocStringLen16(BSTR16 *old,const char *in,int len)
+int WINAPI SysReAllocStringLen16(SEGPTR *old,const char *in,int len)
 {
 	/* FIXME: Check input length */
-	BSTR16 new=SysAllocStringLen16(in,len);
+	SEGPTR new=SysAllocStringLen16(in,len);
 	TRACE("free %08x alloc %08x\n", *old, new);
 	if (!in)
 	{
@@ -478,7 +478,7 @@ int WINAPI SysReAllocStringLen16(BSTR16 *old,const char *in,int len)
  * RETURNS
  *  Nothing.
  */
-void WINAPI SysFreeString16(BSTR16 str)
+void WINAPI SysFreeString16(SEGPTR str)
 {
 	BSTR_Free(str);
 }
@@ -494,7 +494,7 @@ void WINAPI SysFreeString16(BSTR16 str)
  * RETURNS
  *  The allocated length of str, or 0 if str is NULL.
  */
-int WINAPI SysStringLen16(BSTR16 str)
+int WINAPI SysStringLen16(SEGPTR str)
 {
     if (!str)
         return 0;

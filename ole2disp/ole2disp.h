@@ -32,12 +32,12 @@ typedef LPCSTR LPCOLESTR16;
 typedef OLECHAR16 *BSTR16;
 typedef BSTR16 *LPBSTR16;
 
-BSTR16 WINAPI SysAllocString16(LPCOLESTR16);
-BSTR16 WINAPI SysAllocStringLen16(const char*, int);
-VOID   WINAPI SysFreeString16(BSTR16);
-INT16  WINAPI SysReAllocString16(LPBSTR16,LPCOLESTR16);
-int    WINAPI SysReAllocStringLen16(BSTR16*, const char*,  int);
-int    WINAPI SysStringLen16(BSTR16);
+SEGPTR WINAPI SysAllocString16(LPCOLESTR16);
+SEGPTR WINAPI SysAllocStringLen16(const char*, int);
+VOID   WINAPI SysFreeString16(SEGPTR);
+INT16  WINAPI SysReAllocString16(SEGPTR*,LPCOLESTR16);
+int    WINAPI SysReAllocStringLen16(SEGPTR*, const char*,  int);
+int    WINAPI SysStringLen16(SEGPTR);
 
 typedef struct tagVARIANT16 {
     VARTYPE vt;
