@@ -334,6 +334,8 @@ WNDPROC16 WINPROC_AllocProc16_2(WNDPROC func)
     WNDPROC ret;
 
     if (!func) return NULL;
+    if (func == DefWndProca)
+        func = DefWindowProcA;
 
     /* then check if we already have a winproc for that function */
     for (index = 0; index < winproc16_used; index++)
