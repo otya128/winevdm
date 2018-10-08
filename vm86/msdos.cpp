@@ -1810,16 +1810,14 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
         }
         char buf[2048];
         sprintf(buf,
-            "address=%p\naccess address=%p\n\
-%dbit\n\
-16bit context\n\
+"address=%p\naccess address=%p\n\
+VM context\n\
 EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X\n\
 ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X\n\
 ES:%04X,CS:%04X,SS:%04X,DS:%04X,FS:%04X,GS:%04X\n\
 IP:%04X, address:%08X\n\
 EFLAGS:%08X\
 %s\n%s\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
-m_VM ? 16 : 32,
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG16(BP), REG16(SI), REG16(DI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buffer2, buffer, buf_pre);
         dump_stack_trace();
