@@ -1459,8 +1459,8 @@ DWORD NE_StartTask(void)
         if (!(sp = OFFSETOF(pModule->ne_sssp)))
             sp = pSegTable[SELECTOROF(pModule->ne_sssp)-1].minsize + pModule->ne_stack;
         sp &= ~1;
-        sp -= sizeof(STACK16FRAME);
-		setWOW32Reserved((void *)MAKESEGPTR(GlobalHandleToSel16(hInstance), sp));
+        sp += 4;
+        setWOW32Reserved((void *)MAKESEGPTR(GlobalHandleToSel16(hInstance), sp));
 
         /* Registers at initialization must be:
          * ax   zero
