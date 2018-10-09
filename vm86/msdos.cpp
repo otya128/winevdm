@@ -1869,45 +1869,50 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflag
 #endif
         fprintf(stderr, "%s", buf);
         fflush(stderr);
+#if defined(STACK_DUMP)
+        __try
+        {
+            int i = 0;
+            for (int y = 0; y < 16; y++)
+            {
+                fprintf(stderr, "+%02x", i);
+                for (int x = 0; x < 16; x++)
+                {
+                    fprintf(stderr, " %02x", *(LPBYTE)(SREG_BASE(SS) + REG32(ESP) + i));
+                    i++;
+                }
+                fprintf(stderr, "\n");
+            }
+            i = 0;
+            for (int y = 0; y < 16; y++)
+            {
+                fprintf(stderr, "-%02x", i);
+                for (int x = 0; x < 16; x++)
+                {
+                    fprintf(stderr, " %02x", *(LPBYTE)(SREG_BASE(SS) + REG32(ESP) - i));
+                    i++;
+                }
+                fprintf(stderr, "\n");
+            }
+            fflush(stderr);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
 
-        DWORD threadId;
-        //same thread:
-        //MessageBox->WndProc->exception->MessageBox->WndProc->...
-        const char *a[2];
-        a[0] = buf;
-        a[1] = buf_pre;
-        auto lam = [](void *lpThreadParameter)
+        }
+#endif
+        DWORD exitcode = thread_messagebox(NULL, buf, buf_pre, MB_CANCELTRYCONTINUE | MB_ICONERROR);
+        if (exitcode == IDCANCEL)
         {
-            DWORD result = 0;
-            __try
-            {
-                result = (DWORD)MessageBoxA(NULL, ((const char**)lpThreadParameter)[0], ((const char**)lpThreadParameter)[1], MB_CANCELTRYCONTINUE | MB_ICONERROR);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-            }
-            return result;
-        };
-        LPTHREAD_START_ROUTINE routine = lam;
-        HANDLE hThread = CreateThread(NULL, 0, routine, a, 0, &threadId);
-        WaitForSingleObject(hThread, INFINITE);
-        DWORD exitcode;
-        BOOL success = GetExitCodeThread(hThread, &exitcode);
-        CloseHandle(hThread);
-        if (success)
+            ExitThread(rec->ExceptionCode);
+        }
+        if (exitcode == IDRETRY)
         {
-            if (exitcode == IDCANCEL)
-            {
-                ExitThread(rec->ExceptionCode);
-            }
-            if (exitcode == IDRETRY)
-            {
-                return EXCEPTION_CONTINUE_EXECUTION;
-            }
-            if (exitcode == IDCONTINUE)
-            {
-                return EXCEPTION_EXECUTE_HANDLER;
-            }
+            return EXCEPTION_CONTINUE_EXECUTION;
+        }
+        if (exitcode == IDCONTINUE)
+        {
+            return EXCEPTION_EXECUTE_HANDLER;
         }
 
         return EXCEPTION_EXECUTE_HANDLER;
