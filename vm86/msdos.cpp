@@ -862,8 +862,11 @@ extern "C"
     get_native_wndproc_segment_t get_native_wndproc_segment;
     call_native_wndproc_context_t call_native_wndproc_context;
     WORD native_wndproc_segment;
+    LPCWSTR(WINAPI*MB_GetString)(int);
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
+        HMODULE user32 = GetModuleHandleW(L"user32.dll");
+        MB_GetString = (LPCWSTR(WINAPI*)(int))GetProcAddress(user32, "MB_GetString");
         HMODULE user = LoadLibraryW(L"user.exe16");
         if (user)
         {
@@ -1722,13 +1725,52 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
 
         free(symbol);
     }
+    static DWORD thread_messagebox(HWND hWnd, LPCSTR text, LPCSTR caption, DWORD flags)
+    {
+        DWORD threadId;
+        //same thread:
+        //MessageBox->WndProc->exception->MessageBox->WndProc->...
+        const char *a[4];
+        a[0] = (const char*)hWnd;
+        a[1] = text;
+        a[2] = caption;
+        a[3] = (const char*)flags;
+        auto lam = [](void *lpThreadParameter)
+        {
+            DWORD result = 0;
+            __try
+            {
+                result = (DWORD)MessageBoxA((HWND)((const char**)lpThreadParameter)[0], ((const char**)lpThreadParameter)[1], ((const char**)lpThreadParameter)[2], (DWORD)((const char**)lpThreadParameter)[3]);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+            }
+            return result;
+        };
+        LPTHREAD_START_ROUTINE routine = lam;
+        HANDLE hThread = CreateThread(NULL, 0, routine, a, 0, &threadId);
+        WaitForSingleObject(hThread, INFINITE);
+        DWORD exitcode;
+        BOOL success = GetExitCodeThread(hThread, &exitcode);
+        CloseHandle(hThread);
+        return exitcode;
+    }
     LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE winehandler)
     {
         PEXCEPTION_RECORD rec = ep->ExceptionRecord;
         if (rec->ExceptionCode == 0x80000100/*EXCEPTION_WINE_STUB*/)
         {
+            char buffer[1024];
             fprintf(stderr, "stub function %s %s\n", rec->ExceptionInformation[0], rec->ExceptionInformation[1]);
-            return EXCEPTION_CONTINUE_SEARCH;
+            LPCWSTR retry = MB_GetString(3);
+            LPCWSTR cancel = MB_GetString(1);
+            wsprintfA(buffer, "stub function %s %s\nPress %S to continue execution.\nPress %S to terminate this task.", rec->ExceptionInformation[0], rec->ExceptionInformation[1], retry, cancel);
+            DWORD result = thread_messagebox(NULL, buffer, "fatal error", MB_ICONERROR | MB_RETRYCANCEL);
+            if (result == IDCANCEL)
+            {
+                ExitThread(rec->ExceptionCode);
+            }
+            return EXCEPTION_EXECUTE_HANDLER;
         }
         if (rec->ExceptionCode != EXCEPTION_PROTECTED_MODE && rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
             return EXCEPTION_CONTINUE_SEARCH;
