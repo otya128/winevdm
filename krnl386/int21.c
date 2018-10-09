@@ -3872,8 +3872,9 @@ static unsigned INT21_FindHelper(LPCWSTR fullPath, unsigned drive, unsigned coun
                                  WIN32_FIND_DATAW* entry)
 {
     unsigned ncalls;
+    const int attr_win32 = (-1 & ~(FA_NORMAL | FA_RDONLY | FA_HIDDEN | FA_SYSTEM | FA_LABEL | FA_DIRECTORY | FA_ARCHIVE | FA_UNUSED));
 
-    if ((search_attr & ~(FA_UNUSED | FA_ARCHIVE | FA_RDONLY)) == FA_LABEL)
+    if ((search_attr & ~(FA_UNUSED | FA_ARCHIVE | FA_RDONLY | attr_win32)) == FA_LABEL)
     {
         WCHAR path[] = {' ',':','\\',0};
 
@@ -3918,10 +3919,11 @@ static unsigned INT21_FindHelper(LPCWSTR fullPath, unsigned drive, unsigned coun
     {
         count++;
         /* Check the file attributes, and path */
-        if (!(entry->dwFileAttributes & ~search_attr) &&
+        if (!(entry->dwFileAttributes & ~attr_win32 & ~search_attr) &&
             match_short(entry->cAlternateFileName[0] ? entry->cAlternateFileName : entry->cFileName,
                         mask))
         {
+            entry->dwFileAttributes &= ~attr_win32;
             return count;
         }
         if (!FindNextFileW(INT21_FindHandle, entry))
