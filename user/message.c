@@ -2497,6 +2497,8 @@ static LRESULT defwindow_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
         {
             SendMessage16(HWND_16(hwnd), WM_VSCROLL, d.down ? SB_LINEDOWN : SB_LINEUP, MAKELONG(0, (WORD)HWND_16(d.hwnd)));
             SendMessage16(HWND_16(hwnd), WM_VSCROLL, SB_ENDSCROLL, MAKELONG(0, (WORD)HWND_16(d.hwnd)));
+            _EnterWin16Lock();
+            return 0;
         }
     }
     *result = DefWindowProcA(hwnd, msg, wp, lp);
