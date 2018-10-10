@@ -2309,6 +2309,17 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
 
 		if (!(winproc = (WNDPROC16)GetWndProc16(hwnd16)))
 		{
+            DLGPROC16 dlgproc;
+            /* workaround for PBRUSH.EXE */
+            if (msg == WM_COMMAND)
+            {
+                dlgproc = (DLGPROC16)GetDlgProc16(hwnd16);
+                if (dlgproc)
+                {
+                    CallWindowProc16(dlgproc, hwnd16, msg, wparam, lparam);
+                    return GetWindowLong16(hwnd16, DWL_MSGRESULT);
+                }
+            }
 			WINPROC_CallProc16To32A(send_message_callback, hwnd16, msg, wparam, lparam, &result, NULL);
 			return result;
 			//return call_native_wndproc(hwnd16, msg, wparam, lparam);
