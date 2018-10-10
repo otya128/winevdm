@@ -1097,13 +1097,6 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 		HeapFree(GetProcessHeap(), 0, tabs);
 		return ret;
 	}
-    case WM_MOUSEWHEEL:
-    {
-        InvalidateRect(hwnd, NULL, TRUE);
-        PostMessageA(hwnd, WM_PAINT, 0, 0);
-        *f = FALSE;
-        return 0;
-    }
 	default:
 		*f = FALSE;
 		return 0;
