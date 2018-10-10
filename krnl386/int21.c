@@ -3955,11 +3955,15 @@ static BOOL INT21_FindNext( CONTEXT *context )
         dta->fileattr = entry.dwFileAttributes;
         dta->filesize = entry.nFileSizeLow;
         FileTimeToDosDateTime( &entry.ftLastWriteTime, &dta->filedate, &dta->filetime );
+        memset(dta->filename, 0, 13);
         if (entry.cAlternateFileName[0])
             WideCharToMultiByte(CP_OEMCP, 0, entry.cAlternateFileName, -1,
                                 dta->filename, 13, NULL, NULL);
         else
             WideCharToMultiByte(CP_OEMCP, 0, entry.cFileName, -1, dta->filename, 13, NULL, NULL);
+        /* shoud be UPPER CASE */
+        for (int i = 0; i < 13; i++)
+            dta->filename[i] = toupper(dta->filename[i]);
 
         if (!memchr(dta->mask,'?',11))
         {
