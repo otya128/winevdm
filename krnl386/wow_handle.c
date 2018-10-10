@@ -149,9 +149,15 @@ HANDLE get_handle32(WORD h, HANDLE_STORAGE *hs)
 {
 	if (is_reserved_handle16(h))
 	{
+        hs->handles[h].handle32 = h;
 		return (UINT16)h;
 	}
-	return hs->handles[h].handle32 ? hs->handles[h].handle32 : h;
+    if (hs->handles[h].handle32)
+    {
+        return hs->handles[h].handle32;
+    }
+    hs->handles[h].handle32 = h;
+    return (HANDLE)h;
 }
 //handle16 -> wow64 handle32
 HANDLE WINAPI K32WOWHandle32HWND(WORD handle)
