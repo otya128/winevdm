@@ -484,6 +484,14 @@ int relay_call_from_16( void *entry_point, unsigned char *args16, CONTEXT *conte
 
     frame = CURRENT_STACK16;
     call = get_entry_point( frame, module, func, &ordinal );
+    if (!call)
+    {
+        if (frame->relay != relay_call_from_16)
+        {
+            /* workaround for snoop */
+            return ((int(WINAPI/*stdcall?*/*)(void *entry_point, unsigned char *args16, CONTEXT *context))(frame->relay))(entry_point, args16, context);
+        }
+    }
     if (!TRACE_ON(relay) || !RELAY_ShowDebugmsgRelay( module, ordinal, func ))
         return relay_call_from_16_no_debug( entry_point, args16, context, call );
 

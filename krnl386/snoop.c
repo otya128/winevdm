@@ -106,6 +106,10 @@ SNOOP16_RegisterDLL(HMODULE16 hModule,LPCSTR name) {
 
         TRACE("hmod=%x, name=%s\n", hModule, name);
 
+    if (strstr(name, "WEBLNK16.API"))
+    {
+        return;
+    }
 	if (!snr) {
 		xsnr=GLOBAL_Alloc(GMEM_ZEROINIT,2*sizeof(*snr),0,WINE_LDT_FLAGS_CODE|WINE_LDT_FLAGS_32BIT);
 		snr = GlobalLock16(xsnr);
@@ -283,6 +287,7 @@ static void WINAPI SNOOP16_Entry(FARPROC proc, LPBYTE args, CONTEXT *context) {
 	ret->dll	= dll;
 	ret->args	= NULL;
 	ret->ordinal	= ordinal;
+    context->Esp += 4;;
 	ret->origSP	= LOWORD(context->Esp);
 
 	context->Eip= LOWORD(fun->origfun);
@@ -313,6 +318,7 @@ static void WINAPI SNOOP16_Return(FARPROC proc, LPBYTE args, CONTEXT *context) {
 	 * will be the difference between orig and current SP
 	 * If pascal -> everything ok.
 	 */
+    context->Esp += 4;
 	if (ret->dll->funs[ret->ordinal].nrofargs<0) {
 		ret->dll->funs[ret->ordinal].nrofargs=(LOWORD(context->Esp)-ret->origSP-4)/2;
 	}
