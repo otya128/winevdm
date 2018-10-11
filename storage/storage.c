@@ -1995,16 +1995,32 @@ static void _create_istorage16(LPSTORAGE16 *stg) {
 HRESULT WINAPI StgCreateDocFile16(
 	LPCOLESTR16 pwcsName,DWORD grfMode,DWORD reserved,IStorage16 **ppstgOpen
 ) {
-	HANDLE		hf;
+	HANDLE		hf = INVALID_HANDLE_VALUE;
 	int		i,ret;
 	IStorage16Impl*	lpstg;
 	struct storage_pps_entry	stde;
+    char temp_file[MAX_PATH];
 
 	TRACE("(%s,0x%08x,0x%08x,%p)\n",
 		pwcsName,grfMode,reserved,ppstgOpen
 	);
 	_create_istorage16(ppstgOpen);
-	hf = CreateFileA(pwcsName,GENERIC_READ|GENERIC_WRITE,0,NULL,CREATE_NEW,0,0);
+	if (pwcsName == NULL)
+	{
+		char temp_path[MAX_PATH];
+		if (GetTempPathA(MAX_PATH, temp_path))
+		{
+			if (GetTempFileNameA(temp_path, "", 0, temp_file))
+			{
+				pwcsName = temp_file;
+		        hf = CreateFileA(pwcsName,GENERIC_READ|GENERIC_WRITE,0,NULL,OPEN_EXISTING,0,0);
+			}
+		}
+	}
+	else
+	{
+		hf = CreateFileA(pwcsName,GENERIC_READ|GENERIC_WRITE,0,NULL,CREATE_ALWAYS,0,0);
+	}
 	if (hf==INVALID_HANDLE_VALUE) {
 		WARN("couldn't open file for storage:%d\n",GetLastError());
 		return E_FAIL;
