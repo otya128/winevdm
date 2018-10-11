@@ -1267,8 +1267,18 @@ INT16 WINAPI Escape16( HDC16 hdc, INT16 escape, INT16 in_count, SEGPTR in_data, 
         FIXME("unknown/unsupported 16-bit escape %x (%d,%p,%p)\n",
               escape, in_count, MapSL(in_data), out_data );
         return Escape( HDC_32(hdc), escape, in_count, MapSL(in_data), out_data );
-    case 0xA1D://unknown(external font size??)
-        return GetTextMetrics16(hdc, out_data);
+    case 0xA1D:
+    {
+        /* get EUDC font size */
+        TEXTMETRICW tm;
+        SIZE16 *size = (SIZE16*)out_data;
+        if (GetTextMetricsW(HDC_32(hdc), &tm))
+        {
+            size->cx = size->cy = tm.tmHeight;
+            return TRUE;
+        }
+        return FALSE;
+    }
     }
 }
 
