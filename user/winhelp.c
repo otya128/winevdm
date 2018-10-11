@@ -90,7 +90,11 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, B
 
     hDest = FindWindowA("MS_WINHELP", NULL);
     if (!hDest) {
-        if (uCommand == HELP_QUIT) return TRUE;
+        if (uCommand == HELP_QUIT)
+        {
+            *success_exec = TRUE;
+            return TRUE;
+        }
         if (WinExec16("winhelp.exe -x", SW_SHOWNORMAL) < 32) {
             ERR("can't start winhelp.exe -x ?\n");
             return FALSE;
@@ -197,7 +201,11 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
     *success_exec = FALSE;
     if (!hDest)
     {
-        if (wCommand == HELP_QUIT) return TRUE;
+        if (wCommand == HELP_QUIT)
+        {
+            *success_exec = TRUE;
+            return TRUE;
+        }
         if (WinExec16("winhlp32.exe -x", SW_SHOWNORMAL) < 32)
         {
             ERR("can't start winhlp32.exe -x ?\n");
