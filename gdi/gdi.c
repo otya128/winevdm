@@ -2349,8 +2349,14 @@ DWORD WINAPI SetBrushOrg16( HDC16 hdc, INT16 x, INT16 y )
  */
 DWORD WINAPI GetBrushOrg16( HDC16 hdc )
 {
+    POINT dcpt;
     POINT pt;
-    if (!GetBrushOrgEx( HDC_32(hdc), &pt )) return 0;
+    if (GetDCOrgEx(HDC_32(hdc), &dcpt))
+    {
+        if (!GetBrushOrgEx(HDC_32(hdc), &pt)) return 0;
+        pt.x += dcpt.x;
+        pt.y += dcpt.y;
+    }
     return MAKELONG( pt.x, pt.y );
 }
 
