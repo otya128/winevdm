@@ -158,7 +158,7 @@
 1218   pascal  mmioFlush(word word) mmioFlush16
 1219   pascal  mmioAdvance(word ptr word) mmioAdvance16
 1220   pascal  mmioStringToFOURCC(str word) mmioStringToFOURCC16
-1221   pascal  mmioInstallIOProc(long ptr long) mmioInstallIOProc16
+1221   pascal  mmioInstallIOProc(long segptr long) mmioInstallIOProc16
 1222   pascal  mmioSendMessage(word word long long) mmioSendMessage16
 1223   pascal  mmioDescend(word ptr ptr word) mmioDescend16
 1224   pascal  mmioAscend(word ptr word) mmioAscend16
