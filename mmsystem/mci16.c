@@ -696,6 +696,7 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
     DWORD		dwRet;
     BOOL                to32;
     DWORD_PTR           dwParam2 = p2;
+    DWORD count;
 
     TRACE("(%04X, %s, %08X, %08lX)\n", wDevID, MCI_MessageToString(wMsg), dwParam1, dwParam2);
 
@@ -729,7 +730,9 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
             break;
         case MMSYSTEM_MAP_OK:
         case MMSYSTEM_MAP_OKMEM:
+            ReleaseThunkLock(&count);
             dwRet = mciSendCommandW(wDevID, wMsg, dwParam1, dwParam2);
+            RestoreThunkLock(count);
             if (res == MMSYSTEM_MAP_OKMEM)
                 MCI_UnMapMsg16To32W(wMsg, dwParam1, dwParam2, dwRet);
             break;
