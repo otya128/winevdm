@@ -144,7 +144,7 @@ static LRESULT	MMIO_UnMap32To16(DWORD wMsg, LPARAM lParam1, LPARAM lParam2,
  *
  *
  */
-static LRESULT MMIO_Callback3216(SEGPTR cb16, LPMMIOINFO lpmmioinfo, UINT uMessage,
+static LRESULT CALLBACK MMIO_Callback3216(SEGPTR cb16, LPMMIOINFO lpmmioinfo, UINT uMessage,
                                  LPARAM lParam1, LPARAM lParam2)
 {
     DWORD 		result;
