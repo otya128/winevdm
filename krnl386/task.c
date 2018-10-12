@@ -35,6 +35,7 @@
 #include "winnt.h"
 #include "wownt32.h"
 #include "winuser.h"
+#include "ntstatus.h"
 
 #include "wine/winbase16.h"
 #include "winternl.h"
@@ -1616,6 +1617,31 @@ HMODULE16 WINAPI GetExePtr( HANDLE16 handle )
 
 typedef INT (WINAPI *MessageBoxA_funcptr)(HWND hWnd, LPCSTR text, LPCSTR title, UINT type);
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtRaiseHardError(
+    _In_ NTSTATUS ErrorStatus,
+    _In_ ULONG NumberOfParameters,
+    _In_ ULONG UnicodeStringParameterMask,
+    _In_ PULONG_PTR Parameters,
+    _In_ ULONG ValidResponseOptions,
+    _Out_ PULONG Response
+);
+#define HARDERROR_OVERRIDE_ERRORMODE        0x10000000
+
+typedef enum _HARDERROR_RESPONSE_OPTION
+{
+    OptionAbortRetryIgnore,
+    OptionOk,
+    OptionOkCancel,
+    OptionRetryCancel,
+    OptionYesNo,
+    OptionYesNoCancel,
+    OptionShutdownSystem,
+    OptionOkNoWait,
+    OptionCancelTryContinue
+} HARDERROR_RESPONSE_OPTION, *PHARDERROR_RESPONSE_OPTION;
 /**************************************************************************
  *           FatalAppExit   (KERNEL.137)
  */
@@ -1625,14 +1651,26 @@ void WINAPI FatalAppExit16( UINT16 action, LPCSTR str )
 
     if (!pTask || !(pTask->error_mode & SEM_NOGPFAULTERRORBOX))
     {
-        HMODULE mod = GetModuleHandleA( "user32.dll" );
-        if (mod)
+        UNICODE_STRING uni;
+        ANSI_STRING ansi;
+        ULONG response;
+        PUNICODE_STRING puni;
+        RtlInitAnsiString(&ansi, str);
+        RtlAnsiStringToUnicodeString(&uni, &ansi, TRUE);
+        puni = &uni;
+        NTSTATUS status = NtRaiseHardError(STATUS_FATAL_APP_EXIT | HARDERROR_OVERRIDE_ERRORMODE, 1, 1, (PULONG_PTR)&puni /* pointer to pointer to UNICODE_STRING */, OptionOk, &response);
+        RtlFreeUnicodeString(&uni);
+        if (status == STATUS_NOT_IMPLEMENTED)
         {
-            MessageBoxA_funcptr pMessageBoxA = (MessageBoxA_funcptr)GetProcAddress( mod, "MessageBoxA" );
-            if (pMessageBoxA)
+            HMODULE mod = GetModuleHandleA( "user32.dll" );
+            if (mod)
             {
-                pMessageBoxA( 0, str, NULL, MB_SYSTEMMODAL | MB_OK );
-                goto done;
+                MessageBoxA_funcptr pMessageBoxA = (MessageBoxA_funcptr)GetProcAddress( mod, "MessageBoxA" );
+                if (pMessageBoxA)
+                {
+                    pMessageBoxA( 0, str, NULL, MB_SYSTEMMODAL | MB_OK );
+                    goto done;
+                }
             }
         }
         ERR( "%s\n", debugstr_a(str) );
