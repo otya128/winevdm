@@ -71,6 +71,7 @@ typedef struct {
     CHAR   rgchMember[2];
 } HELPWININFO16, *PHELPWININFO16, *LPHELPWININFO16;
 //16bit WINHELP.EXE
+HWND16 WINAPI FindWindow16(LPCSTR className, LPCSTR title);
 BOOL
 WINAPI
 wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, BOOL *success_exec)
@@ -88,7 +89,7 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, B
             return FALSE;
     }
 
-    hDest = FindWindowA("MS_WINHELP", NULL);
+    hDest = HWND_32(FindWindow16("MS_WINHELP", NULL));
     if (!hDest) {
         if (uCommand == HELP_QUIT)
         {
@@ -102,7 +103,7 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, B
         //sleep 100ms~2000ms...
         for (int i = 0; i < 20; i++)
         {
-            hDest = FindWindowA("MS_WINHELP", NULL);
+            hDest = HWND_32(FindWindow16("MS_WINHELP", NULL));
             if (hDest)
                 break;
             Sleep(100);
