@@ -305,3 +305,30 @@ done:
     GlobalFree(hglobal32);
     return ret;
 }
+BOOL WINAPI WINNLSSetIMEHandle16(SEGPTR a1, HWND16 a2)
+{
+    LPCSTR str = MapSL(a1); /* MSIME */
+    HWND hwnd = HWND_32(a2);/* window class: MSIME window caption: MSIMEServer */
+    FIXME("(%s,%p)\n", debugstr_a(str), hwnd);
+    return TRUE;
+}
+
+BOOL WINAPI WINNLSSetIMEHotkey16(HWND16 a1, WORD a2)
+{
+    HWND hwnd = HWND_32(a1);
+    FIXME("(%p,%02x)\n", hwnd, a2);
+    return TRUE;
+}
+
+BOOL WINAPI WINNLSSetIMEStatus16(HWND16 a1, WORD a2)
+{
+    HWND hwnd = HWND_32(a1);
+    FIXME("(%p,%02x)\n", hwnd, a2);
+    return TRUE;
+}
+
+BOOL WINAPI WINNLSSetKeyState16(WORD a1)
+{
+    FIXME("(%02x)\n", a1);
+    return TRUE;
+}

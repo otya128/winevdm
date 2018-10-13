@@ -7,14 +7,14 @@
 7   pascal SendIMEMessageEx(word long) SendIMEMessageEx16
 9   stub SENDIMEMESSAGEINTERNAL
 10  stub WINNLSSETKEYBOARDHOOK
-11  stub WINNLSSETIMEHANDLE
-12  stub WINNLSSETIMESTATUS
-14  stub WINNLSSETIMEHOTKEY
+11  pascal -ret16 WINNLSSetIMEHandle(segptr word) WINNLSSetIMEHandle16
+12  pascal -ret16 WINNLSSetIMEStatus(word word) WINNLSSetIMEStatus16
+14  pascal -ret16 WINNLSSetIMEHotkey(word word) WINNLSSetIMEHotkey16
 15  stub WINNLSGETIMEHOTKEY
 16  pascal -ret16 WINNLSEnableIME(word word) WINNLSEnableIME16
 17  stub WINNLSGETKEYSTATE
 18  pascal -ret16 WINNLSGetEnableStatus(word) WINNLSGetEnableStatus16
-19  stub WINNLSSETKEYSTATE
+19  pascal -ret16 WINNLSSetKeyState(word) WINNLSSetKeyState16
 20  stub IMPADDIME
 21  stub IMPDELETEIME
 22  pascal -ret16 IMPQueryIME(ptr) IMPQueryIME16
