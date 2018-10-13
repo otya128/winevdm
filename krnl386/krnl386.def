@@ -189,6 +189,8 @@ EXPORTS
 
   krnl386_get_config_string
   krnl386_get_config_int
+  krnl386_get_compat_mode
+  krnl386_set_compat_path
 
   GetModuleFileName16
   _EnterWin16Lock

@@ -1158,6 +1158,8 @@ int main( int argc, char *argv[] )
     LoadLibraryW( L"ctl3dv2.dll16" );
     LoadLibraryW( L"ctl3d.dll16" );
 
+    krnl386_set_compat_path(appname);
+
     if (krnl386_get_config_int("otvdm", "EnableVisualStyle", FALSE))
     {
         ACTCTXA actctx = { 0 };
