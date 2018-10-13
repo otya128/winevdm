@@ -43,6 +43,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(file);
 
 #include <shlwapi.h>
 #include <imagehlp.h>
+#include <aclapi.h>
 #pragma comment(lib, "imagehlp.lib")
 #pragma comment(lib, "shlwapi.lib")
 #ifdef ENABLEREDIRECTSYSTEMDIR
@@ -52,35 +53,86 @@ BOOL EnableRedirectSystemDir = FALSE;
 #endif
 const char *GetRedirectWindowsDir();
 void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output);
+BOOL can_write_directory(LPCSTR path)
+{
+    HANDLE hToken = INVALID_HANDLE_VALUE, hTokenImpersonation = INVALID_HANDLE_VALUE;
+    PSECURITY_DESCRIPTOR pSecurityDescriptor = { 0 };
+    GENERIC_MAPPING genericMapping = { 0 };
+    PRIVILEGE_SET privilegeSet = { 0 };
+    BOOL bAccessStatus = FALSE;
+    DWORD dwDesiredAccess = FILE_GENERIC_WRITE;
+    DWORD dwSize = sizeof(PRIVILEGE_SET);
+    DWORD dwGrantedAccess = 0;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_READ | TOKEN_QUERY | TOKEN_DUPLICATE, &hToken))
+        goto fail;
+    if (!DuplicateTokenEx(hToken, GENERIC_ALL, NULL, SecurityImpersonation, TokenImpersonation, &hTokenImpersonation))
+        goto fail;
+    GetNamedSecurityInfoA(path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, NULL, NULL, NULL, NULL, &pSecurityDescriptor);
+    genericMapping.GenericRead = FILE_GENERIC_READ;
+    genericMapping.GenericWrite = FILE_GENERIC_WRITE;
+    genericMapping.GenericExecute = FILE_GENERIC_EXECUTE;
+    genericMapping.GenericAll = FILE_ALL_ACCESS;
+    privilegeSet.PrivilegeCount = 0;
+    MapGenericMask(&dwDesiredAccess, &genericMapping);
+    if (!AccessCheck(pSecurityDescriptor, hTokenImpersonation, dwDesiredAccess, &genericMapping, &privilegeSet, &dwSize, &dwGrantedAccess, &bAccessStatus))
+        goto fail;
+fail:
+    CloseHandle(hToken);
+    CloseHandle(hTokenImpersonation);
+    return bAccessStatus;
+}
 __declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL is_dir)
 {
+    LPCSTR path_old = path;
+    enum WRITABLE_CACHE
+    {
+        NOTCACHED,
+        WRITABLE,
+        NONWRITABLE,
+    };
+    static enum WRITABLE_CACHE writable_cache[26];
+    char drive = path[0];
+    char root[4] = { drive, ':', '\\', 0 };
+    char drive_buf[5] = { '.', '.', '\\', drive, 0 };
     if (!(path[0] && path[1] == ':' && (path[2] == 0 || path[2] == '\\' || path[2] == '/')))
         return path;
-    char drive = path[0];
+    if (!((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')))
+        return path;
+    if (drive >= 'a' && drive <= 'z')
+    {
+        drive -= 'a' - 'A';
+    }
     path += 2;
     if (path[0])
         path += 1;
-    char drive_buf[2];
-    drive_buf[0] = drive;
-    drive_buf[1] = 0;
-    char dirbuf[MAX_PATH], *dir = dirbuf;
-    GetModuleFileNameA(GetModuleHandleA("otvdm.exe"), dir, MAX_PATH);
-    char *file = PathFindFileNameA(dir);
-    if (file != dir) *file = '\0';
-    char dir_short[MAX_PATH];
-    GetShortPathNameA(dirbuf, dir_short, max_len);
-    char dirbuf2[MAX_PATH];
-    PathCombineA(dirbuf2, dir_short, drive_buf);
-    if (*path)
+    if (strchr(path, '\\'))
+        return path_old;
+    if (strchr(path, '/'))
+        return path_old;
+    if (writable_cache[drive - 'A'] == NOTCACHED)
     {
-        PathCombineA(dirbuf2, to, path);
+        if (can_write_directory(root))
+        {
+            writable_cache[drive - 'A'] = WRITABLE;
+            return path_old;
+        }
+        else
+        {
+            writable_cache[drive - 'A'] = NONWRITABLE;
+        }
     }
     else
     {
-        strcpy(to, dirbuf2);
+        if (writable_cache[drive - 'A'] == WRITABLE)
+        {
+            return path_old;
+        }
     }
-    PathAddBackslashA(to);
-    MakeSureDirectoryPathExists(to);
+
+    PathCombineA(to, GetRedirectWindowsDir(), drive_buf);
+    CreateDirectoryA(to, NULL);
+    PathCombineA(to, to, path);
+    ERR("%s => %s\n", path_old, to);
     return to;
 }
 //SYSTEM DIR
