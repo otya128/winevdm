@@ -185,11 +185,12 @@ static DWORD WINAPI play(LPVOID param)
   int len = 0;
   const float mspersamp = 1000.0f / 48000.0f;
   for (int i = 0; i < nextnote; i++)
-    len += queue[i].duration;
+    len += (float)queue[i].duration / mspersamp;
   if (!len) return;
  
-  int buflen = ceilf((float)len / mspersamp);
+  int buflen = len;
   char *wavbuf = (char *)HeapAlloc(GetProcessHeap(), 0, buflen);
+  int k = 0;
 
   // sound.drv that came with Windows 2-3 only supported the pc speaker
   // make square waves to simulate it
@@ -200,9 +201,10 @@ static DWORD WINAPI play(LPVOID param)
     char samp = 0xff;
     for (int j = 0; j < notelen; j++)
     {
-      wavbuf[(i * notelen) + j] = samp;
+      wavbuf[k + j] = samp;
       if (!(j % hwavelen)) samp = ~samp;
     }
+    k += notelen;
   }
 
   WAVEHDR whdr = { wavbuf, buflen, 0, 0, 0, 0, NULL, NULL };
