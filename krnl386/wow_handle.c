@@ -103,6 +103,8 @@ WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
 	WORD fhandle = 0;
 	for (WORD i = HANDLE_RESERVED; i; i += hs->align)
 	{
+        if (i >= (WORD)(-HANDLE_RESERVED))
+            break;
 		if (!hs->handles[i].handle32 && !fhandle)
 		{
 			fhandle = i;
