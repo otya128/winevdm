@@ -169,6 +169,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	/* case MCI_MONITOR: */
     case MCI_PASTE:
     case MCI_PAUSE:
+    case MCI_PLAY:
     case MCI_REALIZE:
     case MCI_RECORD:
     case MCI_RESUME:
@@ -182,16 +183,12 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
     case MCI_STEP:
     case MCI_STOP:
 	/* case MCI_UNDO: */
-    case MCI_UPDATE:
-    	*lParam = (DWORD)MapSL(*lParam);
-        return MMSYSTEM_MAP_OK;
-    case MCI_PLAY:
         {
-            LPMCI_PLAY_PARMS mpp = MapSL(*lParam);
-            mpp->dwCallback = HWND_32(mpp->dwCallback);
-            *lParam = mpp;
+            LPMCI_GENERIC_PARMS mgp = MapSL(*lParam);
+            mgp->dwCallback = HWND_32(mgp->dwCallback);
+            *lParam = mgp;
         }
-        return MMSYSTEM_MAP_OK;
+        return MMSYSTEM_MAP_OKMEM;
     case MCI_WHERE:
     case MCI_FREEZE:
     case MCI_UNFREEZE:
@@ -413,10 +410,31 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWORD result)
 {
     switch (wMsg) {
+    case MCI_CLOSE:
+    case MCI_CLOSE_DRIVER:
+    case MCI_CONFIGURE:
+    case MCI_COPY:
+    case MCI_CUE:
+    case MCI_CUT:
+    case MCI_DELETE:
+    case MCI_GETDEVCAPS:
+    case MCI_LIST:
+    case MCI_PASTE:
+    case MCI_PAUSE:
     case MCI_PLAY:
+    case MCI_REALIZE:
+    case MCI_RECORD:
+    case MCI_RESUME:
+    case MCI_SEEK:
+    case MCI_SET:
+    case MCI_SETAUDIO:
+    case MCI_SETVIDEO:
+    case MCI_SPIN:
+    case MCI_STEP:
+    case MCI_STOP:
         if (lParam) {
-            LPMCI_PLAY_PARMS mpp = (LPMCI_PLAY_PARMS)lParam;
-            mpp->dwCallback = HWND_16(mpp->dwCallback);
+            LPMCI_GENERIC_PARMS mgp = (LPMCI_GENERIC_PARMS)lParam;
+            mgp->dwCallback = HWND_16(mgp->dwCallback);
         }
         break;
     case MCI_WHERE:
