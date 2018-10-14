@@ -645,7 +645,7 @@ extern "C"
 		context->SegDs = SREG(DS);
 		context->SegFs = SREG(FS);
 		context->SegGs = SREG(GS);
-        context->EFlags = m_eflags;// &~0x20000;
+        context->EFlags = get_flags();// &~0x20000;
 		dynamic_setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
 	}
 	void load_context(CONTEXT *context)
@@ -673,8 +673,8 @@ extern "C"
 		i386_load_segment_descriptor(DS);
 		i386_load_segment_descriptor(FS);
 		i386_load_segment_descriptor(GS);
-		m_eip = context->Eip;
 		i386_jmp_far(SREG(CS), context->Eip);
+        m_eip = context->Eip;
 		set_flags(context->EFlags);
 	}
 	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
