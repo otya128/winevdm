@@ -183,6 +183,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
     case MCI_STEP:
     case MCI_STOP:
 	/* case MCI_UNDO: */
+    case MCI_UPDATE:
         {
             LPMCI_GENERIC_PARMS mgp = MapSL(*lParam);
             mgp->dwCallback = HWND_32(mgp->dwCallback);
@@ -432,6 +433,7 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
     case MCI_SPIN:
     case MCI_STEP:
     case MCI_STOP:
+    case MCI_UPDATE:
         if (lParam) {
             LPMCI_GENERIC_PARMS mgp = (LPMCI_GENERIC_PARMS)lParam;
             mgp->dwCallback = HWND_16(mgp->dwCallback);
