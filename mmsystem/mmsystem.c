@@ -1259,7 +1259,7 @@ UINT16 WINAPI waveOutOpen16(HWAVEOUT16* lphWaveOut, UINT16 uDeviceID,
     {
         return MMSYSERR_NOMEM;
     }
-    if (dwFlags & CALLBACK_WINDOW)
+    if ((dwFlags & CALLBACK_TYPEMASK) == CALLBACK_WINDOW)
     {
         if (!IsWindow(HWND_32(dwCallback)))
         {
