@@ -863,6 +863,11 @@ extern "C"
     call_native_wndproc_context_t call_native_wndproc_context;
     WORD native_wndproc_segment;
     LPCWSTR(WINAPI*MB_GetString)(int);
+    HANDLE inject_event;
+    CRITICAL_SECTION inject_crit_section;
+    typedef VOID (WINAPI *GetpWin16Lock_t)(SYSLEVEL **lock);
+    GetpWin16Lock_t pGetpWin16Lock;
+    SYSLEVEL *win16_syslevel;
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
         HMODULE user32 = GetModuleHandleW(L"user32.dll");
@@ -878,6 +883,10 @@ extern "C"
             krnl386 = LoadLibraryA(KRNL386);
         DOSVM_inport = (DOSVM_inport_t)GetProcAddress(krnl386, "DOSVM_inport");
         DOSVM_outport = (DOSVM_outport_t)GetProcAddress(krnl386, "DOSVM_outport");
+        inject_event = CreateEventW(NULL, TRUE, FALSE, NULL);
+        InitializeCriticalSection(&inject_crit_section);
+        pGetpWin16Lock = (GetpWin16Lock_t)GetProcAddress(krnl386, "GetpWin16Lock");
+        pGetpWin16Lock(&win16_syslevel);
         //SetConsoleCtrlHandler(dump, TRUE);
 		AddVectoredExceptionHandler(TRUE, vm86_vectored_exception_handler);
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
@@ -1213,6 +1222,70 @@ extern "C"
         set_flags(flags);
         RaiseException(EXCEPTION_PROTECTED_MODE, 0, sizeof(arguments) / sizeof(ULONG_PTR), arguments);
     }
+    volatile struct
+    {
+        BOOL inject;
+        DWORD vpfn16;
+        DWORD dwFlags;
+        DWORD cbArgs;
+        LPVOID pArgs;
+        LPDWORD pdwRetCode;
+    } vm_inject_state;
+    BOOL WINAPI vm_inject(DWORD vpfn16, DWORD dwFlags,
+        DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode)
+    {
+        if (!win16_syslevel->crst.OwningThread)
+        {
+            /* FIXME: there are no threads running VM (e.g. call GetMessage) */
+        }
+        assert(dwFlags == WCB16_PASCAL);
+        EnterCriticalSection(&inject_crit_section);
+        {
+            if (vm_inject_state.inject)
+            {
+                /* FIXME: multiple interrupts */
+                return FALSE;
+            }
+            vm_inject_state.vpfn16 = vpfn16;
+            vm_inject_state.dwFlags = dwFlags;
+            vm_inject_state.cbArgs = cbArgs;
+            vm_inject_state.pArgs = pArgs;
+            vm_inject_state.pdwRetCode = pdwRetCode;
+            vm_inject_state.inject = TRUE;
+            ResetEvent(inject_event);
+        }
+        LeaveCriticalSection(&inject_crit_section);
+        WaitForSingleObject(inject_event, INFINITE);
+        return TRUE;
+    }
+    void vm_inject_call(SEGPTR ret_addr, PEXCEPTION_HANDLER handler,
+        void(*from16_reg)(void),
+        LONG(*__wine_call_from_16)(void),
+        int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
+        void(*__wine_call_to_16_ret)(void),
+        int dasm,
+        pm_interrupt_handler pih)
+    {
+        CONTEXT context;
+        DWORD ret;
+        save_context(&context);
+        EnterCriticalSection(&inject_crit_section);
+        {
+            char *stack = (char *)i386_translate(SS, context.Esp, 1) - vm_inject_state.cbArgs;
+            vm_inject_state.inject = FALSE;
+            memcpy(stack, vm_inject_state.pArgs, vm_inject_state.cbArgs);
+            /* push return address */
+            stack -= sizeof(SEGPTR);
+            *((SEGPTR *)stack) = ret_addr;
+            vm_inject_state.cbArgs += sizeof(SEGPTR);
+        }
+        LeaveCriticalSection(&inject_crit_section);
+        ret = wine_call_to_16_vm86(vm_inject_state.vpfn16, vm_inject_state.cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, FALSE, NULL, pih);
+        if (vm_inject_state.pdwRetCode)
+            *vm_inject_state.pdwRetCode = ret;
+        load_context(&context);
+        SetEvent(inject_event);
+    }
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE er);
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
@@ -1275,6 +1348,10 @@ extern "C"
             bool isVM86mode = false;
 			//dasm = true;
 			while (!m_halted) {
+                if (vm_inject_state.inject)
+                {
+                    vm_inject_call(ret_addr, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih);
+                }
 				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
 				{
 					break;//return VM

@@ -60,6 +60,7 @@
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(mmsys);
+WINE_DECLARE_DEBUG_CHANNEL(relay);
 
 
 static CRITICAL_SECTION_DEBUG mmdrv_critsect_debug =
@@ -143,12 +144,26 @@ struct timer_entry {
 
 static struct list timer_list = LIST_INIT(timer_list);
 
+typedef BOOL (WINAPI *vm_inject_t)(DWORD vpfn16, DWORD dwFlags,
+    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+vm_inject_t vm_inject;
 static void CALLBACK timeCB3216(UINT id, UINT uMsg, DWORD_PTR user, DWORD_PTR dw1, DWORD_PTR dw2)
 {
     struct timer_entry* te = (void*)user;
     WORD                args[8];
     DWORD               ret;
 
+    if (!vm_inject)
+    {
+        char dllname[MAX_PATH];
+        krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
+        HMODULE vm = LoadLibraryA(dllname);
+        vm_inject = (vm_inject_t)GetProcAddress(vm, "vm_inject");
+        if (!vm_inject)
+        {
+            vm_inject = WOWCallback16Ex;
+        }
+    }
     args[7] = LOWORD(id);
     args[6] = LOWORD(uMsg);
     args[5] = HIWORD(te->user);
@@ -157,7 +172,10 @@ static void CALLBACK timeCB3216(UINT id, UINT uMsg, DWORD_PTR user, DWORD_PTR dw
     args[2] = LOWORD(dw2);
     args[1] = HIWORD(dw2);
     args[0] = LOWORD(dw2);
-    WOWCallback16Ex((DWORD)te->func16, WCB16_PASCAL, sizeof(args), args, &ret);
+    /* interrupt */
+    TRACE_(relay)("interrupt: %04x:%04x,%04x,%04x,%p\n", SELECTOROF(te->func16), OFFSETOF(te->func16), id, uMsg, te->user, te->user, dw1, dw2);
+    vm_inject((DWORD)te->func16, WCB16_PASCAL, sizeof(args), args, &ret);
+    TRACE_(relay)("return interrupt: %04x:%04x,%04x,%04x,%p\n", SELECTOROF(te->func16), OFFSETOF(te->func16), id, uMsg, te->user, te->user, dw1, dw2);
 }
 
 /**************************************************************************
