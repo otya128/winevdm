@@ -1458,6 +1458,17 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
         window_surface_release( surface );
         return HDC_16( hdc );
     }
+#else
+    if (!lstrcmpiA(driver, "dib") || !lstrcmpiA(driver, "dirdib"))
+    {
+        FIXME("DIB.DRV\n");
+        void *pvBits;
+        HDC memdc = CreateCompatibleDC(NULL);
+        HBITMAP bitmap;
+        bitmap = CreateDIBSection(NULL, (const BITMAPINFO *)initData, DIB_RGB_COLORS, &pvBits, NULL, 0);
+        SelectObject(memdc, bitmap);
+        return HDC_16(memdc);
+    }
 #endif
     return HDC_16( CreateDCA( driver, device, output, initData ) );
 }
