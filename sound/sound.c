@@ -173,6 +173,10 @@ INT16 WINAPI SetVoiceNote16(INT16 nVoice, INT16 nValue, INT16 nLength,
   nValue = (nValue + pitch) % 84;
   int freq = notes[nValue % 12] >> (6 - (nValue / 12));
   int len = (nCdots ? ((nCdots * 3) / 2) : 1) * ((96000 / tempo) / nLength);
+  if (nCdots != 0 && len > 32767)
+  {
+      len = (96000 / tempo) / nLength;
+  }
   return SetVoiceSound16(nVoice, freq << 16, len);
 }
 
