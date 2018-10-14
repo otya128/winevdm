@@ -1403,7 +1403,26 @@ HBRUSH16 WINAPI CreateBrushIndirect16( const LOGBRUSH16 * brush )
  */
 HBITMAP16 WINAPI CreateCompatibleBitmap16( HDC16 hdc, INT16 width, INT16 height )
 {
-    return HBITMAP_16( CreateCompatibleBitmap( HDC_32(hdc), width, height ) );
+    HDC hdc32 = HDC_32(hdc);
+    if (krnl386_get_compat_mode("256color") && (GetDeviceCaps(hdc32, BITSPIXEL) > 8) &&
+       (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
+    {
+        BITMAPINFO *bmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 256*2 + sizeof(BITMAPINFOHEADER));
+        VOID *section;
+        bmap->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmap->bmiHeader.biWidth = width;
+        bmap->bmiHeader.biHeight = height;
+        bmap->bmiHeader.biPlanes = 1;
+        bmap->bmiHeader.biBitCount = 8;
+        UINT16 *colors = (UINT16 *)bmap->bmiColors;
+        for (int i = 0; i < 256; i++)
+            colors[i] = i;
+        HBITMAP16 ret = HBITMAP_16(CreateDIBSection(hdc32, bmap, DIB_PAL_COLORS, &section, NULL, 0));
+        HeapFree(GetProcessHeap(), 0, bmap);
+        return ret;
+    }
+
+    return HBITMAP_16( CreateCompatibleBitmap( hdc32, width, height ) );
 }
 
 
@@ -1776,6 +1795,21 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
     INT16 ret = GetDeviceCaps( HDC_32(hdc), cap );
     /* some apps don't expect -1 and think it's a B&W screen */
     if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;
+    if (krnl386_get_compat_mode("256color"))
+    {
+        switch (cap)
+        {
+            case BITSPIXEL:
+                ret = 8;
+                break;
+            case SIZEPALETTE:
+                ret = 256;
+                break;
+            case RASTERCAPS:
+                ret |= RC_PALETTE;
+                break;
+        }
+    }
     return ret;
 }
 
@@ -3257,7 +3291,40 @@ INT16 WINAPI SetDIBits16( HDC16 hdc, HBITMAP16 hbitmap, UINT16 startscan,
                           UINT16 lines, LPCVOID bits, const BITMAPINFO *info,
                           UINT16 coloruse )
 {
-    return SetDIBits( HDC_32(hdc), HBITMAP_32(hbitmap), startscan, lines, bits, info, coloruse );
+    HBITMAP hbitmap32 = HBITMAP_32(hbitmap);
+    if (krnl386_get_compat_mode("256color"))
+    {
+        // the conversion from 8bpp->1 on winxp+ (even in 256 color mode) is different than win31/95 and wine
+        // the problem shows in The Even More Incredible Machine where the sprites are almost completely masked out
+        // this does it like wine
+        // TODO: other wrong color conversions, top down dibs
+        BITMAP bmap;
+        int ret = GetObject(hbitmap32, sizeof(BITMAP), &bmap);
+        if ((bmap.bmPlanes == 1) && (bmap.bmBitsPixel == 1) && (info->bmiHeader.biBitCount == 8) &&
+            (info->bmiHeader.biPlanes == 1) && (info->bmiHeader.biCompression == BI_RGB) && (coloruse == DIB_RGB_COLORS))
+        {
+            int bytewidth = (info->bmiHeader.biWidth + 3) & ~3;
+            HDC hdc32 = CreateCompatibleDC(HDC_32(hdc));
+            SelectObject(hdc32, hbitmap32);
+            int start = bmap.bmHeight - lines - startscan;
+            for (int y = 0; y < lines; y++)
+            {
+                for (int x = 0; x < info->bmiHeader.biWidth; x++)
+                {
+                    RGBQUAD *color = &info->bmiColors[((unsigned char *)bits)[((lines - y - 1) * bytewidth) + x]];
+                    if (SetPixel(hdc32, x, y + start, RGB(color->rgbRed, color->rgbGreen, color->rgbBlue)) == -1)
+                    {
+                        DeleteDC(hdc32);
+                        return y;
+                    }
+                }
+            }
+            DeleteDC(hdc32);
+            return lines;
+        }
+    }
+
+    return SetDIBits( HDC_32(hdc), hbitmap32, startscan, lines, bits, info, coloruse );
 }
 
 

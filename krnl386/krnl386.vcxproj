@@ -101,6 +101,7 @@
   <ItemGroup>
     <ClCompile Include="atom.c" />
     <ClCompile Include="conf.c" />
+    <ClCompile Include="compat.c" />
     <ClCompile Include="dma.c" />
     <ClCompile Include="dosaspi.c" />
     <ClCompile Include="dosdev.c" />
