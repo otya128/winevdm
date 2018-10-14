@@ -1244,6 +1244,7 @@ extern "C"
             if (vm_inject_state.inject)
             {
                 /* FIXME: multiple interrupts */
+                LeaveCriticalSection(&inject_crit_section);
                 return FALSE;
             }
             vm_inject_state.vpfn16 = vpfn16;
