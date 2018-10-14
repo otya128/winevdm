@@ -31,26 +31,32 @@ typedef struct
     HINSTANCE16 hInst16;
     HMENU16 hMenu16;
 } HANDLE_DATA;
+typedef struct tagHANDLE_STORAGE *LPHANDLE_STORAGE;
+typedef void(*clean_up_t)(LPHANDLE_STORAGE);
 typedef struct
 {
-    HANDLE_DATA handles[65536];
+    HANDLE_DATA *handles;
+    LPCSTR name;
     int align;
+    clean_up_t clean_up;
 } HANDLE_STORAGE;
 #define HANDLE_TYPE_HANDLE 0
 #define HANDLE_TYPE_HGDI 1
 #define HANDLE_TYPE_MAX 2
-static HANDLE_STORAGE *handle_list;
+static HANDLE_STORAGE handle_list[HANDLE_TYPE_MAX];
 static BOOL handle_trace;
 static BOOL handle_init_flag;
+static void hgdi_clean_up(HANDLE_STORAGE* hs);
 /* this function called by DllMain(kernel.c) */
 void init_wow_handle()
 {
     if (handle_init_flag)
         return;
     handle_trace = TRACE_ON(thunk);
-    handle_list = (HANDLE_STORAGE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, HANDLE_TYPE_MAX * sizeof(HANDLE_STORAGE));
     handle_init_flag = TRUE;
+    handle_list[HANDLE_TYPE_HANDLE].handles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536 * sizeof(HANDLE_DATA));
     handle_list[HANDLE_TYPE_HANDLE].align = 1;
+    handle_list[HANDLE_TYPE_HANDLE].name = "HANDLE";
     /*
     hdc1 = CreateCompatibleDC(0);
     hdc2 = CreateCompatibleDC(0);
@@ -61,6 +67,9 @@ void init_wow_handle()
     PBRUSH expects HDC to be a multiple of 4.
     */
     handle_list[HANDLE_TYPE_HGDI].align = 4;
+    handle_list[HANDLE_TYPE_HGDI].name = "HGDI";
+    handle_list[HANDLE_TYPE_HGDI].handles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536 * sizeof(HANDLE_DATA));
+    handle_list[HANDLE_TYPE_HGDI].clean_up = hgdi_clean_up;
 }
 WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o);
 BOOL is_reserved_handle32(HANDLE h)
@@ -89,11 +98,14 @@ WORD get_handle16(HANDLE h, HANDLE_STORAGE *hs)
 	}
 	HANDLE_DATA *hd;
 	int hnd16 = get_handle16_data(h, hs, &hd);
+    if (!hd)
+        return 0;
 	hd->handle32 = h;
 	return hnd16;
 }
 WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
 {
+    int retry_count = 0;
 	//?
 	if (is_reserved_handle32(h))
 	{
@@ -101,7 +113,10 @@ WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
 		return h;
 	}
 	WORD fhandle = 0;
-	for (WORD i = HANDLE_RESERVED; i; i += hs->align)
+
+    WORD s = HANDLE_RESERVED;
+retry:
+	for (WORD i = s; i; i += hs->align)
 	{
         if (i >= (WORD)(-HANDLE_RESERVED))
             break;
@@ -117,8 +132,18 @@ WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
 	}
 	if (!fhandle)
 	{
+        *o = NULL;
 		ERR("Could not allocate a handle.\n");
+        retry_count++;
+        if (retry_count == 1 && hs->clean_up)
+        {
+            hs->clean_up(hs);
+            goto retry;
+        }
+        return 0;
 	}
+    if (handle_trace)
+        DPRINTF("allocate %s %p=>%04x\n", hs->name, h, fhandle);
 	*o = &hs->handles[fhandle];
     memset(*o, 0, sizeof(HANDLE_DATA));
 	return fhandle;
@@ -238,6 +263,37 @@ void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type)
             return;
         K32WOWHandle16Destroy(handle, type);
     }
+}
+
+static void hgdi_clean_up(HANDLE_STORAGE* hs)
+{
+    for (int i = HANDLE_RESERVED; i < (WORD)(-HANDLE_RESERVED); i += hs->align)
+    {
+        if (handle_trace)
+        {
+            static const char *tbl[] =
+            {
+                "(deleted)",
+                "OBJ_PEN",
+                "OBJ_BRUSH",
+                "OBJ_DC",
+                "OBJ_METADC",
+                "OBJ_PAL",
+                "OBJ_FONT",
+                "OBJ_BITMAP",
+                "OBJ_REGION",
+                "OBJ_METAFILE",
+                "OBJ_MEMDC",
+                "OBJ_EXTPEN",
+                "OBJ_ENHMETADC",
+                "OBJ_ENHMETAFILE",
+                "OBJ_COLORSPACE"
+            };
+            DPRINTF("%p: %s\n", hs->handles[i].handle32, tbl[GetObjectType(hs->handles[i].handle32)]);
+        }
+        K32WOWHandle16DestroyHint(hs->handles[i].handle32, WOW_TYPE_HDC);
+    }
+    return;
 }
 __declspec(dllexport) void SetWindowHInst16(WORD hWnd16, HINSTANCE16 hinst16)
 {
