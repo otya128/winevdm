@@ -532,6 +532,7 @@ extern "C"
 #define EXCEPTION_PROTECTED_MODE       0x80020100
     //kenel16_private.h
 #include "../krnl386/kernel16_private.h"
+#include <wownt32.h>
 #define KRNL386 "krnl386.exe16"
 	PVOID dynamic_setWOW32Reserved(PVOID w)
 	{
