@@ -330,6 +330,7 @@
 484 pascal -ret16 ScaleViewportExtEx(word s_word s_word s_word s_word ptr) ScaleViewportExtEx16
 485 pascal -ret16 ScaleWindowExtEx(word s_word s_word s_word s_word ptr) ScaleWindowExtEx16
 486 pascal -ret16 GetAspectRatioFilterEx(word ptr) GetAspectRatioFilterEx16
+488 pascal -ret16 GetFontAssocStatus(word) GetFontAssocStatus16
 489 pascal -ret16 CreateDIBSection(word ptr word ptr long long) CreateDIBSection16
 490 stub CloseEnhMetafile
 #490 stub POLYLINEWOW # conflicts with CloseEnhMetaFile !!

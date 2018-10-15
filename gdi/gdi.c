@@ -4418,3 +4418,20 @@ WORD WINAPI SelectBitmap16(WORD arg1, WORD arg2)
     FIXME("(%04x)\n", arg1);
     return SelectObject16(arg1, arg2);
 }
+
+WORD WINAPI GetFontAssocStatus16(HDC16 hdc)
+{
+    static BOOL load;
+    static FARPROC GetFontAssocStatus;
+    if (!load)
+    {
+        load = TRUE;
+        GetFontAssocStatus = GetProcAddress(GetModuleHandleW(L"GDI32"), "GetFontAssocStatus");
+    }
+    if (!GetFontAssocStatus)
+    {
+        ERR("(%04x)\n", hdc);
+        return 0;
+    }
+    return ((ULONG(WINAPI*)(HDC))GetFontAssocStatus)(HDC_32(hdc));
+}
