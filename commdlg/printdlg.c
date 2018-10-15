@@ -120,6 +120,8 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
     pd32.nMinPage    = lppd->nMinPage;
     pd32.nMaxPage    = lppd->nMaxPage;
     pd32.nCopies     = lppd->nCopies;
+    pd32.lpfnPrintHook = NULL;
+    pd32.lpfnSetupHook = NULL;
 
     if (lppd->Flags & (PD_ENABLEPRINTTEMPLATE | PD_ENABLEPRINTTEMPLATEHANDLE |
                        PD_ENABLESETUPTEMPLATE | PD_ENABLESETUPTEMPLATEHANDLE))

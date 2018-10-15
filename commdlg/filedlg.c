@@ -72,7 +72,7 @@ static void init_thunk()
 
 void delete_thunk(LPVOID func)
 {
-    if (thunk_array <= func && func <= thunk_array + MAX_THUNK)
+    if (func && thunk_array <= func && func <= thunk_array + MAX_THUNK)
     {
         ((COMMDLGTHUNK*)func)->used = FALSE;
     }
