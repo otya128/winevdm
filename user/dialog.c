@@ -821,6 +821,29 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		{
 			*templatew++ = 0;
 		}
+          /* We convert the size to pixels and then make it -ve.  This works
+           * for both +ve and -ve template.pointSize */
+        HDC dc;
+        int pixels;
+        dc = GetDC(0);
+        pixels = MulDiv(template.pointSize, GetDeviceCaps(dc , LOGPIXELSY), 72);
+        hUserFont = CreateFontA( -pixels, 0, 0, 0, FW_DONTCARE,
+                                 FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0,
+                                 PROOF_QUALITY, FF_DONTCARE, template.faceName );
+        if (hUserFont)
+        {
+            SIZE charSize;
+            HFONT hOldFont = SelectObject( dc, hUserFont );
+            charSize.cx = GdiGetCharDimensions( dc, NULL, &charSize.cy );
+            if (charSize.cx)
+            {
+                xBaseUnit = charSize.cx;
+                yBaseUnit = charSize.cy;
+            }
+            SelectObject( dc, hOldFont );
+        }
+        ReleaseDC(0, dc);
+        TRACE("units = %d,%d\n", xBaseUnit, yBaseUnit );
 	}
 	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
 	WNDCLASSEXA wc, wc2 = { 0 };
@@ -831,8 +854,16 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	if (!wc2.lpszClassName)
 		GetClassInfoExA(GetModuleHandle(NULL), template.className, &wc2);
     dialog_data *paramd = (dialog_data*)HeapAlloc(GetProcessHeap(), 0, sizeof(dialog_data));
-    paramd->hMenu16 = LoadMenu16(hInst, wc2.lpszMenuName);
+    paramd->hMenu16 = hMenu;
+    if (!hMenu)
+        paramd->hMenu16 = LoadMenu16(hInst, wc2.lpszMenuName);
     paramd->dlgProc = dlgProc;
+    /* Add menu height */
+    /* Precision...? */
+    if (paramd->hMenu16)
+    {
+        template32->cy += MulDiv(GetSystemMetrics(SM_CYMENU), 8, yBaseUnit);
+    }
     DWORD count;
     DLGPROC proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
     ReleaseThunkLock(&count);
