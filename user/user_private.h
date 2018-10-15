@@ -208,24 +208,7 @@ FIXME: correct name */
 #define DCX_USESTYLE         0x00010000
 __declspec(dllimport) PVOID getWOW32Reserved();
 __declspec(dllimport) PVOID setWOW32Reserved(PVOID w);
-typedef LONG(WINAPI *PGdiGetCharDimensions)
-(
-HDC           hdc,
-LPTEXTMETRICW lptm,
-LONG*         height
-);
-inline LONG WINAPI GdiGetCharDimensions
-(
-HDC           hdc,
-LPTEXTMETRICW lptm,
-LONG*         height
-)
-{
-	static PGdiGetCharDimensions func;
-	if (!func)
-		(PGdiGetCharDimensions)GetProcAddress(GetModuleHandleA("GDI32.DLL"), "GdiGetCharDimensions");
-	return func(hdc, lptm, height);
-}
+LONG WINAPI GdiGetCharDimensions(HDC hdc, LPTEXTMETRICW lptm, LONG *height);
 typedef BOOL(WINAPI *PDrawCaptionTempA)
 (
 HWND hwnd,
