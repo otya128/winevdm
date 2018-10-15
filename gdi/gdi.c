@@ -1403,26 +1403,7 @@ HBRUSH16 WINAPI CreateBrushIndirect16( const LOGBRUSH16 * brush )
  */
 HBITMAP16 WINAPI CreateCompatibleBitmap16( HDC16 hdc, INT16 width, INT16 height )
 {
-    HDC hdc32 = HDC_32(hdc);
-    if (krnl386_get_compat_mode("256color") && (GetDeviceCaps(hdc32, BITSPIXEL) > 8) &&
-       (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
-    {
-        BITMAPINFO *bmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 256*2 + sizeof(BITMAPINFOHEADER));
-        VOID *section;
-        bmap->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bmap->bmiHeader.biWidth = width;
-        bmap->bmiHeader.biHeight = height;
-        bmap->bmiHeader.biPlanes = 1;
-        bmap->bmiHeader.biBitCount = 8;
-        UINT16 *colors = (UINT16 *)bmap->bmiColors;
-        for (int i = 0; i < 256; i++)
-            colors[i] = i;
-        HBITMAP16 ret = HBITMAP_16(CreateDIBSection(hdc32, bmap, DIB_PAL_COLORS, &section, NULL, 0));
-        HeapFree(GetProcessHeap(), 0, bmap);
-        return ret;
-    }
-
-    return HBITMAP_16( CreateCompatibleBitmap( hdc32, width, height ) );
+    return HBITMAP_16( CreateCompatibleBitmap( HDC_32(hdc), width, height ) );
 }
 
 
@@ -1803,10 +1784,11 @@ DWORD WINAPI GetDCOrg16( HDC16 hdc )
  */
 INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
 {
-    INT16 ret = GetDeviceCaps( HDC_32(hdc), cap );
+    HDC hdc32 = HDC_32(hdc);
+    INT16 ret = GetDeviceCaps( hdc32, cap );
     /* some apps don't expect -1 and think it's a B&W screen */
     if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;
-    if (krnl386_get_compat_mode("256color"))
+    if (krnl386_get_compat_mode("256color") && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
     {
         switch (cap)
         {
