@@ -704,6 +704,103 @@ UINT16 WINAPI GetTempFileName16( BYTE drive, LPCSTR prefix, UINT16 unique,
 }
 
 
+typedef const char* (*ini_redirect_str_func)();
+typedef int(*ini_redirect_int_func)();
+struct ini_redirect_data
+{
+    const char *file;
+    const char *section;
+    const char *entry;
+    const char *value;
+    ini_redirect_str_func get_str;
+    ini_redirect_int_func get_int;
+};
+int system_ini_keyboard_type()
+{
+    return GetKeyboardType(0);
+}
+int system_ini_keyboard_subtype()
+{
+    return GetKeyboardType(1);
+}
+const char *system_init_boot_description_language_dll()
+{
+    LANGID lang = GetUserDefaultUILanguage();
+    static char buf[256];
+    if (GetLocaleInfoA(LOCALE_USER_DEFAULT, LOCALE_SNATIVELANGNAME, buf, ARRAY_SIZE(buf)))
+    {
+        return buf;
+    }
+    return "English (American)";
+}
+const char *system_init_boot_description_keyboard_typ()
+{
+    char buf[KL_NAMELENGTH];
+    if (GetKeyboardLayoutNameA(buf))
+    {
+        HKEY hkey;
+        HKEY hkey2;
+        static char buf2[256];
+        DWORD cb = ARRAY_SIZE(buf2);
+        if (RegOpenKeyA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layouts\\", &hkey) == ERROR_SUCCESS)
+        {
+            if (RegOpenKeyA(hkey, buf, &hkey2) == ERROR_SUCCESS)
+            {
+                LRESULT result = RegQueryValueExA(hkey2, "Layout Text", NULL, NULL, buf2, &cb);
+                RegCloseKey(hkey2);
+                RegCloseKey(hkey);
+                if (result == ERROR_SUCCESS)
+                {
+                    return buf2;
+                }
+            }
+            else
+            {
+                RegCloseKey(hkey);
+            }
+        }
+    }
+    return "Enhanced 101 or 102 key US and Non US keyboards";
+}
+int system_init_boot_description_codepage()
+{
+    return GetACP();
+}
+/* HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW */
+/* HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\IniFileMapping */
+/* HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\IniFileMapping */
+struct ini_redirect_data ini_redirect_list[] =
+{
+    {"system.ini", "boot", "sound.drv", "sound.drv"},
+    {"system.ini", "boot", "comm.drv", "comm.drv"},
+    {"system.ini", "boot", "keyboard.drv", "keyboard.drv"},
+    {"system.ini", "boot", "system.drv", "system.drv"},
+    {"system.ini", "boot", "display.drv", "display.drv"},
+    {"system.ini", "boot", "shell", "progman.exe"},
+    {"system.ini", "boot", "mouse.drv", "mouse.drv"},
+    {"system.ini", "boot", "network.drv", "network.drv"},
+    {"system.ini", "boot", "language.dll", ""},
+    {"system.ini", "boot", "drivers", "mmsystem.dll"},
+    /* {"system.ini", "boot", "oemfonts.fon", "", NULL}, */
+    /* {"system.ini", "boot", "fixedfon.fon", "", NULL}, */
+    /* {"system.ini", "boot", "fonts.fon", "", NULL}, */
+
+
+    {"system.ini", "keyboard", "type", NULL, NULL, system_ini_keyboard_type},
+    {"system.ini", "keyboard", "subtype", NULL, NULL, system_ini_keyboard_subtype},
+    {"system.ini", "keyboard", "keyboard.dll", ""},
+
+    {"system.ini", "boot.description", "system.drv", "MS-DOS or PC-DOS System"},
+    /* {"system.ini", "boot.description", "aspect", "100,96,96"}, */
+    {"system.ini", "boot.description", "display.drv", "VGA"},
+    {"system.ini", "boot.description", "keyboard.typ", NULL, system_init_boot_description_keyboard_typ},
+    {"system.ini", "boot.description", "mouse.drv", "Microsoft, or IBM PS/2"},
+    {"system.ini", "boot.description", "network.drv", "LAN Support"},
+    {"system.ini", "boot.description", "language.dll", NULL, system_init_boot_description_language_dll},
+    {"system.ini", "boot.description", "codepage", NULL, NULL, system_init_boot_description_codepage},
+    /* {"system.ini", "boot.description", "woafont.fon", ""}, */
+};
+
 /***********************************************************************
  *           GetPrivateProfileInt   (KERNEL.127)
  */
@@ -766,6 +863,25 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
                                         UINT16 len, LPCSTR filename )
 {
     char filenamebuf[MAX_PATH];
+    TRACE("%s %s %s\n", filename, section, entry);
+    LPCSTR filename_file = PathFindFileNameA(filename);
+    for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
+    {
+        if (!stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section) && !stricmp(entry, ini_redirect_list[i].entry))
+        {
+            LPCSTR val = ini_redirect_list[i].value;
+            if (!val && ini_redirect_list[i].get_str)
+            {
+                val = ini_redirect_list[i].get_str();
+            }
+            if (!val)
+            {
+                break;
+            }
+            strcpy_s(buffer, len, val);
+            return strlen(buffer);
+        }
+    }
     RedirectPrivateProfileStringWindowsDir(filename, filenamebuf);
     filename = filenamebuf;
     TRACE("(%s, %s, %s, %p, %u, %s)\n", debugstr_a(section), debugstr_a(entry),
