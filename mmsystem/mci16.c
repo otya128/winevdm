@@ -184,8 +184,12 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
     case MCI_STOP:
 	/* case MCI_UNDO: */
     case MCI_UPDATE:
-	*lParam = (DWORD)MapSL(*lParam);
-	return MMSYSTEM_MAP_OK;
+        {
+            LPMCI_GENERIC_PARMS mgp = MapSL(*lParam);
+            mgp->dwCallback = HWND_32(mgp->dwCallback);
+            *lParam = mgp;
+        }
+        return MMSYSTEM_MAP_OKMEM;
     case MCI_WHERE:
     case MCI_FREEZE:
     case MCI_UNFREEZE:
@@ -197,7 +201,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
             if (mdrp32) {
                 *(LPMCI_DGV_RECT_PARMS16*)(mdrp32) = mdrp16;
                 mdrp32 = (LPMCI_DGV_RECT_PARMS)((char*)mdrp32 + sizeof(LPMCI_DGV_RECT_PARMS16));
-                mdrp32->dwCallback = mdrp16->dwCallback;
+                mdrp32->dwCallback = HWND_32(mdrp16->dwCallback);
                 mdrp32->rc.left = mdrp16->rc.left;
                 mdrp32->rc.top = mdrp16->rc.top;
                 mdrp32->rc.right = mdrp16->rc.right;
@@ -217,7 +221,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
                 if (mdsp32w) {
                     *(LPMCI_DGV_STATUS_PARMS16*)(mdsp32w) = mdsp16;
                     mdsp32w = (LPMCI_DGV_STATUS_PARMSW)((char*)mdsp32w + sizeof(LPMCI_DGV_STATUS_PARMS16));
-                    mdsp32w->dwCallback = mdsp16->dwCallback;
+                    mdsp32w->dwCallback = HWND_32(mdsp16->dwCallback);
                     mdsp32w->dwReturn = mdsp16->dwReturn;
                     mdsp32w->dwItem = mdsp16->dwItem;
                     mdsp32w->dwTrack = mdsp16->dwTrack;
@@ -240,7 +244,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
             LPMCI_OVLY_WINDOW_PARMSW mowp32w = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(MCI_OVLY_WINDOW_PARMSW));
             LPMCI_OVLY_WINDOW_PARMS16 mowp16 = MapSL(*lParam);
             if (mowp32w) {
-                mowp32w->dwCallback = mowp16->dwCallback;
+                mowp32w->dwCallback = HWND_32(mowp16->dwCallback);
                 mowp32w->hWnd = HWND_32(mowp16->hWnd);
                 mowp32w->nCmdShow = mowp16->nCmdShow;
                 if (dwFlags & (MCI_DGV_WINDOW_TEXT | MCI_OVLY_WINDOW_TEXT))
@@ -257,7 +261,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	    LPMCI_BREAK_PARMS16		mbp16 = MapSL(*lParam);
 
 	    if (mbp32) {
-		mbp32->dwCallback = mbp16->dwCallback;
+		mbp32->dwCallback = HWND_32(mbp16->dwCallback);
 		mbp32->nVirtKey = mbp16->nVirtKey;
 		mbp32->hwndBreak = HWND_32(mbp16->hwndBreak);
 	    } else {
@@ -272,7 +276,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	    LPMCI_VD_ESCAPE_PARMS16	mvep16  = MapSL(*lParam);
 
 	    if (mvep32w) {
-		mvep32w->dwCallback       = mvep16->dwCallback;
+		mvep32w->dwCallback       = HWND_32(mvep16->dwCallback);
 		mvep32w->lpstrCommand     = MCI_strdupAtoW(MapSL(mvep16->lpstrCommand));
 	    } else {
 		return MMSYSTEM_MAP_NOMEM;
@@ -288,7 +292,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	    if (mip32w) {
 		*(LPMCI_DGV_INFO_PARMS16*)(mip32w) = mip16;
 		mip32w = (LPMCI_DGV_INFO_PARMSW)((char*)mip32w + sizeof(LPMCI_DGV_INFO_PARMS16));
-		mip32w->dwCallback  = mip16->dwCallback;
+		mip32w->dwCallback  = HWND_32(mip16->dwCallback);
 		mip32w->lpstrReturn = HeapAlloc(GetProcessHeap(), 0, mip16->dwRetSize * sizeof(WCHAR));
 		mip32w->dwRetSize   = mip16->dwRetSize;
 		if (dwFlags & MCI_DGV_INFO_ITEM)
@@ -308,7 +312,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	    if (mop32w) {
 		*(LPMCI_OPEN_PARMS16*)(mop32w) = mop16;
 		mop32w = (LPMCI_OPEN_PARMSW)((char*)mop32w + sizeof(LPMCI_OPEN_PARMS16));
-		mop32w->dwCallback       = mop16->dwCallback;
+		mop32w->dwCallback       = HWND_32(mop16->dwCallback);
 		mop32w->wDeviceID        = mop16->wDeviceID;
                 if( ( dwFlags & ( MCI_OPEN_TYPE | MCI_OPEN_TYPE_ID)) == MCI_OPEN_TYPE)
                     mop32w->lpstrDeviceType  = MCI_strdupAtoW(MapSL(mop16->lpstrDeviceType));
@@ -350,7 +354,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
         origmsip32w = msip32w;
         *(MCI_SYSINFO_PARMS16 **)msip32w = msip16;
         msip32w = (MCI_SYSINFO_PARMSW *)((char *)msip32w + sizeof(MCI_OPEN_PARMS16 *));
-        msip32w->dwCallback       = msip16->dwCallback;
+        msip32w->dwCallback       = HWND_32(msip16->dwCallback);
         msip32w->lpstrReturn      = HeapAlloc(GetProcessHeap(), 0, (dwFlags & MCI_SYSINFO_QUANTITY) ?
                                                                     sizeof(DWORD) :
                                                                     msip16->dwRetSize * sizeof(WCHAR));
@@ -372,7 +376,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 	    LPMCI_SOUND_PARMS16		mbp16 = MapSL(*lParam);
 
 	    if (mbp32) {
-		mbp32->dwCallback = mbp16->dwCallback;
+		mbp32->dwCallback = HWND_32(mbp16->dwCallback);
 		mbp32->lpstrSoundName = MCI_strdupAtoW(MapSL(mbp16->lpstrSoundName));
 	    } else {
 		return MMSYSTEM_MAP_NOMEM;
@@ -407,6 +411,34 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWORD result)
 {
     switch (wMsg) {
+    case MCI_CLOSE:
+    case MCI_CLOSE_DRIVER:
+    case MCI_CONFIGURE:
+    case MCI_COPY:
+    case MCI_CUE:
+    case MCI_CUT:
+    case MCI_DELETE:
+    case MCI_GETDEVCAPS:
+    case MCI_LIST:
+    case MCI_PASTE:
+    case MCI_PAUSE:
+    case MCI_PLAY:
+    case MCI_REALIZE:
+    case MCI_RECORD:
+    case MCI_RESUME:
+    case MCI_SEEK:
+    case MCI_SET:
+    case MCI_SETAUDIO:
+    case MCI_SETVIDEO:
+    case MCI_SPIN:
+    case MCI_STEP:
+    case MCI_STOP:
+    case MCI_UPDATE:
+        if (lParam) {
+            LPMCI_GENERIC_PARMS mgp = (LPMCI_GENERIC_PARMS)lParam;
+            mgp->dwCallback = HWND_16(mgp->dwCallback);
+        }
+        break;
     case MCI_WHERE:
     case MCI_FREEZE:
     case MCI_UNFREEZE:
