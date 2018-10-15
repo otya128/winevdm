@@ -486,13 +486,14 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
             LPMCI_INFO_PARMSW	        mip32w = (LPMCI_INFO_PARMSW)lParam;
             char                       *base   = (char*)lParam - sizeof(LPMCI_INFO_PARMS16);
 	    LPMCI_INFO_PARMS16          mip16  = *(LPMCI_INFO_PARMS16*)base;
+        int len = 0;
 
             if (result == MMSYSERR_NOERROR)
-                WideCharToMultiByte(CP_ACP, 0,
-                                    mip32w->lpstrReturn, mip32w->dwRetSize,
+                len = WideCharToMultiByte(CP_ACP, 0,
+                                    mip32w->lpstrReturn, mip32w->dwRetSize + 1,/* dwRetSize does not include null character */
                                     MapSL(mip16->lpstrReturn), mip16->dwRetSize,
                                     NULL, NULL);
-            mip16->dwRetSize = mip32w->dwRetSize; /* never update prior to NT? */
+            mip16->dwRetSize = len == 0 ? 0 : len - 1; /* never update prior to NT? */
             HeapFree(GetProcessHeap(), 0, mip32w->lpstrReturn);
             HeapFree(GetProcessHeap(), 0, base);
         }
