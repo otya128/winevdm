@@ -527,7 +527,7 @@ BOOL16 WINAPI LocalInit16( HANDLE16 selector, WORD start, WORD end )
 /***********************************************************************
  *           LOCAL_GrowHeap
  */
-static BOOL16 LOCAL_GrowHeap( HANDLE16 ds )
+static BOOL16 LOCAL_GrowHeap( HANDLE16 ds, DWORD newsize )
 {
     HANDLE16 hseg;
     LONG oldsize;
@@ -544,7 +544,7 @@ static BOOL16 LOCAL_GrowHeap( HANDLE16 ds )
     oldsize = GlobalSize16( hseg );
     /* if nothing can be gained, return */
     if (oldsize > 0xfff0) return FALSE;
-    hseg = GlobalReAlloc16( hseg, 0x10000, GMEM_FIXED );
+    hseg = GlobalReAlloc16( hseg, newsize, GMEM_FIXED );
     ptr = MapSL( MAKESEGPTR( ds, 0 ) );
     pHeapInfo = LOCAL_GetHeap( ds );
     if (pHeapInfo == NULL) {
@@ -967,7 +967,7 @@ notify_done:
     }
     if (arena == 0) {
 	/* still no space: try to grow the segment */
-	if (!(LOCAL_GrowHeap( ds )))
+	if (!(LOCAL_GrowHeap( ds, 0x10000 )))
 	{
 #if 0
 	    /* FIXME: doesn't work correctly yet */
@@ -1677,8 +1677,14 @@ FARPROC16 WINAPI LocalNotify16( FARPROC16 func )
  */
 UINT16 WINAPI LocalShrink16( HGLOBAL16 handle, UINT16 newsize )
 {
-    TRACE("%04x %04x\n", handle, newsize );
-    return 0;
+    WARN("(%04x %04x)\n", handle, newsize );
+    if (!handle)
+        handle = CURRENT_DS;
+    else
+        handle |= 1;
+    /* always grow */
+    LOCAL_GrowHeap(handle, 0x10000);
+    return newsize;
 }
 
 
