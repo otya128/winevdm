@@ -1294,11 +1294,12 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
         {
             SHELLEXECUTEINFOA sei = { 0 };
             sei.cbSize = sizeof(sei);
-            sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+            sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_CLASSNAME;
             sei.lpFile = filename;
             sei.lpParameters = cmdline;
             sei.nShow = startup.dwFlags ? startup.wShowWindow : SW_NORMAL;
             sei.lpVerb = "open";
+            sei.lpClass = "exefile";
             if (ShellExecuteExA(&sei))
             {
                 /* Give 30 seconds to the app to come up */
