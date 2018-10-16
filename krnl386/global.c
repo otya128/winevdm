@@ -346,6 +346,8 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
     DWORD fixup_size = 0x1f;
     BOOL old = IsOldWindowsTask(GetCurrentTask());
     DWORD add_size = old ? 0x100 : 0;
+    if (size + add_size > 0x10000)
+        add_size = 0;
 
     if (size > GLOBAL_MAX_ALLOC_SIZE - (fixup_size + 1)) return 0;
     if (size == 0) size = fixup_size + 1;
@@ -419,7 +421,7 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
 
       /* Reallocate the selector(s) */
 
-    sel = SELECTOR_ReallocBlock( sel, ptr, size );
+    sel = SELECTOR_ReallocBlock( sel, ptr, size + add_size);
     if (!sel)
     {
         if (pArena->flags & GA_DOSMEM)
