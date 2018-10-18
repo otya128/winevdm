@@ -359,7 +359,7 @@ HICON16 WINAPI ExtractIcon16( HINSTANCE16 hInstance, LPCSTR lpszExeFileName,
     lpszExeFileName = RedirectSystemDir(lpszExeFileName, buf, MAX_PATH);
     if (nIconIndex == 0xFFFF)
     {
-	    return ExtractIconNE(NULL, lpszExeFileName, -1);
+	    return convert_icon_to_16(hInstance, ExtractIconNE(NULL, lpszExeFileName, -1));
     }
     return convert_icon_to_16( hInstance, ExtractIconNE(NULL, lpszExeFileName, nIconIndex) );
 }
