@@ -742,6 +742,8 @@ BOOL16 WINAPI GlobalUnlock16(
     }
     TRACE("%04x\n", handle );
     if (pArena->lockCount) pArena->lockCount--;
+    if (CURRENT_STACK16)
+        CURRENT_STACK16->es = 0;
     return pArena->lockCount;
 }
 
