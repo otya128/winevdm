@@ -205,8 +205,7 @@ static int internal_set_entry(unsigned short sel, const LDT_ENTRY *entry)
 
 	if (ret >= 0)
 	{
-        //??????????
-        //wine_ldt[index] = *entry;
+		wine_ldt[index] = *entry;
 		wine_ldt_copy.base[index] = wine_ldt_get_base(entry);
 		wine_ldt_copy.limit[index] = wine_ldt_get_limit(entry);
 		wine_ldt_copy.flags[index] = (entry->HighWord.Bits.Type |
