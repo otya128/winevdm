@@ -1550,6 +1550,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_KILLFOCUS:
     case WM_INITDIALOG:
     case WM_MDIDESTROY:
+    case WM_MDIMAXIMIZE:
         ret = callback(hwnd32, msg, (WPARAM)HWND_32((HWND16)wParam), lParam, result, arg);
         break;
     case WM_ENTERIDLE:

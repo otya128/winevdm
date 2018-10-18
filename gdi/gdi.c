@@ -1787,7 +1787,6 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
     HDC hdc32 = HDC_32(hdc);
     INT16 ret = GetDeviceCaps( hdc32, cap );
     /* some apps don't expect -1 and think it's a B&W screen */
-    if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;
     if (krnl386_get_compat_mode("256color") && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
     {
         switch (cap)
@@ -1801,8 +1800,12 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
             case RASTERCAPS:
                 ret |= RC_PALETTE;
                 break;
+            case NUMCOLORS:
+                ret = 256;
+                break;
         }
     }
+    else if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;
     return ret;
 }
 
