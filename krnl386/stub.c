@@ -157,7 +157,7 @@ static int get_debug_mode()
         return 1;
     return 1;
 }
-DWORD wine_pm_interrupt_handler(WORD num)
+DWORD wine_pm_interrupt_handler(WORD num, DWORD addr)
 {
     HTASK16 hTask = GetCurrentTask();
     TDB *pTask = GlobalLock16(hTask);
@@ -171,6 +171,10 @@ DWORD wine_pm_interrupt_handler(WORD num)
         break;
     case 2:
         handler = pTask->int2;
+        break;
+    case 0x0d:
+        /* FIXME: push addr? */
+        /* handler = HasGPHandler16(addr); */
         break;
     case 4:
         handler = pTask->int4;

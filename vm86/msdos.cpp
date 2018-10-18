@@ -1191,7 +1191,7 @@ extern "C"
                 }
             }
         }
-        DWORD ret = pih(num);
+        DWORD ret = pih(num, MAKESEGPTR(cs, ip));
         if (ret)
         {
             //TODO:arguments?

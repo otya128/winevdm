@@ -907,7 +907,7 @@ NTSYSAPI NTSTATUS  WINAPI LdrFindEntryForAddress(const void*, PLDR_MODULE*);
 
 //vm
 
-typedef SEGPTR(*pm_interrupt_handler)(WORD num);
+typedef SEGPTR(*pm_interrupt_handler)(WORD num, DWORD addr);
 
 typedef DWORD(*wine_call_to_16_vm86_t)(DWORD target, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     void(*from16_reg)(void),
