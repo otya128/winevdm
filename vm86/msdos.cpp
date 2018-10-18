@@ -1350,7 +1350,7 @@ extern "C"
             bool isVM86mode = false;
 			//dasm = true;
 			while (!m_halted) {
-                if (vm_inject_state.inject)
+                if (vm_inject_state.inject && m_IF)
                 {
                     vm_inject_call(ret_addr, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih);
                 }
