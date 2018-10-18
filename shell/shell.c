@@ -248,7 +248,7 @@ BOOL16 WINAPI ShellAbout16( HWND16 hWnd, LPCSTR szApp, LPCSTR szOtherStuff, HICO
 }
 
 
-__declspec(dllexport) HICON NE_ExtractIcon(LPCSTR lpszExeFileName,
+__declspec(dllimport) HICON NE_ExtractIcon(LPCSTR lpszExeFileName,
 	HICON * RetPtr,
 	INT nIconIndex,
 	UINT nIcons,
@@ -353,16 +353,14 @@ __declspec(dllimport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max
  */
 HICON16 WINAPI ExtractIcon16( HINSTANCE16 hInstance, LPCSTR lpszExeFileName,
 	UINT16 nIconIndex )
-{   TRACE("\n");
-	//return convert_icon_to_16( hInstance, NE_ExtractIcon(lpszExeFileName, nIconIndex, 0, 0, 0));
-    char buf[MAX_PATH];
-    lpszExeFileName = RedirectSystemDir(lpszExeFileName, buf, MAX_PATH);
-if (nIconIndex == 0xFFFF)
 {
-	//icon count
-	return ExtractIconNE(NULL, lpszExeFileName, -1);
-	return ExtractIconA(NULL, lpszExeFileName, -1);
-}
+    char buf[MAX_PATH];
+    TRACE("\n");
+    lpszExeFileName = RedirectSystemDir(lpszExeFileName, buf, MAX_PATH);
+    if (nIconIndex == 0xFFFF)
+    {
+	    return ExtractIconNE(NULL, lpszExeFileName, -1);
+    }
     return convert_icon_to_16( hInstance, ExtractIconNE(NULL, lpszExeFileName, nIconIndex) );
 }
 

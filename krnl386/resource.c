@@ -1161,40 +1161,6 @@ BOOL16 WINAPI FreeResource16( HGLOBAL16 handle )
     else
         return GlobalFree16( handle );
 }
-void a(HICON hi)
-{
-
-	HWND hwnd;
-	MSG msg;
-	WNDCLASS winc;
-
-	winc.style = CS_HREDRAW | CS_VREDRAW;
-	winc.lpfnWndProc = DefWindowProc;
-	winc.cbClsExtra = winc.cbWndExtra = 0;
-	winc.hInstance = NULL;
-	winc.hIcon = hi;
-	winc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	winc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-	winc.lpszMenuName = NULL;
-	winc.lpszClassName = TEXT("KITTY");
-
-	if (!RegisterClass(&winc)) return -1;
-
-	hwnd = CreateWindow(
-		TEXT("KITTY"), TEXT("Kitty on your lap"),
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		NULL, NULL, NULL, NULL
-		);
-
-	if (hwnd == NULL) return -1;
-
-	while (GetMessage(&msg, NULL, 0, 0)) {
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-	}
-}
 /*************************************************************************
 *			USER32_LoadResource
 */
