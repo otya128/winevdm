@@ -258,7 +258,7 @@ DWORD WINAPI CoBuildVersion16(void)
  *	The current win16 IMalloc
  */
 HRESULT WINAPI CoGetMalloc16(
-	DWORD dwMemContext,	/* [in] unknown */
+	MEMCTX dwMemContext,	/* [in] memory context */
 	LPMALLOC16 * lpMalloc	/* [out] current win16 malloc interface */
 ) {
     if(!currentMalloc16)
@@ -270,7 +270,7 @@ HRESULT WINAPI CoGetMalloc16(
 /***********************************************************************
  *           CoCreateStandardMalloc [COMPOBJ.71]
  */
-HRESULT WINAPI CoCreateStandardMalloc16(DWORD dwMemContext,
+HRESULT WINAPI CoCreateStandardMalloc16(MEMCTX dwMemContext,
 					  LPMALLOC16 *lpMalloc)
 {
     /* FIXME: docu says we shouldn't return the same allocator as in
@@ -641,7 +641,7 @@ BOOL WINAPI COMPOBJ_DllEntryPoint(DWORD Reason, HINSTANCE16 hInst, WORD ds, WORD
 /***********************************************************************
  *           CoMemAlloc [COMPOBJ.151]
  */
-SEGPTR WINAPI CoMemAlloc(DWORD size, DWORD dwMemContext, DWORD x) {
+SEGPTR WINAPI CoMemAlloc(DWORD size, MEMCTX dwMemContext, DWORD x) {
 	HRESULT		hres;
 	SEGPTR		segptr;
 
