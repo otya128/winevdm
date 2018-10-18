@@ -618,12 +618,13 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
 	break;
     case WODM_PREPARE:
 	{
-	    LPWAVEHDR		wh32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPWAVEHDR) + sizeof(WAVEHDR));
+	    LPWAVEHDR		wh32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPWAVEHDR) + sizeof(DWORD) + sizeof(WAVEHDR));
 	    LPWAVEHDR		wh16 = MapSL(*lpParam1);
 
 	    if (wh32) {
 		*(LPWAVEHDR*)wh32 = (LPWAVEHDR)*lpParam1;
-		wh32 = (LPWAVEHDR)((LPSTR)wh32 + sizeof(LPWAVEHDR));
+		*(DWORD *)((LPSTR)wh32 + sizeof(LPWAVEHDR)) = wh16->dwBufferLength; // preserve the prepared length
+		wh32 = (LPWAVEHDR)((LPSTR)wh32 + sizeof(DWORD) + sizeof(LPWAVEHDR));
 		wh32->lpData = MapSL((SEGPTR)wh16->lpData);
 		wh32->dwBufferLength = wh16->dwBufferLength;
 		wh32->dwBytesRecorded = wh16->dwBytesRecorded;
@@ -651,9 +652,9 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
 	    *lpParam1 = (DWORD)wh32;
 	    *lpParam2 = sizeof(WAVEHDR);
 	    /* dwBufferLength can be reduced between prepare & write */
-	    if (wMsg == WODM_WRITE && wh32->dwBufferLength < wh16->dwBufferLength) {
+	    if (wMsg == WODM_WRITE && *(DWORD *)((LPSTR)wh32 - sizeof(DWORD)) < wh16->dwBufferLength) {
 		ERR("Size of buffer has been increased from %d to %d, keeping initial value\n",
-		    wh32->dwBufferLength, wh16->dwBufferLength);
+		    *(DWORD *)((LPSTR)wh32 - sizeof(DWORD)), wh16->dwBufferLength);
 	    } else
                 wh32->dwBufferLength = wh16->dwBufferLength;
 	    ret = MMSYSTEM_MAP_OKMEM;
@@ -731,13 +732,13 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lp
     case WODM_WRITE:
 	{
 	    LPWAVEHDR		wh32 = (LPWAVEHDR)(*lpParam1);
-	    LPWAVEHDR		wh16 = MapSL(*(SEGPTR*)((LPSTR)wh32 - sizeof(LPWAVEHDR)));
+	    LPWAVEHDR		wh16 = MapSL(*(SEGPTR*)((LPSTR)wh32 - sizeof(DWORD) - sizeof(LPWAVEHDR)));
 
 	    assert(wh16->lpNext == wh32);
 	    wh16->dwFlags = wh32->dwFlags;
 
 	    if (wMsg == WODM_UNPREPARE && fn_ret == MMSYSERR_NOERROR) {
-		HeapFree(GetProcessHeap(), 0, (LPSTR)wh32 - sizeof(LPWAVEHDR));
+		HeapFree(GetProcessHeap(), 0, (LPSTR)wh32 - sizeof(DWORD) - sizeof(LPWAVEHDR));
 		wh16->lpNext = 0;
 	    }
 	    ret = MMSYSTEM_MAP_OK;
@@ -764,7 +765,7 @@ static  void	MMSYSTDRV_WaveOut_MapCB(UINT uMsg, DWORD_PTR* dwUser, DWORD_PTR* dw
         {
 	    /* initial map is: 16 => 32 */
 	    LPWAVEHDR		wh32 = (LPWAVEHDR)(*dwParam1);
-	    SEGPTR		segwh16 = *(SEGPTR*)((LPSTR)wh32 - sizeof(LPWAVEHDR));
+	    SEGPTR		segwh16 = *(SEGPTR*)((LPSTR)wh32 - sizeof(DWORD) - sizeof(LPWAVEHDR));
 	    LPWAVEHDR		wh16 = MapSL(segwh16);
 
 	    *dwParam1 = (DWORD)segwh16;
