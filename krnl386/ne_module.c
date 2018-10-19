@@ -2084,7 +2084,7 @@ static HMODULE16 NE_GetModuleByFilename( LPCSTR name )
      * Return its handle.
      */
 
-    if ( (p = strrchr( s, '.' )) != NULL ) *p = '\0';
+    if ( (p = strchr( s, '.' )) != NULL ) *p = '\0';
     len = strlen(s);
 
     for (hModule = hFirstModule; hModule ; hModule = pModule->next)
