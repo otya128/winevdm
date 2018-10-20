@@ -932,21 +932,36 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
     char filenamebuf[MAX_PATH];
     TRACE("%s %s %s\n", filename, section, entry);
     LPCSTR filename_file = PathFindFileNameA(filename);
-    for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
+    if (entry)
     {
-        if (!stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section) && !stricmp(entry, ini_redirect_list[i].entry))
+        for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
         {
-            LPCSTR val = ini_redirect_list[i].value;
-            if (!val && ini_redirect_list[i].get_str)
+            if (!stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section) && !stricmp(entry, ini_redirect_list[i].entry))
             {
-                val = ini_redirect_list[i].get_str();
+                LPCSTR val = ini_redirect_list[i].value;
+                SIZE_T size;
+                if (!val && ini_redirect_list[i].get_str)
+                {
+                    val = ini_redirect_list[i].get_str();
+                }
+                if (!val)
+                {
+                    break;
+                }
+                if (len == 0)
+                {
+                    return 0;
+                }
+                else if (len == 1)
+                {
+                    buffer[0] = '\0';
+                    return 0;
+                }
+                size = min(strlen(val), len - 1);
+                memcpy(buffer, val, size);
+                buffer[size] = '\0';
+                return strlen(buffer);
             }
-            if (!val)
-            {
-                break;
-            }
-            strcpy_s(buffer, len, val);
-            return strlen(buffer);
         }
     }
     RedirectPrivateProfileStringWindowsDir(filename, filenamebuf);
