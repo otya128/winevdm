@@ -429,7 +429,7 @@
 470 stub StringFunc
 471 pascal -ret16 lstrcmpi(str str) lstrcmpiA
 472 pascal   AnsiNext(segptr) AnsiNext16
-473 pascal   AnsiPrev(str segptr) AnsiPrev16
+473 pascal   AnsiPrev(segptr segptr) AnsiPrev16
 475 pascal -ret16 SetScrollInfo(word s_word ptr word) SetScrollInfo16
 476 pascal -ret16 GetScrollInfo(word s_word ptr) GetScrollInfo16
 477 pascal -ret16 GetKeyboardLayoutName(ptr) GetKeyboardLayoutName16

@@ -3312,16 +3312,22 @@ void WINAPI DrawFocusRect16( HDC16 hdc, const RECT16* rc )
 SEGPTR WINAPI AnsiNext16(SEGPTR current)
 {
     char *ptr = MapSL(current);
-    return current + (CharNextA(ptr) - ptr);
+    SEGPTR ret = current + (CharNextA(ptr) - ptr);
+    return ret;
 }
 
 
 /***********************************************************************
  *           AnsiPrev   (USER.473)
  */
-SEGPTR WINAPI AnsiPrev16( LPCSTR start, SEGPTR current )
+SEGPTR WINAPI AnsiPrev16( SEGPTR sstart, SEGPTR current )
 {
+    char *start = MapSL(sstart);
     char *ptr = MapSL(current);
+    if (sstart > current)
+    {
+        return sstart;
+    }
     if (start + strlen(start) < current)
     {
         start = ptr;
