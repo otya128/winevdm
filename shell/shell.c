@@ -292,7 +292,7 @@ HGLOBAL16 WINAPI InternalExtractIcon16(HINSTANCE16 hInstance,
 
 	if (nIconIndex == (UINT16)-1)  /* get number of icons */
 	{
-	  RetPtr[0] = PrivateExtractIconsNE(lpszExeFileName, 0, 0, 0, NULL, NULL, 0, LR_DEFAULTCOLOR);
+	  RetPtr[0] = PrivateExtractIconsNE(lpszExeFileName, -1, 0, 0, NULL, NULL, 0, LR_DEFAULTCOLOR);
 	}
 	else
 	{
@@ -332,7 +332,7 @@ HICON WINAPI ExtractIconNE(HINSTANCE hInstance, LPCSTR lpszFile, UINT nIconIndex
 
 	if (nIconIndex == (UINT)-1)
 	{
-		ret = PrivateExtractIconsNE(lpszFile, 0, cx, cy, NULL, NULL, 0, LR_DEFAULTCOLOR);
+		ret = PrivateExtractIconsNE(lpszFile, -1, cx, cy, NULL, NULL, 0, LR_DEFAULTCOLOR);
 		if (ret != (UINT)-1 && ret)
 			return (HICON)(UINT_PTR)ret;
 		return NULL;
@@ -359,7 +359,7 @@ HICON16 WINAPI ExtractIcon16( HINSTANCE16 hInstance, LPCSTR lpszExeFileName,
     lpszExeFileName = RedirectSystemDir(lpszExeFileName, buf, MAX_PATH);
     if (nIconIndex == 0xFFFF)
     {
-	    return convert_icon_to_16(hInstance, ExtractIconNE(NULL, lpszExeFileName, -1));
+	    return ExtractIconNE(NULL, lpszExeFileName, -1);
     }
     return convert_icon_to_16( hInstance, ExtractIconNE(NULL, lpszExeFileName, nIconIndex) );
 }
