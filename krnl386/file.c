@@ -828,6 +828,16 @@ UINT16 WINAPI GetPrivateProfileInt16( LPCSTR section, LPCSTR entry,
      * here, but Win98SE doesn't care about this at all, so I deleted it.
      * AFAIR versions prior to Win9x had these limits, though. */
     char ini[MAX_PATH];
+
+    LPCSTR filename_file = PathFindFileNameA(filename);
+    for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
+    {
+        if (!stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section) && !stricmp(entry, ini_redirect_list[i].entry))
+        {
+            if (ini_redirect_list[i].get_int)
+                return ini_redirect_list[i].get_int();
+        }
+    }
     RedirectPrivateProfileStringWindowsDir(filename,ini);
     return (INT16)GetPrivateProfileIntA(section,entry,def_val,ini);
 }
