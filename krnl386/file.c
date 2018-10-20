@@ -799,6 +799,23 @@ struct ini_redirect_data ini_redirect_list[] =
     {"system.ini", "boot.description", "language.dll", NULL, system_init_boot_description_language_dll},
     {"system.ini", "boot.description", "codepage", NULL, NULL, system_init_boot_description_codepage},
     /* {"system.ini", "boot.description", "woafont.fon", ""}, */
+
+    /* HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\MCI (Only available in 32-bit windows) */
+    {"system.ini", "mci", "AVIVideo", "mciavi.drv"},
+
+    {"system.ini", "mci", "Sequencer", "mciseq.drv"},
+    {"system.ini", "mci", "CDAudio", "mcicda.drv"},
+    {"system.ini", "mci", "WaveAudio", "mciwave.drv"},
+
+    /*
+    HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\MCI Extensions
+    HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\MCI Extensions
+    */
+    /*
+    {"win.ini", "mci extensions", "wav", "waveaudio"},
+    {"win.ini", "mci extensions", "mid", "sequencer"},
+    {"win.ini", "mci extensions", "rmi", "sequencer"},
+    */
 };
 
 /***********************************************************************
@@ -855,6 +872,46 @@ void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output)
         strcpy(output, filename);
     }
 }
+static BOOL append_ini_section(LPSTR data, SIZE_T *buf_pos, SIZE_T len, LPCSTR entry)
+{
+    SIZE_T ent_len = strlen(entry) + 1;
+    memcpy(data + *buf_pos, entry, min(ent_len, len - *buf_pos - 2));
+    *buf_pos += min(ent_len, len - *buf_pos - 2);
+    data[*buf_pos] = '\0';
+    data[*buf_pos + 1] = '\0';
+    return TRUE;
+}
+static int construct_redirected_ini_section(LPCSTR section, LPSTR data, UINT16 size, LPCSTR filename)
+{
+    LPCSTR filename_file = PathFindFileNameA(filename);
+    SIZE_T buf_pos = 0;
+    if (size == 0)
+    {
+        return 0;
+    }
+    if (size == 1)
+    {
+        data[0] = '\0';
+        return 0;
+    }
+    data[0] = '\0';
+    data[1] = '\0';
+    if (size == 2)
+    {
+        return 0;
+    }
+    for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
+    {
+        if (!stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section))
+        {
+            if (!append_ini_section(data, &buf_pos, size, ini_redirect_list[i].entry))
+            {
+                break;
+            }
+        }
+    }
+    return buf_pos;
+}
 /***********************************************************************
  *           GetPrivateProfileString   (KERNEL.128)
  */
@@ -892,6 +949,11 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
         if (buffer && len) buffer[0] = 0;
         return 0;
     }
+    /* len = 0 means unlimited buffer length (windows bug?) */
+    if (!entry && len == 0)
+    {
+        len = 0xffff;
+    }
     if (!entry)
     {
         /* We have to return the list of keys in the section but without the values
@@ -907,7 +969,7 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
             if (!ret)
             {
                 HeapFree( GetProcessHeap(), 0, data );
-                return GetPrivateProfileStringA( section, entry, def_val, buffer, len, filename );
+                return construct_redirected_ini_section(section, buffer, oldlen, filename);
             }
             if (ret != size - 2) break;
             /* overflow, try again */
