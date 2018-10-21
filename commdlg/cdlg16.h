@@ -180,4 +180,10 @@ COMMDLGTHUNK *allocate_thunk(SEGPTR ofnseg, SEGPTR func);
 void delete_thunk(LPVOID func);
 #include "poppack.h"
 
+typedef struct
+{
+    HMENU16 hMenu16;
+    DLGPROC16 dlgProc;
+} dialog_data;
+DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size, dialog_data *paramd);
 #endif /* _WINE_DLL_CDLG16_H */

@@ -229,7 +229,6 @@ DWORD get_ofn_flag(DWORD flag)
     return (flag | OFN_NOLONGNAMES) & ~OFN_ENABLETEMPLATE;
 }
 #pragma comment(lib, "dbghelp.lib")
-DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size);
 LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
 {
     HGLOBAL16 hmem;
@@ -270,7 +269,7 @@ LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
     if (!(hmem32 = LoadResource(BaseAddress, hRsrc32))) return 0;
     if (!(data32 = LockResource(hmem32))) return 0;
     DWORD sized;
-    DLGTEMPLATE *tmp32 = dialog_template16_to_template32(hInstance, data, &sized);
+    DLGTEMPLATE *tmp32 = dialog_template16_to_template32(hInstance, data, &sized, NULL);
     memcpy(data32, tmp32, sized);
     DWORD _;
     VirtualProtect(mbi.BaseAddress, mbi.RegionSize, oldprotect, &_);
@@ -336,7 +335,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
                 ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
             }
         }
-        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr, &size2);
+        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr, &size2, NULL);
         template = (LPDLGTEMPLATEA)ofn32.hInstance;
         ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
         FreeResource16( handle );
@@ -427,7 +426,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
                 ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
             }
         }
-        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr, &size2);
+        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr, &size2, NULL);
         template = (LPDLGTEMPLATEA)ofn32.hInstance;
         ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
         FreeResource16( handle );

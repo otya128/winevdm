@@ -80,7 +80,6 @@ static HGLOBAL global_handle_from_16( HGLOBAL16 handle )
     return ret;
 }
 
-DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size);
 LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name)
 {
     HRSRC16 res = FindResource16(hInst, name, (LPCSTR)RT_DIALOG);
@@ -89,7 +88,7 @@ LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name)
     void *ptr = LockResource16(handle);
     DWORD size2;
 
-    LPDLGTEMPLATEA r = dialog_template16_to_template32(hInst, ptr, &size2);
+    LPDLGTEMPLATEA r = dialog_template16_to_template32(hInst, ptr, &size2, NULL);
     FreeResource16(handle);
     return r;
 }
