@@ -44,7 +44,7 @@ UINT WMCOLOROK;
 UINT WMSHAREVI;
 UINT WMWOWDirChange;
 
-LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC proc);
+LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC16 proc);
 static UINT_PTR CALLBACK thunk_hook(COMMDLGTHUNK *thunk, HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
     /* window message hook? */
@@ -52,7 +52,7 @@ static UINT_PTR CALLBACK thunk_hook(COMMDLGTHUNK *thunk, HWND hwnd, UINT msg, WP
     {
         lp = thunk->segofn16;
     }
-    UINT_PTR result = DIALOG_CallDialogProc(hwnd, msg, wp, lp, thunk->func);
+    UINT_PTR result = DIALOG_CallDialogProc(hwnd, msg, wp, lp, (WNDPROC16)thunk->func);
     return result;
 }
 
@@ -72,7 +72,7 @@ static void init_thunk()
 
 void delete_thunk(LPVOID func)
 {
-    if (func && thunk_array <= func && func <= thunk_array + MAX_THUNK)
+    if (func && (SIZE_T)thunk_array <= (SIZE_T)func && (SIZE_T)func <= (SIZE_T)(thunk_array + MAX_THUNK))
     {
         ((COMMDLGTHUNK*)func)->used = FALSE;
     }
@@ -87,10 +87,10 @@ COMMDLGTHUNK *allocate_thunk(SEGPTR ofnseg, SEGPTR func)
         {
             thunk_array[i].pop_eax  = 0x58;
             thunk_array[i].push     = 0x68;
-            thunk_array[i].this_    = thunk_array + i;
+            thunk_array[i].this_    = (DWORD)(thunk_array + i);
             thunk_array[i].push_eax = 0x50;
             thunk_array[i].mov_eax  = 0xB8;
-            thunk_array[i].address  = thunk_hook;
+            thunk_array[i].address  = (DWORD)thunk_hook;
             thunk_array[i].jmp      = 0xFF;
             thunk_array[i].eax      = 0xE0;
             thunk_array[i].used     = TRUE;
@@ -240,7 +240,6 @@ LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
     if (!(data = LockResource16(hmem))) return 0;
     PVOID BaseAddress = GetModuleHandleW(L"commdlg.dll16");
     IMAGE_RESOURCE_DIRECTORY *dir;
-    IMAGE_RESOURCE_DIR_STRING_U *str;
     ULONG size;
     PVOID root = ImageDirectoryEntryToData(BaseAddress, TRUE, IMAGE_DIRECTORY_ENTRY_RESOURCE, &size);
     MEMORY_BASIC_INFORMATION mbi;
@@ -257,9 +256,9 @@ LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
     pos = min;
     while (pos <= max)
     {
-        if (entry[pos].Id == RT_BITMAP)
+        if (entry[pos].Id == (WORD)RT_BITMAP)
         {
-            entry[pos].Id = RT_DIALOG;
+            entry[pos].Id = (WORD)RT_DIALOG;
             break;
         }
         pos++;
@@ -267,7 +266,7 @@ LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
     HRSRC hRsrc32;
     HGLOBAL hmem32;
     LPVOID data32;
-    if (!(hRsrc32 = FindResourceA(BaseAddress, IDB_BITMAP1, (LPSTR)RT_DIALOG))) return 0;
+    if (!(hRsrc32 = FindResourceA(BaseAddress, (LPCSTR)IDB_BITMAP1, (LPCSTR)RT_DIALOG))) return 0;
     if (!(hmem32 = LoadResource(BaseAddress, hRsrc32))) return 0;
     if (!(data32 = LockResource(hmem32))) return 0;
     DWORD sized;
@@ -345,7 +344,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 
     if (lpofn->Flags & OFN_ENABLEHOOK)
     {
-        ofn32.lpfnHook = allocate_thunk(ofn, lpofn->lpfnHook);
+        ofn32.lpfnHook = (LPOFNHOOKPROC)allocate_thunk(ofn, (SEGPTR)lpofn->lpfnHook);
         ((COMMDLGTHUNK*)ofn32.lpfnHook)->ofn16 = ofn16;
         if (!ofn32.lpfnHook)
         {
@@ -436,7 +435,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 
     if (lpofn->Flags & OFN_ENABLEHOOK)
     {
-        ofn32.lpfnHook = allocate_thunk(ofn, lpofn->lpfnHook);
+        ofn32.lpfnHook = (LPOFNHOOKPROC)allocate_thunk(ofn, (SEGPTR)lpofn->lpfnHook);
         ((COMMDLGTHUNK*)ofn32.lpfnHook)->ofn16 = ofn16;
         if (!ofn32.lpfnHook)
         {

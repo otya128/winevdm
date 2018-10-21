@@ -81,7 +81,7 @@ static HGLOBAL global_handle_from_16( HGLOBAL16 handle )
 }
 
 DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size);
-LPDLGTEMPLATEA *resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name)
+LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name)
 {
     HRSRC16 res = FindResource16(hInst, name, (LPCSTR)RT_DIALOG);
     HGLOBAL16 handle = LoadResource16(hInst, res);
@@ -89,7 +89,7 @@ LPDLGTEMPLATEA *resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name)
     void *ptr = LockResource16(handle);
     DWORD size2;
 
-    LPDLGTEMPLATEA *r = dialog_template16_to_template32(hInst, ptr, &size2);
+    LPDLGTEMPLATEA r = dialog_template16_to_template32(hInst, ptr, &size2);
     FreeResource16(handle);
     return r;
 }
@@ -157,15 +157,15 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
         FIXME( "custom templates handle no longer supported, using default\n" );
     if (lppd->Flags & PD_ENABLEPRINTHOOK)
     {
-        COMMDLGTHUNK *thunk = allocate_thunk(pd, lppd->lpfnPrintHook);
+        COMMDLGTHUNK *thunk = allocate_thunk(pd, (SEGPTR)lppd->lpfnPrintHook);
         pd32.Flags |= PD_ENABLEPRINTHOOK;
-        pd32.lpfnPrintHook = thunk;
+        pd32.lpfnPrintHook = (LPPRINTHOOKPROC)thunk;
     }
     if (lppd->Flags & PD_ENABLESETUPHOOK)
     {
-        COMMDLGTHUNK *thunk = allocate_thunk(pd, lppd->lpfnSetupHook);
+        COMMDLGTHUNK *thunk = allocate_thunk(pd, (SEGPTR)lppd->lpfnSetupHook);
         pd32.Flags |= PD_ENABLEPRINTHOOK;
-        pd32.lpfnSetupHook = thunk;
+        pd32.lpfnSetupHook = (LPSETUPHOOKPROC)thunk;
     }
 
     /* Generate failure with CDERR_STRUCTSIZE, when needed */
