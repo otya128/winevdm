@@ -755,7 +755,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
     paramd->dlgProc = dlgProc;
     /* Add menu height */
     /* Precision...? */
-    if (paramd->hMenu16)
+    if (hMenu)
     {
         template32->cy += MulDiv(GetSystemMetrics(SM_CYMENU), 8, yBaseUnit);
     }
