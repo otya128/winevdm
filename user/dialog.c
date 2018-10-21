@@ -662,24 +662,9 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	*templatew++ = 0;
 	int len;
 	HINSTANCE hInst32 = HINSTANCE_32(hInst);
-	BOOL hasclass = TRUE;
 	if (template.className == DIALOG_CLASS_ATOM)
 	{
-		hasclass = FALSE;
-		TRACE("\n");
-        template.className = "#32770";
-		//*templatew++ = 0;
-		//WNDclass
-		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, (1 + strlen(template.className)) * 4)
-			* 2;
-		if (len)
-		{
-			templatew = (WORD*)((BYTE*)templatew + len);
-		}
-		else
-		{
-			*templatew++ = 0;
-		}
+        *templatew++ = 0;
 	}
 	else
 	{
