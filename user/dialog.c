@@ -478,86 +478,128 @@ static BOOL DIALOG_DumpControls32(HWND hwnd, LPCSTR template,
 #include <stdio.h>
 
 /* internal API for COMMDLG hooks */
-DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size)
+DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size, dialog_data *paramd)
 {
-    HMENU16 hMenu = 0;
-    DLG_TEMPLATE template;
-    /* Parse dialog template */
-    dlgTemplate = DIALOG_ParseTemplate16(dlgTemplate, &template);
-    /* Load menu */
-    if (template.menuName)
-    {
-        FIXME("dialog menu is not supported\n");
-        hMenu = LoadMenu16(hInst, template.menuName);
-    }
-    //FIXME:memory
-    DLGTEMPLATE *template32 = HeapAlloc(GetProcessHeap(), 0, 1024 + template.nbItems * 512);
-    *size = 1024 + template.nbItems * 512;
-    template32->style = template.style;
-    template32->dwExtendedStyle = 0;
-    template32->cdit = template.nbItems;
-    template32->x = template.x;
-    template32->y = template.y;
-    template32->cx = template.cx;
-    template32->cy = template.cy;
-    WORD *templatew = (WORD*)(template32 + 1);
-    //Menu
-    *templatew++ = 0;
-    int len;
     HINSTANCE hInst32 = HINSTANCE_32(hInst);
-    if (template.className == DIALOG_CLASS_ATOM)
-    {
-        //Don't set __DIALOGCLASS__.
+    DLGTEMPLATE *template32;
+	DLG_TEMPLATE template;
+	DWORD units = GetDialogBaseUnits();
+	HMENU16 hMenu = 0;
+	HFONT hUserFont = 0;
+	UINT xBaseUnit = LOWORD(units);
+	UINT yBaseUnit = HIWORD(units);
+
+	/* Parse dialog template */
+
+	dlgTemplate = DIALOG_ParseTemplate16(dlgTemplate, &template);
+
+	/* Load menu */
+
+	if (template.menuName) hMenu = LoadMenu16(hInst, template.menuName);
+	//FIXME:memory
+	template32 = HeapAlloc(GetProcessHeap(), 0, 1024 + template.nbItems * 512);
+	template32->style = template.style;
+	template32->dwExtendedStyle = 0;
+	template32->cdit = template.nbItems;
+	template32->x = template.x;
+	template32->y = template.y;
+	template32->cx = template.cx;
+	template32->cy = template.cy;
+	WORD *templatew = (WORD*)(template32 + 1);
+	//Menu
+	*templatew++ = 0;
+	int len;
+	if (template.className == DIALOG_CLASS_ATOM)
+	{
         *templatew++ = 0;
-    }
-    else
-    {
-        //WNDclass
+	}
+	else
+	{
+		//WNDclass
         template.className = win32classname(hInst, template.className);
-        len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, (1 + strlen(template.className)) * 4)
-            * 2;
-        if (len)
+		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, (1 + strlen(template.className)) * 4)
+			* 2;
+		if (len)
+		{
+			templatew = (WORD*)((BYTE*)templatew + len);
+		}
+		else
+		{
+			*templatew++ = 0;
+		}
+	}
+	//dialog title
+	len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, (1 + strlen(template.caption)) * 4)
+		* 2;
+	if (len)
+	{
+		templatew = (WORD*)((BYTE*)templatew + len);
+	}
+	else
+	{
+		*templatew++ = 0;
+	}
+	if (template.style & DS_SETFONT)
+	{
+		*templatew++ = template.pointSize;
+		len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, (1 + strlen(template.faceName)) * 4)
+			* 2;
+		if (len)
+		{
+			templatew = (WORD*)((BYTE*)templatew + len);
+		}
+		else
+		{
+			*templatew++ = 0;
+		}
+          /* We convert the size to pixels and then make it -ve.  This works
+           * for both +ve and -ve template.pointSize */
+        HDC dc;
+        int pixels;
+        dc = GetDC(0);
+        pixels = MulDiv(template.pointSize, GetDeviceCaps(dc , LOGPIXELSY), 72);
+        hUserFont = CreateFontA( -pixels, 0, 0, 0, FW_DONTCARE,
+                                 FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0,
+                                 PROOF_QUALITY, FF_DONTCARE, template.faceName );
+        if (hUserFont)
         {
-            templatew = (WORD*)((BYTE*)templatew + len);
+            SIZE charSize;
+            HFONT hOldFont = SelectObject( dc, hUserFont );
+            charSize.cx = GdiGetCharDimensions( dc, NULL, &charSize.cy );
+            if (charSize.cx)
+            {
+                xBaseUnit = charSize.cx;
+                yBaseUnit = charSize.cy;
+            }
+            SelectObject( dc, hOldFont );
         }
-        else
-        {
-            *templatew++ = 0;
-        }
-    }
-    //dialog title
-    len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, (1 + strlen(template.caption)) * 4)
-        * 2;
-    if (len)
+        ReleaseDC(0, dc);
+        TRACE("units = %d,%d\n", xBaseUnit, yBaseUnit );
+	}
+	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
+	WNDCLASSEXA wc2 = { 0 };
+	GetClassInfoExA(hInst32, template.className, &wc2);
+	if (!wc2.lpszClassName)
+		GetClassInfoExA(GetModuleHandleW(NULL), template.className, &wc2);
+    if (!paramd)
     {
-        templatew = (WORD*)((BYTE*)templatew + len);
+        if (hMenu || wc2.lpszMenuName)
+        {
+            FIXME("dialog menu is not supported.\n");
+        }
     }
     else
     {
-        *templatew++ = 0;
+        paramd->hMenu16 = hMenu;
+        if (!hMenu)
+            paramd->hMenu16 = LoadMenu16(hInst, wc2.lpszMenuName);
     }
-    if (template.style & DS_SETFONT)
+    /* Add menu height */
+    /* Precision...? */
+    if (hMenu)
     {
-        *templatew++ = template.pointSize;
-        len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, (1 + strlen(template.faceName)) * 4)
-            * 2;
-        if (len)
-        {
-            templatew = (WORD*)((BYTE*)templatew + len);
-        }
-        else
-        {
-            *templatew++ = 0;
-        }
+        template32->cy += MulDiv(GetSystemMetrics(SM_CYMENU), 8, yBaseUnit);
     }
-    DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
-    WNDCLASSEXA wc, wc2 = { 0 };
-    // Get the info for this class.
-    // #32770 is the default class name for dialogs boxes.
-    GetClassInfoExA(NULL, "#32770", &wc);
-    GetClassInfoExA(hInst32, template.className, &wc2);
-    if (!wc2.lpszClassName)
-        GetClassInfoExA(GetModuleHandle(NULL), template.className, &wc2);
     return template32;
 }
 static DLGPROCTHUNK *thunk_array;
@@ -633,125 +675,19 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	BOOL modal)
 {
 	HWND hwnd;
-	DLG_TEMPLATE template;
-	DWORD units = GetDialogBaseUnits();
-	HMENU16 hMenu = 0;
-	HFONT hUserFont = 0;
-	UINT xBaseUnit = LOWORD(units);
-	UINT yBaseUnit = HIWORD(units);
     dialog_data *paramd = (dialog_data*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(dialog_data));
-
-	/* Parse dialog template */
-
-	dlgTemplate = DIALOG_ParseTemplate16(dlgTemplate, &template);
-
-	/* Load menu */
-
-	if (template.menuName) hMenu = LoadMenu16(hInst, template.menuName);
-	//FIXME:memory
-	DLGTEMPLATE *template32 = HeapAlloc(GetProcessHeap(), 0, 1024 + template.nbItems * 512);
-	template32->style = template.style;
-	template32->dwExtendedStyle = 0;
-	template32->cdit = template.nbItems;
-	template32->x = template.x;
-	template32->y = template.y;
-	template32->cx = template.cx;
-	template32->cy = template.cy;
-	WORD *templatew = (WORD*)(template32 + 1);
-	//Menu
-	*templatew++ = 0;
-	int len;
-	HINSTANCE hInst32 = HINSTANCE_32(hInst);
-	if (template.className == DIALOG_CLASS_ATOM)
-	{
-        *templatew++ = 0;
-	}
-	else
-	{
-		//WNDclass
-        template.className = win32classname(hInst, template.className);
-		len = MultiByteToWideChar(CP_ACP, NULL, template.className, -1, (LPWSTR)templatew, (1 + strlen(template.className)) * 4)
-			* 2;
-		if (len)
-		{
-			templatew = (WORD*)((BYTE*)templatew + len);
-		}
-		else
-		{
-			*templatew++ = 0;
-		}
-	}
-	//dialog title
-	len = MultiByteToWideChar(CP_ACP, NULL, template.caption, -1, (LPWSTR)templatew, (1 + strlen(template.caption)) * 4)
-		* 2;
-	if (len)
-	{
-		templatew = (WORD*)((BYTE*)templatew + len);
-	}
-	else
-	{
-		*templatew++ = 0;
-	}
-	if (template.style & DS_SETFONT)
-	{
-		*templatew++ = template.pointSize;
-		len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, (1 + strlen(template.faceName)) * 4)
-			* 2;
-		if (len)
-		{
-			templatew = (WORD*)((BYTE*)templatew + len);
-		}
-		else
-		{
-			*templatew++ = 0;
-		}
-          /* We convert the size to pixels and then make it -ve.  This works
-           * for both +ve and -ve template.pointSize */
-        HDC dc;
-        int pixels;
-        dc = GetDC(0);
-        pixels = MulDiv(template.pointSize, GetDeviceCaps(dc , LOGPIXELSY), 72);
-        hUserFont = CreateFontA( -pixels, 0, 0, 0, FW_DONTCARE,
-                                 FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0,
-                                 PROOF_QUALITY, FF_DONTCARE, template.faceName );
-        if (hUserFont)
-        {
-            SIZE charSize;
-            HFONT hOldFont = SelectObject( dc, hUserFont );
-            charSize.cx = GdiGetCharDimensions( dc, NULL, &charSize.cy );
-            if (charSize.cx)
-            {
-                xBaseUnit = charSize.cx;
-                yBaseUnit = charSize.cy;
-            }
-            SelectObject( dc, hOldFont );
-        }
-        ReleaseDC(0, dc);
-        TRACE("units = %d,%d\n", xBaseUnit, yBaseUnit );
-	}
-	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
-	WNDCLASSEXA wc2 = { 0 };
-	GetClassInfoExA(hInst32, template.className, &wc2);
-	if (!wc2.lpszClassName)
-		GetClassInfoExA(GetModuleHandleW(NULL), template.className, &wc2);
-    paramd->hMenu16 = hMenu;
-    if (!hMenu)
-        paramd->hMenu16 = LoadMenu16(hInst, wc2.lpszMenuName);
-    paramd->dlgProc = dlgProc;
-    /* Add menu height */
-    /* Precision...? */
-    if (hMenu)
-    {
-        template32->cy += MulDiv(GetSystemMetrics(SM_CYMENU), 8, yBaseUnit);
-    }
+    HINSTANCE hInst32 = HINSTANCE_32(hInst);
+    DWORD size;
+    DLGTEMPLATE *template32 = dialog_template16_to_template32(hInst32, dlgTemplate, &size, paramd);
     DWORD count;
     DLGPROC proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
+    paramd->dlgProc = dlgProc;
     ReleaseThunkLock(&count);
 	if (modal)
     {
 		INT_PTR ret = DialogBoxIndirectParamA(
 			hInst32,
-			(DLGTEMPLATE*)template32,
+			template32,
 			owner,
             proc, param);
         RestoreThunkLock(count);
@@ -760,7 +696,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	else
 	hwnd = CreateDialogIndirectParamA(
 		hInst32,
-		(DLGTEMPLATE*)template32,
+		template32,
 		owner,
         proc, param);
     RestoreThunkLock(count);
