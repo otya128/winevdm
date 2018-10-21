@@ -485,9 +485,13 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
     /* Parse dialog template */
     dlgTemplate = DIALOG_ParseTemplate16(dlgTemplate, &template);
     /* Load menu */
-    if (template.menuName) hMenu = LoadMenu16(hInst, template.menuName);
+    if (template.menuName)
+    {
+        FIXME("dialog menu is not supported\n");
+        hMenu = LoadMenu16(hInst, template.menuName);
+    }
     //FIXME:memory
-    DLGTEMPLATE *template32 = malloc(1024 + template.nbItems * 512);
+    DLGTEMPLATE *template32 = HeapAlloc(GetProcessHeap(), 0, 1024 + template.nbItems * 512);
     *size = 1024 + template.nbItems * 512;
     template32->style = template.style;
     template32->dwExtendedStyle = 0;
@@ -501,10 +505,8 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
     *templatew++ = 0;
     int len;
     HINSTANCE hInst32 = HINSTANCE_32(hInst);
-    BOOL hasclass = TRUE;
     if (template.className == DIALOG_CLASS_ATOM)
     {
-        hasclass = FALSE;
         //Don't set __DIALOGCLASS__.
         *templatew++ = 0;
     }
@@ -630,32 +632,24 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 	HWND owner, DLGPROC16 dlgProc, LPARAM param,
 	BOOL modal)
 {
-	//DoDebugDialog(NULL, NULL);
 	HWND hwnd;
-	RECT rect;
-	POINT pos;
-	SIZE size;
 	DLG_TEMPLATE template;
-	DIALOGINFO * dlgInfo;
-	BOOL ownerEnabled = TRUE;
-	DWORD exStyle = 0;
 	DWORD units = GetDialogBaseUnits();
 	HMENU16 hMenu = 0;
 	HFONT hUserFont = 0;
-	UINT flags = 0;
 	UINT xBaseUnit = LOWORD(units);
 	UINT yBaseUnit = HIWORD(units);
+    dialog_data *paramd = (dialog_data*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(dialog_data));
 
 	/* Parse dialog template */
 
 	dlgTemplate = DIALOG_ParseTemplate16(dlgTemplate, &template);
 
-	DLG_TEMPLATE *templatedbg = &template;
 	/* Load menu */
 
 	if (template.menuName) hMenu = LoadMenu16(hInst, template.menuName);
 	//FIXME:memory
-	DLGTEMPLATE *template32 = malloc(1024 + template.nbItems * 512);//zatsu
+	DLGTEMPLATE *template32 = HeapAlloc(GetProcessHeap(), 0, 1024 + template.nbItems * 512);
 	template32->style = template.style;
 	template32->dwExtendedStyle = 0;
 	template32->cdit = template.nbItems;
@@ -751,14 +745,10 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
         TRACE("units = %d,%d\n", xBaseUnit, yBaseUnit );
 	}
 	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
-	WNDCLASSEXA wc, wc2 = { 0 };
-	// Get the info for this class.
-	// #32770 is the default class name for dialogs boxes.
-	GetClassInfoExA(NULL, "#32770", &wc);
+	WNDCLASSEXA wc2 = { 0 };
 	GetClassInfoExA(hInst32, template.className, &wc2);
 	if (!wc2.lpszClassName)
-		GetClassInfoExA(GetModuleHandle(NULL), template.className, &wc2);
-    dialog_data *paramd = (dialog_data*)HeapAlloc(GetProcessHeap(), 0, sizeof(dialog_data));
+		GetClassInfoExA(GetModuleHandleW(NULL), template.className, &wc2);
     paramd->hMenu16 = hMenu;
     if (!hMenu)
         paramd->hMenu16 = LoadMenu16(hInst, wc2.lpszMenuName);
@@ -789,7 +779,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
 		owner,
         proc, param);
     RestoreThunkLock(count);
-	free(template32);
+	HeapFree(GetProcessHeap(), 0, template32);
 	return hwnd;
 }
 
