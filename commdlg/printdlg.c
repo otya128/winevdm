@@ -85,10 +85,10 @@ LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name)
     HRSRC16 res = FindResource16(hInst, name, (LPCSTR)RT_DIALOG);
     HGLOBAL16 handle = LoadResource16(hInst, res);
     DWORD size = SizeofResource16(hInst, res);
-    void *ptr = LockResource16(handle);
+    SEGPTR ptr16 = WOWGlobalLock16(handle);
     DWORD size2;
 
-    LPDLGTEMPLATEA r = dialog_template16_to_template32(hInst, ptr, &size2, NULL);
+    LPDLGTEMPLATEA r = dialog_template16_to_template32(hInst, ptr16, &size2, NULL);
     FreeResource16(handle);
     return r;
 }

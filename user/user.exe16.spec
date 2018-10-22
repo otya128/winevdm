@@ -216,7 +216,7 @@
 #217-299 not in W1.1
 217 pascal -ret16 LookupMenuHandle(word s_word) LookupMenuHandle16
 218 pascal -ret16 DialogBoxIndirect(word word word segptr) DialogBoxIndirect16
-219 pascal -ret16 CreateDialogIndirect(word ptr word segptr) CreateDialogIndirect16
+219 pascal -ret16 CreateDialogIndirect(word segptr word segptr) CreateDialogIndirect16
 220 pascal -ret16 LoadMenuIndirect(ptr) LoadMenuIndirect16
 221 pascal -ret16 ScrollDC(word s_word s_word ptr ptr word ptr) ScrollDC16
 222 pascal -ret16 GetKeyboardState(ptr) GetKeyboardState16
@@ -239,7 +239,7 @@
 239 pascal -ret16 DialogBoxParam(word str word segptr long) DialogBoxParam16
 240 pascal -ret16 DialogBoxIndirectParam(word word word segptr long) DialogBoxIndirectParam16
 241 pascal -ret16 CreateDialogParam(word str word segptr long) CreateDialogParam16
-242 pascal -ret16 CreateDialogIndirectParam(word ptr word segptr long) CreateDialogIndirectParam16
+242 pascal -ret16 CreateDialogIndirectParam(word segptr word segptr long) CreateDialogIndirectParam16
 243 pascal   GetDialogBaseUnits() GetDialogBaseUnits16
 244 pascal -ret16 EqualRect(ptr ptr) EqualRect16
 245 pascal -ret16 EnableCommNotification(s_word word s_word s_word) EnableCommNotification16

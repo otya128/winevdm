@@ -385,7 +385,7 @@ void copy_widestr(LPCSTR name, LPWSTR *templatew)
 * Create the control windows for a dialog.
 */
 static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
-	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATE *dlgItemTemplate32)
+	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATE *dlgItemTemplate32, SEGPTR base16, SIZE_T base32)
 {
 	DLG_CONTROL_INFO info;
 	HWND hwndCtrl, hwndDefButton = 0;
@@ -395,12 +395,8 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 	TRACE(" BEGIN\n");
 	while (items--)
 	{
-		HINSTANCE16 instance = hInst;
-		SEGPTR segptr;
-
 		paddingDWORD(&dlgItemTemplate32);
 		template = DIALOG_GetControl16(template, &info);
-		//segptr = MapLS(info.data);
         dlgItemTemplate32->style = info.style | WS_CHILD;
 		dlgItemTemplate32->dwExtendedStyle = 0;// WS_EX_NOPARENTNOTIFY;
 		dlgItemTemplate32->x = info.x;
@@ -418,7 +414,6 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
             {
                 sprintf(buffer, "#%d", (int)info.windowName);
                 copy_widestr(buffer, &dlgItemTemplatew);
-                //LoadImage16
             }
             else
             {
@@ -436,7 +431,8 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		if (info.data)
 		{
 			*dlgItemTemplatew++ = sizeof(WORD) + sizeof(info.data);
-			*((LPCVOID*)dlgItemTemplatew) = MapLS(info.data);
+            /* reference to 16-bit dialog template */
+            *((LPCVOID*)dlgItemTemplatew) = MAKESEGPTR(SELECTOROF(base16), OFFSETOF(base16) + (WORD)((SIZE_T)info.data - base32));
 			dlgItemTemplatew += 2;
 		}
 		else
@@ -477,7 +473,7 @@ static BOOL DIALOG_DumpControls32(HWND hwnd, LPCSTR template,
 #include <stdio.h>
 
 /* internal API for COMMDLG hooks */
-DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size, dialog_data *paramd)
+DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, SEGPTR dlgTemplate16, DWORD *size, dialog_data *paramd)
 {
     HINSTANCE hInst32 = HINSTANCE_32(hInst);
     DLGTEMPLATE *template32;
@@ -487,6 +483,8 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
 	HFONT hUserFont = 0;
 	UINT xBaseUnit = LOWORD(units);
 	UINT yBaseUnit = HIWORD(units);
+    LPCVOID dlgTemplate = MapSL(dlgTemplate16);
+    LPCVOID base32 = dlgTemplate;
 
 	/* Parse dialog template */
 
@@ -496,7 +494,7 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
 
 	if (template.menuName) hMenu = LoadMenu16(hInst, template.menuName);
 	//FIXME:memory
-	template32 = HeapAlloc(GetProcessHeap(), 0, 1024 + template.nbItems * 512);
+	template32 = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 + template.nbItems * 512);
 	template32->style = template.style;
 	template32->dwExtendedStyle = 0;
 	template32->cdit = template.nbItems;
@@ -573,9 +571,10 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID d
             SelectObject( dc, hOldFont );
         }
         ReleaseDC(0, dc);
+        DeleteObject( hUserFont );
         TRACE("units = %d,%d\n", xBaseUnit, yBaseUnit );
 	}
-	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew);
+	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew, dlgTemplate16, (SIZE_T)base32);
 	WNDCLASSEXA wc2 = { 0 };
 	GetClassInfoExA(hInst32, template.className, &wc2);
 	if (!wc2.lpszClassName)
@@ -669,38 +668,38 @@ DLGPROC allocate_proc_thunk(LPVOID param, LPVOID func)
 * (it's more compatible to do it here, as under Windows the owner
 * is never disabled if the dialog fails because of an invalid template)
 */
-static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, LPCVOID dlgTemplate,
+static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, SEGPTR dlgTemplate16,
 	HWND owner, DLGPROC16 dlgProc, LPARAM param,
 	BOOL modal)
 {
-	HWND hwnd;
+	HWND result;
     dialog_data *paramd = (dialog_data*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(dialog_data));
     HINSTANCE hInst32 = HINSTANCE_32(hInst);
     DWORD size;
-    DLGTEMPLATE *template32 = dialog_template16_to_template32(hInst32, dlgTemplate, &size, paramd);
+    DLGTEMPLATE *template32 = dialog_template16_to_template32(hInst32, dlgTemplate16, &size, paramd);
     DWORD count;
     DLGPROC proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
     paramd->dlgProc = dlgProc;
     ReleaseThunkLock(&count);
 	if (modal)
     {
-		INT_PTR ret = DialogBoxIndirectParamA(
+        result = (HWND)DialogBoxIndirectParamA(
 			hInst32,
 			template32,
 			owner,
             proc, param);
-        RestoreThunkLock(count);
-		return ret;
 	}
-	else
-	hwnd = CreateDialogIndirectParamA(
-		hInst32,
-		template32,
-		owner,
-        proc, param);
+    else
+    {
+        result = CreateDialogIndirectParamA(
+            hInst32,
+            template32,
+            owner,
+            proc, param);
+    }
+    HeapFree(GetProcessHeap(), 0, template32);
     RestoreThunkLock(count);
-	HeapFree(GetProcessHeap(), 0, template32);
-	return hwnd;
+	return result;
 }
 
 /***********************************************************************
@@ -907,7 +906,7 @@ INT16 WINAPI DialogBoxIndirect16( HINSTANCE16 hInst, HANDLE16 dlgTemplate,
 /***********************************************************************
  *		CreateDialogIndirect (USER.219)
  */
-HWND16 WINAPI CreateDialogIndirect16( HINSTANCE16 hInst, LPCVOID dlgTemplate,
+HWND16 WINAPI CreateDialogIndirect16( HINSTANCE16 hInst, SEGPTR dlgTemplate,
                                       HWND16 owner, DLGPROC16 dlgProc )
 {
     return CreateDialogIndirectParam16( hInst, dlgTemplate, owner, dlgProc, 0);
@@ -943,12 +942,12 @@ INT16 WINAPI DialogBoxParam16( HINSTANCE16 hInst, LPCSTR template,
     HWND hwnd = 0;
     HRSRC16 hRsrc;
     HGLOBAL16 hmem;
-    LPCVOID data;
+    SEGPTR data;
     int ret = -1;
 
     if (!(hRsrc = FindResource16( hInst, template, (LPSTR)RT_DIALOG ))) return 0;
     if (!(hmem = LoadResource16( hInst, hRsrc ))) return 0;
-    if ((data = LockResource16( hmem )))
+    if ((data = WOWGlobalLock16( hmem )))
     {
         HWND owner = WIN_Handle32(owner16);
         hwnd = DIALOG_CreateIndirect16( hInst, data, owner, dlgProc, param, TRUE );
@@ -967,9 +966,9 @@ INT16 WINAPI DialogBoxIndirectParam16( HINSTANCE16 hInst, HANDLE16 dlgTemplate,
                                        HWND16 owner16, DLGPROC16 dlgProc, LPARAM param )
 {
     HWND hwnd, owner = WIN_Handle32( owner16 );
-    LPCVOID ptr;
+    SEGPTR ptr;
 
-    if (!(ptr = GlobalLock16( dlgTemplate ))) return -1;
+    if (!(ptr = WOWGlobalLock16( dlgTemplate ))) return -1;
     hwnd = DIALOG_CreateIndirect16( hInst, ptr, owner, dlgProc, param, TRUE );
     GlobalUnlock16( dlgTemplate );
     return hwnd;
@@ -985,14 +984,14 @@ HWND16 WINAPI CreateDialogParam16( HINSTANCE16 hInst, LPCSTR dlgTemplate,
     HWND16 hwnd = 0;
     HRSRC16 hRsrc;
     HGLOBAL16 hmem;
-    LPCVOID data;
+    SEGPTR data;
 
     TRACE("%04x,%s,%04x,%p,%ld\n",
           hInst, debugstr_a(dlgTemplate), owner, dlgProc, param );
 
     if (!(hRsrc = FindResource16( hInst, dlgTemplate, (LPSTR)RT_DIALOG ))) return 0;
     if (!(hmem = LoadResource16( hInst, hRsrc ))) return 0;
-    if (!(data = LockResource16( hmem ))) hwnd = 0;
+    if (!(data = WOWGlobalLock16( hmem ))) hwnd = 0;
     else hwnd = CreateDialogIndirectParam16( hInst, data, owner, dlgProc, param );
     FreeResource16( hmem );
     return hwnd;
@@ -1002,7 +1001,7 @@ HWND16 WINAPI CreateDialogParam16( HINSTANCE16 hInst, LPCSTR dlgTemplate,
 /***********************************************************************
  *		CreateDialogIndirectParam (USER.242)
  */
-HWND16 WINAPI CreateDialogIndirectParam16( HINSTANCE16 hInst, LPCVOID dlgTemplate,
+HWND16 WINAPI CreateDialogIndirectParam16( HINSTANCE16 hInst, SEGPTR dlgTemplate,
                                            HWND16 owner, DLGPROC16 dlgProc, LPARAM param )
 {
     if (!dlgTemplate) return 0;

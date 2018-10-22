@@ -269,7 +269,8 @@ LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
     if (!(hmem32 = LoadResource(BaseAddress, hRsrc32))) return 0;
     if (!(data32 = LockResource(hmem32))) return 0;
     DWORD sized;
-    DLGTEMPLATE *tmp32 = dialog_template16_to_template32(hInstance, data, &sized, NULL);
+    DLGTEMPLATE *tmp32 = dialog_template16_to_template32(hInstance, MapLS(data32), &sized, NULL);
+    UnMapLS(data32);
     memcpy(data32, tmp32, sized);
     DWORD _;
     VirtualProtect(mbi.BaseAddress, mbi.RegionSize, oldprotect, &_);
@@ -324,18 +325,10 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         HRSRC16 res = FindResource16( lpofn->hInstance, MapSL(lpofn->lpTemplateName), (LPCSTR)RT_DIALOG );
         HGLOBAL16 handle = LoadResource16( lpofn->hInstance, res );
         DWORD size = SizeofResource16( lpofn->hInstance, res );
-        void *ptr = LockResource16( handle );
+        SEGPTR ptr16 = WOWGlobalLock16(handle);
         DWORD size2;
 
-        if (0)
-        {
-            if (ptr && (template = convert_dialog(ptr, size)))
-            {
-                ofn32.hInstance = (HINSTANCE)template;
-                ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
-            }
-        }
-        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr, &size2, NULL);
+        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr16, &size2, NULL);
         template = (LPDLGTEMPLATEA)ofn32.hInstance;
         ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
         FreeResource16( handle );
@@ -415,18 +408,10 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         HRSRC16 res = FindResource16( lpofn->hInstance, MapSL(lpofn->lpTemplateName), (LPCSTR)RT_DIALOG );
         HGLOBAL16 handle = LoadResource16( lpofn->hInstance, res );
         DWORD size = SizeofResource16( lpofn->hInstance, res );
-        void *ptr = LockResource16( handle );
+        SEGPTR ptr16 = WOWGlobalLock16(handle);
         DWORD size2;
 
-        if (0)
-        {
-            if (ptr && (template = convert_dialog(ptr, size)))
-            {
-                ofn32.hInstance = (HINSTANCE)template;
-                ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
-            }
-        }
-        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr, &size2, NULL);
+        ofn32.hInstance = (HINSTANCE)dialog_template16_to_template32(lpofn->hInstance, ptr16, &size2, NULL);
         template = (LPDLGTEMPLATEA)ofn32.hInstance;
         ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
         FreeResource16( handle );

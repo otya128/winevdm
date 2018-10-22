@@ -185,5 +185,5 @@ typedef struct
     HMENU16 hMenu16;
     DLGPROC16 dlgProc;
 } dialog_data;
-DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, LPCVOID dlgTemplate, DWORD *size, dialog_data *paramd);
+DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, SEGPTR dlgTemplate16, DWORD *size, dialog_data *paramd);
 #endif /* _WINE_DLL_CDLG16_H */
