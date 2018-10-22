@@ -357,7 +357,6 @@ LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     return result;
 }
 
-LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 void paddingDWORD(DWORD **d)
 {
 	*d = (BYTE*)(((DWORD)*d + 3) & ~((DWORD)3));

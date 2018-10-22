@@ -254,7 +254,7 @@ static WNDPROC16 alloc_win16_thunk( WNDPROC handle )
     return (WNDPROC16)MAKESEGPTR( thunk_selector, index * sizeof(WINPROC_THUNK) );
 }
 
-LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK edit_wndproc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 /* Some bad behavior programs access native WNDPROC... */
 BYTE *dummy_proc;
@@ -276,7 +276,7 @@ static void init_dummy_proc()
 WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func)
 {
     init_dummy_proc();
-    if (func == (WNDPROC16)DefWndProca)
+    if (func == (WNDPROC16)WindowProc16)
         func = (WNDPROC16)DefWindowProcA;
     WNDPROC ret = WINPROC_AllocProc16(func);
     int index = winproc_to_index((WNDPROC16)ret);
@@ -334,7 +334,7 @@ WNDPROC16 WINPROC_AllocProc16_2(WNDPROC func)
     WNDPROC ret;
 
     if (!func) return NULL;
-    if (func == DefWndProca)
+    if (func == WindowProc16)
         func = DefWindowProcA;
 
     /* then check if we already have a winproc for that function */
@@ -4289,7 +4289,7 @@ void register_wow_handlers(void)
 
 BOOL is_dialog(HWND hwnd);
 HMENU get_dialog_hmenu(HWND hWnd);
-LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
     HWND16 hWnd16 = HWND_16(hDlg);
     if (!GetWndProc16(hWnd16))

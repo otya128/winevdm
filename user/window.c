@@ -1362,7 +1362,7 @@ LRESULT get_message_callback(HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
 LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
     LRESULT *result, void *arg);
 LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 WNDPROC get_classinfo_wndproc(const char *class);
 /**********************************************************************
@@ -1397,9 +1397,9 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
                 SetWindowLongA(hwnd, offset, DlgProc);
             }
         }
-        else if (oldproc != DefWndProca)
+        else if (oldproc != WindowProc16)
         {
-            SetWindowLongA(hwnd, offset, DefWndProca);
+            SetWindowLongA(hwnd, offset, WindowProc16);
         }
 		return old;
     }
@@ -2137,7 +2137,6 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
     return SetWindowPlacement( WIN_Handle32(hwnd), &wpl );
 }
 
-LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 struct WNDCLASS16Info WNDCLASS16Info[65536];
 struct WNDCLASS16Info *WNDCLASS16InfoStringAtom[65536];
 #include "../toolhelp/toolhelp.h"
@@ -2183,7 +2182,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
 
     wc32.cbSize        = sizeof(wc32);
     wc32.style         = wc->style;
-    wc32.lpfnWndProc   = DefWndProca;//WINPROC_AllocProc16( wc->lpfnWndProc );
+    wc32.lpfnWndProc   = WindowProc16;//WINPROC_AllocProc16( wc->lpfnWndProc );
     wc32.cbClsExtra    = wc->cbClsExtra;
     wc32.cbWndExtra    = 100;
     wc32.hInstance     = HINSTANCE_32(inst);
