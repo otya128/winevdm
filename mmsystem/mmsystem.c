@@ -741,7 +741,7 @@ UINT16 WINAPI midiOutGetDevCaps16(UINT16 uDeviceID, LPMIDIOUTCAPS16 lpCaps,
 
     if (lpCaps == NULL)	return MMSYSERR_INVALPARAM;
 
-    ret = midiOutGetDevCapsA(uDeviceID, &mocA, sizeof(mocA));
+    ret = midiOutGetDevCapsA((INT16)uDeviceID, &mocA, sizeof(mocA));
     if (ret == MMSYSERR_NOERROR) {
 	MIDIOUTCAPS16 moc16;
 	moc16.wMid            = mocA.wMid;
@@ -782,7 +782,7 @@ UINT16 WINAPI midiOutOpen16(HMIDIOUT16* lphMidiOut, UINT16 uDeviceID,
         return MMSYSERR_NOMEM;
     }
     dwFlags = (dwFlags & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
-    ret = midiOutOpen(&hmo, uDeviceID, (DWORD)thunk, dwInstance, dwFlags);
+    ret = midiOutOpen(&hmo, (INT16)uDeviceID, (DWORD)thunk, dwInstance, dwFlags);
     if (ret == MMSYSERR_NOERROR)
     {
         if (lphMidiOut != NULL) *lphMidiOut = HMIDIOUT_16(hmo);
