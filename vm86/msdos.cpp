@@ -1244,17 +1244,8 @@ extern "C"
         {
             /* There are no threads running VM. (e.g. call GetMessage) */
             EnterCriticalSection(&inject_crit_section);
-            static LPVOID stack;
-            static WORD ss;
-            if (!stack)
-            {
-                stack = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536);
-                ss = SELECTOR_AllocBlock(stack, 65536, WINE_LDT_FLAGS_DATA);
-            }
-            PVOID old = dynamic_getWOW32Reserved();
-            dynamic_setWOW32Reserved((PVOID)MAKESEGPTR(ss, 0x8000));
+            /* 16-bit stack is allocated by thread_attach(krnl386/kernel.c) */
             BOOL result = pWOWCallback16Ex(vpfn16, dwFlags, cbArgs, pArgs, pdwRetCode);
-            dynamic_setWOW32Reserved(old);
             LeaveCriticalSection(&inject_crit_section);
             LeaveCriticalSection(&win16_syslevel->crst);
             return result;
