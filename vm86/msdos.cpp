@@ -869,6 +869,9 @@ extern "C"
     typedef VOID (WINAPI *GetpWin16Lock_t)(SYSLEVEL **lock);
     GetpWin16Lock_t pGetpWin16Lock;
     SYSLEVEL *win16_syslevel;
+    typedef BOOL(WINAPI *WOWCallback16Ex_t)(DWORD vpfn16, DWORD dwFlags,
+        DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+    WOWCallback16Ex_t pWOWCallback16Ex;
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
         HMODULE user32 = GetModuleHandleW(L"user32.dll");
@@ -888,6 +891,7 @@ extern "C"
         InitializeCriticalSection(&inject_crit_section);
         pGetpWin16Lock = (GetpWin16Lock_t)GetProcAddress(krnl386, "GetpWin16Lock");
         pGetpWin16Lock(&win16_syslevel);
+        pWOWCallback16Ex = (WOWCallback16Ex_t)GetProcAddress(krnl386, "K32WOWCallback16Ex");
         //SetConsoleCtrlHandler(dump, TRUE);
 		AddVectoredExceptionHandler(TRUE, vm86_vectored_exception_handler);
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
@@ -1235,11 +1239,26 @@ extern "C"
     BOOL WINAPI vm_inject(DWORD vpfn16, DWORD dwFlags,
         DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode)
     {
-        if (!win16_syslevel->crst.OwningThread)
-        {
-            /* FIXME: there are no threads running VM (e.g. call GetMessage) */
-        }
         assert(dwFlags == WCB16_PASCAL);
+        if (TryEnterCriticalSection(&win16_syslevel->crst))
+        {
+            /* There are no threads running VM. (e.g. call GetMessage) */
+            EnterCriticalSection(&inject_crit_section);
+            static LPVOID stack;
+            static WORD ss;
+            if (!stack)
+            {
+                stack = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536);
+                ss = SELECTOR_AllocBlock(stack, 65536, WINE_LDT_FLAGS_DATA);
+            }
+            PVOID old = dynamic_getWOW32Reserved();
+            dynamic_setWOW32Reserved((PVOID)MAKESEGPTR(ss, 0x8000));
+            BOOL result = pWOWCallback16Ex(vpfn16, dwFlags, cbArgs, pArgs, pdwRetCode);
+            dynamic_setWOW32Reserved(old);
+            LeaveCriticalSection(&inject_crit_section);
+            LeaveCriticalSection(&win16_syslevel->crst);
+            return result;
+        }
         EnterCriticalSection(&inject_crit_section);
         {
             if (vm_inject_state.inject)
