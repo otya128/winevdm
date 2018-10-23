@@ -714,6 +714,7 @@ struct ini_redirect_data
     const char *value;
     ini_redirect_str_func get_str;
     ini_redirect_int_func get_int;
+    BOOL overwrite_section;
 };
 int system_ini_keyboard_type()
 {
@@ -807,15 +808,123 @@ struct ini_redirect_data ini_redirect_list[] =
     {"system.ini", "mci", "CDAudio", "mcicda.drv"},
     {"system.ini", "mci", "WaveAudio", "mciwave.drv"},
 
+    /* MPEGVideo! */
+    {"system.ini", "mci", "MPEGVideo", "mciqtz.drv"},
+
     /*
     HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\MCI Extensions
     HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\MCI Extensions
     */
+#if 0
+    {"win.ini", "mci extensions", "aiff", "MPEGVideo"},
+    {"win.ini", "mci extensions", "dat", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m2t", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpa", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wmx", "MPEGVideo"},
+    {"win.ini", "mci extensions", "Mid", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wmv", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m3u", "MPEGVideo"},
+    {"win.ini", "mci extensions", "avi", "MPEGVideo"},
+    {"win.ini", "mci extensions", "ivf", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wvx", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m4v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp4v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp2v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "adts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wma", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpeg", "MPEGVideo"},
+    {"win.ini", "mci extensions", "tts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpv2", "MPEGVideo"},
+    {"win.ini", "mci extensions", "au", "MPEGVideo"},
+    {"win.ini", "mci extensions", "3gpp", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m4a", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wax", "MPEGVideo"},
+    {"win.ini", "mci extensions", "aif", "MPEGVideo"},
+    {"win.ini", "mci extensions", "asx", "MPEGVideo"},
+    {"win.ini", "mci extensions", "Wav", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m2ts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mov", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wpl", "MPEGVideo"},
+    {"win.ini", "mci extensions", "aac", "MPEGVideo"},
+    {"win.ini", "mci extensions", "3gp2", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp4", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp3", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp2", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wm", "MPEGVideo"},
+    {"win.ini", "mci extensions", "adt", "MPEGVideo"},
+    {"win.ini", "mci extensions", "cda", "MPEGVideo"},
+    {"win.ini", "mci extensions", "3g2", "MPEGVideo"},
+    {"win.ini", "mci extensions", "asf", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mod", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m1v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "ts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "rmi", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpg", "MPEGVideo"},
+    {"win.ini", "mci extensions", "3gp", "MPEGVideo"},
+    {"win.ini", "mci extensions", "aifc", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpe", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m2v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "snd", "MPEGVideo"},
+#else
+    {"win.ini", "mci extensions", "Mid", "Sequencer"},
+    {"win.ini", "mci extensions", "Wav", "WaveAudio"},
+    {"win.ini", "mci extensions", "avi", "avivideo"},
+    {"win.ini", "mci extensions", "cda", "CDAudio"},
+
+    {"win.ini", "mci extensions", "rmi", "Sequencer"},
+    {"win.ini", "mci extensions", "wma", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m4v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m4a", "MPEGVideo"},
+    {"win.ini", "mci extensions", "aac", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp4", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mov", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp3", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpg", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp2", "MPEGVideo"},
+    {"win.ini", "mci extensions", "dat", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m2t", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpa", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wmx", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wmv", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m3u", "MPEGVideo"},
+    {"win.ini", "mci extensions", "ivf", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "au", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpe", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mod", "MPEGVideo"},
+    {"win.ini", "mci extensions", "aif", "MPEGVideo"},
+    /* When there are many extensions, MPLAYER causes buffer overflow. */
     /*
-    {"win.ini", "mci extensions", "wav", "waveaudio"},
-    {"win.ini", "mci extensions", "mid", "sequencer"},
-    {"win.ini", "mci extensions", "rmi", "sequencer"},
+    {"win.ini", "mci extensions", "wax", "MPEGVideo"},
+    {"win.ini", "mci extensions", "asx", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wpl", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wm", "MPEGVideo"},
+    {"win.ini", "mci extensions", "adt", "MPEGVideo"},
+    {"win.ini", "mci extensions", "3g2", "MPEGVideo"},
+    {"win.ini", "mci extensions", "asf", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m1v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "tts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "ts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "wvx", "MPEGVideo"},
+    {"win.ini", "mci extensions", "3gp", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m2v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "snd", "MPEGVideo"},
+
+    {"win.ini", "mci extensions", "mpeg", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp4v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mp2v", "MPEGVideo"},
+    {"win.ini", "mci extensions", "adts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "aifc", "MPEGVideo"},
+    {"win.ini", "mci extensions", "3gp2", "MPEGVideo"},
+    {"win.ini", "mci extensions", "m2ts", "MPEGVideo"},
+    {"win.ini", "mci extensions", "aiff", "MPEGVideo"},
+    {"win.ini", "mci extensions", "mpv2", "MPEGVideo"},
+    {"win.ini", "mci extensions", "3gpp", "MPEGVideo"},
     */
+#endif
+    /* overwrite section */
+    {"win.ini", "mci extensions", NULL, NULL, NULL, NULL, TRUE},
 };
 
 /***********************************************************************
@@ -832,6 +941,10 @@ UINT16 WINAPI GetPrivateProfileInt16( LPCSTR section, LPCSTR entry,
     LPCSTR filename_file = PathFindFileNameA(filename);
     for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
     {
+        if (!ini_redirect_list[i].entry)
+        {
+            continue;
+        }
         if (!stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section) && !stricmp(entry, ini_redirect_list[i].entry))
         {
             if (ini_redirect_list[i].get_int)
@@ -912,6 +1025,10 @@ static int construct_redirected_ini_section(LPCSTR section, LPSTR data, UINT16 s
     }
     for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
     {
+        if (!ini_redirect_list[i].entry)
+        {
+            continue;
+        }
         if (!stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section))
         {
             if (!append_ini_section(data, &buf_pos, size, ini_redirect_list[i].entry))
@@ -930,12 +1047,17 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
                                         UINT16 len, LPCSTR filename )
 {
     char filenamebuf[MAX_PATH];
+    BOOL overwrite_section = FALSE;
     TRACE("%s %s %s\n", filename, section, entry);
     LPCSTR filename_file = PathFindFileNameA(filename);
     if (entry)
     {
         for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
         {
+            if (!ini_redirect_list[i].entry)
+            {
+                continue;
+            }
             if (!stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section) && !stricmp(entry, ini_redirect_list[i].entry))
             {
                 LPCSTR val = ini_redirect_list[i].value;
@@ -964,6 +1086,20 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
             }
         }
     }
+    else
+    {
+        for (int i = 0; i < ARRAY_SIZE(ini_redirect_list); i++)
+        {
+            if (ini_redirect_list[i].entry)
+            {
+                continue;
+            }
+            if (ini_redirect_list[i].overwrite_section && !stricmp(ini_redirect_list[i].file, filename_file) && !stricmp(section, ini_redirect_list[i].section))
+            {
+                overwrite_section = TRUE;
+            }
+        }
+    }
     RedirectPrivateProfileStringWindowsDir(filename, filenamebuf);
     filename = filenamebuf;
     TRACE("(%s, %s, %s, %p, %u, %s)\n", debugstr_a(section), debugstr_a(entry),
@@ -987,6 +1123,8 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
         UINT ret, oldlen = len, size = min( len, 1024 );
         LPSTR data, src;
 
+        if (overwrite_section)
+            return construct_redirected_ini_section(section, buffer, oldlen, filename);
         for (;;)
         {
             if (!(data = HeapAlloc(GetProcessHeap(), 0, size ))) return 0;
