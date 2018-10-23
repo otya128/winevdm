@@ -1336,7 +1336,7 @@ extern "C"
 			i386_load_segment_descriptor(DS);
 			i386_load_segment_descriptor(FS);
 			i386_load_segment_descriptor(GS);
-            set_flags(context->EFlags);
+            set_flags(context->EFlags | 0x200/* IF */);
 			m_IOP1 = 1;
 			m_IOP2 = 1;
 			m_eflags |= 0x3000;
