@@ -3937,7 +3937,7 @@ void set_window_app_id(HWND hwnd)
 void detect_window_type(HWND16 hwnd, HWND hwnd32)
 {
     char name[100];
-    GetClassNameA(hwnd32, name, 100);
+    RealGetWindowClassA(hwnd32, name, 100);
     /* detect window type */
     if (isListBox(hwnd, hwnd32) || !stricmp(name, "LISTBOX") || !stricmp(name, "COMBOLBOX"))
     {
