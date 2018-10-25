@@ -1163,6 +1163,7 @@ extern "C"
                 }
                 if (IsOldWindowsTask(GetCurrentTask()))
                 {
+                    set_flags(flags);
                     m_sreg[ES].selector = dosmem_0000H;
                     i386_load_segment_descriptor(ES);
                     i386_jmp_far(cs, ip);
@@ -1188,6 +1189,7 @@ extern "C"
                 int len = disassemble(buffer);
                 if (strstr(buffer, "es,")) // TODO: LES?
                 {
+                    set_flags(flags);
                     m_sreg[ES].selector = dosmem_0040H;
                     i386_load_segment_descriptor(ES);
                     i386_jmp_far(cs, ip + len);
@@ -1422,7 +1424,7 @@ extern "C"
                         WORD a = POP16();
                         WORD b = POP16();
                         WORD c = POP16();
-                        PUSH16((WORD)context.EFlags);
+                        PUSH16((WORD)context.EFlags | (c & 0x200)); // restore IF if it was set on entry
                         PUSH16(cs3);
                         PUSH16(ip3);
                     }
