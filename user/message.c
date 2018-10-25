@@ -1219,10 +1219,15 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         }
         break;
     case WM_MDISETMENU:
-        ret = callback( hwnd32, wParam ? WM_MDIREFRESHMENU : WM_MDISETMENU,
-                        (WPARAM)HMENU_32(LOWORD(lParam)), (LPARAM)HMENU_32(HIWORD(lParam)),
-                        result, arg );
-        *result = HMENU_16((HMENU)*result);
+        {
+            void SetWindowHMenu16(WORD hWnd16, HMENU16 hinst16);
+            ret = callback( hwnd32, wParam ? WM_MDIREFRESHMENU : WM_MDISETMENU,
+                            (WPARAM)HMENU_32(LOWORD(lParam)), (LPARAM)HMENU_32(HIWORD(lParam)),
+                            result, arg );
+            if (ret && LOWORD(lParam))
+                SetWindowHMenu16(GetParent16(hwnd), LOWORD(lParam));
+            *result = HMENU_16((HMENU)*result);
+        }
         break;
     case WM_MDIRESTORE:
         ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
@@ -1550,6 +1555,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_KILLFOCUS:
     case WM_INITDIALOG:
     case WM_MDIDESTROY:
+    case WM_MDIMAXIMIZE:
         ret = callback(hwnd32, msg, (WPARAM)HWND_32((HWND16)wParam), lParam, result, arg);
         break;
     case WM_ENTERIDLE:
