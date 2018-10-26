@@ -135,6 +135,25 @@ __declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max
     ERR("%s => %s\n", path_old, to);
     return to;
 }
+/* buf: X:\XXX\YYY\C\ZZZ => C:\ZZZ */
+void UnredirectDriveRoot(LPSTR buf, SIZE_T buf_len)
+{
+    char drive_root[MAX_PATH];
+    PathCombineA(drive_root, GetRedirectWindowsDir(), "..\\");
+    if (memcmp(drive_root, buf, min(strlen(buf), strlen(drive_root))) == 0)
+    {
+        LPCSTR drive_dir = buf + strlen(drive_root);
+        if (drive_dir[0] >= 'A' && drive_dir[0] <= 'Z' && drive_dir[1] == '\\')
+        {
+            buf[0] = drive_dir[0];
+            buf[1] = ':';
+            buf[2] = '\\';
+            memmove(buf + 3, drive_dir + 2, strlen(drive_dir + 2) + 1);
+        }
+        return;
+    }
+    return;
+}
 //SYSTEM DIR
 //%WINDIR%->
 __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
@@ -425,7 +444,10 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
     name = RedirectSystemDir(name, buf, OFS_MAXPATHNAME);
     if (mode & OF_CREATE)
     {
+        CHAR root_buf[OFS_MAXPATHNAME];
+        name = RedirectDriveRoot(name, root_buf, MAX_PATH, FALSE);
         handle = (HANDLE)OpenFile( name, ofs, mode );
+        UnredirectDriveRoot(ofs->szPathName, ARRAY_SIZE(ofs->szPathName));
         if (handle == (HANDLE)HFILE_ERROR) goto error;
     }
     else
