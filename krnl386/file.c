@@ -445,7 +445,7 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
     if (mode & OF_CREATE)
     {
         CHAR root_buf[OFS_MAXPATHNAME];
-        name = RedirectDriveRoot(name, root_buf, MAX_PATH, FALSE);
+        name = RedirectDriveRoot(name, root_buf, ARRAY_SIZE(root_buf), FALSE);
         handle = (HANDLE)OpenFile( name, ofs, mode );
         UnredirectDriveRoot(ofs->szPathName, ARRAY_SIZE(ofs->szPathName));
         if (handle == (HANDLE)HFILE_ERROR) goto error;
