@@ -30,15 +30,10 @@
 #include "wincon.h"
 #include "dosexe.h"
 #include "vga.h"
-#include "ddraw.h"
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ddraw);
 
-static IDirectDraw *lpddraw = NULL;
-static IDirectDrawSurface *lpddsurf;
-static IDirectDrawPalette *lpddpal;
-static DDSURFACEDESC sdesc;
 
 static BOOL vga_retrace_vertical;
 static BOOL vga_retrace_horizontal;
@@ -767,80 +762,26 @@ static void VGA_SyncWindow( BOOL target_is_fb )
 static void WINAPI VGA_DoExit(ULONG_PTR arg)
 {
     VGA_DeinstallTimer();
-    IDirectDrawSurface_SetPalette(lpddsurf,NULL);
-    IDirectDrawSurface_Release(lpddsurf);
-    lpddsurf=NULL;
-    IDirectDrawPalette_Release(lpddpal);
-    lpddpal=NULL;
-    IDirectDraw_Release(lpddraw);
-    lpddraw=NULL;
+    DestroyWindow(vga_hwnd);
+    vga_hwnd = NULL;
 }
 
+ModeSet vga_mode;
+HDC vga_dc;
+HBITMAP vga_bitmap;
+PALETTEENTRY *vga_palette;
 static void WINAPI VGA_DoSetMode(ULONG_PTR arg)
 {
     HRESULT	res;
     ModeSet *par = (ModeSet *)arg;
+    LPLOGPALETTE pal;
+    BITMAPINFO binfo = { 0 };
     par->ret = FALSE;
+    vga_mode = *par;
 
-    if (lpddraw) VGA_DoExit(0);
-    if (!lpddraw) {
-        res = DirectDrawCreate(NULL,&lpddraw,NULL);
-        if (!lpddraw) {
-            ERR("DirectDraw is not available (res = 0x%x)\n",res);
-            return;
-        }
-        if (!vga_hwnd) {
-            vga_hwnd = CreateWindowExA(0,"STATIC","WINEDOS VGA",
-                                       WS_POPUP|WS_VISIBLE|SS_NOTIFY,0,0,
-                                       par->Xres,par->Yres,0,0,0,NULL);
-            if (!vga_hwnd) {
-                ERR("Failed to create user window.\n");
-                IDirectDraw_Release(lpddraw);
-                lpddraw=NULL;
-                return;
-            }
-        }
-        else
-            SetWindowPos(vga_hwnd,0,0,0,par->Xres,par->Yres,SWP_NOMOVE|SWP_NOZORDER);
-
-        res=IDirectDraw_SetCooperativeLevel(lpddraw,vga_hwnd,DDSCL_FULLSCREEN|DDSCL_EXCLUSIVE);
-        if (res != S_OK) {
-	    ERR("Could not set cooperative level to exclusive (0x%x)\n",res);
-	}
-
-        res=IDirectDraw_SetDisplayMode(lpddraw,par->Xres,par->Yres,par->Depth);
-        if (res != S_OK) {
-            ERR("DirectDraw does not support requested display mode (%dx%dx%d), res = 0x%x!\n",par->Xres,par->Yres,par->Depth,res);
-            IDirectDraw_Release(lpddraw);
-            lpddraw=NULL;
-            return;
-        }
-
-        res=IDirectDraw_CreatePalette(lpddraw,DDPCAPS_8BIT,vga_fb_palette,&lpddpal,NULL);
-        if (res != S_OK) {
-	    ERR("Could not create palette (res = 0x%x)\n",res);
-            IDirectDraw_Release(lpddraw);
-            lpddraw=NULL;
-            return;
-        }
-
-        res=IDirectDrawPalette_SetEntries(lpddpal,0,0,vga_fb_palette_size,vga_fb_palette);
-        if (res != S_OK) {
-           ERR("Could not set default palette entries (res = 0x%x)\n", res);
-        }
-
-        memset(&sdesc,0,sizeof(sdesc));
-        sdesc.dwSize=sizeof(sdesc);
-	sdesc.dwFlags = DDSD_CAPS;
-	sdesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-        res=IDirectDraw_CreateSurface(lpddraw,&sdesc,&lpddsurf,NULL);
-        if (res != S_OK || !lpddsurf) {
-            ERR("DirectDraw surface is not available\n");
-            IDirectDraw_Release(lpddraw);
-            lpddraw=NULL;
-            return;
-        }
-        IDirectDrawSurface_SetPalette(lpddsurf,lpddpal);
+    if (vga_hwnd) VGA_DoExit(0);
+    if (!vga_hwnd)
+    {
         vga_retrace_vertical = vga_retrace_horizontal = FALSE;
         /* poll every 20ms (50fps should provide adequate responsiveness) */
         VGA_InstallTimer(20);
@@ -909,8 +850,8 @@ static BOOL VGA_SetGraphicMode(WORD mode)
       par.Xres = vga_fb_width;
       par.Yres = vga_fb_height;
     } else {
-      par.Xres = 640;
-      par.Yres = 480;
+      par.Xres = vga_fb_width;
+      par.Yres = vga_fb_height;
     }
 
     /* Setup window */
@@ -950,6 +891,10 @@ static BOOL VGA_SetGraphicMode(WORD mode)
 
     par.Depth = (vga_fb_depth < 8) ? 8 : vga_fb_depth;
 
+    if (vga_palette)
+        HeapFree(GetProcessHeap(), 0, vga_palette);
+    vga_palette = HeapAlloc(GetProcessHeap(), 0, sizeof(PALETTEENTRY) * vga_fb_palette_size);
+    memcpy(vga_palette, vga_fb_palette, sizeof(PALETTEENTRY) * vga_fb_palette_size);
     MZ_RunInThread(VGA_DoSetMode, (ULONG_PTR)&par);
     return par.ret;
 }
@@ -985,23 +930,28 @@ BOOL VGA_SetMode(WORD mode)
 
 BOOL VGA_GetMode(unsigned *Height, unsigned *Width, unsigned *Depth)
 {
-    if (!lpddraw) return FALSE;
-    if (!lpddsurf) return FALSE;
-    if (Height) *Height=sdesc.dwHeight;
-    if (Width) *Width=sdesc.dwWidth;
-    if (Depth) *Depth=sdesc.ddpfPixelFormat.u1.dwRGBBitCount;
+    if (!vga_hwnd) return FALSE;
+    if (Height)
+        *Height = vga_mode.Yres;
+    if (Width)
+        *Width = vga_mode.Xres;
+    if (Depth)
+        *Depth = vga_mode.Depth;
     return TRUE;
 }
 
 static void VGA_Exit(void)
 {
-    if (lpddraw) MZ_RunInThread(VGA_DoExit, 0);
+    if (vga_hwnd) MZ_RunInThread(VGA_DoExit, 0);
 }
 
-void VGA_SetPalette(PALETTEENTRY*pal,int start,int len)
+void VGA_SetPalette(PALETTEENTRY *pal, int start, int len)
 {
-    if (!lpddraw) return;
-    IDirectDrawPalette_SetEntries(lpddpal,0,start,len,pal);
+    if (start < 0 || start + len > vga_fb_palette_size)
+    {
+        ERR("out of range\n");
+    }
+    memcpy(vga_palette + start, pal, len * sizeof(*pal));
 }
 
 /* set a single [char wide] color in 16 color mode. */
@@ -1009,9 +959,9 @@ void VGA_SetColor16(int reg,int color)
 {
     PALETTEENTRY *pal;
 
-    if (!lpddraw) return;
-    pal= &vga_def64_palette[color];
-    IDirectDrawPalette_SetEntries(lpddpal,0,reg,1,pal);
+    if (!vga_hwnd) return;
+    pal = &vga_def64_palette[color];
+    VGA_SetPalette(pal, reg, color);
     vga_16_palette[reg]=(char)color;
 }
 
@@ -1019,7 +969,7 @@ void VGA_SetColor16(int reg,int color)
 char VGA_GetColor16(int reg)
 {
 
-    if (!lpddraw) return 0;
+    if (!vga_hwnd) return 0;
     return vga_16_palette[reg];
 }
 
@@ -1029,42 +979,99 @@ void VGA_Set16Palette(char *Table)
 	PALETTEENTRY *pal;
 	int c;
 
-    if (!lpddraw) return;         /* return if we're in text only mode */
+    if (!vga_hwnd) return;         /* return if we're in text only mode */
     memcpy( Table, vga_16_palette, 17 ); /* copy the entries into the table */
-
-    for (c=0; c<17; c++) {                                /* 17 entries */
-	pal= &vga_def64_palette[(int)vga_16_palette[c]];  /* get color  */
-        IDirectDrawPalette_SetEntries(lpddpal,0,c,1,pal); /* set entry  */
-	TRACE("Palette register %d set to %d\n",c,(int)vga_16_palette[c]);
-   } /* end of the counting loop */
+    for (c = 0; c < 17; c++) {                                /* 17 entries */
+        pal = &vga_def64_palette[(int)vga_16_palette[c]];  /* get color  */
+        VGA_SetPalette(pal, c, 1); /* set entry  */
+        TRACE("Palette register %d set to %d\n", c, (int)vga_16_palette[c]);
+    } /* end of the counting loop */
 }
 
 /* Get all 17 [ char wide ] colors at once in 16 color mode. */
 void VGA_Get16Palette(char *Table)
 {
 
-    if (!lpddraw) return;         /* return if we're in text only mode */
+    if (!vga_hwnd) return;         /* return if we're in text only mode */
     memcpy( vga_16_palette, Table, 17 ); /* copy the entries into the table */
 }
 
+SIZE_T bitmap_buffer_size;
+LPSTR bitmap_buffer;
 static LPSTR VGA_Lock(unsigned*Pitch,unsigned*Height,unsigned*Width,unsigned*Depth)
 {
-    if (!lpddraw) return NULL;
-    if (!lpddsurf) return NULL;
-    if (IDirectDrawSurface_Lock(lpddsurf,NULL,&sdesc,0,0) != S_OK) {
-        ERR("could not lock surface!\n");
+    BITMAPINFO binfo = { 0 };
+    binfo.bmiHeader.biSize = sizeof(binfo.bmiHeader);
+    binfo.bmiHeader.biWidth = vga_mode.Xres;
+    binfo.bmiHeader.biHeight = vga_mode.Yres;
+    binfo.bmiHeader.biPlanes = 1;
+    binfo.bmiHeader.biBitCount = 24;
+    if (!vga_hwnd) return NULL;
+    if (!bitmap_buffer)
+    {
+        bitmap_buffer = HeapAlloc(GetProcessHeap(), 0, vga_mode.Xres * vga_mode.Yres * 3);
+    }
+    if (!GetDIBits(vga_dc, vga_bitmap, 0, vga_mode.Yres, bitmap_buffer, &binfo, DIB_RGB_COLORS))
+    {
         return NULL;
     }
-    if (Pitch) *Pitch=sdesc.u1.lPitch;
-    if (Height) *Height=sdesc.dwHeight;
-    if (Width) *Width=sdesc.dwWidth;
-    if (Depth) *Depth=sdesc.ddpfPixelFormat.u1.dwRGBBitCount;
-    return sdesc.lpSurface;
+    /* FIXME: padding */
+    *Pitch = binfo.bmiHeader.biWidth * 3;
+    VGA_GetMode(Height, Width, Depth);
+    return bitmap_buffer;
 }
 
+void paint_bitmap();
 static void VGA_Unlock(void)
 {
-    IDirectDrawSurface_Unlock(lpddsurf,sdesc.lpSurface);
+    BITMAPINFO binfo = { 0 };
+    binfo.bmiHeader.biSize = sizeof(binfo.bmiHeader);
+    binfo.bmiHeader.biWidth = vga_mode.Xres;
+    binfo.bmiHeader.biHeight = vga_mode.Yres;
+    binfo.bmiHeader.biPlanes = 1;
+    binfo.bmiHeader.biBitCount = 24;
+    if (!SetDIBits(vga_dc, vga_bitmap, 0, vga_mode.Yres, bitmap_buffer, &binfo, DIB_RGB_COLORS))
+    {
+        return;
+    }
+    paint_bitmap();
+}
+static void paint_bitmap()
+{
+    RECT rect;
+    int width, height;
+    int new_width, new_height;
+    double r = (double)vga_mode.Xres / vga_mode.Yres;
+    HDC dc = GetDC(vga_hwnd);
+    GetClientRect(vga_hwnd, &rect);
+    /* aspect */
+    width = rect.right - rect.left;
+    height = rect.bottom - rect.top;
+    if (width / r > height)
+    {
+        new_height = height;
+        new_width = height * r;
+        RECT frect = rect;
+        frect.left = 0;
+        frect.right = (width - new_width) / 2;
+        FillRect(dc, &frect, GetStockObject(DKGRAY_BRUSH));
+        frect.left = rect.right - (width - new_width) / 2;
+        frect.right = rect.right;
+        FillRect(dc, &frect, GetStockObject(DKGRAY_BRUSH));
+    }
+    else
+    {
+        new_width = width;
+        new_height = width / r;
+        RECT frect = rect;
+        frect.top = 0;
+        frect.bottom = (height - new_height) / 2;
+        FillRect(dc, &frect, GetStockObject(DKGRAY_BRUSH));
+        frect.top = rect.bottom - (height - new_height) / 2;
+        frect.bottom = rect.bottom;
+        FillRect(dc, &frect, GetStockObject(DKGRAY_BRUSH));
+    }
+    StretchBlt(dc, (width - new_width) / 2, (height - new_height) / 2, new_width, new_height, vga_dc, 0, 0, vga_mode.Xres, vga_mode.Yres, SRCCOPY);
 }
 
 /*
@@ -1130,7 +1137,7 @@ static void WINAPI VGA_DoShowMouse( ULONG_PTR show )
  */
 void VGA_ShowMouse( BOOL show )
 {
-    if (lpddraw)
+    if (vga_hwnd)
         MZ_RunInThread( VGA_DoShowMouse, (ULONG_PTR)show );
 }
 
@@ -1473,8 +1480,16 @@ void VGA_ClearText(unsigned row1, unsigned col1,
                    BYTE attr)
 {
     unsigned x, y;
+    const VGA_MODE *ModeInfo;
 
     EnterCriticalSection(&vga_lock);
+    ModeInfo = VGA_GetModeInfo(VGA_CurrentMode);
+    if (ModeInfo->ModeType != TEXT)
+    {
+        FIXME("not yet supported in graphic modes.\n");
+        LeaveCriticalSection(&vga_lock);
+        return;
+    }
 
     for(y=row1; y<=row2; y++)
         for(x=col1; x<=col2; x++)
@@ -1574,6 +1589,7 @@ static void VGA_Poll_Graphics(void)
    * - Every second line has an offset of 8096
    */
   if(vga_fb_depth == 4 && vga_fb_width == 160 && vga_fb_height == 200){
+      FIXME("\n");
     WORD off = 0;
     BYTE bits = 4;
     BYTE value;
@@ -1605,6 +1621,7 @@ static void VGA_Poll_Graphics(void)
    * - Every second line has an offset of 8096
    */
   else if(vga_fb_depth == 2 && vga_fb_width == 320 && vga_fb_height == 200){
+      FIXME("\n");
     WORD off = 0;
     BYTE bits = 6;
     BYTE value;
@@ -1629,6 +1646,8 @@ static void VGA_Poll_Graphics(void)
    * Double VGA framebuffer (320x200 -> 640x400), if needed.
    */
   else if(Height >= 2 * vga_fb_height && Width >= 2 * vga_fb_width && bpp == 1)
+  {
+    FIXME("\n");
     for (Y=0; Y<vga_fb_height; Y++,surf+=Pitch*2,dat+=vga_fb_pitch)
       for (X=0; X<vga_fb_width; X++) {
        BYTE value = dat[X];
@@ -1637,12 +1656,26 @@ static void VGA_Poll_Graphics(void)
        surf[X*2+Pitch] = value;
        surf[X*2+Pitch+1] = value;
       }
+  }
   /*
    * Linear Buffer, including mode 19
    */
   else
-    for (Y=0; Y<vga_fb_height; Y++,surf+=Pitch,dat+=vga_fb_pitch)
-      memcpy(surf, dat, vga_fb_width * bpp);
+  {
+      surf += Pitch * Height;
+      for (Y = 0; Y < Height; Y++)
+      {
+          surf -= Pitch;
+          for (X = 0; X < Width; X++)
+          {
+              PALETTEENTRY e = vga_palette[dat[X]];
+              surf[X * 3 + 0] = e.peBlue;
+              surf[X * 3 + 1] = e.peGreen;
+              surf[X * 3 + 2] = e.peRed;
+          }
+          dat += vga_fb_pitch;
+      }
+  }
 
   VGA_Unlock();
 }
@@ -1692,11 +1725,65 @@ static void VGA_Poll_Text(void)
     }
 }
 
+
+static LRESULT WINAPI VGA_WindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+    switch (Msg)
+    {
+    case WM_PAINT:
+        paint_bitmap();
+        return;
+    default:
+        break;
+    }
+    return DefWindowProcA(hWnd, Msg, wParam, lParam);
+}
+static DWORD WINAPI init_vga_window()
+{
+    WNDCLASSA wc = { 0 };
+    ModeSet *par = (ModeSet *)&vga_mode;
+    RECT rect = { 0, 0, par->Xres, par->Yres };
+    if (par->Xres == 0)
+        return;
+    if (vga_hwnd)
+        return 0;
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_NOCLOSE | CS_OWNDC;
+    wc.lpfnWndProc = VGA_WindowProc;
+    wc.hbrBackground = COLOR_WINDOW + 1;
+    wc.hCursor = LoadCursorA(NULL, IDC_ARROW);
+    wc.hInstance = GetModuleHandleA(NULL);
+    wc.lpszClassName = "VGA";
+    RegisterClassA(&wc);
+    AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW | WS_VISIBLE, FALSE);
+    vga_hwnd = CreateWindowExA(0, "VGA", "VGA", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 0, 0,
+        rect.right - rect.left, rect.bottom - rect.top, 0, 0, 0, NULL);
+    if (!vga_hwnd)
+    {
+        ERR("Failed to create VGA window.\n");
+        return;
+    }
+    vga_dc = CreateCompatibleDC(GetDC(vga_hwnd));
+    vga_bitmap = CreateCompatibleBitmap(GetDC(NULL), par->Xres, par->Yres);
+    SelectObject(vga_dc, vga_bitmap);
+    if (!vga_bitmap)
+    {
+        ERR("Failed to create vga_bitmap\n");
+        return;
+    }
+    return 0;
+}
 static void CALLBACK VGA_Poll( LPVOID arg, DWORD low, DWORD high )
 {
+    MSG msg;
+    if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+    {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
     EnterCriticalSection(&vga_lock);
 
-    if (lpddraw)
+    init_vga_window();
+    if (vga_hwnd)
         VGA_Poll_Graphics();
     else
         VGA_Poll_Text();
