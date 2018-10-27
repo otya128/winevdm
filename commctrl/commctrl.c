@@ -193,10 +193,6 @@ HWND16 WINAPI CreateToolbarEx16(HWND16 hwnd, DWORD style /* window style */, UIN
     HWND hwndTB;
     HBITMAP bitmap32 = NULL;
     InitCommonControls16();
-    if (lpButtons)
-    {
-        TBBUTTON16_32(&buttons32, lpButtons);
-    }
 
     hwndTB =
         CreateWindowExA(0, TOOLBARCLASSNAME16, NULL, style|WS_CHILD, 0,0,100,30,
