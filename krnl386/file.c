@@ -81,14 +81,24 @@ fail:
     CloseHandle(hTokenImpersonation);
     return bAccessStatus;
 }
+BOOL is_readonly_directory(LPCSTR path)
+{
+    DWORD attr = GetFileAttributesA(path);
+    if (attr == -1)
+        return FALSE;
+    if (GetDriveTypeA(path) == DRIVE_CDROM)
+        return TRUE;
+    return (attr & FILE_ATTRIBUTE_READONLY) == FILE_ATTRIBUTE_READONLY;
+}
 __declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL is_dir)
 {
     LPCSTR path_old = path;
     enum WRITABLE_CACHE
     {
         NOTCACHED,
-        WRITABLE,
-        NONWRITABLE,
+        ALLOWED,
+        DENIED,
+        READONLY,
     };
     static enum WRITABLE_CACHE writable_cache[26];
     char drive = path[0];
@@ -111,19 +121,24 @@ __declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max
         return path_old;
     if (writable_cache[drive - 'A'] == NOTCACHED)
     {
+        if (is_readonly_directory(root))
+        {
+            writable_cache[drive - 'A'] = READONLY;
+            return path_old;
+        }
         if (can_write_directory(root))
         {
-            writable_cache[drive - 'A'] = WRITABLE;
+            writable_cache[drive - 'A'] = ALLOWED;
             return path_old;
         }
         else
         {
-            writable_cache[drive - 'A'] = NONWRITABLE;
+            writable_cache[drive - 'A'] = DENIED;
         }
     }
     else
     {
-        if (writable_cache[drive - 'A'] == WRITABLE)
+        if (writable_cache[drive - 'A'] == ALLOWED || writable_cache[drive - 'A'] == READONLY)
         {
             return path_old;
         }
