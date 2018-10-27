@@ -16,8 +16,7 @@ typedef struct  {
     INT16 idCommand;
     BYTE fsState;
     BYTE fsStyle;
-    SEGPTR dwData;
-    SEGPTR iString;
+    INT16 idsHelp; /* ? */
 } TBBUTTON16, NEAR* PTBBUTTON16, *LPTBBUTTON16;
 typedef struct {
     SEGPTR ini_section;
@@ -101,6 +100,15 @@ LRESULT WINAPI StatusWindowProc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
     }
     return CallWindowProcA(status_window_class.lpfnWndProc, hwnd, msg, wParam, lParam);
 }
+void TBBUTTON16_32(LPTBBUTTON btn32, LPTBBUTTON16 lpButtons)
+{
+    btn32->iBitmap = lpButtons->iBitmap;
+    btn32->idCommand = lpButtons->idCommand;
+    btn32->fsState = lpButtons->fsState;
+    btn32->fsStyle = lpButtons->fsStyle;
+    btn32->dwData = lpButtons->idsHelp;
+    btn32->iString = 0;
+}
 LRESULT WINAPI ToolbarWindowProc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     LRESULT result;
@@ -108,7 +116,8 @@ LRESULT WINAPI ToolbarWindowProc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
     {
     case TB_BUTTONSTRUCTSIZE:
     {
-        msg = msg;
+        SetPropW(hwnd, L"TB_BUTTONSTRUCTSIZE", wParam);
+        wParam = sizeof(TBBUTTON);
         break;
     }
     break;
@@ -127,6 +136,23 @@ LRESULT WINAPI ToolbarWindowProc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
         }
         lParam = &tb32;
         return CallWindowProcA(toolbar_window_class.lpfnWndProc, hwnd, msg, wParam, lParam);
+    }
+    case TB_ADDBUTTONSA:
+    {
+        LPTBBUTTON16 btn = (LPTBBUTTON16)MapSL(lParam);
+        LPTBBUTTON btn32;
+        SIZE_T button_struct_size;
+        if (!HIWORD(btn))
+            break;
+        button_struct_size = GetPropW(hwnd, L"TB_BUTTONSTRUCTSIZE");
+        btn32 = HeapAlloc(GetProcessHeap(), 0, sizeof(TBBUTTON) * wParam);
+        for (int i = 0; i < wParam; i++)
+        {
+            TBBUTTON16_32(btn32 + i, (LPTBBUTTON16)((LPBYTE)btn + button_struct_size * i));
+        }
+        result = CallWindowProcA(toolbar_window_class.lpfnWndProc, hwnd, msg, wParam, (LPARAM)btn32);
+        HeapFree(GetProcessHeap(), 0, btn32);
+        return result;
     }
     case TB_SAVERESTOREA:
     {
@@ -154,7 +180,6 @@ LRESULT WINAPI ToolbarWindowProc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
     default:
         break;
     }
-    ERR("%04x %p %p\n", msg, wParam, lParam);
     return CallWindowProcA(toolbar_window_class.lpfnWndProc, hwnd, msg, wParam, lParam);
 }
 /* based on wine */
@@ -165,30 +190,20 @@ HWND16 WINAPI CreateToolbarEx16(HWND16 hwnd, DWORD style /* window style */, UIN
     INT16 dxBitmap, INT16 dyBitmap, UINT16 uStructSize)
 {
     TBBUTTON buttons32 = { 0 };
-    UINT uStructSize32 = uStructSize;
     HWND hwndTB;
     HBITMAP bitmap32 = NULL;
     InitCommonControls16();
     if (lpButtons)
     {
-        buttons32.iBitmap = lpButtons->iBitmap;
-        buttons32.idCommand = lpButtons->idCommand;
-        buttons32.fsState = lpButtons->fsState;
-        buttons32.dwData = lpButtons->dwData;
-        buttons32.iString = lpButtons->iString;
+        TBBUTTON16_32(&buttons32, lpButtons);
     }
-    if (uStructSize)
-    {
-        uStructSize32 = sizeof(TBBUTTON);
-    }
-    
 
     hwndTB =
         CreateWindowExA(0, TOOLBARCLASSNAME16, NULL, style|WS_CHILD, 0,0,100,30,
                         HWND_32(hwnd), (HMENU)(DWORD_PTR)wID, hInstance16, NULL);
     if(hwndTB) {
 
-        SendMessageA (hwndTB, TB_BUTTONSTRUCTSIZE, uStructSize32, 0);
+        SendMessageA (hwndTB, TB_BUTTONSTRUCTSIZE, uStructSize, 0);
 
        /* set bitmap and button size */
        /*If CreateToolbarEx receives 0, windows sets default values*/
