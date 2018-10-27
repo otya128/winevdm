@@ -11,3 +11,4 @@ EXPORTS
   get_native_wndproc_segment
   call_native_wndproc_context
   __wine_call_wndproc
+  LoadBitmap16
