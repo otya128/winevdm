@@ -1893,7 +1893,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                 if ((hmenu = GetSubMenu( (HMENU)lParam, LOWORD(wParam) )))
                 {
                     ret = callback( HWND_16(hwnd), msg, HMENU_16(hmenu),
-                                    MAKELPARAM( HIWORD(wParam), (HMENU16)lParam ), result, arg );
+                                    MAKELPARAM( HIWORD(wParam), (HMENU16)HMENU_16((HMENU)lParam) ), result, arg );
                     break;
                 }
             }
@@ -1901,7 +1901,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         /* fall through */
     case WM_MENUCHAR:
         ret = callback( HWND_16(hwnd), msg, wParam,
-                        MAKELPARAM( HIWORD(wParam), (HMENU16)lParam ), result, arg );
+                        MAKELPARAM( HIWORD(wParam), (HMENU16)HMENU_16((HMENU)lParam) ), result, arg );
         break;
     case WM_PARENTNOTIFY:
         if ((LOWORD(wParam) == WM_CREATE) || (LOWORD(wParam) == WM_DESTROY))
