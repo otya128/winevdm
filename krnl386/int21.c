@@ -285,6 +285,7 @@ static struct magic_device magic_devices[] =
     { {'h','p','s','c','a','n',0},         NULL, { { 0, 0 } }, INT21_IoctlHPScanHandler },
 };
 
+LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL is_dir);
 
 /* Many calls translate a drive argument like this:
    drive number (00h = default, 01h = A:, etc)
@@ -950,6 +951,8 @@ static BOOL INT21_CreateFile( CONTEXT *context,
     HANDLE winHandle;
     DWORD  winMode;
     DWORD  winSharing;
+    char   redir_buf[MAX_PATH];
+    BOOL   retry;
 
     TRACE( "CreateFile called: function=%02x, action=%02x, access/share=%04x, "
            "create flags=%04x, file=%s.\n",
@@ -1078,6 +1081,11 @@ static BOOL INT21_CreateFile( CONTEXT *context,
     /*
      * Open the file.
      */
+    if (winMode == CREATE_NEW || winMode == CREATE_ALWAYS)
+    {
+        pathA = RedirectDriveRoot(pathA, redir_buf, MAX_PATH, FALSE);
+    }
+    retry:
     MultiByteToWideChar(CP_OEMCP, 0, pathA, -1, pathW, MAX_PATH);
 
     if ((winHandle = INT21_OpenMagicDevice( pathW, winAccess )))
@@ -1097,7 +1105,13 @@ static BOOL INT21_CreateFile( CONTEXT *context,
         }
 
         if (winHandle == INVALID_HANDLE_VALUE)
-            return FALSE;
+        {
+            if (retry)
+                return FALSE;
+            pathA = RedirectDriveRoot(pathA, redir_buf, MAX_PATH, FALSE);
+            retry = TRUE;
+            goto retry;
+        }
 
         /*
          * Determine DOS file status.
