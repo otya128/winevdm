@@ -289,3 +289,63 @@ void WINAPI GetEffectiveClientRect16(HWND16 hWnd, LPRECT16 lprc, const INT16 *lp
     RECT32_16(&rect32, lprc);
     HeapFree(GetProcessHeap(), 0, info32);
 }
+static int find_sub_menu( HMENU *hmenu, HMENU16 target )
+{
+    int i, pos, count = GetMenuItemCount( *hmenu );
+
+    for (i = 0; i < count; i++)
+    {
+        HMENU sub = GetSubMenu( *hmenu, i );
+        if (!sub) continue;
+        if (HMENU_16(sub) == target) return i;
+        if ((pos = find_sub_menu( &sub, target )) != -1)
+        {
+            *hmenu = sub;
+            return pos;
+        }
+    }
+    return -1;
+}
+
+void WINAPI MenuHelp16(UINT16 uMsg, WPARAM16 wParam, LPARAM lParam, HMENU16 hMainMenu, HINSTANCE16 hInst, HWND16 hwndStatus, UINT16 *lpwIDs)
+{
+    LPARAM lp32 = lParam;
+    WPARAM wp32 = wParam;
+    SIZE_T len = 0;
+    UINT16 *run = lpwIDs;
+    UINT *ids32;
+    while (TRUE)
+    {
+        run += 2;
+        if (run[0] == 0 && run[1] == 0)
+            break;
+    }
+    len = (SIZE_T)(run + 2 - lpwIDs);
+    ids32 = (UINT*)HeapAlloc(GetProcessHeap(), 0, len * sizeof(UINT));
+    for (int i = 0; i < len - 2; i += 2)
+    {
+        /* FIXME: LoadString */
+        ids32[i] = lpwIDs[i + 2];
+        ids32[i + 1] = lpwIDs[i + 2 + 1];
+    }
+    if (uMsg == WM_MENUSELECT)
+    {
+        if ((LOWORD(lParam) & MF_POPUP) && (LOWORD(lParam) != 0xFFFF))
+        {
+            HMENU hmenu = HMENU_32(HIWORD(lParam));
+            int pos = find_sub_menu(&hmenu, wParam);
+            if (pos == -1) pos = 0;
+            wParam = pos;
+        }
+        wp32 = MAKEWPARAM(wParam, LOWORD(lParam));
+        lp32 = (LPARAM)HMENU_32(HIWORD(lParam));
+    }
+    if (uMsg == WM_COMMAND)
+    {
+        wp32 = MAKEWPARAM(wParam, HIWORD(lParam));
+        lp32 = (LPARAM)HWND_32(LOWORD(lParam));
+    }
+    FIXME("(%04x, %04x, %08x, %04x, %04x, %04x, %p) stub\n", uMsg, wParam, lParam, hMainMenu, hInst, hwndStatus, lpwIDs);
+    MenuHelp(uMsg, wp32, lp32, HMENU_32(hMainMenu), hInst, HWND_32(hwndStatus), ids32);
+    HeapFree(GetProcessHeap(), 0, ids32);
+}
