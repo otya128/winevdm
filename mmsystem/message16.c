@@ -818,6 +818,10 @@ static struct MMSYSTDRV_Type
     {MMSYSTDRV_WaveOut_Map16To32W, MMSYSTDRV_WaveOut_UnMap16To32W, MMSYSTDRV_WaveOut_MapCB},
 };
 
+typedef BOOL (WINAPI *vm_inject_t)(DWORD vpfn16, DWORD dwFlags,
+    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+extern vm_inject_t vm_inject;
+
 /******************************************************************
  *		MMSYSTDRV_Callback3216
  *
@@ -857,7 +861,20 @@ static LRESULT CALLBACK MMSYSTDRV_Callback3216(struct mmsystdrv_thunk* thunk, HD
         args[2] = LOWORD(dwParam1);
         args[1] = HIWORD(dwParam2);
         args[0] = LOWORD(dwParam2);
-        return WOWCallback16Ex(thunk->callback, WCB16_PASCAL, sizeof(args), args, NULL);
+
+        if (!vm_inject)
+        {
+            char dllname[MAX_PATH];
+            krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
+            HMODULE vm = LoadLibraryA(dllname);
+            vm_inject = (vm_inject_t)GetProcAddress(vm, "vm_inject");
+            if (!vm_inject)
+            {
+               vm_inject = WOWCallback16Ex;
+            }
+        }
+        vm_inject((DWORD)thunk->callback, WCB16_PASCAL, sizeof(args), args, NULL);
+        break;
     case CALLBACK_EVENT:
         TRACE("Event(%08x) !\n", thunk->callback);
         SetEvent((HANDLE)thunk->callback);
