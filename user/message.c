@@ -1114,6 +1114,45 @@ static LRESULT scrollbar_proc_CallProc16To32A(winproc_callback_t callback, HWND 
     , LRESULT *result, void *arg, BOOL *f);
 static LRESULT static_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
     , LRESULT *result, void *arg, BOOL *f);
+void DROPSTRUCT16_32(LPDROPSTRUCT lpds32, LPDROPSTRUCT16 lpds16)
+{
+    lpds32->hwndSink = HWND_32(lpds16->hwndSink);
+    lpds32->hwndSource = HWND_32(lpds16->hwndSource);
+    lpds32->dwControlData = lpds16->dwControlData;
+    lpds32->dwData = lpds16->dwData;
+    lpds32->wFmt = lpds16->wFmt;
+    lpds32->ptDrop.x = lpds16->ptDrop.x;
+    lpds32->ptDrop.y = lpds16->ptDrop.y;
+    TRACE("%p,%p,%04x,%08x,%d,%d,%08x\n", lpds32->hwndSink, lpds32->hwndSource, lpds32->wFmt, lpds32->dwData, lpds32->ptDrop.x, lpds32->ptDrop.y, lpds32->dwControlData);
+}
+void DROPSTRUCT32_16(LPDROPSTRUCT lpds32, LPDROPSTRUCT16 lpds16)
+{
+    DWORD pid;
+    lpds16->hwndSink = HWND_16(lpds32->hwndSink);
+    lpds16->hwndSource = HWND_16(lpds32->hwndSource);
+    lpds16->dwControlData = lpds32->dwControlData;
+    lpds16->dwData = lpds32->dwData;
+    lpds16->wFmt = lpds32->wFmt;
+    lpds16->ptDrop.x = lpds32->ptDrop.x;
+    lpds16->ptDrop.y = lpds32->ptDrop.y;
+    if (GetWindowThreadProcessId(lpds32->hwndSource, &pid))
+    {
+        if (GetCurrentProcessId() != pid)
+        {
+            WCHAR buf[0x1000];
+            SIZE_T read;
+            HANDLE process = OpenProcess(PROCESS_VM_READ, FALSE, pid);
+            if (ReadProcessMemory(process, lpds32->dwData, buf, sizeof(buf), &read) && read >= sizeof(*buf))
+            {
+                buf[(read / sizeof(*buf)) - 1] = 0;
+                ERR("D&D file from other processes is broken in win32. %s\n", debugstr_w(buf));
+            }
+            CloseHandle(process);
+        }
+    }
+    TRACE("%p,%p,%04x,%08x,%d,%d,%08x\n", lpds32->hwndSink, lpds32->hwndSource, lpds32->wFmt, lpds32->dwData, lpds32->ptDrop.x, lpds32->ptDrop.y, lpds32->dwControlData);
+}
+
 /**********************************************************************
  *	     WINPROC_CallProc16To32A
  */
@@ -1127,7 +1166,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     TRACE("(%p, %04X, %s(%04X), %04X, %08X)\n", callback, hwnd, msg_str, msg, wParam, lParam);
     if (isListBox(hwnd, hwnd32) || (call_window_proc_callback == callback && is_listbox_wndproc(arg)))
 	{
-		BOOL f;
+        BOOL f;
         window_type_table[hwnd] = (BYTE)WINDOW_TYPE_LISTBOX;
 		ret = listbox_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
 		if (f)
@@ -1526,6 +1565,21 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback(hwnd32, msg, wParam, lParam, result, arg);
         *result = get_icon_16((HICON)*result);
         break;
+
+    case WM_QUERYDROPOBJECT:
+    case WM_DROPOBJECT:
+    case WM_DRAGLOOP:
+    case WM_DRAGSELECT:
+    case WM_DRAGMOVE:
+    {
+        LPDROPSTRUCT16 lpds16 = (LPDROPSTRUCT16)MapSL(lParam);
+        DROPSTRUCT ds32;
+        DROPSTRUCT16_32(&ds32, lpds16);
+        ret = callback(hwnd32, msg, wParam, (LPARAM)&ds32, result, arg);
+        DROPSTRUCT32_16(&ds32, lpds16);
+        *result = get_icon_16((HICON)*result);
+        break;
+    }
     case WM_MOUSEWHEEL:
     case WM_SYSTIMER:
     case WM_TIMER:
@@ -2201,6 +2255,22 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
         *result = (LRESULT)get_icon_32((HICON16)*result);
         break;
+    case WM_QUERYDROPOBJECT:
+    case WM_DROPOBJECT:
+    case WM_DRAGLOOP:
+    case WM_DRAGSELECT:
+    case WM_DRAGMOVE:
+    {
+        LPDROPSTRUCT lpds32 = (LPDROPSTRUCT)lParam;
+        DROPSTRUCT16 ds16;
+        LPDROPSTRUCT16 lpds16 = &ds16;
+        SEGPTR sds16 = MapLS(lpds16);
+        DROPSTRUCT32_16(lpds32, lpds16);
+        ret = callback(HWND_16(hwnd), msg, wParam, sds16, result, arg);
+        *result = (LRESULT)get_icon_32((HICON16)*result);
+        DROPSTRUCT16_32(lpds32, lpds16);
+        break;
+    }
     //some applications (afx?) crash when processing this message
     case WM_THEMECHANGED:
         break;

@@ -271,4 +271,15 @@ LPCSTR win16classname(LPCSTR name);
 LPCSTR win32classname(HINSTANCE16 hInst16, LPCSTR name);
 #define LOCAL_CLASS_PREFIX "WIN16"
 
+#include <pshpack1.h>
+typedef struct
+{
+    HWND16 hwndSource;
+    HWND16 hwndSink;
+    WORD wFmt;
+    DWORD dwData;
+    POINT16 ptDrop;
+    DWORD dwControlData;
+} DROPSTRUCT16, *PDROPSTRUCT16, *LPDROPSTRUCT16;
+#include <poppack.h>
 #endif /* __WINE_USER_PRIVATE_H */

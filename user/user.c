@@ -3205,6 +3205,8 @@ static BOOL DRAG_QueryUpdate16( HWND hQueryWnd, SEGPTR spDragInfo )
 DWORD WINAPI DragObject16( HWND16 hwndScope, HWND16 hWnd, UINT16 wObj,
                            HANDLE16 hOfStruct, WORD szList, HCURSOR16 hCursor )
 {
+    return DragObject(HWND_32(hwndScope), HWND_32(hWnd), wObj, MAKELONG(szList, hOfStruct), get_icon_32(hCursor));
+#if 0
     MSG	msg;
     LPDRAGINFO16 lpDragInfo;
     SEGPTR	spDragInfo;
@@ -3288,6 +3290,7 @@ DWORD WINAPI DragObject16( HWND16 hwndScope, HWND16 hWnd, UINT16 wObj,
     GlobalFree16(hDragInfo);
 
     return (DWORD)(msg.lParam);
+#endif
 }
 
 
