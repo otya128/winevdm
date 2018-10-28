@@ -37,6 +37,117 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(wnet);
 
+WORD map_wnet16_status(DWORD wnet32)
+{
+    switch (wnet32)
+    {
+    case -1:
+        return WN16_CANCEL;
+    case WN_SUCCESS:
+        return WN16_SUCCESS;
+    case WN_NOT_SUPPORTED:
+        return WN16_NOT_SUPPORTED;
+    case WN_NET_ERROR:
+        return WN16_NET_ERROR;
+    case WN_MORE_DATA:
+        return WN16_MORE_DATA;
+    case WN_BAD_POINTER:
+        return WN16_BAD_POINTER;
+    case WN_BAD_VALUE:
+        return WN16_BAD_VALUE;
+    case WN_BAD_PASSWORD:
+        return WN16_BAD_PASSWORD;
+    case WN_ACCESS_DENIED:
+        return WN16_ACCESS_DENIED;
+    case WN_FUNCTION_BUSY:
+        return WN16_FUNCTION_BUSY;
+        /*
+    case WN_WINDOWS_ERROR:
+        return WN16_WINDOWS_ERROR;
+        */
+    case WN_BAD_USER:
+        return WN16_BAD_USER;
+    case WN_OUT_OF_MEMORY:
+        return WN16_OUT_OF_MEMORY;
+    case WN_CANCEL:
+        return WN16_CANCEL;
+    case WN_NOT_CONNECTED:
+        return WN16_NOT_CONNECTED;
+    case WN_OPEN_FILES:
+        return WN16_OPEN_FILES;
+    case WN_BAD_NETNAME:
+        return WN16_BAD_NETNAME;
+    case WN_BAD_LOCALNAME:
+        return WN16_BAD_LOCALNAME;
+    case WN_ALREADY_CONNECTED:
+        return WN16_ALREADY_CONNECTED;
+    case WN_DEVICE_ERROR:
+        return WN16_DEVICE_ERROR;
+    case WN_CONNECTION_CLOSED:
+        return WN16_CONNECTION_CLOSED;
+        /*
+    case WN_CONTINUE:
+        return WN16_CONTINUE;
+    case WN_BAD_JOBID:
+        return WN16_BAD_JOBID;
+    case WN_JOB_NOT_FOUND:
+        return WN16_JOB_NOT_FOUND;
+    case WN_JOB_NOT_HELD:
+        return WN16_JOB_NOT_HELD;
+    case WN_BAD_QUEUE:
+        return WN16_BAD_QUEUE;
+    case WN_BAD_FILE_HANDLE:
+        return WN16_BAD_FILE_HANDLE;
+    case WN_CANT_SET_COPIES:
+        return WN16_CANT_SET_COPIES;
+    case WN_ALREADY_LOCKED:
+        return WN16_ALREADY_LOCKED;
+    case WN_NO_ERROR:
+        return WN16_NO_ERROR;
+        */
+    }
+    return WN16_WINDOWS_ERROR;
+}
+
+LPCSTR wnet16_status_error_string(WORD wnet)
+{
+#define STR(x) case x:\
+    return #x
+    switch (wnet)
+    {
+        STR(WN16_SUCCESS);
+        STR(WN16_NOT_SUPPORTED);
+        STR(WN16_NET_ERROR);
+        STR(WN16_MORE_DATA);
+        STR(WN16_BAD_POINTER);
+        STR(WN16_BAD_VALUE);
+        STR(WN16_BAD_PASSWORD);
+        STR(WN16_ACCESS_DENIED);
+        STR(WN16_FUNCTION_BUSY);
+        STR(WN16_WINDOWS_ERROR);
+        STR(WN16_BAD_USER);
+        STR(WN16_OUT_OF_MEMORY);
+        STR(WN16_CANCEL);
+        STR(WN16_CONTINUE);
+        STR(WN16_NOT_CONNECTED);
+        STR(WN16_OPEN_FILES);
+        STR(WN16_BAD_NETNAME);
+        STR(WN16_BAD_LOCALNAME);
+        STR(WN16_ALREADY_CONNECTED);
+        STR(WN16_DEVICE_ERROR);
+        STR(WN16_CONNECTION_CLOSED);
+        STR(WN16_BAD_JOBID);
+        STR(WN16_JOB_NOT_FOUND);
+        STR(WN16_JOB_NOT_HELD);
+        STR(WN16_BAD_QUEUE);
+        STR(WN16_BAD_FILE_HANDLE);
+        STR(WN16_CANT_SET_COPIES);
+        STR(WN16_ALREADY_LOCKED);
+        STR(WN16_NO_ERROR);
+    }
+#undef STR
+    return NULL;
+}
 /*
  * Remote printing
  */
@@ -358,7 +469,7 @@ WORD WINAPI WNetBrowseDialog16( HWND16 hParent, WORD nType, LPSTR szPath )
  */
 WORD WINAPI WNetConnectDialog16( HWND16 hWndParent, WORD iType )
 {
-    return WNetConnectionDialog(HWND_32(hWndParent), iType);
+    return map_wnet16_status(WNetConnectionDialog(HWND_32(hWndParent), iType));
 }
 
 /**************************************************************************
@@ -366,7 +477,7 @@ WORD WINAPI WNetConnectDialog16( HWND16 hWndParent, WORD iType )
  */
 WORD WINAPI WNetDisconnectDialog16( HWND16 hwndOwner, WORD iType )
 {
-    return WNetDisconnectDialog(HWND_32(hwndOwner), iType);
+    return map_wnet16_status(WNetDisconnectDialog(HWND_32(hwndOwner), iType));
 }
 
 /**************************************************************************
@@ -374,7 +485,7 @@ WORD WINAPI WNetDisconnectDialog16( HWND16 hwndOwner, WORD iType )
  */
 WORD WINAPI WNetConnectionDialog16( HWND16 hWndParent, WORD iType )
 {
-    return WNetConnectionDialog(HWND_32(hWndParent), iType);
+    return map_wnet16_status(WNetConnectionDialog(HWND_32(hWndParent), iType));
 }
 
 /**************************************************************************
@@ -474,6 +585,12 @@ WORD WINAPI WNetGetErrorText16( WORD nError, LPSTR lpBuffer, LPINT16 nBufferSize
  */
 WORD WINAPI WNetErrorText16( WORD nError, LPSTR lpszText, WORD cbText )
 {
-    FIXME("(%x, %p, %x): stub\n", nError, lpszText, cbText );
-    return FALSE;
+    LPCSTR str = wnet16_status_error_string(nError);
+    SIZE_T len;
+    if (!str || !cbText)
+        return FALSE;
+    len = min(cbText, strlen(str) + 1);
+    memcpy(lpszText, str, len);
+    lpszText[len] = 0;
+    return TRUE;
 }
