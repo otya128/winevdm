@@ -702,18 +702,6 @@ HINSTANCE16 WINAPI ShellExecute16( HWND16 hWnd, LPCSTR lpOperation,
 }
 
 
-void __wine_spec_init_ctor()
-{
-	DPRINTF("NOTIMPL:__wine_spec_init_ctor()\n");
-}
-void __wine_spec_unimplemented_stub(const char *module, const char *function)
-{
-	DPRINTF("NOTIMPL:__wine_spec_unimplemented_stub(%s, %s)\n", module, function);
-}
-void __wine_spec_dll_entry()
-{
-	DPRINTF("NOTIMPL:__wine_spec_dll_entry(?)\n");
-}
 HMODULE16 WINAPI MapHModuleLS(HMODULE hmod);
 /*************************************************************************
  * RunDLL_CallEntry16
@@ -737,4 +725,9 @@ void WINAPI RunDLL_CallEntry16( DWORD proc, HWND hwnd, HINSTANCE inst, LPCSTR cm
     args[0] = cmdshow;
     WOWCallback16Ex( proc, WCB16_PASCAL, sizeof(args), args, NULL );
     UnMapLS( cmdline_seg );
+}
+
+DWORD WINAPI SHFormatDrive16(HWND16 hwnd, UINT16 drive, UINT16 fmtID, UINT16 options)
+{
+    return SHFormatDrive(HWND_32(hwnd), drive, fmtID, options);
 }
