@@ -226,18 +226,12 @@ extern DWORD WOW32ReservedTls;
 /* __declspec(thread) PVOID WOW32Reserved; */
 __declspec(dllexport) PVOID getWOW32Reserved()
 {
-    __asm
-    {
-        mov eax, fs:[0e10h + WOW32RESERVED_TLS_INDEX * 4]
-    }
+    return TlsGetValue(WOW32ReservedTls);
 }
 __declspec(dllexport) PVOID setWOW32Reserved(PVOID w)
 {
-    __asm
-    {
-        mov eax, w
-        mov fs:[0e10h + WOW32RESERVED_TLS_INDEX * 4], eax
-    }
+    TlsSetValue(WOW32ReservedTls, w);
+    return w;
 }
 
 __declspec(thread) WINE_VM86_TEB_INFO GdiTebBatch;

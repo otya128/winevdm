@@ -155,6 +155,7 @@ void init_wow_handle();
 /**************************************************************************
  *		DllMain
  */
+DWORD WOW32ReservedTls;
 BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
 {
     switch(reason)
@@ -184,9 +185,10 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
                 TlsFree(tls[i]);
             }
         }
-
+        WOW32ReservedTls = WOW32RESERVED_TLS_INDEX;
         if (!allocated)
         {
+            WOW32ReservedTls = TlsAlloc();
             ERR("could not allocate WOW32RESERVED_TLS_INDEX!!\n");
         }
         /* init redirect dir */
