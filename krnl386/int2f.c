@@ -324,6 +324,17 @@ void WINAPI DOSVM_Int2fHandler( CONTEXT *context )
        break;
     case 0xfa:  /* Watcom debugger check, returns 0x666 if installed */
         break;
+    case 0x40:
+        switch (LOBYTE(context->Eax))
+        {
+        case 0x00:
+            SET_AL(context, 0xff);
+            break;
+        default:
+            INT_BARF( context, 0x2f );
+            break;
+        }
+        break;
     default:
         INT_BARF( context, 0x2f );
         break;
