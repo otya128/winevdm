@@ -604,6 +604,8 @@ static DLGPROCTHUNK *thunk_array;
 static int MAX_THUNK;
 static void init_proc_thunk()
 {
+    if (!thunk_array)
+        return;
     MAX_THUNK = 4096 / sizeof(DLGPROCTHUNK);
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(DLGPROCTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 }
@@ -625,12 +627,7 @@ DLGPROCTHUNK *init_thunk_data(LPVOID param, int i, LPVOID func)
     thunk_array[i].push_eax = 0x50;
     thunk_array[i].jmp = 0xEA;
     thunk_array[i].DlgProc = func;
-    WORD seg_cs;
-    __asm
-    {
-        mov seg_cs, cs
-    }
-    thunk_array[i].cs = seg_cs;
+    thunk_array[i].cs = wine_get_cs();
     thunk_array[i].used = TRUE;
     thunk_array[i].hDlg = 0;
     thunk_array[i].param = param;
