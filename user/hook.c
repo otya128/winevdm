@@ -625,6 +625,7 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
         {
             UnhookWindowsHookEx(info->hhook[index]);
         }
+        info->hhook[index] = NULL;
     }
     return result;
 }
