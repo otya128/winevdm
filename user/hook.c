@@ -593,9 +593,9 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
         delete_proc_thunk(thunk);
         return 0;
     }
+    info = get_hook_info(TRUE);
     if (info)
-        info = get_hook_info(TRUE);
-    info->thunk[index] = thunk;
+        info->thunk[index] = thunk;
     thunk->hook = hook;
     thunk->proc16 = proc;
     thunk->hinst16 = hInst;
@@ -661,9 +661,9 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
     info = get_hook_info(FALSE);
     if (info)
     {
-        if (info->thunk[thunk->type] == thunk)
+        if (info->thunk[thunk->type - WH_MINHOOK] == thunk)
         {
-            info->thunk[thunk->type] = NULL;
+            info->thunk[thunk->type - WH_MINHOOK] = NULL;
         }
     }
     thunk->hook = 0;
