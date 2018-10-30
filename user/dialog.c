@@ -604,7 +604,7 @@ static DLGPROCTHUNK *thunk_array;
 static int MAX_THUNK;
 static void init_proc_thunk()
 {
-    if (!thunk_array)
+    if (thunk_array)
         return;
     MAX_THUNK = 4096 / sizeof(DLGPROCTHUNK);
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(DLGPROCTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
