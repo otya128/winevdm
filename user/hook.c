@@ -558,7 +558,7 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
         {
             list_init(head);
         }
-        list_add_tail(head, &entry->entry);
+        list_add_head(head, &entry->entry);
         entry->proc16 = proc;
         entry->hinst16 = hInst;
         entry->htask16 = hTask;
