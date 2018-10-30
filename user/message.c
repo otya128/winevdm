@@ -2373,27 +2373,27 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
         /* call 16-bit window proc directly */
         WNDPROC16 winproc;
 
-        /* first the WH_CALLWNDPROC hook */
-        call_WH_CALLWNDPROC_hook( hwnd16, msg, wparam, lparam );
-
 		if (!(winproc = (WNDPROC16)GetWndProc16(hwnd16)))
 		{
             DLGPROC16 dlgproc;
-            /* workaround for PBRUSH.EXE */
+            /* workaround for PBRUSH.EXE (color palette) */
             if (msg == WM_COMMAND)
             {
                 dlgproc = (DLGPROC16)GetDlgProc16(hwnd16);
                 if (dlgproc)
                 {
+                    /* first the WH_CALLWNDPROC hook */
+                    call_WH_CALLWNDPROC_hook(hwnd16, msg, wparam, lparam);
                     CallWindowProc16(dlgproc, hwnd16, msg, wparam, lparam);
                     return GetWindowLong16(hwnd16, DWL_MSGRESULT);
                 }
             }
 			WINPROC_CallProc16To32A(send_message_callback, hwnd16, msg, wparam, lparam, &result, NULL);
 			return result;
-			//return call_native_wndproc(hwnd16, msg, wparam, lparam);
 		}
 
+        /* first the WH_CALLWNDPROC hook */
+        call_WH_CALLWNDPROC_hook(hwnd16, msg, wparam, lparam);
         TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx\n", hwnd16, msg, wparam, lparam );
         result = CallWindowProc16( winproc, hwnd16, msg, wparam, lparam );
         TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx returned %08lx\n",

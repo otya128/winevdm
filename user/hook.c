@@ -34,13 +34,43 @@
 WINE_DEFAULT_DEBUG_CHANNEL(hook);
 
 
-static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_SHELL( INT code, WPARAM wp, LPARAM lp );
+#include <pshpack1.h>
+typedef struct
+{
+    BYTE pop_eax; /* 58 1 */
+    BYTE push_imm; /* 68 2 */
+    LPVOID param; /* 6 */
+    BYTE push_eax; /* 50 7*/
+    BYTE jmp; /* 0xEA 8 */
+    LPVOID proc; /* 12 */
+    WORD cs; /* 14 */
+    WORD used; /* 16 */
+} thunk_header;
+#include <poppack.h>
+typedef struct
+{
+    thunk_header thunk;
+    ULONG_PTR extra_data[12]; /* 64 */
+} thunk_info;
+typedef struct
+{
+    thunk_header thunk;
+    HHOOK hook;
+    INT id;
+    SEGPTR proc16;
+    HTASK16 htask16;
+    HINSTANCE16 hinst16;
+    INT type;
+} hook_thunk_info;
+
+
+static LRESULT CALLBACK call_WH_MSGFILTER(hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK call_WH_KEYBOARD( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK call_WH_GETMESSAGE( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK call_WH_CALLWNDPROC( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK call_WH_CBT( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK call_WH_MOUSE( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK call_WH_SHELL( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp );
 
 #define WH_MAXHOOK16 WH_SHELL  /* Win16 only supports up to WH_SHELL */
 #define NB_HOOKS16 (WH_MAXHOOK16 - WH_MINHOOK + 1)
@@ -62,13 +92,50 @@ static const HOOKPROC hook_procs[NB_HOOKS16] =
 };
 
 
+static thunk_info *thunk_array;
+static int max_thunk;
+static void init_proc_thunk()
+{
+    if (thunk_array)
+        return;
+    max_thunk = 4096 / sizeof(thunk_info);
+    thunk_array = VirtualAlloc(NULL, max_thunk * sizeof(thunk_info), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+}
+
+static thunk_info *init_thunk_data(int i, LPVOID func)
+{
+    thunk_array[i].thunk.pop_eax = 0x58;
+    thunk_array[i].thunk.push_imm = 0x68;
+    thunk_array[i].thunk.param = thunk_array + i;
+    thunk_array[i].thunk.push_eax = 0x50;
+    thunk_array[i].thunk.jmp = 0xEA;
+    thunk_array[i].thunk.proc = func;
+    thunk_array[i].thunk.cs = wine_get_cs();
+    thunk_array[i].thunk.used = TRUE;
+    return thunk_array + i;
+}
+static thunk_header *allocate_proc_thunk(LPVOID func)
+{
+    init_proc_thunk();
+    for (int i = 0; i < max_thunk; i++)
+    {
+        if (!thunk_array[i].thunk.used)
+        {
+            return (thunk_header*)init_thunk_data(i, func);
+        }
+    }
+    ERR("could not allocate thunk!\n");
+    return NULL;
+}
+static void delete_proc_thunk(thunk_header *thunk)
+{
+    thunk->used = FALSE;
+}
+
 struct hook16_queue_info
 {
     INT         id;                /* id of current hook */
-    HHOOK       hook[NB_HOOKS16];  /* Win32 hook handles */
-    HOOKPROC16  proc[NB_HOOKS16];  /* 16-bit hook procedures */
-    HTASK16     htask16[NB_HOOKS16];
-    HINSTANCE16 hinst16[NB_HOOKS16];
+    hook_thunk_info *thunk[NB_HOOKS16];
 };
 
 static struct hook16_queue_info *get_hook_info( BOOL create )
@@ -119,14 +186,13 @@ static inline void map_msg_32_to_16( const MSG *msg32, MSG16 *msg16 )
 /***********************************************************************
  *           call_hook_16
  */
-static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp )
+static LRESULT call_hook_16( hook_thunk_info *thunk, INT id, INT code, WPARAM wp, LPARAM lp )
 {
-    struct hook16_queue_info *info = get_hook_info( FALSE );
     WORD args[4];
     DWORD ret;
-    INT prev_id = info->id;
+    INT prev_id = thunk->id;
     CONTEXT context;
-    info->id = id;
+    thunk->id = id;
 
     args[3] = code;
     args[2] = wp;
@@ -136,16 +202,15 @@ static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp )
     context.SegDs = context.SegEs = SELECTOROF(getWOW32Reserved());
     context.SegFs = wine_get_fs();
     context.SegGs = wine_get_gs();
-    context.Eax = info->hinst16[id - WH_MINHOOK] | 1; /* Handle To Sel */
+    context.Eax = thunk->hinst16 | 1; /* Handle To Sel */
     if (!context.Eax) context.Eax = context.SegDs;
-    context.SegCs = SELECTOROF((DWORD)info->proc[id - WH_MINHOOK]);
-    context.Eip = OFFSETOF((DWORD)info->proc[id - WH_MINHOOK]);
+    context.SegCs = SELECTOROF((DWORD)thunk->proc16);
+    context.Eip = OFFSETOF((DWORD)thunk->proc16);
     context.Ebp = OFFSETOF(getWOW32Reserved()) + FIELD_OFFSET(STACK16FRAME, bp);
-    //WOWCallback16Ex( (DWORD)info->proc[id - WH_MINHOOK], WCB16_PASCAL, sizeof(args), args, &ret );
-    WOWCallback16Ex( (DWORD)info->proc[id - WH_MINHOOK], WCB16_REGS | WCB16_PASCAL, sizeof(args), args, (LPDWORD)&context );
+    WOWCallback16Ex( (DWORD)thunk->proc16, WCB16_REGS | WCB16_PASCAL, sizeof(args), args, (LPDWORD)&context );
 
     ret = MAKELONG(LOWORD(context.Eax), LOWORD(context.Edx));
-    info->id = prev_id;
+    thunk->id = prev_id;
 
     /* Grrr. While the hook procedure is supposed to have an LRESULT return
        value even in Win16, it seems that for those hook types where the
@@ -162,6 +227,7 @@ struct wndproc_hook_params
     HHOOK  hhook;
     INT    code;
     WPARAM wparam;
+    hook_thunk_info *thunk;
 };
 
 /* callback for WINPROC_Call16To32A */
@@ -183,7 +249,7 @@ static LRESULT wndproc_hook_callback( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
 static LRESULT wndproc_hook_callback16( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
                                         LRESULT *result, void *arg )
 {
-    struct wndproc_hook_params *params = arg;
+    struct wndproc_hook_params *params = (struct wndproc_hook_params*)arg;
     CWPSTRUCT16 cwp;
     LRESULT ret;
 
@@ -193,7 +259,7 @@ static LRESULT wndproc_hook_callback16( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LP
     cwp.lParam  = lp;
 
     lp = MapLS( &cwp );
-    ret = call_hook_16( WH_CALLWNDPROC, params->code, params->wparam, lp );
+    ret = call_hook_16( params->thunk, WH_CALLWNDPROC, params->code, params->wparam, lp );
     UnMapLS( lp );
 
     *result = 0;
@@ -206,7 +272,7 @@ void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp )
     CWPSTRUCT16 cwp;
     struct hook16_queue_info *info = get_hook_info( FALSE );
 
-    if (!info || !info->proc[WH_CALLWNDPROC - WH_MINHOOK]) return;
+    if (!info || !info->thunk[WH_CALLWNDPROC - WH_MINHOOK]) return;
 
     cwp.hwnd    = hwnd;
     cwp.message = msg;
@@ -214,14 +280,15 @@ void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp )
     cwp.lParam  = lp;
 
     lp = MapLS( &cwp );
-    call_hook_16( WH_CALLWNDPROC, HC_ACTION, 1, lp );
+    /* FIXME: It does not work when there are multiple hooks. */
+    call_hook_16( info->thunk[WH_CALLWNDPROC - WH_MINHOOK], WH_CALLWNDPROC, HC_ACTION, 1, lp );
     UnMapLS( lp );
 }
 
 /***********************************************************************
  *		call_WH_MSGFILTER
  */
-static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_MSGFILTER( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp )
 {
     MSG *msg32 = (MSG *)lp;
     MSG16 msg16;
@@ -229,7 +296,7 @@ static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp )
 
     map_msg_32_to_16( msg32, &msg16 );
     lp = MapLS( &msg16 );
-    ret = call_hook_16( WH_MSGFILTER, code, wp, lp );
+    ret = call_hook_16( thunk, WH_MSGFILTER, code, wp, lp );
     UnMapLS( lp );
     return ret;
 }
@@ -238,16 +305,16 @@ static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp )
 /***********************************************************************
  *		call_WH_KEYBOARD
  */
-static LRESULT CALLBACK call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_KEYBOARD( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp )
 {
-    return call_hook_16( WH_KEYBOARD, code, wp, lp );
+    return call_hook_16( thunk, WH_KEYBOARD, code, wp, lp );
 }
 
 
 /***********************************************************************
  *		call_WH_GETMESSAGE
  */
-static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_GETMESSAGE( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp )
 {
     MSG *msg32 = (MSG *)lp;
     MSG16 msg16;
@@ -256,7 +323,7 @@ static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp )
     map_msg_32_to_16( msg32, &msg16 );
 
     lp = MapLS( &msg16 );
-    ret = call_hook_16( WH_GETMESSAGE, code, wp, lp );
+    ret = call_hook_16( thunk, WH_GETMESSAGE, code, wp, lp );
     UnMapLS( lp );
 
     map_msg_16_to_32( &msg16, msg32 );
@@ -267,7 +334,7 @@ static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp )
 /***********************************************************************
  *		call_WH_CALLWNDPROC
  */
-static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_CALLWNDPROC( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp )
 {
     struct wndproc_hook_params params;
     CWPSTRUCT *cwp32 = (CWPSTRUCT *)lp;
@@ -275,6 +342,7 @@ static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp )
 
     params.code   = code;
     params.wparam = wp;
+    params.thunk = thunk;
     return WINPROC_CallProc32ATo16( wndproc_hook_callback16, cwp32->hwnd, cwp32->message,
                                     cwp32->wParam, cwp32->lParam, &result, &params );
 }
@@ -283,7 +351,7 @@ static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp )
 /***********************************************************************
  *		call_WH_CBT
  */
-static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_CBT( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp )
 {
     LRESULT ret = 0;
 
@@ -312,7 +380,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             cbtcw16.hwndInsertAfter = HWND_16( cbtcw32->hwndInsertAfter );
 
             lp = MapLS( &cbtcw16 );
-            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
+            ret = call_hook_16( thunk, WH_CBT, code, HWND_16(wp), lp );
             UnMapLS( cs16.lpszName );
             UnMapLS( cs16.lpszClass );
 
@@ -331,7 +399,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             cas16.hWndActive = HWND_16( cas32->hWndActive );
 
             lp = MapLS( &cas16 );
-            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
+            ret = call_hook_16( thunk, WH_CBT, code, HWND_16(wp), lp );
             UnMapLS( lp );
             break;
         }
@@ -347,7 +415,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             ms16.dwExtraInfo  = ms32->dwExtraInfo;
 
             lp = MapLS( &ms16 );
-            ret = call_hook_16( WH_CBT, code, wp, lp );
+            ret = call_hook_16( thunk, WH_CBT, code, wp, lp );
             UnMapLS( lp );
             break;
         }
@@ -361,38 +429,38 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             rect16.right  = rect32->right;
             rect16.bottom = rect32->bottom;
             lp = MapLS( &rect16 );
-            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
+            ret = call_hook_16( thunk, WH_CBT, code, HWND_16(wp), lp );
             UnMapLS( lp );
             break;
     }
     case HCBT_MINMAX:
     {
-        ret = call_hook_16(WH_CBT, code, HWND_16(wp), lp);
+        ret = call_hook_16(thunk, WH_CBT, code, HWND_16(wp), lp);
         break;
     }
     case HCBT_QS:
     {
-        ret = call_hook_16(WH_CBT, code, wp, lp);
+        ret = call_hook_16(thunk, WH_CBT, code, wp, lp);
         break;
     }
     case HCBT_DESTROYWND:
     {
-        ret = call_hook_16(WH_CBT, code, HWND_16(wp), lp);
+        ret = call_hook_16(thunk, WH_CBT, code, HWND_16(wp), lp);
         break;
     }
     case HCBT_KEYSKIPPED:
     {
-        ret = call_hook_16(WH_CBT, code, wp, lp);
+        ret = call_hook_16(thunk, WH_CBT, code, wp, lp);
         break;
     }
     case HCBT_SYSCOMMAND:
     {
-        ret = call_hook_16(WH_CBT, code, wp, lp);
+        ret = call_hook_16(thunk, WH_CBT, code, wp, lp);
         break;
     }
     case HCBT_SETFOCUS:
     {
-        ret = call_hook_16(WH_CBT, code, HWND_16(wp), HWND_16(lp));
+        ret = call_hook_16(thunk, WH_CBT, code, HWND_16(wp), HWND_16(lp));
         break;
     }
     default:
@@ -405,7 +473,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
 /***********************************************************************
  *		call_WH_MOUSE
  */
-static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_MOUSE( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp )
 {
     MOUSEHOOKSTRUCT *ms32 = (MOUSEHOOKSTRUCT *)lp;
     MOUSEHOOKSTRUCT16 ms16;
@@ -418,7 +486,7 @@ static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp )
     ms16.dwExtraInfo  = ms32->dwExtraInfo;
 
     lp = MapLS( &ms16 );
-    ret = call_hook_16( WH_MOUSE, code, wp, lp );
+    ret = call_hook_16( thunk, WH_MOUSE, code, wp, lp );
     UnMapLS( lp );
     return ret;
 }
@@ -427,21 +495,21 @@ static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp )
 /***********************************************************************
  *		call_WH_SHELL
  */
-static LRESULT CALLBACK call_WH_SHELL( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_SHELL( hook_thunk_info *thunk, INT code, WPARAM wp, LPARAM lp )
 {
-    return call_hook_16( WH_SHELL, code, wp, lp );
+    return call_hook_16( thunk, WH_SHELL, code, wp, lp );
 }
 
 
 // TODO: key delay and mouse messages
-static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, int id, DWORD sysTime )
+static void WINAPI journal_playback_cb( hook_thunk_info *thunk, HWND hwnd, UINT msg, int id, DWORD sysTime )
 {
     EVENTMSG16 emsg;
     LPARAM lp;
     INPUT input;
     lp = MapLS( &emsg );
-    call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp );
-    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0 );
+    call_hook_16( thunk, WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp );
+    call_hook_16( thunk, WH_JOURNALPLAYBACK, HC_SKIP, 0, 0 );
     UnMapLS( &msg );
     TRACE("WH_JOURNALPLAYBACK message: %x paramL: %x paramH: %x\n", emsg.message, emsg.paramL, emsg.paramH);
     switch( emsg.message )
@@ -485,64 +553,90 @@ FARPROC16 WINAPI SetWindowsHook16( INT16 id, HOOKPROC16 proc )
 /***********************************************************************
  *		SetWindowsHookEx (USER.291)
  */
-HHOOK WINAPI SetWindowsHookEx16( INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HTASK16 hTask )
+HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HTASK16 hTask)
 {
     struct hook16_queue_info *info;
     HHOOK hook;
     int index = id - WH_MINHOOK;
+    DWORD thread = GetCurrentThreadId();
+    hook_thunk_info *thunk;
 
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return 0;
     if (!hook_procs[index])
     {
-        FIXME( "hook type %d broken in Win16\n", id );
+        FIXME("hook type %d broken in Win16\n", id);
         return 0;
     }
-    if (!hTask) FIXME( "System-global hooks (%d) broken in Win16\n", id );
+    if (!hTask) FIXME("System-global hooks (%d) broken in Win16\n", id);
     else if (hTask != GetCurrentTask())
     {
-        FIXME( "setting hook (%d) on other task not supported\n", id );
-        return 0;
+        thread = GetThreadId((HANDLE)HTASK_32(hTask));
+        if (!thread)
+        {
+            ERR("invalid task? %04x\n", hTask);
+            return 0;
+        }
     }
 
-    if (!(info = get_hook_info( TRUE ))) return 0;
-    if (info->hook[index])
-    {
-        FIXME( "Multiple hooks (%d) for the same task not supported yet\n", id );
-        return 0;
-    }
+    thunk = allocate_proc_thunk(hook_procs[index]);
+    thunk->type = id;
     if (id == WH_JOURNALPLAYBACK)
     {
-        if (!(hook = (HHOOK)SetTimer( NULL, 0, 100, journal_playback_cb ))) return 0;
+        if (!(hook = (HHOOK)SetTimer(NULL, 0, 100, journal_playback_cb)))
+        {
+            delete_proc_thunk(thunk);
+            return 0;
+        }
     }
-    else if (!(hook = SetWindowsHookExA( id, hook_procs[index], 0, GetCurrentThreadId() ))) return 0;
-    info->hook[index] = hook;
-    info->proc[index] = proc;
-    info->hinst16[index] = hInst;
-    info->htask16[index] = hTask;
+    else if (!(hook = SetWindowsHookExA(id, (HOOKPROC)thunk, 0, thread)))
+    {
+        delete_proc_thunk(thunk);
+        return 0;
+    }
+    if (info)
+        info = get_hook_info(TRUE);
+    info->thunk[index] = thunk;
+    thunk->hook = hook;
+    thunk->proc16 = proc;
+    thunk->hinst16 = hInst;
+    thunk->htask16 = hTask;
     return hook;
 }
 
 
+hook_thunk_info *find_hook_thunk_info(HHOOK hhook)
+{
+    int index;
+    if (!thunk_array)
+        return NULL;
+    for (index = 0; index < max_thunk; index++)
+    {
+        hook_thunk_info *info = (hook_thunk_info*)(thunk_array + index);
+        if (info->thunk.used && info->hook == hhook)
+        {
+            return info;
+        }
+    }
+    return NULL;
+}
 /***********************************************************************
  *		UnhookWindowsHook (USER.234)
  */
 BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
 {
-    struct hook16_queue_info *info;
-    int index = id - WH_MINHOOK;
+    int index;
 
+    if (!thunk_array)
+        return FALSE;
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return FALSE;
-    if (!(info = get_hook_info( FALSE ))) return FALSE;
-    if (info->proc[index] != proc) return FALSE;
-    if (id == WH_JOURNALPLAYBACK)
+    for (index = 0; index < max_thunk; index++)
     {
-        if (!KillTimer( NULL, (UINT_PTR)info->hook[index] )) return FALSE;
+        hook_thunk_info *info = (hook_thunk_info*)(thunk_array + index);
+        if (info->thunk.used && info->proc16 == proc)
+        {
+            return UnhookWindowsHookEx16(info->hook);
+        }
     }
-    else if (!UnhookWindowsHookEx( info->hook[index] )) return FALSE;
-    info->hook[index] = 0;
-    info->proc[index] = 0;
-    info->hinst16[index] = 0;
-    info->htask16[index] = 0;
     return TRUE;
 }
 
@@ -550,25 +644,32 @@ BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
 /***********************************************************************
  *		UnhookWindowsHookEx (USER.292)
  */
-BOOL16 WINAPI UnhookWindowsHookEx16( HHOOK hhook )
+BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
 {
-    struct hook16_queue_info *info;
     int index;
-
-    if (!(info = get_hook_info( FALSE ))) return FALSE;
-
-    for (index = 0; index < NB_HOOKS16; index++)
+    BOOL result;
+    struct hook16_queue_info *info;
+    hook_thunk_info *thunk = find_hook_thunk_info(hhook);
+    if (!thunk)
+        return FALSE;
+    if (thunk->type == WH_JOURNALPLAYBACK)
+        result = KillTimer(NULL, (UINT_PTR)hhook);
+    else
+        result = UnhookWindowsHookEx(hhook);
+    if (!result)
+        return FALSE;
+    info = get_hook_info(FALSE);
+    if (info)
     {
-        if (info->hook[index] == hhook)
+        if (info->thunk[thunk->type] == thunk)
         {
-            info->hook[index] = 0;
-            info->proc[index] = 0;
-            if (index == 1)
-                return KillTimer( NULL, (UINT_PTR)hhook );
-            return UnhookWindowsHookEx( hhook );
+            info->thunk[thunk->type] = NULL;
         }
     }
-    return FALSE;
+    thunk->hook = 0;
+    thunk->proc16 = 0;
+    delete_proc_thunk((thunk_header*)thunk);
+    return (BOOL16)result;
 }
 
 
@@ -618,10 +719,11 @@ BOOL16 WINAPI CallMsgFilter16( MSG16 *msg, INT16 code )
  */
 LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARAM lparam )
 {
-    struct hook16_queue_info *info;
+    hook_thunk_info *info;
     LRESULT ret = 0;
-
-    if (!(info = get_hook_info( FALSE ))) return 0;
+    /* FIXME: Use current hook? */
+    if (!(info = find_hook_thunk_info(hhook)))
+        return 0;
 
     switch (info->id)
     {
