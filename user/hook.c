@@ -334,7 +334,7 @@ void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 *msg, WPARAM16 *wp, LPARAM *l
 {
     CWPSTRUCT16 cwp;
     SEGPTR lpcwp = 0;
-    struct hook16_queue_info *info = get_hook_info( FALSE );
+    struct hook16_queue_info *info = get_hook_info( FALSE, 0 );
 
     if (!info || !info->hhook[WH_CALLWNDPROC - WH_MINHOOK]) return;
 
@@ -583,7 +583,7 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
     lp = MapLS( &emsg );
     call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp );
     call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0 );
-    UnMapLS( &msg );
+    UnMapLS( lp );
     TRACE("WH_JOURNALPLAYBACK message: %x paramL: %x paramH: %x\n", emsg.message, emsg.paramL, emsg.paramH);
     switch( emsg.message )
        {
