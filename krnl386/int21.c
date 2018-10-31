@@ -952,7 +952,7 @@ static BOOL INT21_CreateFile( CONTEXT *context,
     DWORD  winMode;
     DWORD  winSharing;
     char   redir_buf[MAX_PATH];
-    BOOL   retry;
+    BOOL   retry = FALSE;
 
     TRACE( "CreateFile called: function=%02x, action=%02x, access/share=%04x, "
            "create flags=%04x, file=%s.\n",
