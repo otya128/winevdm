@@ -281,22 +281,26 @@ static LRESULT wndproc_hook_callback16( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LP
 }
 
 /* helper for SendMessage16 */
-void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp )
+void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 *msg, WPARAM16 *wp, LPARAM *lp )
 {
     CWPSTRUCT16 cwp;
+    SEGPTR lpcwp = 0;
     struct hook16_queue_info *info = get_hook_info( FALSE );
 
     if (!info || !info->hhook[WH_CALLWNDPROC - WH_MINHOOK]) return;
 
     cwp.hwnd    = hwnd;
-    cwp.message = msg;
-    cwp.wParam  = wp;
-    cwp.lParam  = lp;
+    cwp.message = *msg;
+    cwp.wParam  = *wp;
+    cwp.lParam  = *lp;
 
-    lp = MapLS( &cwp );
+    lpcwp = MapLS( &cwp );
 
-    call_hook_16(WH_CALLWNDPROC, HC_ACTION, 1, lp);
-    UnMapLS( lp );
+    call_hook_16(WH_CALLWNDPROC, HC_ACTION, 1, lpcwp);
+    UnMapLS( lpcwp );
+    *msg = cwp.message;
+    *wp = cwp.wParam;
+    *lp = cwp.lParam;
 }
 
 /***********************************************************************

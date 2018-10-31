@@ -2383,7 +2383,7 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
                 if (dlgproc)
                 {
                     /* first the WH_CALLWNDPROC hook */
-                    call_WH_CALLWNDPROC_hook(hwnd16, msg, wparam, lparam);
+                    call_WH_CALLWNDPROC_hook(hwnd16, &msg, &wparam, &lparam);
                     CallWindowProc16(dlgproc, hwnd16, msg, wparam, lparam);
                     return GetWindowLong16(hwnd16, DWL_MSGRESULT);
                 }
@@ -2393,7 +2393,7 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
 		}
 
         /* first the WH_CALLWNDPROC hook */
-        call_WH_CALLWNDPROC_hook(hwnd16, msg, wparam, lparam);
+        call_WH_CALLWNDPROC_hook(hwnd16, &msg, &wparam, &lparam);
         TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx\n", hwnd16, msg, wparam, lparam );
         result = CallWindowProc16( winproc, hwnd16, msg, wparam, lparam );
         TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx returned %08lx\n",

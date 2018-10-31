@@ -94,7 +94,7 @@ extern LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd
 extern LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT msg,
                                         WPARAM wParam, LPARAM lParam, LRESULT *result, void *arg ) DECLSPEC_HIDDEN;
 
-extern void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp ) DECLSPEC_HIDDEN;
+extern void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 *msg, WPARAM16 *wp, LPARAM *lp ) DECLSPEC_HIDDEN;
 
 #define GET_BYTE(ptr)  (*(const BYTE *)(ptr))
 #define GET_WORD(ptr)  (*(const WORD *)(ptr))
