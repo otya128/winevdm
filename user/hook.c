@@ -69,6 +69,7 @@ struct hook_entry
     HTASK16 htask16;
     HINSTANCE16 hinst16;
     INT type;
+    BOOL deleted;
 };
 
 struct hook16_queue_info
@@ -106,12 +107,14 @@ static void init_hook()
     for (int i = 0; i < HOOK_MAX; i++)
     {
         list_add_tail(&hook_free_list, &hook_free[i].entry);
+        hook_free[i].deleted = TRUE;
     }
 }
 
 static struct hook_entry *allocate_hook()
 {
     struct list *alloc;
+    struct hook_entry *entry;
     init_hook();
     alloc = list_head(&hook_free_list);
     if (!alloc)
@@ -120,11 +123,14 @@ static struct hook_entry *allocate_hook()
         return NULL;
     }
     list_remove(alloc);
-    return LIST_ENTRY(alloc, struct hook_entry, entry);
+    entry = LIST_ENTRY(alloc, struct hook_entry, entry);
+    entry->deleted = FALSE;
+    return entry;
 }
 
 static void free_hook(struct hook_entry *entry)
 {
+    entry->deleted = TRUE;
     list_add_tail(&hook_free_list, &entry->entry);
 }
 
@@ -138,15 +144,20 @@ LOWORD: near pointer?
 */
 static HHOOK entry_to_hhook(struct hook_entry *entry)
 {
+    if (entry->deleted)
+        return NULL;
     if (hook_free <= entry && hook_free + HOOK_MAX >= entry)
         return (HHOOK)MAKELONG((WORD)(entry - hook_free), HHOOK_HIGHWORD);
     return NULL;
 }
 static struct hook_entry *hhook_to_entry(HHOOK hhook)
 {
+    struct hook_entry *entry = (struct hook_entry*)(LOWORD(hhook) + hook_free);
     if (HIWORD(hhook) != HHOOK_HIGHWORD)
         return NULL;
-    return (struct hook_entry*)(LOWORD(hhook) + hook_free);
+    if (entry->deleted)
+        return NULL;
+    return entry;
 }
 
 /***********************************************************************
