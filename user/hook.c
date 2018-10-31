@@ -91,13 +91,62 @@ static struct hook16_queue_info *get_hook_info( BOOL create )
     return info;
 }
 
+
+#define HHOOK_HIGHWORD MAKEWORD('H', 'K')
+#define HOOK_MAX 200
+/* free list */
+struct hook_entry *hook_free;
+struct list hook_free_list = LIST_INIT(hook_free_list);
+
+static void init_hook()
+{
+    if (hook_free)
+        return;
+    hook_free = HeapAlloc(GetProcessHeap(), 0, HOOK_MAX * sizeof(struct hook_entry));
+    for (int i = 0; i < HOOK_MAX; i++)
+    {
+        list_add_tail(&hook_free_list, &hook_free[i].entry);
+    }
+}
+
+static struct hook_entry *allocate_hook()
+{
+    struct list *alloc;
+    init_hook();
+    alloc = list_head(&hook_free_list);
+    if (!alloc)
+    {
+        ERR("could not allocate HHOOK\n");
+        return NULL;
+    }
+    list_remove(alloc);
+    return LIST_ENTRY(alloc, struct hook_entry, entry);
+}
+
+static void free_hook(struct hook_entry *entry)
+{
+    list_add_tail(&hook_free_list, &entry->entry);
+}
+
+/*
+HHOOK (~Windows 3.0)
+https://blogs.msdn.microsoft.com/oldnewthing/20060809-18/?p=30183
+https://blogs.msdn.microsoft.com/oldnewthing/20060810-06/?p=30173
+HHOOK (Windows 3.1~)
+HIWORD: 'HK'
+LOWORD: near pointer?
+*/
 static HHOOK entry_to_hhook(struct hook_entry *entry)
 {
-    return (HHOOK)entry;
+    if (hook_free <= entry && hook_free + HOOK_MAX >= entry)
+        return (HHOOK)MAKELONG((WORD)(entry - hook_free), HHOOK_HIGHWORD);
+    return NULL;
 }
 static struct hook_entry *hhook_to_entry(HHOOK hhook)
 {
-    return (struct hook_entry *)hhook;
+    if (HIWORD(hhook) != HHOOK_HIGHWORD)
+        return NULL;
+    return (struct hook_entry*)(LOWORD(hhook) + hook_free);
 }
 
 /***********************************************************************
@@ -137,9 +186,10 @@ static LRESULT call_hook_entry_16(struct hook16_queue_info *info, struct hook_en
 static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp )
 {
     struct hook16_queue_info *info = get_hook_info(FALSE);
-    struct hook_entry *hook_entry = LIST_ENTRY(list_head(&info->hook_entry[id - WH_MIN]), struct hook_entry, entry);
-    if (!hook_entry)
+    struct list *head = list_head(&info->hook_entry[id - WH_MIN]);
+    if (!head)
         return 0;
+    struct hook_entry *hook_entry = LIST_ENTRY(head, struct hook_entry, entry);
     LRESULT result = call_hook_entry_16(info, hook_entry, id, code, wp, lp);
     return result;
 }
@@ -528,12 +578,14 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
     if (!hTask) FIXME("System-global hooks (%d) broken in Win16\n", id);
     else if (hTask != GetCurrentTask())
     {
-        thread = GetThreadId((HANDLE)HTASK_32(hTask));
+        thread = (DWORD)HTASK_32(hTask);
         if (!thread)
         {
             ERR("invalid task? %04x\n", hTask);
             return 0;
         }
+        FIXME( "setting hook (%d) on other task not supported\n", id );
+        return 0;
     }
 
     info = get_hook_info(TRUE);
@@ -553,7 +605,7 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
     if (info)
     {
         struct list *head = &info->hook_entry[index];
-        entry = (struct hook_entry*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct hook_entry));
+        entry = (struct hook_entry*)allocate_hook();
         if (!head->next)
         {
             list_init(head);
@@ -599,7 +651,10 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
     BOOL result = FALSE;
     struct hook16_queue_info *info = get_hook_info(FALSE);
     struct hook_entry *unhook = hhook_to_entry(hhook);
-    INT type = unhook->type;
+    INT type;
+    if (!unhook)
+        return FALSE;
+    type = unhook->type;
     int index = type - WH_MINHOOK;
     if (info)
     {
@@ -610,7 +665,7 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
             if (hook_entry == unhook)
             {
                 list_remove(&hook_entry->entry);
-                HeapFree(GetProcessHeap(), 0, hook_entry);
+                free_hook(hook_entry);
                 result = TRUE;
             }
         }
@@ -680,10 +735,14 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
     struct hook16_queue_info *info = get_hook_info(FALSE);
     struct hook_entry *entry = hhook_to_entry(hhook);
     LRESULT ret = 0;
+    struct list *next;
     struct hook_entry *next_hook;
     if (!entry)
         return 0;
-    next_hook = LIST_ENTRY(list_next(&info->hook_entry[entry->type - WH_MIN], &entry->entry), struct hook_entry, entry);
+    next = list_next(&info->hook_entry[entry->type - WH_MIN], &entry->entry);
+    if (!next)
+        return 0;
+    next_hook = LIST_ENTRY(next, struct hook_entry, entry);
     if (!next_hook)
         return 0;
     return call_hook_entry_16(info, next_hook, next_hook->type, code, wparam, lparam);
