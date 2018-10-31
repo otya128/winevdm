@@ -30,9 +30,42 @@
 #include "wine/winuser16.h"
 #include "user_private.h"
 #include "wine/debug.h"
+#undef _WINTERNL_
+#include "winternl.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(hook);
 
+
+static BOOL WINAPI TebTlsSetValue(TEB *teb, DWORD index, LPVOID value)
+{
+    if (index < TLS_MINIMUM_AVAILABLE)
+    {
+        teb->TlsSlots[index] = value;
+    }
+    else
+    {
+        index -= TLS_MINIMUM_AVAILABLE;
+        ((PVOID*)teb->TlsExpansionSlots)[index] = value;
+    }
+    return TRUE;
+}
+
+static LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
+{
+    LPVOID ret;
+
+    if (index < TLS_MINIMUM_AVAILABLE)
+    {
+        ret = teb->TlsSlots[index];
+    }
+    else
+    {
+        index -= TLS_MINIMUM_AVAILABLE;
+        if (!teb->TlsExpansionSlots) ret = NULL;
+        else ret = ((PVOID*)teb->TlsExpansionSlots)[index];
+    }
+    return ret;
+}
 
 static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp );
 static LRESULT CALLBACK call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp );
@@ -78,16 +111,32 @@ struct hook16_queue_info
     struct list hook_entry[NB_HOOKS16];
 };
 
-static struct hook16_queue_info *get_hook_info( BOOL create )
+static struct hook16_queue_info *get_hook_info( BOOL create, HTASK16 hTask )
 {
     static DWORD hook_tls = TLS_OUT_OF_INDEXES;
-    struct hook16_queue_info *info = TlsGetValue( hook_tls );
-
+    struct hook16_queue_info *info;
+    TDB *tdb;
+    if (!hTask /* current task */)
+    {
+        info = (struct hook16_queue_info*)TlsGetValue( hook_tls );
+    }
+    else
+    {
+        tdb = GlobalLock16(hTask);
+        info = (struct hook16_queue_info*)TebTlsGetValue( tdb->teb, hook_tls );
+    }
     if (!info && create)
     {
         if (hook_tls == TLS_OUT_OF_INDEXES) hook_tls = TlsAlloc();
         info = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*info) );
-        TlsSetValue( hook_tls, info );
+        if (!hTask /* current task */)
+        {
+            TlsSetValue( hook_tls, info );
+        }
+        else
+        {
+            TebTlsSetValue( tdb->teb, hook_tls, info );
+        }
     }
     return info;
 }
@@ -196,7 +245,7 @@ static LRESULT call_hook_entry_16(struct hook16_queue_info *info, struct hook_en
  */
 static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp )
 {
-    struct hook16_queue_info *info = get_hook_info(FALSE);
+    struct hook16_queue_info *info = get_hook_info(FALSE, 0);
     struct list *head = list_head(&info->hook_entry[id - WH_MIN]);
     if (!head)
         return 0;
@@ -311,7 +360,7 @@ static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp )
     MSG *msg32 = (MSG *)lp;
     MSG16 msg16;
     LRESULT ret;
-    CallNextHookEx(get_hook_info(FALSE)->hhook[WH_MSGFILTER - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_MSGFILTER - WH_MIN], code, wp, lp);
 
     map_msg_32_to_16( msg32, &msg16 );
     lp = MapLS( &msg16 );
@@ -326,7 +375,7 @@ static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp )
  */
 static LRESULT CALLBACK call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp )
 {
-    CallNextHookEx(get_hook_info(FALSE)->hhook[WH_KEYBOARD - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_KEYBOARD - WH_MIN], code, wp, lp);
     return call_hook_16( WH_KEYBOARD, code, wp, lp );
 }
 
@@ -339,7 +388,7 @@ static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp )
     MSG *msg32 = (MSG *)lp;
     MSG16 msg16;
     LRESULT ret;
-    CallNextHookEx(get_hook_info(FALSE)->hhook[WH_GETMESSAGE - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_GETMESSAGE - WH_MIN], code, wp, lp);
 
     map_msg_32_to_16( msg32, &msg16 );
 
@@ -360,7 +409,7 @@ static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp )
     struct wndproc_hook_params params;
     CWPSTRUCT *cwp32 = (CWPSTRUCT *)lp;
     LRESULT result;
-    CallNextHookEx(get_hook_info(FALSE)->hhook[WH_CALLWNDPROC - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_CALLWNDPROC - WH_MIN], code, wp, lp);
 
     params.code   = code;
     params.wparam = wp;
@@ -375,7 +424,7 @@ static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp )
 static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
 {
     LRESULT ret = 0;
-    CallNextHookEx(get_hook_info(FALSE)->hhook[WH_CBT - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_CBT - WH_MIN], code, wp, lp);
 
     switch (code)
     {
@@ -500,7 +549,7 @@ static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp )
     MOUSEHOOKSTRUCT *ms32 = (MOUSEHOOKSTRUCT *)lp;
     MOUSEHOOKSTRUCT16 ms16;
     LRESULT ret;
-    CallNextHookEx(get_hook_info(FALSE)->hhook[WH_MOUSE - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_MOUSE - WH_MIN], code, wp, lp);
 
     ms16.pt.x         = ms32->pt.x;
     ms16.pt.y         = ms32->pt.y;
@@ -520,7 +569,7 @@ static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp )
  */
 static LRESULT CALLBACK call_WH_SHELL( INT code, WPARAM wp, LPARAM lp )
 {
-    CallNextHookEx(get_hook_info(FALSE)->hhook[WH_MOUSE - WH_SHELL], code, wp, lp);
+    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_MOUSE - WH_SHELL], code, wp, lp);
     return call_hook_16( WH_SHELL, code, wp, lp );
 }
 
@@ -599,11 +648,9 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
             ERR("invalid task? %04x\n", hTask);
             return 0;
         }
-        FIXME( "setting hook (%d) on other task not supported\n", id );
-        return 0;
     }
+    info = get_hook_info(TRUE, hTask);
 
-    info = get_hook_info(TRUE);
     if (!info->hhook[index])
     {
         if (id == WH_JOURNALPLAYBACK)
@@ -646,7 +693,7 @@ BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
     struct hook_entry *hook_entry, *next;
 
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return FALSE;
-    info = get_hook_info(FALSE);
+    info = get_hook_info(FALSE, 0);
     LIST_FOR_EACH_ENTRY_SAFE(hook_entry, next, &info->hook_entry[index], struct hook_entry, entry)
     {
         if (hook_entry->proc16 == proc)
@@ -664,11 +711,12 @@ BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
 BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
 {
     BOOL result = FALSE;
-    struct hook16_queue_info *info = get_hook_info(FALSE);
+    struct hook16_queue_info *info;
     struct hook_entry *unhook = hhook_to_entry(hhook);
     INT type;
     if (!unhook)
         return FALSE;
+    info = get_hook_info(FALSE, unhook->htask16);
     type = unhook->type;
     int index = type - WH_MINHOOK;
     if (info)
@@ -747,7 +795,7 @@ BOOL16 WINAPI CallMsgFilter16( MSG16 *msg, INT16 code )
  */
 LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARAM lparam )
 {
-    struct hook16_queue_info *info = get_hook_info(FALSE);
+    struct hook16_queue_info *info = get_hook_info(FALSE, 0);
     struct hook_entry *entry = hhook_to_entry(hhook);
     LRESULT ret = 0;
     struct list *next;
