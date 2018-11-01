@@ -835,3 +835,19 @@ OLESTATUS WINAPI OleSetColorScheme16(SEGPTR oleobj16, const LOGPALETTE *pal)
     OLESTATUS result = OleSetColorScheme(obj32, pal);
     return result;
 }
+
+OLESTATUS WINAPI OleGetLinkUpdateOptions16(SEGPTR oleobj16, WORD *update)
+{
+    LPOLEOBJECT obj32 = OLEOBJ32(oleobj16);
+    OLEOPT_UPDATE update32 = *update;
+    OLESTATUS result = OleGetLinkUpdateOptions(obj32, &update32);
+    *update = (WORD)update32;
+    return result;
+}
+
+OLESTATUS WINAPI OleSetLinkUpdateOptions16(SEGPTR oleobj16, OLEOPT_UPDATE update)
+{
+    LPOLEOBJECT obj32 = OLEOBJ32(oleobj16);
+    OLESTATUS result = OleSetLinkUpdateOptions(obj32, update);
+    return result;
+}

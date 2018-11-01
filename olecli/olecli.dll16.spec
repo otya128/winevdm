@@ -20,8 +20,8 @@
 21 pascal -ret16 OleActivate(segptr word word word word ptr) OleActivate16
 22 pascal -ret16 OleUpdate(segptr) OleUpdate16
 23 pascal -ret16 OleReconnect(segptr) OleReconnect16
-24 stub OLEGETLINKUPDATEOPTIONS
-25 stub OLESETLINKUPDATEOPTIONS
+24 pascal -ret16 OleGetLinkUpdateOptions(segptr ptr) OleGetLinkUpdateOptions16
+25 pascal -ret16 OleSetLinkUpdateOptions(segptr word) OleSetLinkUpdateOptions16
 26 pascal -ret16 OleEnumFormats(segptr word) OleEnumFormats16
 27 pascal -ret16 OleClose(segptr) OleClose16
 28 pascal -ret16 OleGetData(segptr word ptr) OleGetData16
