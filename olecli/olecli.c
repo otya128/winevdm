@@ -48,6 +48,7 @@ typedef LPCSTR LPCOLESTR16;
 
 struct _OLESTREAM;
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
+LPOLECLIENT get_ole_client32(SEGPTR client);
 
 typedef struct _OLEOBJECTVTBL16 {
     void  *(CALLBACK*QueryProtocol)(_LPOLEOBJECT,LPCOLESTR16);
@@ -328,8 +329,6 @@ OLESTATUS WINAPI OleRevertClientDoc16(LHCLIENTDOC hServerDoc)
  */
 OLESTATUS WINAPI OleEnumObjects16(LHCLIENTDOC hServerDoc, SEGPTR *data)
 {
-    /*FIXME("(%d, %04x:%04x): stub\n", hServerDoc, HIWORD(data),
-	LOWORD(data));*/
     LPOLEOBJECT obj32 = OLEOBJ32(*data);
     OLESTATUS result = OleEnumObjects(hServerDoc, &obj32);
     *data = OLEOBJ16(obj32);
@@ -343,7 +342,7 @@ OLESTATUS WINAPI OleCreateLinkFromClip16( LPCSTR name, SEGPTR olecli, LHCLIENTDO
                                           LPCSTR xname, SEGPTR *lpoleob, OLEOPT_RENDER render,
                                           OLECLIPFORMAT clipformat )
 {
-    LPOLECLIENT olecli32 = find_ole_client_16(olecli);
+    LPOLECLIENT olecli32 = get_ole_client32(olecli);
     LPOLEOBJECT obj32 = 0;
     OLESTATUS status = OleCreateLinkFromClip(name, olecli32, hclientdoc, xname, &obj32, render, clipformat);
     *lpoleob = OLEOBJ16(obj32);
