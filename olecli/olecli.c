@@ -330,7 +330,7 @@ OLESTATUS WINAPI OleEnumObjects16(LHCLIENTDOC hServerDoc, SEGPTR *data)
 {
     /*FIXME("(%d, %04x:%04x): stub\n", hServerDoc, HIWORD(data),
 	LOWORD(data));*/
-    LPOLEOBJECT obj32 = 0;
+    LPOLEOBJECT obj32 = OLEOBJ32(*data);
     OLESTATUS result = OleEnumObjects(hServerDoc, &obj32);
     *data = OLEOBJ16(obj32);
     return result;
