@@ -32,6 +32,10 @@
 #include "winnt.h"     /* for PCONTEXT */
 #include "wincon.h"    /* for MOUSE_EVENT_RECORD */
 
+#ifndef DECLSPEC_HIDDEN
+#define DECLSPEC_HIDDEN
+#endif
+
 #define MAX_DOS_DRIVES  26
 
 struct _DOSEVENT;
