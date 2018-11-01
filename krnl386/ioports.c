@@ -66,6 +66,9 @@ WINE_DEFAULT_DEBUG_CHANNEL(int);
 # undef DIRECT_IO_ACCESS
 #endif
 
+OUTPROC outcb[1024] = {0};
+INPROC incb[1024] = {0};
+
 static struct {
     WORD	countmax;
     WORD	latch;
@@ -728,6 +731,16 @@ static BOOL IO_pp_outp(int port, DWORD* res)
 
 #endif  /* HAVE_PPDEV */
 
+void DOSVM_setportcb(OUTPROC outproc, INPROC inproc, int port, OUTPROC *oldout, INPROC *oldin)
+{
+    if (port > 1024)
+        return;
+
+    *oldout = outcb[port];
+    *oldin = incb[port];
+    outcb[port] = outproc;
+    incb[port] = inproc;
+}
 
 /**********************************************************************
  *	    DOSVM_inport
@@ -740,6 +753,8 @@ DWORD DOSVM_inport( int port, int size )
     DWORD res = ~0U;
 
     TRACE("%d-byte value from port 0x%04x\n", size, port );
+
+    if (incb[port]) return incb[port](port, size);
 
     DOSMEM_InitDosMemory();
 
@@ -935,6 +950,8 @@ DWORD DOSVM_inport( int port, int size )
 void DOSVM_outport( int port, int size, DWORD value )
 {
     TRACE("IO: 0x%x (%d-byte value) to port 0x%04x\n", value, size, port );
+
+    if (outcb[port]) return outcb[port](port, size, value);
 
     DOSMEM_InitDosMemory();
 

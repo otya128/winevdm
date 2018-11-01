@@ -68,6 +68,8 @@ typedef struct {
 typedef void (*DOSRELAY)(CONTEXT*,void*);
 typedef void (WINAPI *RMCBPROC)(CONTEXT*);
 typedef void (WINAPI *INTPROC)(CONTEXT*);
+typedef void (WINAPI *OUTPROC)(int port, int size, DWORD value);
+typedef DWORD (WINAPI *INPROC)(int port, int size);
 
 #define DOS_PRIORITY_REALTIME 0  /* IRQ0 */
 #define DOS_PRIORITY_KEYBOARD 1  /* IRQ1 */
@@ -456,6 +458,7 @@ extern void        DOSVM_SetRMHandler( BYTE, FARPROC16 ) DECLSPEC_HIDDEN;
 /* ioports.c */
 extern DWORD DOSVM_inport( int port, int size ) DECLSPEC_HIDDEN;
 extern void DOSVM_outport( int port, int size, DWORD value ) DECLSPEC_HIDDEN;
+extern void DOSVM_setportcb(OUTPROC outproc, INPROC inproc, int port, OUTPROC *oldout, INPROC* oldin) DECLSPEC_HIDDEN;
 
 /* relay.c */
 void DOSVM_RelayHandler( CONTEXT * ) DECLSPEC_HIDDEN;

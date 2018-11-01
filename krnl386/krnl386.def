@@ -193,6 +193,7 @@ EXPORTS
   krnl386_set_compat_path
 
   GetModuleFileName16
+  GetModuleName16
   _EnterWin16Lock
   _LeaveWin16Lock
   IsRealModeTask
@@ -214,3 +215,5 @@ EXPORTS
 
   DOSVM_inport
   DOSVM_outport
+  DOSVM_setportcb
+  DOSVM_SetBuiltinVector

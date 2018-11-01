@@ -49,7 +49,7 @@ static void WINAPI DOSVM_DefaultHandler(CONTEXT*);
 
 static FARPROC16     DOSVM_Vectors16[256];
 static FARPROC48     DOSVM_Vectors48[256];
-static const INTPROC DOSVM_VectorsBuiltin[] =
+static INTPROC DOSVM_VectorsBuiltin[] =
 {
   /* 00 */ 0,                  0,                  0,                  0,
   /* 04 */ 0,                  0,                  0,                  0,
@@ -88,6 +88,16 @@ static const INTPROC DOSVM_VectorsBuiltin[] =
 #define DOSVM_STUB_PM16 5
 #define DOSVM_STUB_PM48 6
 
+INTPROC DOSVM_SetBuiltinVector(BYTE intnum, INTPROC handler)
+{
+    if (intnum < ARRAY_SIZE(DOSVM_VectorsBuiltin)) {
+        INTPROC ret = DOSVM_VectorsBuiltin[intnum];
+        DOSVM_VectorsBuiltin[intnum] = handler;
+        return ret;
+    }
+    WARN("failed to set builtin int%x\n", intnum );
+    return NULL;
+}
 
 /**********************************************************************
  *         DOSVM_GetRMVector
