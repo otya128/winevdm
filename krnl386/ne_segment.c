@@ -675,7 +675,7 @@ static BOOL NE_InitDLL( NE_MODULE *pModule )
         (pModule->ne_flags & NE_FFLAGS_WIN32)) return TRUE; /*not a library*/
 
     /* Call USER signal handler for Win3.1 compatibility. */
-    NE_CallUserSignalProc( pModule->self, USIG16_DLL_LOAD );
+    NE_CallUserSignalProc( pModule->self, USIG16_DLL_LOAD, 0, 0, 0 );
 
     if (!SELECTOROF(pModule->ne_csip)) return TRUE;  /* no initialization code */
 
@@ -749,7 +749,7 @@ void NE_InitializeDLLs( HMODULE16 hModule )
 typedef DWORD (WINAPI *pSignalProc)( HANDLE16 module, UINT16 code, UINT16 exit,
                                      HINSTANCE16 inst, HQUEUE16 queue );
 
-void NE_CallUserSignalProc( HMODULE16 hModule, UINT16 code )
+void NE_CallUserSignalProc( HMODULE16 hModule, UINT16 code, WORD arg1, WORD arg2, WORD arg3 )
 {
     FARPROC16 proc;
     HMODULE16 user = GetModuleHandle16("user.exe");
@@ -759,7 +759,7 @@ void NE_CallUserSignalProc( HMODULE16 hModule, UINT16 code )
     {
         /* USER is always a builtin dll */
         pSignalProc sigproc = (pSignalProc)((ENTRYPOINT16 *)MapSL( (SEGPTR)proc ))->target;
-        sigproc( hModule, code, 0, 0, 0 );
+        sigproc( hModule, code, arg1, arg2, arg3 );
     }
 }
 

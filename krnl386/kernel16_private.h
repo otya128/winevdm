@@ -676,7 +676,7 @@ extern BOOL NE_CreateAllSegments( NE_MODULE *pModule ) DECLSPEC_HIDDEN;
 extern HINSTANCE16 NE_GetInstance( NE_MODULE *pModule ) DECLSPEC_HIDDEN;
 extern void NE_InitializeDLLs( HMODULE16 hModule ) DECLSPEC_HIDDEN;
 extern void NE_DllProcessAttach( HMODULE16 hModule ) DECLSPEC_HIDDEN;
-extern void NE_CallUserSignalProc( HMODULE16 hModule, UINT16 code ) DECLSPEC_HIDDEN;
+extern void NE_CallUserSignalProc( HMODULE16 hModule, UINT16 code, WORD arg1, WORD arg2, WORD arg3 ) DECLSPEC_HIDDEN;
 
 /* selector.c */
 extern WORD SELECTOR_AllocBlock( const void *base, DWORD size, unsigned char flags ) DECLSPEC_HIDDEN;

@@ -282,4 +282,6 @@ typedef struct
     DWORD dwControlData;
 } DROPSTRUCT16, *PDROPSTRUCT16, *LPDROPSTRUCT16;
 #include <poppack.h>
+extern void free_module_hooks(HINSTANCE16) DECLSPEC_HIDDEN;
+
 #endif /* __WINE_USER_PRIVATE_H */

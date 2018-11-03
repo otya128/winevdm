@@ -2038,30 +2038,20 @@ QUEUE16 *hqueue_to_ptr(HQUEUE16 hqueue)
 }
 void delete_queue(HQUEUE16 hqueue)
 {
-    QUEUE16 *queue = GlobalLock16(hqueue);
-    if (!queue)
-        return;
-    if (!hqFirst)
-        return;
-    if (hqueue == hqFirst)
+    HQUEUE16 *prev;
+    QUEUE16 *p;
+
+    prev = &hqFirst;
+    while (*prev && (*prev != hqueue))
     {
-        hqFirst = queue->next;
+        p = hqueue_to_ptr(*prev);
+        prev = &p->next;
     }
-    else
+    if (*prev)
     {
-        HQUEUE16 q = hqueue_to_ptr(hqFirst)->next;
-        HQUEUE16 prev = hqFirst;
-        while (1)
-        {
-            QUEUE16 *lpq = hqueue_to_ptr(q);
-            if (q == hqueue)
-            {
-                hqueue_to_ptr(prev)->next = lpq->next;
-                break;
-            }
-            prev = q;
-            q = lpq->next;
-        }
+        p = hqueue_to_ptr(*prev);
+        *prev = p->next;
+        p->next = 0;
     }
     GlobalFree16(hqueue);
 }
@@ -2075,6 +2065,7 @@ void WINAPI SignalProc16( HANDLE16 hModule, UINT16 code,
     {
         hModule = GetExePtr(hModule);
         /* HOOK_FreeModuleHooks( hModule ); */
+        free_module_hooks( hModule );
         free_module_classes( hModule );
         free_module_icons( hModule );
     }

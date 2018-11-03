@@ -674,7 +674,7 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
         }
         list_add_head(head, &entry->entry);
         entry->proc16 = proc;
-        entry->hinst16 = hInst;
+        entry->hinst16 = GetExePtr(hInst);
         entry->htask16 = hTask;
         entry->type = id;
     }
@@ -818,4 +818,34 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
 LRESULT WINAPI DefHookProc16( INT16 code, WPARAM16 wparam, LPARAM lparam, HHOOK *hhook )
 {
     return CallNextHookEx16( *hhook, code, wparam, lparam );
+}
+
+extern HQUEUE16 hqFirst;
+
+void free_module_hooks(HINSTANCE16 hinst)
+{
+    QUEUE16 *q = (QUEUE16*)MapSL(MAKESEGPTR(hqFirst, 0));
+    while (q)
+    {
+        struct hook16_queue_info *info = get_hook_info(FALSE, q->hTask);
+        int i;
+        if (info)
+        {
+            for (i = 0; i < NB_HOOKS16; i++)
+            {
+                struct list *list = &info->hook_entry[i];
+                struct hook_entry *hook_entry, *next;
+                if (list->next == NULL)
+                    continue;
+                LIST_FOR_EACH_ENTRY_SAFE(hook_entry, next, list, struct hook_entry, entry)
+                {
+                    if (hook_entry->hinst16 == hinst)
+                    {
+                        UnhookWindowsHookEx16(entry_to_hhook(hook_entry));
+                    }
+                }
+            }
+        }
+        q = (QUEUE16*)MapSL(MAKESEGPTR(q->next, 0));
+    }
 }

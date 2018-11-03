@@ -1567,12 +1567,15 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
     if (call_wep && !(pModule->ne_flags & NE_FFLAGS_WIN32))
     {
         /* Free the objects owned by the DLL module */
-        NE_CallUserSignalProc( hModule, USIG16_DLL_UNLOAD );
+        NE_CallUserSignalProc( hModule, USIG16_DLL_UNLOAD, 0, 0, 0 );
 
         if (pModule->ne_flags & NE_FFLAGS_LIBMODULE)
             MODULE_CallWEP( hModule );
         else
+        {
             call_wep = FALSE;  /* We are freeing a task -> no more WEPs */
+            NE_CallUserSignalProc( hModule, USIG16_TERMINATION, 0, 0, 0 );
+        }
     }
 
     TRACE_(loaddll)("Unloaded module %s : %s\n", debugstr_a(NE_MODULE_NAME(pModule)),
