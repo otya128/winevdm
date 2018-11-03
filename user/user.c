@@ -525,6 +525,17 @@ void WINAPI OldExitWindows16(void)
  */
 INT16 WINAPI InitApp16( HINSTANCE16 hInstance )
 {
+    HGLOBAL hqueue = GlobalAlloc16(GMEM_ZEROINIT | GMEM_SHARE, 0x120);
+    QUEUE16 *queue;
+    TDB *tdb = (TDB*)GlobalLock16(GetCurrentTask());
+    tdb->hQueue = hqueue;
+    queue = (QUEUE16*)GlobalLock16(hqueue);
+    queue->hTask = GetCurrentTask();
+    queue->cbMessage = 0x16;
+    queue->read = 0x6e;
+    queue->write = 0x6e;
+    queue->cbSize = 0x11e;
+    queue->expVer = tdb->version;
     /* Create task message queue */
     return (InitThreadInput16( 0, 0 ) != 0);
 }
@@ -2023,6 +2034,16 @@ void WINAPI SignalProc16( HANDLE16 hModule, UINT16 code,
         /* HOOK_FreeModuleHooks( hModule ); */
         free_module_classes( hModule );
         free_module_icons( hModule );
+    }
+    if (code == USIG16_TERMINATION)
+    {
+        /* delete queue */
+        TDB *tdb = (TDB*)GlobalLock16(GetCurrentTask());
+        QUEUE16 *queue = GlobalLock16(tdb->hQueue);
+        if (queue)
+        {
+            GlobalFree16(tdb->hQueue);
+        }
     }
 }
 

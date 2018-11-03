@@ -696,6 +696,7 @@ void TASK_ExitTask(void)
 
     /* Perform USER cleanup */
 
+    NE_CallUserSignalProc( pTask->hSelf, USIG16_TERMINATION );
     TASK_CallTaskSignalProc( USIG16_TERMINATION, pTask->hSelf );
 
     /* Remove the task from the list to be sure we never switch back to it */
@@ -1168,8 +1169,14 @@ BOOL16 WINAPI DefineHandleTable16( WORD wOffset )
  */
 HQUEUE16 WINAPI SetTaskQueue16( HTASK16 hTask, HQUEUE16 hQueue )
 {
-    FIXME( "stub, should not get called\n" );
-    return 0xbeef;
+    TDB *tdb;
+    HQUEUE16 old;
+    if (!hTask)
+        hTask = GetCurrentTask();
+    tdb = (TDB*)GlobalLock16(hTask);
+    old = tdb->hQueue;
+    tdb->hQueue = hQueue;
+    return old;
 }
 
 
@@ -1178,8 +1185,11 @@ HQUEUE16 WINAPI SetTaskQueue16( HTASK16 hTask, HQUEUE16 hQueue )
  */
 HQUEUE16 WINAPI GetTaskQueue16( HTASK16 hTask )
 {
-    FIXME( "stub, should not get called\n" );
-    return 0xbeef;
+    TDB *tdb;
+    if (!hTask)
+        hTask = GetCurrentTask();
+    tdb = (TDB*)GlobalLock16(hTask);
+    return tdb->hQueue;
 }
 
 /***********************************************************************

@@ -532,7 +532,7 @@ typedef struct
 typedef struct
 {
     HWND16     hWnd;
-    HANDLE16   hScope;
+    HWND16     hScope;
     WORD       wFlags;
     HANDLE16   hList;
     HANDLE16   hOfStruct;
@@ -556,6 +556,57 @@ typedef struct tagCOPYDATASTRUCT16 {
 #define DRAG_PRINT 0x544E5250
 #define DRAG_FILE  0x454C4946
 
+/* internal structure */
+typedef struct
+{
+    HQUEUE16 next; /* 00h */
+    HTASK16 hTask; /* 02h */
+    WORD cbMessage; /* 04h */
+    WORD cMessage; /* 06h */
+    WORD read; /* 08h */
+    WORD write; /* 0Ah */
+    WORD cbSize; /* 0Ch */
+    DWORD time; /* 0Eh */
+    POINT16 pos; /* 12h */
+    WORD unknown_16_1; /* 16h */
+    DWORD extraInfo; /* 18h */
+    WORD unknown_1C; /* 1Ch */
+    DWORD lParam; /* 1Eh */
+    WPARAM16 wParam; /* 22h */
+    UINT16 message; /* 24h */
+    HWND16 hWnd; /* 26h */
+    DWORD lResult; /* 28h */
+    WORD quitFlag; /* 2Ch */
+    WORD exitCode; /* 2Eh */
+    WORD flags; /* 30h */
+    DWORD unknown_32; /* 32h */
+    WORD expVer; /* 36h */
+    HQUEUE16 sendingQueue; /* 38h */
+    WORD sendMessageInternal[2]; /* 3Ah */
+    WORD cPaint; /* 3Eh */
+    WORD cTimer; /* 40h */
+    WORD changeBits; /* 42h */
+    WORD wakeBits; /* 44h */
+    WORD wakeMask; /* 46h */
+    WORD sendMessagesInternal[3]; /* 48h */
+    WORD hookCurrent; /* 4Eh USER heap */
+    WORD hooks[12]; /* 50h USER heap */
+    WORD unknown[3];
+    BYTE messages[1];
+} QUEUE16;
+
+/* LocalSize_DS(LOWORD(hhook), hinst_user) -> 16 */
+/* 12 <= size <= 16 */
+typedef struct
+{
+    WORD next; /* 00 USER heap */
+    SEGPTR proc; /* 02 */
+    INT16 id; /* 06 */
+    HQUEUE16 hQueue; /* 08 */
+    HMODULE16 hModule; /* 0A */
+    WORD unknown1; /* 0C */
+    WORD unknown2; /* 0E */
+} HOOK16;
 #include <poppack.h>
 
 /* WM_COMMNOTIFY flags */
