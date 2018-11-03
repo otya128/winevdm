@@ -69,6 +69,7 @@ INT16 WINAPI OpenSound16(void)
   event = CreateEventA(NULL, FALSE, FALSE, NULL);
 
   if (waveOutOpen(&wohand, WAVE_MAPPER, &wfmt, event, 0, CALLBACK_EVENT) != MMSYSERR_NOERROR) return S_SERDVNA;
+  waveOutSetVolume(wohand, MAKELONG(0x1999, 0x1999)); /* 10% volume */
   queue = (NOTE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 32 * sizeof(NOTE));
   queuelen = 32 * sizeof(NOTE);
   playing = 0;
