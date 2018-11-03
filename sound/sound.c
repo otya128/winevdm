@@ -197,7 +197,7 @@ static DWORD WINAPI play(LPVOID param)
   for (int i = 0; i < nextnote; i++)
   {
     int notelen = (float)queue[i].duration / mspersamp;
-    int hwavelen = (1000.0f / ((float)queue[i].freq * mspersamp)) / 2;
+    int hwavelen = max(1, (int)((1000.0f / ((float)queue[i].freq * mspersamp)) / 2));
     char samp = 0xff;
     for (int j = 0; j < notelen; j++)
     {
