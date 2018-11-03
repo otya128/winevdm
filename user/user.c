@@ -520,6 +520,7 @@ void WINAPI OldExitWindows16(void)
 }
 
 
+HQUEUE16 hqFirst;
 /**********************************************************************
  *		InitApp (USER.5)
  */
@@ -530,6 +531,15 @@ INT16 WINAPI InitApp16( HINSTANCE16 hInstance )
     TDB *tdb = (TDB*)GlobalLock16(GetCurrentTask());
     tdb->hQueue = hqueue;
     queue = (QUEUE16*)GlobalLock16(hqueue);
+    if (!hqFirst)
+    {
+        hqFirst = hqueue;
+    }
+    else
+    {
+        queue->next = hqFirst;
+        hqFirst = hqueue;
+    }
     queue->hTask = GetCurrentTask();
     queue->cbMessage = 0x16;
     queue->read = 0x6e;
@@ -2022,6 +2032,39 @@ void WINAPI GetClipCursor16( RECT16 *rect )
 }
 
 
+QUEUE16 *hqueue_to_ptr(HQUEUE16 hqueue)
+{
+    return (QUEUE16*)MapSL(MAKESEGPTR(hqueue, 0));
+}
+void delete_queue(HQUEUE16 hqueue)
+{
+    QUEUE16 *queue = GlobalLock16(hqueue);
+    if (!queue)
+        return;
+    if (!hqFirst)
+        return;
+    if (hqueue == hqFirst)
+    {
+        hqFirst = queue->next;
+    }
+    else
+    {
+        HQUEUE16 q = hqueue_to_ptr(hqFirst)->next;
+        HQUEUE16 prev = hqFirst;
+        while (1)
+        {
+            QUEUE16 *lpq = hqueue_to_ptr(q);
+            if (q == hqueue)
+            {
+                hqueue_to_ptr(prev)->next = lpq->next;
+                break;
+            }
+            prev = q;
+            q = lpq->next;
+        }
+    }
+    GlobalFree16(hqueue);
+}
 /***********************************************************************
  *		SignalProc (USER.314)
  */
@@ -2039,11 +2082,7 @@ void WINAPI SignalProc16( HANDLE16 hModule, UINT16 code,
     {
         /* delete queue */
         TDB *tdb = (TDB*)GlobalLock16(GetCurrentTask());
-        QUEUE16 *queue = GlobalLock16(tdb->hQueue);
-        if (queue)
-        {
-            GlobalFree16(tdb->hQueue);
-        }
+        delete_queue(tdb->hQueue);
     }
 }
 
