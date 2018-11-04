@@ -163,10 +163,27 @@ typedef struct tagIMEMESSAGE16 {
     WORD unknown8;
 } IMEMESSAGE16, FAR *LPIMEMESSAGE16;
 #include <poppack.h>
-LRESULT WINAPI SendIMEMessageEx16(
-    _In_ HWND16   hwnd,
-    _In_ LPARAM lParam
-);
+
+/* convert a LOGFONT16 to a LOGFONTA */
+static void logfont_16_to_A(const LOGFONT16 *font16, LPLOGFONTA font32)
+{
+    font32->lfHeight = font16->lfHeight;
+    font32->lfWidth = font16->lfWidth;
+    font32->lfEscapement = font16->lfEscapement;
+    font32->lfOrientation = font16->lfOrientation;
+    font32->lfWeight = font16->lfWeight;
+    font32->lfItalic = font16->lfItalic;
+    font32->lfUnderline = font16->lfUnderline;
+    font32->lfStrikeOut = font16->lfStrikeOut;
+    font32->lfCharSet = font16->lfCharSet;
+    font32->lfOutPrecision = font16->lfOutPrecision;
+    font32->lfClipPrecision = font16->lfClipPrecision;
+    font32->lfQuality = font16;
+    font32->lfPitchAndFamily = font16->lfPitchAndFamily;
+    memcpy(font32->lfFaceName, font16->lfFaceName, LF_FACESIZE);
+    font32->lfFaceName[LF_FACESIZE - 1] = 0;
+}
+
 LRESULT WINAPI SendIMEMessageEx16(
     _In_ HWND16   hwnd,
     _In_ LPARAM lParam
@@ -187,15 +204,6 @@ LRESULT WINAPI SendIMEMessageEx16(
     lpime32->lParam1 = lpime->lParam1;
     lpime32->lParam2 = lpime->lParam2;
     lpime32->lParam3 = lpime->lParam3;
-    /* PBRUSH.EXE(windows 3.1, JP) calls 0x12*/
-    if (lpime->fnc == 0x12/*IME_SETCONVERSIONFONT?*/)
-    {
-        lpime32->fnc = IME_SETCONVERSIONFONTEX;
-    }
-    //const char *a = GlobalLock16(lpime->lParam1);
-    //const char *b = GlobalLock16(lpime->lParam2);
-    //GlobalUnlock16(lpime->lParam1);
-    //GlobalUnlock16(lpime->lParam2);
     switch (lpime32->fnc)
     {
     case IME_SETCONVERSIONWINDOW:
@@ -238,22 +246,34 @@ LRESULT WINAPI SendIMEMessageEx16(
     case IME_GETCONVERSIONMODE:
         TRACE("IME_GETCONVERSIONMODE\n");
         break;
+    case 0x12:
     case IME_SETCONVERSIONFONTEX:
     {
-        TRACE("IME_SETCONVERSIONFONTEX\n");
-
-        HFONT hFont32 = HFONT_32(lpime->wParam);
         LPLOGFONTA lplogfont = &lfont;
-        if (!hFont32 || !GetObjectA(hFont32, sizeof(LOGFONTA), lplogfont))
+        TRACE("IME_SETCONVERSIONFONTEX %d\n", lpime32->fnc);
+
+        if (lpime32->fnc == 0x12)
         {
-            ret = 0;
-            goto done;
+            HFONT hFont32 = HFONT_32(lpime->wParam);
+            if (!hFont32 || !GetObjectA(hFont32, sizeof(LOGFONTA), lplogfont))
+            {
+                ret = 0;
+                goto done;
+            }
         }
-        lpime32->wParam = 0;
-        /*lpime32->wParam = lpime32->wCount = lpime32->dchSource = lpime32->dchDest = */lpime32->lParam1 = /*lpime32->lParam2 = lpime32->lParam3 = */lplogfont;
+        else if (lpime32->fnc == IME_SETCONVERSIONFONTEX)
+        {
+            LPLOGFONT16 l16 = (LPLOGFONT16)GlobalLock16(lpime32->lParam1);
+            logfont_16_to_A(l16, &lfont);
+        }
+        lpime32->lParam1 = lplogfont;
         HIMC himc = ImmGetContext(hwnd32);
         //IME_SETCONVERSIONFONTEX doesnt work well
         ImmSetCompositionFontA(himc, lplogfont);
+        if (lpime32->fnc == IME_SETCONVERSIONFONTEX)
+        {
+            GlobalUnlock16(lpime32->lParam1);
+        }
     }
     break;
     case IME_SETCONVERSIONMODE:
@@ -271,9 +291,11 @@ LRESULT WINAPI SendIMEMessageEx16(
     case IME_GETVERSION:
         TRACE("IME_GETVERSION\n");
         break;
+        /*
     case IME_SET_MODE:
         TRACE("IME_SET_MODE\n");
         break;
+        */
     case IME_GETIMECAPS:
         TRACE("IME_GETIMECAPS\n");
         break;
