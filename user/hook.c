@@ -45,6 +45,10 @@ static BOOL WINAPI TebTlsSetValue(TEB *teb, DWORD index, LPVOID value)
     else
     {
         index -= TLS_MINIMUM_AVAILABLE;
+        if (index >= 8 * 32 /* 8 * sizeof(teb->Peb->TlsExpansionBitmapBits) */)
+        {
+            return FALSE;
+        }
         ((PVOID*)teb->TlsExpansionSlots)[index] = value;
     }
     return TRUE;
@@ -61,6 +65,10 @@ static LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
     else
     {
         index -= TLS_MINIMUM_AVAILABLE;
+        if (index >= 8 * 32 /* 8 * sizeof(teb->Peb->TlsExpansionBitmapBits) */)
+        {
+            return NULL;
+        }
         if (!teb->TlsExpansionSlots) ret = NULL;
         else ret = ((PVOID*)teb->TlsExpansionSlots)[index];
     }
