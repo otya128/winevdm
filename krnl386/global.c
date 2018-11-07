@@ -446,7 +446,11 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
       /* Fill the new arena block
          As we may have used HEAP_REALLOC_IN_PLACE_ONLY, areas may overlap*/
 
-    if (pNewArena != pArena) memmove( pNewArena, pArena, sizeof(GLOBALARENA) );
+    if (pNewArena != pArena)
+    {
+        memmove( pNewArena, pArena, sizeof(GLOBALARENA) );
+        memset( pArena, 0, sizeof(GLOBALARENA) );
+    }
     pNewArena->base = ptr;
     pNewArena->size = GetSelectorLimit16(sel) + 1 - add_size;
     pNewArena->selCount = selcount;
