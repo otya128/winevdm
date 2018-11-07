@@ -509,7 +509,7 @@ SEGPTR WINAPI K32WOWGlobalLock16( HGLOBAL16 handle )
 	}
 	else if (!GET_ARENA_PTR(handle)->base)
             sel = 0;
-        else
+        else if (GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE)
             GET_ARENA_PTR(handle)->lockCount++;
     }
 
@@ -721,7 +721,8 @@ LPVOID WINAPI GlobalLock16(
     if (!handle) return 0;
     if (!VALID_HANDLE(handle))
 	return 0;
-    GET_ARENA_PTR(handle)->lockCount++;
+    if (GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE)
+        GET_ARENA_PTR(handle)->lockCount++;
     return GET_ARENA_PTR(handle)->base;
 }
 
@@ -867,7 +868,8 @@ HGLOBAL16 WINAPI LockSegment16( HGLOBAL16 handle )
 	WARN("Invalid handle 0x%04x passed to LockSegment16!\n",handle);
 	return 0;
     }
-    GET_ARENA_PTR(handle)->lockCount++;
+    if (GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE)
+        GET_ARENA_PTR(handle)->lockCount++;
     return handle;
 }
 
@@ -883,7 +885,7 @@ void WINAPI UnlockSegment16( HGLOBAL16 handle )
 	WARN("Invalid handle 0x%04x passed to UnlockSegment16!\n",handle);
 	return;
     }
-    GET_ARENA_PTR(handle)->lockCount--;
+    if(GET_ARENA_PTR(handle)->lockCount) GET_ARENA_PTR(handle)->lockCount--;
     /* FIXME: this ought to return the lock count in CX (go figure...) */
 }
 
@@ -1074,7 +1076,8 @@ WORD WINAPI GlobalFix16( HGLOBAL16 handle )
 	WARN("Invalid handle 0x%04x passed to GlobalFix16!\n",handle);
 	return 0;
     }
-    GET_ARENA_PTR(handle)->lockCount++;
+    if (GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE)
+        GET_ARENA_PTR(handle)->lockCount++;
 
     return GlobalHandleToSel16(handle);
 }
@@ -1091,7 +1094,8 @@ void WINAPI GlobalUnfix16( HGLOBAL16 handle )
 	WARN("Invalid handle 0x%04x passed to GlobalUnfix16!\n",handle);
 	return;
     }
-    GET_ARENA_PTR(handle)->lockCount--;
+    if (GET_ARENA_PTR(handle)->lockCount)
+        GET_ARENA_PTR(handle)->lockCount--;
 }
 
 
