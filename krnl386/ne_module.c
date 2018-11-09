@@ -321,6 +321,7 @@ __declspec(dllexport) void NE_DumpAllModules(void)
     while (hModule)
     {
         NE_MODULE *pModule = NE_GetPtr(hModule);
+        char tab[13] = { ' ', ' ', ' ', ' ', ' ', ' ' , ' ' , ' ' , ' ' , ' ' , ' ' , ' ', ' ' };
         if (!pModule)
         {
             MESSAGE("Bad module %04x in list\n", hModule);
@@ -346,9 +347,11 @@ __declspec(dllexport) void NE_DumpAllModules(void)
             if (cbuf[-1] == ' ' && cbuf[-2] == '|' && cbuf[-3] == ' ')
                 cbuf[-3] = '\0';
         }
-        MESSAGE(" %04x\t%04x\t%.*s\t%s\n", hModule, pModule->ne_flags,
+        MESSAGE(" %04x\t%04x\t%.*s%.*s%s\n", hModule, pModule->ne_flags,
             *((char *)pModule + pModule->ne_restab),
-            (char *)pModule + pModule->ne_restab + 1, buffer);
+            (char *)pModule + pModule->ne_restab + 1,
+            12 - *((char *)pModule + pModule->ne_restab), tab,
+            buffer);
         if (TRACE_ON(module))
             NE_DumpModule(hModule);
         hModule = pModule->next;
