@@ -327,7 +327,8 @@ void WINAPI DisposeLZ32Handle( HANDLE handle )
         if (dos_handles[i] == handle)
         {
             dos_handles[i] = 0;
-            LZClose( handle );
+            /* lzexpand.dll16 uses wine-based lzexpand implementation. so call _lclose instead of LZClose */
+            _lclose( handle );
             break;
         }
 }
