@@ -1332,7 +1332,7 @@ INT16 WINAPI GetSystemMetrics16( INT16 index )
         fix_screen_size = krnl386_get_config_int("otvdm", "FixScreenSize", FALSE);
     }
     /* Fix the size of the screen to the value considering taskbar. */
-    if (index == SM_CXSCREEN || index == SM_CYSCREEN)
+    if (fix_screen_size && (index == SM_CXSCREEN || index == SM_CYSCREEN))
     {
         RECT point;
         if (SystemParametersInfoA(SPI_GETWORKAREA, 0, &point, FALSE))
