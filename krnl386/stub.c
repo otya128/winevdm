@@ -221,16 +221,21 @@ BOOL16 WINAPI IsDBCSLeadByte16(BYTE TestChar)
     TRACE("IsDBCSLeadByte16(%c)\n", TestChar);
     return IsDBCSLeadByte(TestChar);
 }
-//TLS
 extern DWORD WOW32ReservedTls;
-/* __declspec(thread) PVOID WOW32Reserved; */
 __declspec(dllexport) PVOID getWOW32Reserved()
 {
-    return TlsGetValue(WOW32ReservedTls);
+    /* TlsGetValue clears win32 last error! */
+    /* GetLastError() is called by INT21_GetExtendedError(FIXME?) */
+    int err = GetLastError();
+    PVOID v = TlsGetValue(WOW32ReservedTls);
+    SetLastError(err);
+    return v;
 }
 __declspec(dllexport) PVOID setWOW32Reserved(PVOID w)
 {
+    int err = GetLastError();
     TlsSetValue(WOW32ReservedTls, w);
+    SetLastError(err);
     return w;
 }
 
