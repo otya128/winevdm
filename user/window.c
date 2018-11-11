@@ -81,6 +81,16 @@ static inline HWND full_insert_after_hwnd( HWND16 hwnd )
     return ret;
 }
 
+BOOL CALLBACK enum_thread_window(HWND hwnd, LPARAM lparam)
+{
+    struct class_entry *clazz = (struct class_entry*)lparam;
+    if (GetClassWord(hwnd, GCW_ATOM) == clazz->atom)
+    {
+        DestroyWindow(hwnd);
+    }
+    return TRUE;
+}
+
 void free_module_classes( HINSTANCE16 inst )
 {
     struct class_entry *class, *next;
@@ -89,7 +99,14 @@ void free_module_classes( HINSTANCE16 inst )
     {
         if (class->inst != inst) continue;
         list_remove( &class->entry );
-        UnregisterClassA( (LPCSTR)MAKEINTATOM(class->atom), HINSTANCE_32(class->inst) );
+        if (!UnregisterClassA( (LPCSTR)MAKEINTATOM(class->atom), HINSTANCE_32(class->inst) ))
+        {
+            if (GetLastError() == ERROR_CLASS_HAS_WINDOWS)
+            {
+                EnumThreadWindows( GetCurrentThreadId(), enum_thread_window, (LPARAM)class );
+                UnregisterClassA( (LPCSTR)MAKEINTATOM(class->atom), HINSTANCE_32(class->inst) );
+            }
+        }
         HeapFree( GetProcessHeap(), 0, class );
 	}
 }
