@@ -594,6 +594,8 @@ typedef struct _THHOOK
     HTASK16    CurTDB;              /* 10 hCurrentTask */
     HTASK16    LoadTDB;             /* 12 (unused) */
     HTASK16    LockTDB;             /* 14 hLockedTask */
+    WORD       SelTableLen;         /* 16 (bytes) 0x2000 * 4 */
+    DWORD      SelTableStart;       /* 18 offset in hGlobalHeap */
 } THHOOK;
 
 extern LONG __wine_call_from_16(void);

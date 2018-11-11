@@ -67,6 +67,7 @@ typedef struct
 /* Arena array (FIXME) */
 static GLOBALARENA *pGlobalArena;
 static int globalArenaSize;
+static DWORD *selTable;
 
 #define GLOBAL_MAX_ALLOC_SIZE 0x00ff0000  /* Largest allocation is 16M - 64K */
 #define GLOBAL_MAX_COUNT      8192        /* Max number of allocated blocks */
@@ -84,6 +85,22 @@ static HANDLE get_win16_heap(void)
     return win16_heap;
 }
 
+static void clear_sel_table(WORD sel, WORD selcount)
+{
+    for (int i = 0; i < selcount; i++)
+    {
+        selTable[(sel + i) >> __AHSHIFT] = 0;
+    }
+}
+static void set_sel_table(WORD sel, WORD selcount)
+{
+    for (int i = 0; i < selcount; i++)
+    {
+        selTable[(sel + i) >> __AHSHIFT] = sel >> __AHSHIFT;
+    }
+}
+
+
 /***********************************************************************
  *           GLOBAL_GetArena
  *
@@ -97,11 +114,17 @@ static GLOBALARENA *GLOBAL_GetArena( WORD sel, WORD selcount )
 
         if (!pGlobalArena)
         {
+            pThhook->SelTableLen = GLOBAL_MAX_COUNT * sizeof(DWORD);
             pGlobalArena = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                      GLOBAL_MAX_COUNT * sizeof(GLOBALARENA) );
+                                      GLOBAL_MAX_COUNT * sizeof(GLOBALARENA) + pThhook->SelTableLen );
             if (!pGlobalArena) return 0;
-            /* Hack: store a pointer to it in THHOOK instead of a handle */
-            *(GLOBALARENA **)&pThhook->hGlobalHeap = pGlobalArena;
+            WORD sel = SELECTOR_AllocBlock(pGlobalArena, /* GLOBAL_MAX_COUNT * sizeof(GLOBALARENA) */0x10000, WINE_LDT_FLAGS_DATA);
+            SIZE_T siz = GLOBAL_MAX_COUNT * sizeof(GLOBALARENA);
+            pThhook->hGlobalHeap = sel;
+            pThhook->pGlobalHeap = sel;
+            selTable = (DWORD*)(pGlobalArena + GLOBAL_MAX_COUNT);
+            pThhook->SelTableStart = GLOBAL_MAX_COUNT * sizeof(GLOBALARENA); /* 0x00040080; */
+            set_sel_table(sel, 1);
         }
         if (newsize > GLOBAL_MAX_COUNT) return 0;
         globalArenaSize = newsize;
@@ -163,6 +186,7 @@ HGLOBAL16 GLOBAL_CreateBlock( WORD flags, void *ptr, DWORD size,
     if (selcount > 1)  /* clear the next arena blocks */
         memset( pArena + 1, 0, (selcount - 1) * sizeof(GLOBALARENA) );
 
+    set_sel_table(sel, selcount);
     return pArena->handle;
 }
 
@@ -188,6 +212,7 @@ BOOL16 GLOBAL_FreeBlock( HGLOBAL16 handle )
         return FALSE;
     }
     SELECTOR_FreeBlock( sel );
+    clear_sel_table(sel, pArena->selCount);
     memset( pArena, 0, sizeof(GLOBALARENA) );
     return TRUE;
 }
@@ -448,8 +473,10 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
 
     if (pNewArena != pArena)
     {
+        clear_sel_table( handle, pArena->selCount );
         memmove( pNewArena, pArena, sizeof(GLOBALARENA) );
         memset( pArena, 0, sizeof(GLOBALARENA) );
+        set_sel_table( pNewArena->handle, selcount );
     }
     pNewArena->base = ptr;
     pNewArena->size = GetSelectorLimit16(sel) + 1 - add_size;
