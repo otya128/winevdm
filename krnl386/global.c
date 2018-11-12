@@ -55,6 +55,7 @@ typedef struct
     BYTE      pageLockCount; /* Count of GlobalPageLock() calls */
     BYTE      flags;         /* Allocation flags */
     BYTE      selCount;      /* Number of selectors allocated for this block */
+    BYTE      pad[0x10];     /* win31 GLOBALARENA size = 0x20 */
 } GLOBALARENA;
 
   /* Flags definitions */
@@ -96,7 +97,7 @@ static void set_sel_table(WORD sel, WORD selcount)
 {
     for (int i = 0; i < selcount; i++)
     {
-        selTable[(sel + i) >> __AHSHIFT] = sel >> __AHSHIFT;
+        selTable[(sel + i) >> __AHSHIFT] = (sel >> __AHSHIFT) * sizeof(GLOBALARENA);
     }
 }
 
@@ -114,16 +115,17 @@ static GLOBALARENA *GLOBAL_GetArena( WORD sel, WORD selcount )
 
         if (!pGlobalArena)
         {
+            SIZE_T size;
             pThhook->SelTableLen = GLOBAL_MAX_COUNT * sizeof(DWORD);
-            pGlobalArena = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY,
-                                      GLOBAL_MAX_COUNT * sizeof(GLOBALARENA) + pThhook->SelTableLen );
+            size = GLOBAL_MAX_COUNT * sizeof(GLOBALARENA) + 0x80 /* unknown */ + pThhook->SelTableLen;
+            pGlobalArena = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, size);
             if (!pGlobalArena) return 0;
-            WORD sel = SELECTOR_AllocBlock(pGlobalArena, /* GLOBAL_MAX_COUNT * sizeof(GLOBALARENA) */0x10000, WINE_LDT_FLAGS_DATA);
-            SIZE_T siz = GLOBAL_MAX_COUNT * sizeof(GLOBALARENA);
+            WORD sel = SELECTOR_AllocBlock(pGlobalArena, 0x10000, WINE_LDT_FLAGS_DATA);
+            SetSelectorLimit16(sel, size - 1);
             pThhook->hGlobalHeap = sel;
             pThhook->pGlobalHeap = sel;
-            selTable = (DWORD*)(pGlobalArena + GLOBAL_MAX_COUNT);
-            pThhook->SelTableStart = GLOBAL_MAX_COUNT * sizeof(GLOBALARENA); /* 0x00040080; */
+            pThhook->SelTableStart = GLOBAL_MAX_COUNT * sizeof(GLOBALARENA) + 0x80; /* 0x00040080; */
+            selTable = (DWORD*)((BYTE*)(pGlobalArena) + pThhook->SelTableStart);
             set_sel_table(sel, 1);
         }
         if (newsize > GLOBAL_MAX_COUNT) return 0;
