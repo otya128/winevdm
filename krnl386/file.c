@@ -53,33 +53,47 @@ BOOL EnableRedirectSystemDir = FALSE;
 #endif
 const char *GetRedirectWindowsDir();
 void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtAccessCheck(IN PSECURITY_DESCRIPTOR SecurityDescriptor,
+    IN HANDLE TokenHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN PGENERIC_MAPPING GenericMapping,
+    OUT PPRIVILEGE_SET PrivilegeSet OPTIONAL,
+    IN OUT PULONG PrivilegeSetLength,
+    OUT PACCESS_MASK GrantedAccess,
+    OUT PNTSTATUS AccessStatus);
 BOOL can_write_directory(LPCSTR path)
 {
     HANDLE hToken = INVALID_HANDLE_VALUE, hTokenImpersonation = INVALID_HANDLE_VALUE;
-    PSECURITY_DESCRIPTOR pSecurityDescriptor = { 0 };
+    PSECURITY_DESCRIPTOR pSecurityDescriptor = NULL;
     GENERIC_MAPPING genericMapping = { 0 };
     PRIVILEGE_SET privilegeSet = { 0 };
-    BOOL bAccessStatus = FALSE;
+    NTSTATUS accessStatus = 0;
     DWORD dwDesiredAccess = FILE_GENERIC_WRITE;
     DWORD dwSize = sizeof(PRIVILEGE_SET);
     DWORD dwGrantedAccess = 0;
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_READ | TOKEN_QUERY | TOKEN_DUPLICATE, &hToken))
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE, &hToken))
         goto fail;
     if (!DuplicateTokenEx(hToken, GENERIC_ALL, NULL, SecurityImpersonation, TokenImpersonation, &hTokenImpersonation))
         goto fail;
-    GetNamedSecurityInfoA(path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, NULL, NULL, NULL, NULL, &pSecurityDescriptor);
+    if (GetNamedSecurityInfoA(path, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, NULL, NULL, NULL, NULL, &pSecurityDescriptor) != ERROR_SUCCESS)
+        goto fail;
     genericMapping.GenericRead = FILE_GENERIC_READ;
     genericMapping.GenericWrite = FILE_GENERIC_WRITE;
     genericMapping.GenericExecute = FILE_GENERIC_EXECUTE;
     genericMapping.GenericAll = FILE_ALL_ACCESS;
-    privilegeSet.PrivilegeCount = 0;
     MapGenericMask(&dwDesiredAccess, &genericMapping);
-    if (!AccessCheck(pSecurityDescriptor, hTokenImpersonation, dwDesiredAccess, &genericMapping, &privilegeSet, &dwSize, &dwGrantedAccess, &bAccessStatus))
+    /* Because app compatibility layer hooks AccessCheck and returns incorrect result, call NtAccessCheck. (NS_WRPMitigation::APIHook_AccessCheck) */
+    if (!NT_SUCCESS(NtAccessCheck(pSecurityDescriptor, hTokenImpersonation, dwDesiredAccess, &genericMapping, &privilegeSet, &dwSize, &dwGrantedAccess, &accessStatus)))
         goto fail;
 fail:
     CloseHandle(hToken);
     CloseHandle(hTokenImpersonation);
-    return bAccessStatus;
+    LocalFree(pSecurityDescriptor);
+    return NT_SUCCESS(accessStatus);
 }
 BOOL is_readonly_directory(LPCSTR path)
 {
@@ -101,9 +115,11 @@ __declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max
         READONLY,
     };
     static enum WRITABLE_CACHE writable_cache[26];
-    char drive = path[0];
+    char drive = path ? path[0] : 0;
     char root[4] = { drive, ':', '\\', 0 };
     char drive_buf[5] = { '.', '.', '\\', drive, 0 };
+    if (!path)
+        return NULL;
     if (!(path[0] && path[1] == ':' && (path[2] == 0 || path[2] == '\\' || path[2] == '/')))
         return path;
     if (!((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')))
