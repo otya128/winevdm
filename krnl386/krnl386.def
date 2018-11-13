@@ -217,3 +217,5 @@ EXPORTS
   DOSVM_outport
   DOSVM_setportcb
   DOSVM_SetBuiltinVector
+  krnl386_get_search_path
+  krnl386_search_executable_file

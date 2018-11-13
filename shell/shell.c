@@ -72,6 +72,7 @@ static UINT	uMsgWndCreated = 0;
 static UINT	uMsgWndDestroyed = 0;
 static UINT	uMsgShellActivate = 0;
 
+LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin);
 static HICON convert_icon_to_32( HICON16 icon16 )
 {
 	if (!icon16) return 0;
@@ -222,7 +223,21 @@ BOOL16 WINAPI DragQueryPoint16(HDROP16 hDrop, POINT16 *p)
  */
 HINSTANCE16 WINAPI FindExecutable16( LPCSTR lpFile, LPCSTR lpDirectory,
                                      LPSTR lpResult )
-{ return HINSTANCE_16(FindExecutableA( lpFile, lpDirectory, lpResult ));
+{
+    HINSTANCE hInst = FindExecutableA( lpFile, lpDirectory, lpResult );
+    if (hInst == ERROR_FILE_NOT_FOUND)
+    {
+        if (!lpDirectory || !*lpDirectory)
+        {
+            char buf[MAX_PATH];
+            if (krnl386_search_executable_file(lpFile, buf, ARRAYSIZE(buf), TRUE) == buf)
+            {
+                hInst = FindExecutableA(buf, NULL, lpResult);
+            }
+        }
+    }
+    GetShortPathNameA(lpResult, lpResult, strlen(lpResult) + 1);
+    return HINSTANCE_16(hInst);
 }
 
 /*************************************************************************

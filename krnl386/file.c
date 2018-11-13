@@ -429,6 +429,39 @@ BOOL16 WINAPI WriteProfileString16( LPCSTR section, LPCSTR entry,
     GetEnvironmentVariableA( "PATH16", p, ret + len - p );
     return ret;
 }
+char *krnl386_get_search_path(void)
+{
+    return get_search_path();
+}
+#include <strsafe.h>
+LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin)
+{
+    char *path = krnl386_get_search_path();
+    LPCSTR result = lpFile;
+    if (SearchPathA(path, lpFile, NULL, size, buf, NULL))
+    {
+        result = buf;
+    }
+    else if (search_builtin)
+    {
+        char filewin32[MAX_PATH];
+        LPSTR ext = PathFindExtensionA(lpFile);
+        if (ext && !stricmp(ext, ".dll") || !stricmp(ext, ".exe") || !stricmp(ext, ".drv"))
+        {
+            filewin32[0] = '\0';
+            if (StringCbCatA(filewin32, ARRAYSIZE(filewin32), lpFile) == S_OK &&
+                StringCbCatA(filewin32, ARRAYSIZE(filewin32), "16") == S_OK)
+            {
+                if (SearchPathA(path, filewin32, NULL, size, buf, NULL))
+                {
+                    result = buf;
+                }
+            }
+        }
+    }
+    HeapFree(GetProcessHeap(), 0, path);
+    return result;
+}
 
 /***********************************************************************
  *           OpenFile   (KERNEL.74)
