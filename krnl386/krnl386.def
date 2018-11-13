@@ -219,3 +219,5 @@ EXPORTS
   DOSVM_SetBuiltinVector
   krnl386_get_search_path
   krnl386_search_executable_file
+  DibMapGlobalMemory
+  DibUnmapGlobalMemory

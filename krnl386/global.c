@@ -55,7 +55,8 @@ typedef struct
     BYTE      pageLockCount; /* Count of GlobalPageLock() calls */
     BYTE      flags;         /* Allocation flags */
     BYTE      selCount;      /* Number of selectors allocated for this block */
-    BYTE      pad[0x10];     /* win31 GLOBALARENA size = 0x20 */
+    DWORD     dib_avail_size;
+    BYTE      pad[0x10 - 4];     /* win31 GLOBALARENA size = 0x20 */
 } GLOBALARENA;
 
   /* Flags definitions */
@@ -355,7 +356,12 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
         if (!(pArena->flags & GA_MOVEABLE) ||
             !(pArena->flags & GA_DISCARDABLE) ||
             (pArena->lockCount > 0) || (pArena->pageLockCount > 0)) return 0;
-        if (pArena->flags & GA_DOSMEM)
+
+        if (pArena->dib_avail_size)
+        {
+            FIXME("DIB.DRV\n");
+        }
+        else if (pArena->flags & GA_DOSMEM)
             DOSMEM_FreeBlock( pArena->base );
         else
             HeapFree( heap, 0, pArena->base );
@@ -397,6 +403,17 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
     TRACE("oldbase %p oldsize %08x newsize %08x\n", ptr,oldsize,size);
     if (ptr && (size == oldsize)) return handle;  /* Nothing to do */
 
+    if (pArena->dib_avail_size)
+    {
+        if (size > pArena->dib_avail_size)
+        {
+            ERR("could not realloc dib memory\n");
+            return 0;
+        }
+        pArena->size = size;
+        SetSelectorLimit16(sel, size - 1);
+        return handle;
+    }
     if (pArena->flags & GA_DOSMEM)
     {
         if (DOSMEM_ResizeBlock(ptr, size, TRUE) == size) 
@@ -514,6 +531,11 @@ HGLOBAL16 WINAPI GlobalFree16(
     ptr = GET_ARENA_PTR(handle)->base;
 
     TRACE("%04x\n", handle );
+    if (GET_ARENA_PTR(handle)->dib_avail_size)
+    {
+        FIXME("DIB.DRV\n");
+        return 0;
+    }
     if (!GLOBAL_FreeBlock( handle )) return handle;  /* failed */
     HeapFree( get_win16_heap(), 0, ptr );
     return 0;
@@ -1239,4 +1261,40 @@ void WINAPI A20Proc16( WORD unused )
 DWORD WINAPI LimitEMSPages16( DWORD unused )
 {
     return 0;
+}
+
+void WINAPI DibMapGlobalMemory(WORD sel, void *base, DWORD size)
+{
+    GLOBALARENA *pArena = GET_ARENA_PTR(sel);
+    int i;
+    if (!sel) /* not hglobal */
+    {
+        SetSelectorBase(sel, base);
+        return;
+    }
+    pArena->dib_avail_size = size;
+    pArena->base = base;
+    for (i = 0; i < pArena->selCount; i++)
+    {
+        SetSelectorBase(sel + i * 8, (LPBYTE)base + i * 0x10000);
+    }
+}
+
+void WINAPI DibUnmapGlobalMemory(void *base, DWORD size)
+{
+    int i;
+    LPVOID heap = HeapAlloc(get_win16_heap(), 0, size);
+    memcpy(heap, base, size);
+    for (i = 0; i < globalArenaSize; i++)
+    {
+        GLOBALARENA *pArena = pGlobalArena + i;
+        if (!pArena->dib_avail_size)
+            continue;
+        if (pArena->base >= base && (LPBYTE)pArena->base < (LPBYTE)base + size)
+        {
+            pArena->dib_avail_size = 0;
+            pArena->base = (LPBYTE)heap + ((SIZE_T)pArena->base - (SIZE_T)base);
+            SetSelectorBase(pArena->handle, pArena->base);
+        }
+    }
 }

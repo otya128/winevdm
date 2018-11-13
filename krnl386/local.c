@@ -545,6 +545,8 @@ static BOOL16 LOCAL_GrowHeap( HANDLE16 ds, DWORD newsize )
     /* if nothing can be gained, return */
     if (oldsize > 0xfff0) return FALSE;
     hseg = GlobalReAlloc16( hseg, newsize, GMEM_FIXED );
+    if (!hseg)
+        return 0;
     ptr = MapSL( MAKESEGPTR( ds, 0 ) );
     pHeapInfo = LOCAL_GetHeap( ds );
     if (pHeapInfo == NULL) {

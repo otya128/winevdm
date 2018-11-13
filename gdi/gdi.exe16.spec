@@ -50,7 +50,7 @@
 50  pascal -ret16 CreateBrushIndirect(ptr) CreateBrushIndirect16
 51  pascal -ret16 CreateCompatibleBitmap(word word word) CreateCompatibleBitmap16
 52  pascal -ret16 CreateCompatibleDC(word) CreateCompatibleDC16
-53  pascal -ret16 CreateDC(str str str ptr) CreateDC16
+53  pascal -ret16 CreateDC(str str str segptr) CreateDC16
 54  pascal -ret16 CreateEllipticRgn(s_word s_word s_word s_word) CreateEllipticRgn16
 55  pascal -ret16 CreateEllipticRgnIndirect(ptr) CreateEllipticRgnIndirect16
 56  pascal -ret16 CreateFont(s_word s_word s_word s_word s_word word word word word word word word word str) CreateFont16

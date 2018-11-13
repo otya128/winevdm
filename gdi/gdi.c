@@ -31,6 +31,7 @@
 #include "wine/gdi_driver.h"
 #endif
 #include "wine/debug.h"
+#include <strsafe.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -56,6 +57,20 @@ static struct list saved_regions = LIST_INIT( saved_regions );
 
 static HPALETTE16 hPrimaryPalette;
 
+void WINAPI DibMapGlobalMemory(WORD sel, void *base, DWORD size);
+void WINAPI DibUnmapGlobalMemory(void *base, DWORD size);
+struct dib_driver
+{
+    struct list entry;
+    HDC         hdc;
+    HANDLE      hSection;
+    LPVOID      map;
+    HBITMAP     bitmap;
+    WORD        selector;
+    DWORD       size;
+    DWORD       padding;
+};
+static struct list dib_drivers = LIST_INIT(dib_drivers);
 /*
  * ############################################################################
  */
@@ -1416,12 +1431,37 @@ HDC16 WINAPI CreateCompatibleDC16( HDC16 hdc )
 }
 
 
+void add_dib_driver_entry(HBITMAP bitmap, HDC dc, HANDLE hSection, LPVOID bits, WORD selector, DWORD size, DWORD padding)
+{
+    struct dib_driver *drv = (struct dib_driver*)HeapAlloc(GetProcessHeap(), 0, sizeof(struct dib_driver));
+    drv->bitmap = bitmap;
+    drv->hdc = dc;
+    drv->hSection = hSection;
+    drv->map = bits;
+    drv->selector = selector;
+    drv->size = size;
+    drv->padding = padding;
+    list_add_head(&dib_drivers, &drv->entry);
+}
+struct dib_driver *find_dib_driver(WORD selector)
+{
+    struct dib_driver *dib, *next;
+    LIST_FOR_EACH_ENTRY_SAFE(dib, next, &dib_drivers, struct dib_driver, entry)
+    {
+        if (dib->selector == selector)
+            return dib;
+    }
+    return NULL;
+}
 /***********************************************************************
  *           CreateDC    (GDI.53)
  */
 HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
-                         const DEVMODEA *initData )
+                         SEGPTR segInitData )
 {
+    const DEVMODEA *initData = (const DEVMODEA*)MapSL(segInitData);
+    HDC16 dc;
+    HINSTANCE16 drv;
 #if 0
     if (!lstrcmpiA( driver, "dib" ) || !lstrcmpiA( driver, "dirdib" ))
     {
@@ -1440,18 +1480,66 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
         return HDC_16( hdc );
     }
 #else
-    if (!lstrcmpiA(driver, "dib") || !lstrcmpiA(driver, "dirdib"))
+    if (!lstrcmpiA(driver, "dib") || !lstrcmpiA(driver, "dirdib") || !lstrcmpiA(driver, "dib.drv") || !lstrcmpiA(driver, "dirdib.drv"))
     {
-        FIXME("DIB.DRV\n");
         void *pvBits;
         HDC memdc = CreateCompatibleDC(NULL);
         HBITMAP bitmap;
-        bitmap = CreateDIBSection(NULL, (const BITMAPINFO *)initData, DIB_RGB_COLORS, &pvBits, NULL, 0);
+        WORD selector = SELECTOROF(segInitData);
+        WORD offset = OFFSETOF(segInitData);
+        LPVOID base = MapSL(MAKESEGPTR(selector, 0));
+        DWORD limit = wine_ldt_copy.limit[selector >> __AHSHIFT] + 1;
+        volatile  BITMAPINFO *bmi = (const BITMAPINFO *)initData;
+        HANDLE hSection = INVALID_HANDLE_VALUE;
+        LPBYTE bits = NULL;
+        DWORD avail_size;
+        DWORD offset_align;
+        DWORD offset_bits;
+        if (segInitData == 0)
+        {
+            return HDC_32(memdc);
+        }
+        if (find_dib_driver(selector))
+        {
+            FIXME("Multiple DIB mappings on the same segment are not supported.\n");
+            return HDC_32(memdc);
+        }
+        offset_bits = offset + bmi->bmiHeader.biSize + bmi->bmiHeader.biClrUsed * sizeof(RGBQUAD);
+#define DWORD_PADDING(x) (((x) + 3) & -4)
+        offset_align = DWORD_PADDING(offset_bits) - offset_bits;
+        avail_size = max(0x10000, limit);
+        hSection = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, avail_size + offset_align, NULL);
+        bits = (LPBYTE)MapViewOfFile(hSection, FILE_MAP_WRITE, 0, 0, 0);
+        memcpy(bits + offset_align, base, limit);
+        bitmap = CreateDIBSection(NULL, bmi, DIB_RGB_COLORS, &pvBits, hSection, offset_align + offset_bits);
         SelectObject(memdc, bitmap);
+        DibMapGlobalMemory(selector, (LPBYTE)bits + offset_align, avail_size);
+        if (bmi->bmiHeader.biClrUsed)
+            SetDIBColorTable(memdc, 0, bmi->bmiHeader.biClrUsed, &bmi->bmiColors);
+        add_dib_driver_entry(bitmap, memdc, hSection, bits, selector, avail_size, offset_align);
         return HDC_16(memdc);
     }
 #endif
-    return HDC_16( CreateDCA( driver, device, output, initData ) );
+    dc = HDC_16( CreateDCA( driver, device, output, initData ) );
+
+    if (dc)
+        return dc;
+    drv = LoadLibrary16(driver);
+    if (drv == 2)
+    {
+        char buf[MAX_PATH];
+        *buf = 0;
+        StringCchCatA(buf, ARRAYSIZE(buf), driver);
+        StringCchCatA(buf, ARRAYSIZE(buf), ".DRV");
+        drv = LoadLibrary16(buf);
+    }
+    if (drv < 32)
+    {
+        ERR("DC driver %s not found\n", debugstr_a(driver));
+        return 0;
+    }
+    FIXME("DC driver %s not supported\n", debugstr_a(driver));
+    return CreateDC16("DIB", NULL, NULL, NULL);
 }
 
 
@@ -1624,12 +1712,27 @@ HBRUSH16 WINAPI CreateSolidBrush16( COLORREF color )
 }
 
 
+void delete_dib_driver(HDC hdc)
+{
+    struct dib_driver *dib, *next;
+    LIST_FOR_EACH_ENTRY_SAFE(dib, next, &dib_drivers, struct dib_driver, entry)
+    {
+        if (dib->hdc != hdc) continue;
+        list_remove(&dib->entry);
+        DibUnmapGlobalMemory((LPBYTE)dib->map + dib->padding, dib->size);
+        DeleteObject(dib->bitmap);
+        UnmapViewOfFile(dib->map);
+        CloseHandle(dib->hSection);
+        HeapFree(GetProcessHeap(), 0, dib);
+    }
+}
 /***********************************************************************
  *           DeleteDC    (GDI.68)
  */
 BOOL16 WINAPI DeleteDC16( HDC16 hdc )
 {
-    if (DeleteDC( HDC_32(hdc) ))
+    HDC hdc32 = HDC_32(hdc);
+    if (DeleteDC( hdc32 ))
     {
         struct saved_visrgn *saved, *next;
         struct gdi_thunk* thunk;
@@ -1638,12 +1741,13 @@ BOOL16 WINAPI DeleteDC16( HDC16 hdc )
 
         LIST_FOR_EACH_ENTRY_SAFE( saved, next, &saved_regions, struct saved_visrgn, entry )
         {
-            if (saved->hdc != HDC_32(hdc)) continue;
+            if (saved->hdc != hdc32) continue;
             list_remove( &saved->entry );
             DeleteObject( saved->hrgn );
             HeapFree( GetProcessHeap(), 0, saved );
         }
-        K32WOWHandle16DestroyHint(HDC_32(hdc), WOW_TYPE_HDC /* GDIOBJ */);
+        delete_dib_driver(hdc32);
+        K32WOWHandle16DestroyHint(hdc32, WOW_TYPE_HDC /* GDIOBJ */);
         return TRUE;
     }
     return FALSE;
