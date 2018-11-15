@@ -57,7 +57,7 @@ void WINAPI krnl386_set_compat_path(const LPCSTR path)
         value = smvalue;
     }
 
-    stat = RegQueryValueExA(hkey, smvalue, 0, &type, &modes, &size);
+    stat = RegQueryValueExA(hkey, value, 0, &type, &modes, &size);
     RegCloseKey(hkey);
     if (stat || (type != REG_SZ))
     {
