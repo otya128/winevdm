@@ -380,7 +380,6 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 
     if (!lpofn) return FALSE;
     OPENFILENAME16 ofn16 = *lpofn;
-    dynamic_resource(lpofn->hInstance, lpofn->lpTemplateName);
 
     ofn32.lStructSize       = OPENFILENAME_SIZE_VERSION_400A;
     ofn32.hwndOwner         = HWND_32( lpofn->hwndOwner );
