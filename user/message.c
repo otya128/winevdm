@@ -3971,8 +3971,11 @@ enum SEPARATE_TASKBAR separate_taskbar;
 #include <propvarutil.h>
 void set_app_id(HWND hWnd, LPCWSTR name)
 {
+    DWORD count;
     IPropertyStore *propstore;
-    HRESULT hr = SHGetPropertyStoreForWindow(hWnd, &IID_IPropertyStore, &propstore);
+    HRESULT hr;
+    ReleaseThunkLock(&count);
+    hr = SHGetPropertyStoreForWindow(hWnd, &IID_IPropertyStore, &propstore);
     if (SUCCEEDED(hr))
     {
         PROPVARIANT pv;
@@ -3988,6 +3991,7 @@ void set_app_id(HWND hWnd, LPCWSTR name)
         }
         propstore->lpVtbl->Release(propstore);
     }
+    RestoreThunkLock(count);
 }
 void set_window_app_id(HWND hwnd)
 {
