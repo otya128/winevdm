@@ -81,11 +81,27 @@ static inline HWND full_insert_after_hwnd( HWND16 hwnd )
     return ret;
 }
 
+BOOL CALLBACK remove_wndproc(HWND hwnd, LPARAM lparam)
+{
+    if (GetExePtr(GetWindowWord16(HWND_16(hwnd), GWL_HINSTANCE)) == lparam)
+    {
+        TRACE("HWND %p WNDPROC removed\n");
+        SetWindowLongPtrA(hwnd, GWLP_WNDPROC, DefWindowProcA);
+    }
+    return TRUE;
+}
+
 BOOL CALLBACK enum_thread_window(HWND hwnd, LPARAM lparam)
 {
     struct class_entry *clazz = (struct class_entry*)lparam;
     if (GetClassWord(hwnd, GCW_ATOM) == clazz->atom)
     {
+        if (GetWindowLongPtrA(hwnd, GWLP_WNDPROC) != DefWindowProcA)
+        {
+            TRACE("HWND %p WNDPROC removed\n");
+            SetWindowLongPtrA(hwnd, GWLP_WNDPROC, DefWindowProcA);
+        }
+        TRACE("HWND %p destroyed\n");
         DestroyWindow(hwnd);
     }
     return TRUE;
@@ -95,6 +111,7 @@ void free_module_classes( HINSTANCE16 inst )
 {
     struct class_entry *class, *next;
 
+    EnumThreadWindows(GetCurrentThreadId(), remove_wndproc, (LPARAM)inst);
     LIST_FOR_EACH_ENTRY_SAFE( class, next, &class_list, struct class_entry, entry )
     {
         if (class->inst != inst) continue;
