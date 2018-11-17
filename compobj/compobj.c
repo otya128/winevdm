@@ -325,6 +325,8 @@ BOOL16 WINAPI IsEqualGUID16(
     return !memcmp( g1, g2, sizeof(GUID) );
 }
 
+HRESULT WINAPI guid_str_to_clsid(LPCOLESTR16 idstr, CLSID *id);
+HRESULT WINAPI progid_to_clsid(LPCOLESTR16 idstr, CLSID *id);
 /******************************************************************************
  *		CLSIDFromString	[COMPOBJ.20]
  * Converts a unique identifier from its string representation into
@@ -336,8 +338,15 @@ BOOL16 WINAPI IsEqualGUID16(
  *	the converted GUID
  */
 HRESULT WINAPI CLSIDFromString16(
-	LPCOLESTR16 idstr,	/* [in] string representation of guid */
+	LPCOLESTR16 idstr,	/* [in] string representation of (guid or ProgId) */
 	CLSID *id)		/* [out] GUID converted from string */
+{
+    HRESULT r = guid_str_to_clsid(idstr, id);
+    if (SUCCEEDED(r))
+        return r;
+    return progid_to_clsid(idstr, id);
+}
+HRESULT WINAPI guid_str_to_clsid(LPCOLESTR16 idstr, CLSID *id)
 {
   const BYTE *s;
   int	i;
@@ -350,18 +359,18 @@ HRESULT WINAPI CLSIDFromString16(
 
   /* validate the CLSID string */
   if (strlen(idstr) != 38)
-    return CO_E_CLASSSTRING;
+      goto invalid_guid;
 
   s = (const BYTE *) idstr;
   if ((s[0]!='{') || (s[9]!='-') || (s[14]!='-') || (s[19]!='-') || (s[24]!='-') || (s[37]!='}'))
-    return CO_E_CLASSSTRING;
+      goto invalid_guid;
 
   for (i=1; i<37; i++) {
     if ((i == 9)||(i == 14)||(i == 19)||(i == 24)) continue;
     if (!(((s[i] >= '0') && (s[i] <= '9'))  ||
           ((s[i] >= 'a') && (s[i] <= 'f'))  ||
           ((s[i] >= 'A') && (s[i] <= 'F'))))
-       return CO_E_CLASSSTRING;
+        goto invalid_guid;
   }
 
   TRACE("%s -> %p\n", s, id);
@@ -395,6 +404,26 @@ HRESULT WINAPI CLSIDFromString16(
   id->Data4[7] = table[s[35]] << 4 | table[s[36]];
 
   return S_OK;
+  invalid_guid:
+  return CO_E_CLASSSTRING;
+}
+HRESULT WINAPI progid_to_clsid(LPCOLESTR16 idstr, CLSID *id)
+{
+  HKEY hkey = NULL;
+  CHAR clsid[50];
+  DWORD cbclsid = sizeof(clsid);
+  if (RegOpenKey16(HKEY_CLASSES_ROOT, idstr, &hkey))
+  {
+      goto error;
+  }
+  if (RegQueryValue16(hkey, "CLSID", clsid, &cbclsid))
+  {
+      goto error;
+  }
+  RegCloseKey16(hkey);
+  return guid_str_to_clsid(clsid, id);
+  error:
+  return CO_E_CLASSSTRING;
 }
 
 /******************************************************************************
