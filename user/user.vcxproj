@@ -86,6 +86,7 @@
   <ItemGroup>
     <ClCompile Include="bidi.c" />
     <ClCompile Include="comm.c" />
+    <ClCompile Include="dde.c" />
     <ClCompile Include="dialog.c" />
     <ClCompile Include="hook.c" />
     <ClCompile Include="message.c" />
