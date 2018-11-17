@@ -4216,6 +4216,7 @@ void InitHook()
     InitNewThreadHook();
 }
 
+void WINAPI ShellDDEInit(BOOL bInit);
 #include "wine/winbase16.h"
 BOOL WINAPI DllMain(
     HINSTANCE hinstDLL,
@@ -4228,6 +4229,7 @@ BOOL WINAPI DllMain(
         window_type_table = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536);
         aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", TRUE);
         separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE);
+        ShellDDEInit(TRUE);
     }
     if (fdwReason == DLL_THREAD_ATTACH)
     {
@@ -4235,7 +4237,7 @@ BOOL WINAPI DllMain(
     }
     if (fdwReason == DLL_PROCESS_DETACH)
     {
-        HeapFree(GetProcessHeap(), 0, window_type_table);
+        ShellDDEInit(FALSE);
     }
     return TRUE;
 }
@@ -4324,12 +4326,12 @@ ULONG_PTR set_icon_param(HICON hIcon, ULONG_PTR param)
 struct tagDIALOGINFO unknown;
 struct tagDIALOGINFO *get_dialog_info(HWND hWnd, BOOL b)
 {
-	ERR("NOTIMPL:get_dialog_info(hWnd=%d, BOOL=%d)\n", hWnd, b);
+	ERR("should not be called (%p,%d)\n", hWnd, b);
 	return &unknown;
 }
 INT dialog_box_loop(HWND hWnd, HWND owner)
 {
-    ERR("should not be called.\n");
+    ERR("should not be called (%p,%p)\n");
     return 0;
 }
 void register_wow_handlers(void)

@@ -188,7 +188,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
 
     static const WCHAR dotexeW[] = {'.','e','x','e',0};
     static const WCHAR dotlnkW[] = {'.','l','n','k',0};
-    static const WCHAR slashW[] = {'/',0};
+    static const WCHAR slashW[] = {'\\',0};
 
     static WCHAR *last_group;
 
@@ -253,6 +253,9 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         IShellLinkW *link;
         IPersistFile *file;
         HRESULT hres;
+        int cmd_argc;
+        WCHAR **cmd_argv;
+        WCHAR *prg_name;
 
         if (argc < 1) return DDE_FNOTPROCESSED;
 
@@ -260,16 +263,29 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
                                 &IID_IShellLinkW, (void **)&link);
         if (FAILED(hres)) return DDE_FNOTPROCESSED;
 
-        len = SearchPathW(NULL, argv[0], dotexeW, 0, NULL, NULL);
+        /* windows 3.1 progman: command line */
+        /* explorer DDE: program path */
+        cmd_argv = CommandLineToArgvW(argv[0], &cmd_argc);
+        if (!cmd_argv || !cmd_argc)
+            return DDE_FNOTPROCESSED;
+        prg_name = cmd_argv[0];
+        len = SearchPathW(NULL, prg_name, dotexeW, 0, NULL, NULL);
         if (len == 0)
         {
+            LocalFree(cmd_argv);
             IShellLinkW_Release(link);
             return DDE_FNOTPROCESSED;
         }
         path = heap_alloc(len * sizeof(WCHAR));
-        SearchPathW(NULL, argv[0], dotexeW, len, path, NULL);
+        SearchPathW(NULL, prg_name, dotexeW, len, path, NULL);
         IShellLinkW_SetPath(link, path);
         heap_free(path);
+        if (cmd_argc > 1)
+        {
+            WCHAR *args = strstrW(argv[0], " ");/* FIXME? */
+            if (args)
+                IShellLinkW_SetArguments(link, args + 1);
+        }
 
         if (argc >= 2) IShellLinkW_SetDescription(link, argv[1]);
         if (argc >= 4) IShellLinkW_SetIconLocation(link, argv[2], atoiW(argv[3]));
@@ -284,6 +300,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         hres = IShellLinkW_QueryInterface(link, &IID_IPersistFile, (void **)&file);
         if (FAILED(hres))
         {
+            LocalFree(cmd_argv);
             IShellLinkW_Release(link);
             return DDE_FNOTPROCESSED;
         }
@@ -297,7 +314,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         }
         else
         {
-            const WCHAR *filename = PathFindFileNameW(argv[0]);
+            const WCHAR *filename = PathFindFileNameW(prg_name);
             int len = PathFindExtensionW(filename) - filename;
             name = heap_alloc((strlenW(last_group) + 1 + len + 5) * sizeof(*name));
             lstrcpyW(name, last_group);
@@ -309,6 +326,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
 
         heap_free(name);
         IPersistFile_Release(file);
+        LocalFree(cmd_argv);
         IShellLinkW_Release(link);
 
         if (FAILED(hres)) return DDE_FNOTPROCESSED;
@@ -505,7 +523,7 @@ void WINAPI ShellDDEInit(BOOL bInit)
 
     if (bInit)
     {
-        static const WCHAR wszProgman[] = {'P','r','o','g','m','a','n',0};
+        static const WCHAR wszProgman[] = {'P','r','o','g','m','a','n','1','6',0};
         static const WCHAR wszAsterisk[] = {'*',0};
         static const WCHAR wszShell[] = {'S','h','e','l','l',0};
         static const WCHAR wszAppProperties[] =
@@ -525,7 +543,7 @@ void WINAPI ShellDDEInit(BOOL bInit)
 
         DdeNameService(dwDDEInst, hszFolders, 0, DNS_REGISTER);
         DdeNameService(dwDDEInst, hszProgmanService, 0, DNS_REGISTER);
-        DdeNameService(dwDDEInst, hszShell, 0, DNS_REGISTER);
+        /* DdeNameService(dwDDEInst, hszShell, 0, DNS_REGISTER); */
     }
     else
     {
