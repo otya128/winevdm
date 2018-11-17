@@ -1153,6 +1153,50 @@ void DROPSTRUCT32_16(LPDROPSTRUCT lpds32, LPDROPSTRUCT16 lpds16)
     TRACE("%p,%p,%04x,%08x,%d,%d,%08x\n", lpds32->hwndSink, lpds32->hwndSource, lpds32->wFmt, lpds32->dwData, lpds32->ptDrop.x, lpds32->ptDrop.y, lpds32->dwControlData);
 }
 
+ATOM atom_progman;
+ATOM atom_progman16;
+static void init_atom()
+{
+    if (!atom_progman)
+    {
+        atom_progman = AddAtomA("Progman");
+    }
+    if (!atom_progman16)
+    {
+        atom_progman16 = AddAtomA("Progman16");
+    }
+}
+static ATOM service16_32(ATOM atom)
+{
+    init_atom();
+    if (atom_progman == atom)
+        return atom_progman16;
+    return atom;
+}
+
+static ATOM service32_16(ATOM atom)
+{
+    init_atom();
+    if (atom_progman16 == atom)
+        return atom_progman;
+    return atom;
+}
+
+static ATOM topic16_32(ATOM atom)
+{
+    init_atom();
+    if (atom_progman == atom)
+        return atom_progman16;
+    return atom;
+}
+
+static ATOM topic32_16(ATOM atom)
+{
+    init_atom();
+    if (atom_progman16 == atom)
+        return atom_progman;
+    return atom;
+}
 /**********************************************************************
  *	     WINPROC_CallProc16To32A
  */
@@ -1472,10 +1516,14 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback( hwnd32, msg, wParam, lParam, result, arg );
         break;
     case WM_DDE_INITIATE:
+        ret = callback(hwnd32, msg, (WPARAM)WIN_Handle32(wParam), MAKELONG(service16_32(LOWORD(lParam)), topic16_32(HIWORD(lParam))), result, arg);
+        break;
     case WM_DDE_TERMINATE:
-    case WM_DDE_UNADVISE:
+        ret = callback(hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg);
+        break;
     case WM_DDE_REQUEST:
-        ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
+    case WM_DDE_UNADVISE:
+        ret = callback(hwnd32, msg, (WPARAM)WIN_Handle32(wParam), MAKELONG(LOWORD(lParam), topic16_32(HIWORD(lParam))), result, arg);
         break;
     case WM_DDE_ADVISE:
     case WM_DDE_DATA:
@@ -1484,7 +1532,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             HANDLE16 lo16 = LOWORD(lParam);
             UINT_PTR lo32 = 0;
             if (lo16 && !(lo32 = convert_handle_16_to_32(lo16, GMEM_DDESHARE))) break;
-            lParam = PackDDElParam( msg, lo32, HIWORD(lParam) );
+            lParam = PackDDElParam( msg, lo32, topic16_32(HIWORD(lParam)) );
             ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
         }
         break; /* FIXME don't know how to free allocated memory (handle)  !! */
@@ -1497,6 +1545,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
 
             if (GlobalGetAtomNameA(hi, buf, 256) > 0) flag |= 1;
             if (GlobalSize16(hi) != 0) flag |= 2;
+            lo = lo; /* atom or flag */
             switch (flag)
             {
             case 0:
@@ -1507,6 +1556,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
                 }
                 break;
             case 1:
+                hi = topic16_32(hi);
                 break; /* atom, nothing to do */
             case 3:
                 WARN("DDE_ACK: %lx both atom and handle... choosing handle\n", hi);
@@ -1987,10 +2037,14 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback(HWND_16(hwnd), msg, HFONT_16((HFONT)wParam), lParam, result, arg);
         break;
     case WM_DDE_INITIATE:
+        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), MAKELONG(LOWORD(service32_16(lParam)), HIWORD(topic32_16(lParam))), result, arg );
+        break;
     case WM_DDE_TERMINATE:
+        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), lParam, result, arg );
+        break;
     case WM_DDE_UNADVISE:
     case WM_DDE_REQUEST:
-        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), lParam, result, arg );
+        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), MAKELONG(LOWORD(lParam), HIWORD(topic32_16(lParam))), result, arg );
         break;
     case WM_DDE_ADVISE:
     case WM_DDE_DATA:
@@ -2001,6 +2055,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 
             UnpackDDElParam( msg, lParam, &lo32, &hi );
             if (lo32 && !(lo16 = convert_handle_32_to_16(lo32, GMEM_DDESHARE))) break;
+            lo16 = topic32_16(lo16);
             ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam),
                             MAKELPARAM(lo16, hi), result, arg );
         }
@@ -2019,6 +2074,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 
             if (GlobalGetAtomNameA((ATOM)hi, buf, sizeof(buf)) > 0) flag |= 1;
             if (HIWORD(hi) && GlobalSize((HANDLE)hi) != 0) flag |= 2;
+            lo = lo; /* atom or flag */
             switch (flag)
             {
             case 0:
@@ -2029,6 +2085,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                 }
                 break;
             case 1:
+                hi = topic32_16(hi);
                 break; /* atom, nothing to do */
             case 3:
                 WARN("DDE_ACK: %lx both atom and handle... choosing handle\n", hi);
