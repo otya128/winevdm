@@ -25,7 +25,39 @@ void WINAPI krnl386_set_compat_path(const LPCSTR path)
         return;
     int size = 256;
     int type;
-    stat = RegQueryValueExA(hkey, path, 0, &type, &modes, &size);
+    char drive[5];
+    char smvalue[256];
+    char *value = path;
+    strncpy(drive, path, 3);
+    drive[3] = '\0';
+    type = GetDriveTypeA(drive);
+    if ((type == DRIVE_CDROM) || (type == DRIVE_REMOVABLE) || (type == DRIVE_REMOTE))
+    {
+        // Based on reactos layer.c
+        HANDLE FindHandle;
+        WIN32_FIND_DATAA FindData;
+        DWORD SignMedia = 0;
+        int count = 9;
+        drive[3] = '*';
+        drive[4] = '\0';
+        FindHandle = FindFirstFileA(drive, &FindData);
+        if (FindHandle != INVALID_HANDLE_VALUE)
+        {
+            do
+            {
+                if (!(FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && FindData.nFileSizeLow)
+                {
+                    SignMedia = ((SignMedia << 1) | (SignMedia >> 31)) ^ FindData.nFileSizeLow;
+                    count--;
+                }
+            } while (FindNextFileA(FindHandle, &FindData) && count);
+            FindClose(FindHandle);
+        }
+        snprintf(smvalue, 256, "SIGN.MEDIA=%X %s", SignMedia, path + 3);
+        value = smvalue;
+    }
+
+    stat = RegQueryValueExA(hkey, value, 0, &type, &modes, &size);
     RegCloseKey(hkey);
     if (stat || (type != REG_SZ))
     {
