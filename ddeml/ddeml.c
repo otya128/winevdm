@@ -213,6 +213,51 @@ static struct ddeml_thunk*      DDEML_AddThunk(DWORD instId, DWORD pfn16)
     return NULL;
 }
 
+HSZ hsz_progman;
+HSZ hsz_progman16;
+static void init_hsz()
+{
+    if (!hsz_progman)
+    {
+        hsz_progman = (HSZ)(ULONG_PTR)AddAtomA("Progman");
+    }
+    if (!hsz_progman16)
+    {
+        hsz_progman16 = (HSZ)(ULONG_PTR)AddAtomA("Progman16");
+    }
+}
+static HSZ service16_32(HSZ hsz)
+{
+    init_hsz();
+    if (hsz_progman == hsz)
+        return hsz_progman16;
+    return hsz;
+}
+
+static HSZ service32_16(HSZ hsz)
+{
+    init_hsz();
+    if (hsz_progman16 == hsz)
+        return hsz_progman;
+    return hsz;
+}
+
+static HSZ topic16_32(HSZ hsz)
+{
+    init_hsz();
+    if (hsz_progman == hsz)
+        return hsz_progman16;
+    return hsz;
+}
+
+static HSZ topic32_16(HSZ hsz)
+{
+    init_hsz();
+    if (hsz_progman16 == hsz)
+        return hsz_progman;
+    return hsz;
+}
+
 /******************************************************************************
  *            DdeInitialize   (DDEML.2)
  */
@@ -269,7 +314,7 @@ HCONVLIST WINAPI DdeConnectList16(DWORD idInst, HSZ hszService, HSZ hszTopic,
 
     if (pCC16)
         map1632_conv_context(pCC = &cc, pCC16);
-    return DdeConnectList(idInst, hszService, hszTopic, hConvList, pCC);
+    return DdeConnectList(idInst, service16_32(hszService), topic16_32(hszTopic), hConvList, pCC);
 }
 
 /*****************************************************************
@@ -311,7 +356,7 @@ HCONV WINAPI DdeConnect16(DWORD idInst, HSZ hszService, HSZ hszTopic,
         map1632_conv_context(pCC = &cc, pCC16);
     DWORD count;
     ReleaseThunkLock(&count);
-    HCONV result = DdeConnect(idInst, hszService, hszTopic, pCC);
+    HCONV result = DdeConnect(idInst, service16_32(hszService), topic16_32(hszTopic), pCC);
     RestoreThunkLock(count);
     return result;
 }
@@ -414,7 +459,7 @@ BOOL16 WINAPI DdeAbandonTransaction16(DWORD idInst, HCONV hConv, DWORD idTransac
  */
 BOOL16 WINAPI DdePostAdvise16(DWORD idInst, HSZ hszTopic, HSZ hszItem)
 {
-    return (BOOL16)DdePostAdvise(idInst, hszTopic, hszItem);
+    return (BOOL16)DdePostAdvise(idInst, topic16_32(hszTopic), hszItem);
 }
 
 /*****************************************************************
@@ -464,7 +509,7 @@ BOOL16 WINAPI DdeEnableCallback16(DWORD idInst, HCONV hConv, UINT16 wCmd)
  */
 HDDEDATA WINAPI DdeNameService16(DWORD idInst, HSZ hsz1, HSZ hsz2, UINT16 afCmd)
 {
-    return DdeNameService(idInst, hsz1, hsz2, afCmd);
+    return DdeNameService(idInst, service16_32(hsz1), hsz2, afCmd);
 }
 
 /*****************************************************************
@@ -502,11 +547,11 @@ UINT16 WINAPI DdeQueryConvInfo16(HCONV hConv, DWORD idTransaction,
 
     ci16.cb = lpConvInfo->cb;
     ci16.hUser = ci32.hUser;
-    ci16.hConvPartner = ci32.hConvPartner;
-    ci16.hszSvcPartner = ci32.hszSvcPartner;
-    ci16.hszServiceReq = ci32.hszServiceReq;
-    ci16.hszTopic = ci32.hszTopic;
-    ci16.hszItem = ci32.hszItem;
+    ci16.hConvPartner = service32_16(ci32.hConvPartner);
+    ci16.hszSvcPartner = service32_16(ci32.hszSvcPartner);
+    ci16.hszServiceReq = service32_16(ci32.hszServiceReq);
+    ci16.hszTopic = topic32_16(ci32.hszTopic);
+    ci16.hszItem = topic32_16(ci32.hszItem);
     ci16.wFmt = ci32.wFmt;
     ci16.wType = ci32.wType;
     ci16.wStatus = ci32.wStatus;
