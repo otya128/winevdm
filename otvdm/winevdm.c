@@ -1177,6 +1177,13 @@ int main( int argc, char *argv[] )
     ReleaseThunkLock(&count);
     if (!krnl386_get_config_int("otvdm", "SeparateWOWVDM", TRUE))
         run_shared_wow_server();
+    while (TRUE) /* FIXME:shred_wow_server */
+    {
+        MSG msg;
+        GetMessageA(&msg, NULL, 0, 0);
+        TranslateMessage(&msg);
+        DispatchMessageA(&msg);
+    }
     Sleep( INFINITE );
     return 0;
 }
