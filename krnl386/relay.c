@@ -40,6 +40,19 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(relay);
 
+#include <pshpack1.h>
+typedef struct {
+    WORD pushw_bp;
+    BYTE pushl;
+    DWORD funcptr;
+    WORD call_near;
+    short call_to;
+    CALLFROM16 call;
+    BOOL used;
+    LPCSTR name;
+} PROC16_RELAY;
+static PROC16_RELAY *thunk32_relay_array;
+static WORD thunk32_relay_segment;
 /*
  * Magic DWORD used to check stack integrity.
  */
@@ -298,6 +311,7 @@ static const CALLFROM16 *get_entry_point( STACK16FRAME *frame, LPSTR module, LPS
     memcpy( func, p + 1, *p );
     func[*p] = 0;
 
+    end:
     /* Retrieve entry point call structure */
     p = MapSL( MAKESEGPTR( frame->module_cs, frame->callfrom_ip ) );
     /* p now points to lret, get the start of CALLFROM16 structure */
@@ -796,4 +810,123 @@ void DOSVM_BuildCallFrame( CONTEXT *context, DOSRELAY relay, LPVOID data )
      */
     context->SegCs = wine_get_cs();
     context->Eip = (DWORD)__wine_call_from_16_regs;
+}
+static CALLFROM16 ret_pascal_32bit_template;
+static CALLFROM16 ret_cdecl_32bit_template;
+
+static void init_arg_types(unsigned int *arg_types, const char *args, int *arg_size)
+{
+    int nop_words, pos, j;
+    size_t len = strlen(args);
+
+
+    /* build the arg types bit fields */
+    arg_types[0] = arg_types[1] = 0;
+    for (j = pos = 0; j < len && pos < 20; j++, pos++)
+    {
+        int type = 0;
+        switch (args[j])
+        {
+        case 'w':
+            *arg_size += 2;
+            type = ARG_WORD;
+            break;
+        case 's':
+            *arg_size += 4;
+            type = ARG_LONG;
+            break;
+        case 'l':
+            *arg_size += 4;
+            type = ARG_LONG;
+            break;
+        case 'p':
+            *arg_size += 4;
+            type = ARG_PTR;
+            break;
+        case 'S':
+            *arg_size += 4;
+            type = ARG_STR;
+            break;
+        }
+        if (pos < 20) arg_types[pos / 10] |= type << (3 * (pos % 10));
+    }
+}
+static BOOL init_template;
+static void init_template_func(CALLFROM16 *dest, const char *func)
+{
+    HMODULE16 krnl;
+    const unsigned char *ret32;
+    krnl = GetModuleHandle16("KERNEL");
+    ret32 = (const unsigned char *)MapSL(GetProcAddress16(krnl, func));
+    assert(
+        ret32[0] == 0x66 /* prefix */ && ret32[1] == 0x55 /* push bp */ &&
+        ret32[2] == 0x68 /* push */ &&
+        ret32[7] == 0x66 /* prefix */ && ret32[8] == 0xe8 /* call rel */);
+    *dest = *(CALLFROM16*)(ret32 + 11 + *(const short*)(ret32 + 9));
+}
+/*
+w: word
+l: long
+p: ptr
+s: segptr
+S: str
+make_thunk_32(func, "lpws", "name", TRUE, FALSE, FALSE)
+*/
+SEGPTR make_thunk_32(void *funcptr, const char *arguments, const char *name, BOOL ret_32bit, BOOL reg_func, BOOL is_cdecl)
+{
+    PROC16_RELAY *relay;
+    int arg_size = 0;
+    assert(!reg_func);
+    assert(ret_32bit);
+    if (!thunk32_relay_array)
+    {
+        thunk32_relay_segment = GLOBAL_Alloc(GMEM_ZEROINIT, 0x10000, GetModuleHandle16("KERNEL"), WINE_LDT_FLAGS_32BIT | WINE_LDT_FLAGS_CODE);
+        thunk32_relay_array = GlobalLock16(thunk32_relay_segment);
+    }
+    for (int i = 0; i < 0x10000 / sizeof(PROC16_RELAY); i++)
+    {
+        if (!thunk32_relay_array[i].used)
+        {
+            relay = thunk32_relay_array + i;
+            break;
+        }
+    }
+    relay->used = TRUE;
+    relay->pushw_bp = 0x5566;
+    relay->pushl = 0x68;
+    relay->funcptr = (DWORD)funcptr;
+    relay->call_near = 0xe866;
+    relay->call_to = 0;
+    relay->name = name;
+    if (!init_template)
+    {
+        init_template_func(&ret_pascal_32bit_template, "GetCodeHandle");
+        init_template_func(&ret_cdecl_32bit_template, "WOW16Call");
+    }
+    if (is_cdecl)
+    {
+        relay->call = ret_cdecl_32bit_template;
+    }
+    else
+    {
+        relay->call = ret_pascal_32bit_template;
+    }
+    init_arg_types(&relay->call.arg_types, arguments, &arg_size);
+    if (!is_cdecl)
+    {
+        int i;
+        for (i = 0; i < ARRAY_SIZE(relay->call.ret); i++)
+        {
+            if (relay->call.ret[i] == 0xca66)
+            {
+                relay->call.ret[i + 1] = arg_size;
+                break;
+            }
+        }
+    }
+    return MAKESEGPTR(thunk32_relay_segment, (relay - thunk32_relay_array) * sizeof(PROC16_RELAY));
+}
+void free_thunk_32(SEGPTR thunk)
+{
+    ((PROC16_RELAY*)MapSL(thunk))->used = FALSE;
 }

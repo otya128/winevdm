@@ -221,3 +221,5 @@ EXPORTS
   krnl386_search_executable_file
   DibMapGlobalMemory
   DibUnmapGlobalMemory
+  make_thunk_32
+  free_thunk_32
