@@ -24,6 +24,7 @@
 #include "windef.h"
 #include "winbase.h"
 #include "wingdi.h"
+#include "winuser.h"
 #include "wownt32.h"
 #include "wine/wingdi16.h"
 #include "wine/list.h"
@@ -1760,11 +1761,17 @@ BOOL16 WINAPI DeleteDC16( HDC16 hdc )
  */
 BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
 {
-    if (GetObjectType( HGDIOBJ_32(obj) ) == OBJ_BITMAP) free_segptr_bits( obj );
-    BOOL result = DeleteObject( HGDIOBJ_32(obj) );
+    HANDLE object = HGDIOBJ_32(obj);
+    if (GetObjectType( object ) == OBJ_BITMAP) free_segptr_bits( obj );
+    if ((GetObjectType(object) == OBJ_PAL) && GetPtr16(object))
+    {
+        HeapFree(GetProcessHeap(), 0, GetPtr16(object));
+        SetPtr16(object, NULL);
+    }
+    BOOL result = DeleteObject( object );
     if (result)
     {
-        K32WOWHandle16DestroyHint(HGDIOBJ_32(obj), WOW_TYPE_HDC /* GDIOBJ */);
+        K32WOWHandle16DestroyHint(object, WOW_TYPE_HDC /* GDIOBJ */);
     }
     return result;
 }
@@ -3166,7 +3173,22 @@ INT16 WINAPI UpdateColors16( HDC16 hdc )
 void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
                               UINT16 NumEntries, const PALETTEENTRY* PaletteColors)
 {
-    AnimatePalette( HPALETTE_32(hpalette), StartIndex, NumEntries, PaletteColors );
+    HPALETTE hpal32 = HPALETTE_32(hpalette);
+    if (GetObjectType(hpal32) != OBJ_PAL) return;
+    AnimatePalette( hpal32, StartIndex, NumEntries, PaletteColors );
+    if (GetPtr16(hpalette))
+    {
+        HWND16 *hwlist = GetPtr16(hpalette);
+        for (int i = 0; i < 10; i++)
+        {
+            if (hwlist[i])
+            {
+                HWND hwnd = HWND_32(hwlist[i]);
+                InvalidateRect(hwnd, NULL, FALSE);
+                UpdateWindow(hwnd);
+            }
+        }
+    }
 }
 
 

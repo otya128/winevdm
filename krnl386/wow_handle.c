@@ -30,6 +30,7 @@ typedef struct
     DWORD dlgproc;
     HINSTANCE16 hInst16;
     HMENU16 hMenu16;
+    void *ptr;
 } HANDLE_DATA;
 typedef struct tagHANDLE_STORAGE *LPHANDLE_STORAGE;
 typedef void(*clean_up_t)(LPHANDLE_STORAGE);
@@ -382,4 +383,26 @@ __declspec(dllexport) DWORD GetDlgProc16(WORD hWnd16)
         return 0;
     }
     return dat->dlgproc;
+}
+
+__declspec(dllexport) void SetPtr16(WORD hdl16, void *ptr)
+{
+    HANDLE_DATA *dat;
+    if (!get_handle32_data(hdl16, &handle_list[HANDLE_TYPE_HANDLE], &dat))
+    {
+        ERR("Invalid Window Handle SetPtr16(%04X,%04X)\n", hdl16, (DWORD)ptr);
+        return;
+    }
+    dat->ptr = ptr;
+}
+
+__declspec(dllexport) void *GetPtr16(WORD hdl16)
+{
+    HANDLE_DATA *dat;
+    if (!get_handle32_data(hdl16, &handle_list[HANDLE_TYPE_HANDLE], &dat))
+    {
+        ERR("Invalid Window Handle GetPtr16(%04X)\n", hdl16);
+        return NULL;
+    }
+    return dat->ptr;
 }
