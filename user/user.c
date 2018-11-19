@@ -1916,13 +1916,13 @@ HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBack
         return NULL;
     if (krnl386_get_compat_mode("256color") && WindowFromDC(hdc32))
     {
-        WORD *hwlist = (WORD *)GetPtr16(hpal);
+        WORD *hwlist = (WORD *)GetPtr16(hpal, 1);
         HWND16 hwnd = HWND_16(WindowFromDC(hdc32));
         int found = -1;
         if (!hwlist)
         {
             hwlist = (WORD *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 10 * sizeof(WORD));
-            SetPtr16(hpal, hwlist);
+            SetPtr16(hpal, hwlist, 1);
         }
         for (int i = 0; i < 10; i++)
         {

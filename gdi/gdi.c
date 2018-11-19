@@ -1763,10 +1763,10 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
 {
     HANDLE object = HGDIOBJ_32(obj);
     if (GetObjectType( object ) == OBJ_BITMAP) free_segptr_bits( obj );
-    if ((GetObjectType(object) == OBJ_PAL) && GetPtr16(object))
+    if ((GetObjectType(object) == OBJ_PAL) && GetPtr16(object, 1))
     {
-        HeapFree(GetProcessHeap(), 0, GetPtr16(object));
-        SetPtr16(object, NULL);
+        HeapFree(GetProcessHeap(), 0, GetPtr16(object, 1));
+        SetPtr16(object, NULL, 1);
     }
     BOOL result = DeleteObject( object );
     if (result)
@@ -3176,9 +3176,9 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
     HPALETTE hpal32 = HPALETTE_32(hpalette);
     if (GetObjectType(hpal32) != OBJ_PAL) return;
     AnimatePalette( hpal32, StartIndex, NumEntries, PaletteColors );
-    if (GetPtr16(hpalette))
+    if (GetPtr16(hpalette, 1))
     {
-        HWND16 *hwlist = GetPtr16(hpalette);
+        HWND16 *hwlist = GetPtr16(hpalette, 1);
         for (int i = 0; i < 10; i++)
         {
             if (hwlist[i])

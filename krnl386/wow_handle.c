@@ -385,23 +385,23 @@ __declspec(dllexport) DWORD GetDlgProc16(WORD hWnd16)
     return dat->dlgproc;
 }
 
-__declspec(dllexport) void SetPtr16(WORD hdl16, void *ptr)
+__declspec(dllexport) void SetPtr16(WORD hdl16, void *ptr, int type)
 {
     HANDLE_DATA *dat;
-    if (!get_handle32_data(hdl16, &handle_list[HANDLE_TYPE_HANDLE], &dat))
+    if (!get_handle32_data(hdl16, &handle_list[type], &dat))
     {
-        ERR("Invalid Window Handle SetPtr16(%04X,%04X)\n", hdl16, (DWORD)ptr);
+        ERR("Invalid Handle SetPtr16(%04X,%04X)\n", hdl16, (DWORD)ptr);
         return;
     }
     dat->ptr = ptr;
 }
 
-__declspec(dllexport) void *GetPtr16(WORD hdl16)
+__declspec(dllexport) void *GetPtr16(WORD hdl16, int type)
 {
     HANDLE_DATA *dat;
-    if (!get_handle32_data(hdl16, &handle_list[HANDLE_TYPE_HANDLE], &dat))
+    if (!get_handle32_data(hdl16, &handle_list[type], &dat))
     {
-        ERR("Invalid Window Handle GetPtr16(%04X)\n", hdl16);
+        ERR("Invalid Handle GetPtr16(%04X)\n", hdl16);
         return NULL;
     }
     return dat->ptr;
