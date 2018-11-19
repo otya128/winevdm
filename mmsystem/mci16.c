@@ -314,7 +314,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 		mop32w = (LPMCI_OPEN_PARMSW)((char*)mop32w + sizeof(LPMCI_OPEN_PARMS16));
 		mop32w->dwCallback       = HWND_32(mop16->dwCallback);
 		mop32w->wDeviceID        = mop16->wDeviceID;
-                if( ( dwFlags & ( MCI_OPEN_TYPE | MCI_OPEN_TYPE_ID)) == MCI_OPEN_TYPE)
+                if( !( dwFlags &  MCI_OPEN_TYPE_ID))
                     mop32w->lpstrDeviceType  = MCI_strdupAtoW(MapSL(mop16->lpstrDeviceType));
                 else
                     mop32w->lpstrDeviceType  = (LPWSTR) mop16->lpstrDeviceType;
@@ -335,7 +335,10 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 		 * MCI_OPEN_DRIVER shall be done depending on uDevType.
 		 */
 		if (HIWORD(dwFlags))
-		    memcpy(mop32w + 1, mop16 + 1, sizeof(MCI_ANIM_OPEN_PARMS16) - sizeof(MCI_OPEN_PARMS16));
+		{
+			memcpy(mop32w + 1, mop16 + 1, sizeof(MCI_ANIM_OPEN_PARMS16) - sizeof(MCI_OPEN_PARMS16));
+			((MCI_ANIM_OPEN_PARMSW *)mop32w)->hWndParent = HWND_32(((MCI_ANIM_OPEN_PARMS16 *)mop16)->hWndParent);
+		}
 	    } else {
 		return MMSYSTEM_MAP_NOMEM;
 	    }
