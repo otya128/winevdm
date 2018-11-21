@@ -113,6 +113,7 @@ int parser_debug, yy_flex_debug;
 int pedantic = 0;
 int do_everything = 1;
 static int preprocess_only = 0;
+int do_relay16 = 0;
 int do_header = 0;
 int do_typelib = 0;
 int do_proxies = 0;
@@ -133,6 +134,7 @@ static enum stub_mode stub_mode = MODE_Os;
 
 char *input_name;
 char *input_idl_name;
+char *relay16_name;
 char *header_name;
 char *local_stubs_name;
 char *header_token;
@@ -721,7 +723,9 @@ int main(int argc,char *argv[])
       !do_client && !do_server && !do_regscript && !do_idfile && !do_dlldata)
   {
       do_everything = 0;
-      if (strendswith( output_name, ".h" )) do_header = 1;
+      if (strendswith(output_name, "_16.h")) do_relay16 = 1;
+      else if (strendswith(output_name, "_16.c")) do_relay16 = 1;
+      else if (strendswith( output_name, ".h" )) do_header = 1;
       else if (strendswith( output_name, ".tlb" )) do_typelib = 1;
       else if (strendswith( output_name, "_p.c" )) do_proxies = 1;
       else if (strendswith( output_name, "_c.c" )) do_client = 1;
@@ -740,7 +744,7 @@ int main(int argc,char *argv[])
   if (!output_name) output_name = dup_basename(input_name, ".idl");
 
   if (do_header + do_typelib + do_proxies + do_client +
-      do_server + do_regscript + do_idfile + do_dlldata == 1)
+      do_server + do_regscript + do_idfile + do_dlldata + do_relay16 == 1)
   {
       if (do_header) header_name = output_name;
       else if (do_typelib) typelib_name = output_name;
@@ -750,6 +754,7 @@ int main(int argc,char *argv[])
       else if (do_regscript) regscript_name = output_name;
       else if (do_idfile) idfile_name = output_name;
       else if (do_dlldata) dlldata_name = output_name;
+      else if (do_relay16) relay16_name = output_name;
   }
 
   if (!dlldata_name && do_dlldata)

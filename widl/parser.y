@@ -329,6 +329,7 @@ input:   gbl_statements				{ fix_incomplete();
 						  write_regscript($1);
 						  write_dlldata($1);
 						  write_local_stubs($1);
+						  write_relay16($1);
 						}
 	;
 
