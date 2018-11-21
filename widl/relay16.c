@@ -435,11 +435,18 @@ static void write_args_conv1632(FILE *h, const var_list_t *args, const char *nam
         expr_t *iid = get_attrp(arg->attrs, ATTR_IIDIS);
         int is_out = is_attr(arg->attrs, ATTR_OUT);
         int is_in = is_attr(arg->attrs, ATTR_IN);
+        int is_array = 0;
         enum type_type typtyp1 = type_get_type(arg->type);
         type_t *typ2 = typtyp1 == TYPE_POINTER ? type_pointer_get_ref(arg->type) : NULL;
         enum type_type typtyp2 = typ2 ? type_get_type(typ2) : -1;
         type_t *typ3 = typ2 && typtyp2 == TYPE_POINTER ? type_pointer_get_ref(typ2) : NULL;
         enum type_type typtyp3 = typ3 ? type_get_type(typ3) : -1;
+        if (typtyp1 == TYPE_ARRAY)
+        {
+            typ2 = type_array_get_element(arg->type);
+            typtyp1 = type_get_type(typ2);
+            is_array = TRUE;
+        }
         if (call)
         {
             if (is_out)
@@ -458,13 +465,36 @@ static void write_args_conv1632(FILE *h, const var_list_t *args, const char *nam
         }
         else if (!after_conv)
         {
-            if (typ2 && is_out)
+            if (is_out)
             {
+                assert(typ2);
                 /* indent */
                 fprintf(h, "    ");
                 write_type_decl_left(h, typ2);
                 /* [out] interface conversion */
-                fprintf(h, " args32_%s = {0};\n", arg->name);
+                if (is_array)
+                {
+                    int count = 0;
+                    expr_t *e;
+                    expr_list_t *size_is = get_attrp(arg->attrs, ATTR_SIZEIS);
+                    assert(size_is);
+                    fprintf(h, " *args32_%s = (", arg->name);
+                    write_type_decl_left(h, typ2);
+                    fprintf(h, " *)IFACE_ALLOC_ARRAY(");
+                    write_type_decl_left(h, typ2);
+                    fprintf(h, " ,");
+                    LIST_FOR_EACH_ENTRY(e, size_is, expr_t, entry)
+                    {
+                        write_expr(h, e, 1, 1, NULL, NULL, "");
+                        assert(count++ == 0);
+                    }
+                    fprintf(h, " );\n");
+
+                }
+                else
+                {
+                    fprintf(h, " args32_%s = {0};\n", arg->name);
+                }
             }
             else
             {
@@ -628,11 +658,18 @@ static void write_args_conv3216(FILE *h, const var_list_t *args, const char *nam
         expr_t *iid = get_attrp(arg->attrs, ATTR_IIDIS);
         int is_out = is_attr(arg->attrs, ATTR_OUT);
         int is_in = is_attr(arg->attrs, ATTR_IN);
+        int is_array = 0;
         enum type_type typtyp1 = type_get_type(arg->type);
         type_t *typ2 = typtyp1 == TYPE_POINTER ? type_pointer_get_ref(arg->type) : NULL;
         enum type_type typtyp2 = typ2 ? type_get_type(typ2) : -1;
         type_t *typ3 = typ2 && typtyp2 == TYPE_POINTER ? type_pointer_get_ref(typ2) : NULL;
         enum type_type typtyp3 = typ3 ? type_get_type(typ3) : -1;
+        if (typtyp1 == TYPE_ARRAY)
+        {
+            typ2 = type_array_get_element(arg->type);
+            typtyp1 = type_get_type(typ2);
+            is_array = TRUE;
+        }
         /* TODO: inout,array size */
         if (call)
         {
@@ -657,13 +694,36 @@ static void write_args_conv3216(FILE *h, const var_list_t *args, const char *nam
         }
         else if (!after_conv)
         {
-            if (typ2 && is_out)
+            if (is_out)
             {
+                assert(typ2);
                 /* indent */
                 fprintf(h, "    ");
                 write_type_decl_left3216(h, typ2);
                 /* [out] interface conversion */
-                fprintf(h, " args16_%s = {0};\n", arg->name);
+                if (is_array)
+                {
+                    int count = 0;
+                    expr_t *e;
+                    expr_list_t *size_is = get_attrp(arg->attrs, ATTR_SIZEIS);
+                    assert(size_is);
+                    fprintf(h, " *args16_%s = (", arg->name);
+                    write_type_decl_left3216(h, typ2);
+                    fprintf(h, " *)IFACE_ALLOC_ARRAY(");
+                    write_type_decl_left3216(h, typ2);
+                    fprintf(h, " ,");
+                    LIST_FOR_EACH_ENTRY(e, size_is, expr_t, entry)
+                    {
+                        write_expr(h, e, 1, 1, NULL, NULL, "");
+                        assert(count++ == 0);
+                    }
+                    fprintf(h, " );\n");
+
+                }
+                else
+                {
+                    fprintf(h, " args16_%s = {0};\n", arg->name);
+                }
             }
             else
             {
