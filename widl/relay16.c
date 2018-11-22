@@ -671,7 +671,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                 {
                     fprintf(h, ",%s", "%p");
                 }
-                if (size == 8)
+                else if (size == 8)
                 {
                     fprintf(h, ",%s", "%016llx");
                 }
@@ -683,7 +683,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
         }
         else if (args_conv == ARGS_CONV_TRACE_ARGS)
         {
-            fprintf(h, ", args%d_%s", is_1632 ? 32 : 16, arg->name);
+            fprintf(h, ", %s%s", is_1632 ? "args16_" : "", arg->name);
         }
         else
         {
