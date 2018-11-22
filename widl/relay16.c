@@ -484,7 +484,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
         }
         if (args_conv == ARGS_CONV_CALL)
         {
-            if (is_out)
+            if (!is_in && is_out)
             {
                 if (is_1632)
                 {
@@ -516,21 +516,34 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
         }
         else if (args_conv == ARGS_CONV_MAP || args_conv == ARGS_CONV_UNMAP)
         {
-            if (!is_out)
+            type_t *map_type;
+            const char *prefix_src;
+            const char *prefix_dst;
+            map_type = arg->type;
+            if (is_1632)
+                prefix_dst = "args32_";
+            else
+                prefix_dst = "args16_";
+            if (is_1632)
+                prefix_src = "args16_";
+            else
+                prefix_src = "";
+
+            if (is_in)
             {
                 if (is_1632)
                 {
-                    write_type_conv1632(h, arg->type, is_1632 ? "args16_" : "", arg->name, is_1632 ? "args32_" : "args16_", arg->name, args_conv == ARGS_CONV_UNMAP);
+                    write_type_conv1632(h, map_type, prefix_src, arg->name, prefix_dst, arg->name, args_conv == ARGS_CONV_UNMAP);
                 }
                 else
                 {
-                    write_type_conv3216(h, arg->type, is_1632 ? "args16_" : "", arg->name, is_1632 ? "args32_" : "args16_", arg->name, args_conv == ARGS_CONV_UNMAP);
+                    write_type_conv3216(h, map_type, prefix_src, arg->name, prefix_dst, arg->name, args_conv == ARGS_CONV_UNMAP);
                 }
             }
         }
         else if (args_conv == ARGS_CONV_DECL)
         {
-            if (is_out)
+            if (is_out && !is_in)
             {
                 assert(typ2);
                 if (is_array && !ivar_defined)
@@ -645,13 +658,13 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     {
                         fprintf(h, "    if (args16_%s)\n    {\n    ", arg->name);
                         snprintf(buf, 256, "*(SEGPTR*)MapSL(args16_%s)", arg->name); /* FIXME */
-                        write_type_conv3216(h, typ2, "args32_", arg->name, buf, "", FALSE);
+                        write_type_conv3216(h, is_in ? arg->type : typ2, "args32_", arg->name, buf, "", FALSE);
                         fprintf(h, "    }\n", arg->name);
                     }
                     else
                     {
                         fprintf(h, "    if (%s)\n    {\n    ", arg->name);
-                        write_type_conv1632(h, typ2, "args16_", arg->name, "*", arg->name, FALSE);
+                        write_type_conv1632(h, is_in ? arg->type : typ2, "args16_", arg->name, is_in ? "" : "*", arg->name, FALSE);
                         fprintf(h, "    }\n", arg->name);
                     }
                 }
