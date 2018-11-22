@@ -433,6 +433,8 @@ enum args_conv
     ARGS_CONV_CALL,
     ARGS_CONV_MAP,
     ARGS_CONV_UNMAP,
+    ARGS_CONV_TRACE,
+    ARGS_CONV_TRACE_ARGS,
 };
 static void write_type_decl_left3216(FILE *f, type_t *t);
 static void write_args_conv(FILE *h, const var_list_t *args, const char *name, enum args_conv args_conv, int is_1632)
@@ -440,7 +442,20 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
     const var_t *arg;
     int count = 0;
     int ivar_defined = FALSE;
-
+    if (args_conv == ARGS_CONV_TRACE)
+    {
+        if (is_1632)
+            fprintf(h, "%s", "%04x:%04x(%p)");
+        else
+            fprintf(h, "%s", "%p(%04x:%04x)");
+    }
+    if (args_conv == ARGS_CONV_TRACE_ARGS)
+    {
+        if (is_1632)
+            fprintf(h, ", SELECTOROF(This), OFFSETOF(This), iface32");
+        else
+            fprintf(h, ", This, SELECTOROF(iface16), OFFSETOF(iface16)");
+    }
     if (args) LIST_FOR_EACH_ENTRY(arg, args, const var_t, entry) {
         /* ATTR_IIDIS ATTR_OUT ATTR_IN */
         expr_t *iid = get_attrp(arg->attrs, ATTR_IIDIS);
@@ -642,6 +657,34 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                 }
             }
         }
+        else if (args_conv == ARGS_CONV_TRACE)
+        {
+            int size, is_ptr;
+            get_type_size16(arg->type, &size, &is_ptr);
+            if (is_1632 && is_ptr)
+            {
+                fprintf(h, ",%s", "%08x");
+            }
+            else
+            {
+                if (is_ptr)
+                {
+                    fprintf(h, ",%s", "%p");
+                }
+                if (size == 8)
+                {
+                    fprintf(h, ",%s", "%016llx");
+                }
+                else
+                {
+                    fprintf(h, ",%s", "%08x");
+                }
+            }
+        }
+        else if (args_conv == ARGS_CONV_TRACE_ARGS)
+        {
+            fprintf(h, ", args%d_%s", is_1632 ? 32 : 16, arg->name);
+        }
         else
         {
             assert(0);
@@ -783,9 +826,13 @@ static void write_32_16_func(FILE *header, const statement_t *stmt, const type_t
         fprintf(header, ")\n");
         fprintf(header, "{\n");
         fprintf(header, "    SEGPTR iface16 = get_interface16(This);\n");
-        fprintf(header, "    TRACE(\"\\n\");\n");
         write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_DECL, FALSE);
         write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_MAP, FALSE);
+        fprintf(header, "    TRACE(\"(");
+        write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_TRACE, FALSE);
+        fprintf(header, ")\\n\"");
+        write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_TRACE_ARGS, FALSE);
+        fprintf(header, ");\n");
         fprintf(header, "    ");
         type_t *ret_type = type_function_get_rettype(func->type);
         if (type_get_type(ret_type) != TYPE_VOID)
@@ -821,9 +868,13 @@ static void write_16_32_func(FILE *header, const statement_t *stmt, const type_t
     fprintf(header, ")\n");
     fprintf(header, "{\n");
     fprintf(header, "    %s *iface32 = (%s*)get_interface32(This);\n", name, name);
-    fprintf(header, "    TRACE(\"\\n\");\n");
     write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_DECL, TRUE);
     write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_MAP, TRUE);
+    fprintf(header, "    TRACE(\"(");
+    write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_TRACE, TRUE);
+    fprintf(header, ")\\n\"");
+    write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_TRACE_ARGS, TRUE);
+    fprintf(header, ");\n");
     fprintf(header, "    ");
     type_t *ret_type = type_function_get_rettype(func->type);
     if (type_get_type(ret_type) != TYPE_VOID)
