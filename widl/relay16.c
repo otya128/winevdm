@@ -439,6 +439,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
 {
     const var_t *arg;
     int count = 0;
+    int ivar_defined = FALSE;
 
     if (args) LIST_FOR_EACH_ENTRY(arg, args, const var_t, entry) {
         /* ATTR_IIDIS ATTR_OUT ATTR_IN */
@@ -453,9 +454,18 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
         enum type_type typtyp3 = typ3 ? type_get_type(typ3) : -1;
         if (typtyp1 == TYPE_ARRAY)
         {
-            typ2 = type_array_get_element(arg->type);
-            typtyp1 = type_get_type(typ2);
-            is_array = TRUE;
+            type_t *array_elem_type = type_array_get_element(arg->type);
+            enum type_type array_elem_type_type = type_get_type(array_elem_type);
+            if (array_elem_type_type != TYPE_VOID)
+            {
+                typ2 = array_elem_type;
+                typtyp1 = array_elem_type_type;
+                is_array = TRUE;
+            }
+            else
+            {
+                is_out = 0;
+            }
         }
         if (args_conv == ARGS_CONV_CALL)
         {
@@ -463,11 +473,25 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
             {
                 if (is_1632)
                 {
-                    fprintf(h, ", &args32_%s", arg->name);
+                    if (is_array)
+                    {
+                        fprintf(h, ", args32_%s", arg->name);
+                    }
+                    else
+                    {
+                        fprintf(h, ", &args32_%s", arg->name);
+                    }
                 }
                 else
                 {
-                    fprintf(h, ", MapLS(&args16_%s)", arg->name);
+                    if (is_array)
+                    {
+                        fprintf(h, ", MapLS(args16_%s)", arg->name);
+                    }
+                    else
+                    {
+                        fprintf(h, ", MapLS(&args16_%s)", arg->name);
+                    }
                 }
             }
             else
@@ -478,13 +502,29 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
         else if (args_conv == ARGS_CONV_MAP || args_conv == ARGS_CONV_UNMAP)
         {
             if (!is_out)
-                write_type_conv1632(h, arg->type, is_1632 ? "args16_" : "", arg->name, is_1632 ? "args32_" : "args16_", arg->name, args_conv == ARGS_CONV_UNMAP);
+            {
+                if (is_1632)
+                {
+                    write_type_conv1632(h, arg->type, is_1632 ? "args16_" : "", arg->name, is_1632 ? "args32_" : "args16_", arg->name, args_conv == ARGS_CONV_UNMAP);
+                }
+                else
+                {
+                    write_type_conv3216(h, arg->type, is_1632 ? "args16_" : "", arg->name, is_1632 ? "args32_" : "args16_", arg->name, args_conv == ARGS_CONV_UNMAP);
+                }
+            }
         }
         else if (args_conv == ARGS_CONV_DECL)
         {
             if (is_out)
             {
                 assert(typ2);
+                if (is_array && !ivar_defined)
+                {
+                    fprintf(h, "    int i__;\n");
+                    if (is_1632)
+                        fprintf(h, "    void *dst__;\n");
+                    ivar_defined = 1;
+                }
                 /* indent */
                 fprintf(h, "    ");
                 if (is_1632)
@@ -498,12 +538,8 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     expr_t *e;
                     expr_list_t *size_is = get_attrp(arg->attrs, ATTR_SIZEIS);
                     assert(size_is);
-                    fprintf(h, " *args%d_%s = (", is_1632 ? 32 : 16, arg->name);
-                    if (is_1632)
-                        write_type_decl_left(h, typ2);
-                    else
-                        write_type_decl_left3216(h, typ2);
-                    fprintf(h, " *)IFACE_ALLOC_ARRAY(");
+                    fprintf(h, " *args%d_%s = ", is_1632 ? 32 : 16, arg->name);
+                    fprintf(h, " IFACE_ALLOC_ARRAY(");
                     if (is_1632)
                         write_type_decl_left(h, typ2);
                     else
@@ -511,7 +547,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     fprintf(h, " ,");
                     LIST_FOR_EACH_ENTRY(e, size_is, expr_t, entry)
                     {
-                        write_expr(h, e, 1, 1, NULL, NULL, "");
+                        write_expr(h, e, 1, 1, NULL, NULL, is_1632 ? "args16_" : "");
                         assert(count++ == 0);
                     }
                     fprintf(h, " );\n");
@@ -552,18 +588,57 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
             else if (typ2 && is_out)
             {
                 char buf[256];
-                if (is_1632)
+                char buf2[256];
+                if (is_array)
                 {
-                    fprintf(h, "    if (args16_%s)\n    {\n    ", arg->name);
-                    snprintf(buf, 256, "*(SEGPTR*)MapSL(args16_%s)", arg->name); /* FIXME */
-                    write_type_conv3216(h, typ2, "args32_", arg->name, buf, "", FALSE);
-                    fprintf(h, "    }\n", arg->name);
+                    int count = 0;
+                    expr_t *e;
+                    expr_list_t *len_is = get_attrp(arg->attrs, ATTR_LENGTHIS);
+                    assert(len_is);
+                    if (is_1632)
+                    {
+                        fprintf(h, "    dst__ = MapSL(args16_%s);\n", arg->name);
+                    }
+                    fprintf(h, "    for (i__ = 0; i__ < (");
+                    LIST_FOR_EACH_ENTRY(e, len_is, expr_t, entry)
+                    {
+                        write_expr(h, e, 1, 1, NULL, NULL, is_1632 ? "&args32_" : "&args16_");
+                        assert(count++ == 0);
+                    }
+                    fprintf(h, ") ; i__++)\n");
+                    fprintf(h, "    {\n");
+                    fprintf(h, "    ");
+                    if (is_1632)
+                    {
+                        snprintf(buf2, 256, "args32_%s[i__]", arg->name); /* FIXME */
+                        write_type_conv3216(h, typ2, buf2, "", "((SEGPTR*)dst__)[i__]", "", FALSE);
+                    }
+                    else
+                    {
+                        snprintf(buf2, 256, "args16_%s[i__]", arg->name); /* FIXME */
+                        write_type_conv1632(h, typ2, buf2, "", arg->name, "[i__]", FALSE);
+                    }
+                    fprintf(h, "    }\n");
+                    if (is_1632)
+                        fprintf(h, "    IFACE_FREE_ARRAY(args16_%s);\n", arg->name);
+                    else
+                        fprintf(h, "    IFACE_FREE_ARRAY(args32_%s);\n", arg->name);
                 }
                 else
                 {
-                    fprintf(h, "    if (%s)\n    {\n    ", arg->name);
-                    write_type_conv1632(h, typ2, "args16_", arg->name, "*", arg->name, FALSE);
-                    fprintf(h, "    }\n", arg->name);
+                    if (is_1632)
+                    {
+                        fprintf(h, "    if (args16_%s)\n    {\n    ", arg->name);
+                        snprintf(buf, 256, "*(SEGPTR*)MapSL(args16_%s)", arg->name); /* FIXME */
+                        write_type_conv3216(h, typ2, "args32_", arg->name, buf, "", FALSE);
+                        fprintf(h, "    }\n", arg->name);
+                    }
+                    else
+                    {
+                        fprintf(h, "    if (%s)\n    {\n    ", arg->name);
+                        write_type_conv1632(h, typ2, "args16_", arg->name, "*", arg->name, FALSE);
+                        fprintf(h, "    }\n", arg->name);
+                    }
                 }
             }
         }
