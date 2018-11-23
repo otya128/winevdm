@@ -35,6 +35,11 @@ interface_16 *interface16_instances[1024];
 size_t interface16_instance_size = 1024;
 size_t interface16_instance_cur = 0;
 
+#ifdef _DEBUG
+#define IFS_GUARD_SIZE 500
+#else
+#define IFS_GUARD_SIZE 0
+#endif
 static int iid_cmp(const void *p1, const void *p2)
 {
     return memcmp(&((const interface_entry*)p1)->iid, &((const interface_entry*)p2)->iid, sizeof(IID));
@@ -100,7 +105,9 @@ SEGPTR iface32_16(REFIID riid, void *iface32)
         ERR("unknown interface %s\n", debugstr_guid(riid));
         return 0;
     }
-    i16 = (interface_16*)HeapAlloc(GetProcessHeap(), 0, sizeof(interface_16));
+    i16 = (interface_16*)HeapAlloc(GetProcessHeap(), 0, sizeof(interface_16) + IFS_GUARD_SIZE * 2);
+    memset(i16, 0xcd, sizeof(interface_16) + IFS_GUARD_SIZE * 2);
+    i16 = (interface_16*)((char*)i16 + IFS_GUARD_SIZE);
     if (!result->spVtbl16)
     {
         init_interface_entry(result);
@@ -139,7 +146,9 @@ void *iface16_32(REFIID riid, SEGPTR iface16)
         ERR("unknown interface %s\n", debugstr_guid(riid));
         return 0;
     }
-    i32 = (interface_32*)HeapAlloc(GetProcessHeap(), 0, sizeof(interface_32));
+    i32 = (interface_32*)HeapAlloc(GetProcessHeap(), 0, sizeof(interface_32) + IFS_GUARD_SIZE * 2);
+    memset(i32, 0xcd, sizeof(interface_32) + IFS_GUARD_SIZE * 2);
+    i32 = (interface_32*)((char*)i32 + IFS_GUARD_SIZE);
     if (!result->spVtbl16)
     {
         init_interface_entry(result);
