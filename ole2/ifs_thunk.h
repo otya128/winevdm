@@ -480,11 +480,11 @@ typedef struct TYP16_tagOLEVERB
 #define INMAP_LPOLEINPLACEFRAMEINFO16_32(a32, a16) FIXME("\n")
 #define INMAP_LPOLEINPLACEFRAMEINFO32_16(a16, a32) FIXME("\n")
 #define INMAP_PTR_DWORD16_32(a32, a16) a32 = *(DWORD*)MapSL(a16)
-#define INMAP_PTR_DWORD32_16(a16, a32) *(DWORD*)&a16 = a32
+#define INMAP_PTR_DWORD32_16(a16, a32) a16 = *a32
 typedef HRESULT TYP16_HRESULT;
 
-#define MAP_HRESULT16_32(a32, a16) a32 = a16
-#define MAP_HRESULT32_16(a16, a32) a16 = a32
+#define MAP_HRESULT16_32(a32, a16) a32 = hresult16_32(a16)
+#define MAP_HRESULT32_16(a16, a32) a16 = hresult32_16(a32)
 #define MAP_ULONG16_32(a32, a16) a32 = a16
 #define MAP_ULONG32_16(a16, a32) a16 = a32
 #define MAP_BOOL16_32(a32, a16) a32 = a16

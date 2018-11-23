@@ -6,3 +6,5 @@ EXPORTS
   _wine_spec_dos_header @1 DATA
   iface32_16
   iface16_32
+  hresult32_16
+  hresult16_32

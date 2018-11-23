@@ -160,3 +160,47 @@ void *iface16_32(REFIID riid, SEGPTR iface16)
     register_instance32(i32);
     return (void*)&i32->lpVtbl;
 }
+struct hresult_map
+{
+    HRESULT hresult16;
+    HRESULT hresult32;
+} hresult_table[] =
+{
+    { E_UNEXPECTED16, E_UNEXPECTED },
+    { E_NOTIMPL16, E_NOTIMPL },
+    { E_OUTOFMEMORY16, E_OUTOFMEMORY },
+    { E_INVALIDARG16, E_INVALIDARG },
+    { E_NOINTERFACE16, E_NOINTERFACE },
+    { E_POINTER16, E_POINTER },
+    { E_HANDLE16, E_HANDLE },
+    { E_ABORT16, E_ABORT },
+    { E_FAIL16, E_FAIL },
+    { E_ACCESSDENIED16, E_ACCESSDENIED },
+};
+HRESULT hresult32_16(HRESULT hresult)
+{
+    int i;
+    for (i = 0; i < ARRAYSIZE(hresult_table); i++)
+    {
+        if (hresult_table[i].hresult32 == hresult)
+        {
+            TRACE("%08x->%08x\n", hresult, hresult_table[i].hresult16);
+            return hresult_table[i].hresult16;
+        }
+    }
+    return hresult;
+}
+
+HRESULT hresult16_32(HRESULT hresult)
+{
+    int i;
+    for (i = 0; i < ARRAYSIZE(hresult_table); i++)
+    {
+        if (hresult_table[i].hresult16 == hresult)
+        {
+            TRACE("%08x->%08x\n", hresult, hresult_table[i].hresult32);
+            return hresult_table[i].hresult32;
+        }
+    }
+    return hresult;
+}
