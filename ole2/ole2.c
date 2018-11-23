@@ -424,3 +424,32 @@ HRESULT WINAPI WriteFmtUserTypeStg16(LPSTORAGE16 *pstg, CLIPFORMAT cf, LPOLESTR1
     FIXME("(%p,%04x,%s),stub!\n", pstg, cf, lpszUserType);
     return E_NOTIMPL;
 }
+
+HRESULT WINAPI CreateDataAdviseHolder16(LPDATAADVISEHOLDER16 *ppDAHolder)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT WINAPI CreateOleAdviseHolder16(LPOLEADVISEHOLDER16 *ppOAHolder)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+/******************************************************************************
+ *        CreateFileMoniker (OLE2.28)
+ */
+HRESULT WINAPI CreateFileMoniker16(LPCOLESTR16 lpszPathName, LPMONIKER16* ppmk)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+/******************************************************************************
+ *		GetRunningObjectTable (OLE2.30)
+ */
+HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, LPRUNNINGOBJECTTABLE16 *pprot)
+{
+    FIXME("(%d,%p)\n", reserved, pprot);
+    return E_NOTIMPL;
+}
+
