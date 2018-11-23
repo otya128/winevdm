@@ -101,10 +101,10 @@ HRESULT WINAPI DllGetClassObject16(REFCLSID rclsid, REFIID iid, LPVOID *ppv)
  */
 HRESULT WINAPI RegisterDragDrop16(
 	HWND16 hwnd,
-	LPDROPTARGET pDropTarget
+	/*LPDROPTARGET*/SEGPTR pDropTarget
 ) {
-	FIXME("(0x%04x,%p),stub!\n",hwnd,pDropTarget);
-	return S_OK;
+	TRACE("(0x%04x,%p),stub!\n",hwnd,pDropTarget);
+	return RegisterDragDrop(HWND_32(hwnd), (IDropTarget*)iface16_32(&IID_IDropTarget, pDropTarget));
 }
 
 /***********************************************************************
@@ -394,17 +394,16 @@ VOID WINAPI ReleaseStgMedium16(LPSTGMEDIUM medium)
 /***********************************************************************
  *              WriteClassStg16 (OLE2.19)
  */
-HRESULT WINAPI WriteClassStg16(IStorage *stg, REFCLSID clsid)
+HRESULT WINAPI WriteClassStg16(/*IStorage **/SEGPTR stg, REFCLSID clsid)
 {
-    FIXME("stub:%p %s\n", stg, debugstr_guid(clsid));
-    return STG_E_MEDIUMFULL;
+    TRACE("(%p %s)\n", stg, debugstr_guid(clsid));
+    return WriteClassStg((IStorage*)iface16_32(&IID_IStorage, stg), clsid);
 }
 
 HRESULT WINAPI DoDragDrop16(LPDATAOBJECT pDataObj, LPDROPSOURCE pDropSource, DWORD dwOKEffects, LPDWORD pdwEffect)
 {
-    /* return DoDragDrop(pDataObj, pDropSource, dwOKEffects, pdwEffect); */
-    FIXME("(%p,%p,%x,%p),stub!\n", pDataObj, pDropSource, dwOKEffects, pdwEffect);
-    return S_OK;
+    TRACE("(%p,%p,%x,%p)\n", pDataObj, pDropSource, dwOKEffects, pdwEffect);
+    return DoDragDrop((IDataObject*)iface16_32(&IID_IDataObject, pDataObj), (IDropSource*)iface16_32(&IID_IDropSource, pDropSource), dwOKEffects, pdwEffect);
 }
 
 HRESULT WINAPI OleIsCurrentClipboard16(LPDATAOBJECT pDataObj)
