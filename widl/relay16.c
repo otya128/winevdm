@@ -664,33 +664,49 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                 }
             }
         }
-        else if (args_conv == ARGS_CONV_TRACE)
+        else if (args_conv == ARGS_CONV_TRACE || args_conv == ARGS_CONV_TRACE_ARGS)
         {
             int size, is_ptr;
+            int is_iid = typ2 && type_get_name(typ2, NAME_DEFAULT) && !strcmp(type_get_name(typ2, NAME_DEFAULT), "IID");
             get_type_size16(arg->type, &size, &is_ptr);
-            if (is_1632 && is_ptr)
+            if (args_conv == ARGS_CONV_TRACE_ARGS)
             {
-                fprintf(h, ",%s", "%08x");
-            }
-            else
-            {
-                if (is_ptr)
+                if (is_iid)
                 {
-                    fprintf(h, ",%s", "%p");
-                }
-                else if (size == 8)
-                {
-                    fprintf(h, ",%s", "%016llx");
+                    fprintf(h, ", debugstr_guid(%s%s)", is_1632 ? "args32_" : "", arg->name);
                 }
                 else
                 {
-                    fprintf(h, ",%s", "%08x");
+                    fprintf(h, ", %s%s", is_1632 ? "args16_" : "", arg->name);
+
                 }
             }
-        }
-        else if (args_conv == ARGS_CONV_TRACE_ARGS)
-        {
-            fprintf(h, ", %s%s", is_1632 ? "args16_" : "", arg->name);
+            else
+            {
+                if (is_iid)
+                {
+                    fprintf(h, ",%s", "%s");
+                }
+                else if (is_1632 && is_ptr)
+                {
+                    fprintf(h, ",%s", "%08x");
+                }
+                else
+                {
+                    if (is_ptr)
+                    {
+                        fprintf(h, ",%s", "%p");
+                    }
+                    else if (size == 8)
+                    {
+                        fprintf(h, ",%s", "%016llx");
+                    }
+                    else
+                    {
+                        fprintf(h, ",%s", "%08x");
+                    }
+                }
+            }
         }
         else
         {
@@ -1353,7 +1369,7 @@ static void write_type_left16(FILE *h, type_t *t, enum name_type name_type, int 
 {
     const char *name;
 
-    if (!h) return 0;
+    if (!h) return;
 
     name = type_get_name(t, name_type);
     switch (type_get_type_detect_alias(t)) {
