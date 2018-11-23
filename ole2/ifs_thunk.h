@@ -25,6 +25,7 @@
 
 #include "wine/debug.h"
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
+#include <pshpack1.h>
 typedef struct
 {
     void *lpVtbl;
@@ -480,5 +481,33 @@ typedef struct TYP16_tagOLEVERB
 #define INMAP_LPOLEINPLACEFRAMEINFO32_16(a16, a32) FIXME("\n")
 #define INMAP_PTR_DWORD16_32(a32, a16) a32 = *(DWORD*)MapSL(a16)
 #define INMAP_PTR_DWORD32_16(a16, a32) *(DWORD*)&a16 = a32
+typedef HRESULT TYP16_HRESULT;
 
+#define MAP_HRESULT16_32(a32, a16) a32 = a16
+#define MAP_HRESULT32_16(a16, a32) a16 = a32
+#define MAP_ULONG16_32(a32, a16) a32 = a16
+#define MAP_ULONG32_16(a16, a32) a16 = a32
+#define MAP_BOOL16_32(a32, a16) a32 = a16
+#define MAP_BOOL32_16(a16, a32) a16 = a32
+#define MAP_DWORD16_32(a32, a16) a32 = a16
+#define MAP_DWORD32_16(a16, a32) a16 = a32
+#define MAP_INT16_32(a32, a16) a32 = a16
+#define MAP_INT32_16(a16, a32) a16 = a32
+#define MAP_LONG16_32(a32, a16) a32 = a16
+#define MAP_LONG32_16(a16, a32) a16 = a32
+#define MAP_WORD16_32(a32, a16) a32 = a16
+#define MAP_WORD32_16(a16, a32) a16 = a32
+
+#define UNMAP_BOOL16_32
+#define UNMAP_BOOL32_16
+#define UNMAP_DWORD16_32
+#define UNMAP_DWORD32_16
+#define UNMAP_ULONG16_32
+#define UNMAP_ULONG32_16
+#define UNMAP_LONG16_32
+#define UNMAP_LONG32_16
+#define UNMAP_WORD16_32
+#define UNMAP_WORD32_16
+
+#include <poppack.h>
 #endif
