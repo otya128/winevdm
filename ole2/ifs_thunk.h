@@ -117,28 +117,6 @@ typedef HTASK16 TYP16_HTASK;
 typedef STGMEDIUM16 TYP16_STGMEDIUM;
 typedef SEGPTR TYP16_LPINTERFACEINFO;
 
-static LPWSTR strdupAtoW(LPCSTR str)
-{
-    LPWSTR ret;
-    INT len;
-
-    if (!str) return NULL;
-    len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
-    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
-    if (ret) MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
-    return ret;
-}
-static LPCSTR strdupWtoA(LPCWSTR str)
-{
-    LPCSTR ret;
-    INT len;
-
-    if (!str) return NULL;
-    len = WideCharToMultiByte(CP_ACP, 0, str, -1, NULL, 0, NULL, NULL);
-    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(CHAR));
-    if (ret) WideCharToMultiByte(CP_ACP, 0, str, -1, ret, len, NULL, NULL);
-    return ret;
-}
 #define MAP_REFIID16_32(a32, a16) \
 *(IID**)&a32 = (REFIID)MapSL(a16)
 #define MAP_PTR_CLSID16_32(a32, a16) \

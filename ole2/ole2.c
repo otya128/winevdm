@@ -425,31 +425,48 @@ HRESULT WINAPI WriteFmtUserTypeStg16(LPSTORAGE16 *pstg, CLIPFORMAT cf, LPOLESTR1
     return E_NOTIMPL;
 }
 
-HRESULT WINAPI CreateDataAdviseHolder16(LPDATAADVISEHOLDER16 *ppDAHolder)
+HRESULT WINAPI CreateDataAdviseHolder16(/*LPDATAADVISEHOLDER16*/SEGPTR *ppDAHolder)
 {
-    FIXME("\n");
-    return E_NOTIMPL;
+    LPDATAADVISEHOLDER pDAHolder = NULL;
+    HRESULT result;
+    TRACE("(%p)\n", ppDAHolder);
+    result = CreateDataAdviseHolder(&pDAHolder);
+    *ppDAHolder = iface32_16(&IID_IDataAdviseHolder, pDAHolder);
+    return result;
 }
-HRESULT WINAPI CreateOleAdviseHolder16(LPOLEADVISEHOLDER16 *ppOAHolder)
+HRESULT WINAPI CreateOleAdviseHolder16(/*LPOLEADVISEHOLDER16*/SEGPTR *ppOAHolder)
 {
-    FIXME("\n");
-    return E_NOTIMPL;
+    LPOLEADVISEHOLDER pOAHolder = NULL;
+    HRESULT result;
+    TRACE("(%p)\n", ppOAHolder);
+    result = CreateOleAdviseHolder(&pOAHolder);
+    *ppOAHolder = iface32_16(&IID_IOleAdviseHolder, pOAHolder);
+    return result;
 }
 /******************************************************************************
  *        CreateFileMoniker (OLE2.28)
  */
-HRESULT WINAPI CreateFileMoniker16(LPCOLESTR16 lpszPathName, LPMONIKER16* ppmk)
+HRESULT WINAPI CreateFileMoniker16(LPCOLESTR16 lpszPathName, /*LPMONIKER16*/SEGPTR* ppmk)
 {
-    FIXME("\n");
-    return E_NOTIMPL;
+    LPOLESTR w = strdupAtoW(lpszPathName);
+    LPMONIKER pmk = NULL;
+    HRESULT result;
+    TRACE("(%s,%p)\n", debugstr_a(lpszPathName), ppmk);
+    result = CreateFileMoniker(w, &pmk);
+    *ppmk = iface32_16(&IID_IMoniker, pmk);
+    HeapFree(GetProcessHeap(), 0, w);
+    return result;
 }
 
 /******************************************************************************
  *		GetRunningObjectTable (OLE2.30)
  */
-HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, LPRUNNINGOBJECTTABLE16 *pprot)
+HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, /*LPRUNNINGOBJECTTABLE16*/SEGPTR *pprot)
 {
-    FIXME("(%d,%p)\n", reserved, pprot);
-    return E_NOTIMPL;
+    LPRUNNINGOBJECTTABLE prot = NULL;
+    HRESULT result;
+    TRACE("(%d,%p)\n", reserved, pprot);
+    result = GetRunningObjectTable(reserved, &prot);
+    *pprot = iface32_16(&IID_IRunningObjectTable, prot);
+    return result;
 }
-
