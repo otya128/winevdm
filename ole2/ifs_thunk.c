@@ -74,6 +74,7 @@ SEGPTR iface32_16(REFIID riid, void *iface32)
     size_t i;
     interface_16 *i16;
     SEGPTR s;
+    BOOL is_iunk = IsEqualGUID(&IID_IUnknown, riid); /* FIXME */
     if (!iface32)
     {
         return 0;
@@ -83,20 +84,28 @@ SEGPTR iface32_16(REFIID riid, void *iface32)
     {
         if (interface32_instances[i] && &interface32_instances[i]->lpVtbl == iface32)
         {
-            if (!memcmp(interface32_instances[i]->riid, riid, sizeof(IID)))
+            s = interface32_instances[i]->iface16;
+            if (is_iunk || !memcmp(interface32_instances[i]->riid, riid, sizeof(IID)))
             {
-                s = interface32_instances[i]->iface16;
                 TRACE("32-bit interface %p -> %04x:%04x(%.*s)\n", iface32, SELECTOROF(s), OFFSETOF(s), strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
                 return s;
+            }
+            else
+            {
+                TRACE("32-bit interface %p is not %04x:%04x(%.*s)\n", iface32, SELECTOROF(s), OFFSETOF(s), strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
             }
         }
         if (interface16_instances[i] && interface16_instances[i]->lpVtbl == iface32)
         {
-            if (!memcmp(interface16_instances[i]->riid, riid, sizeof(IID)))
+            s = MapLS(&interface16_instances[i]->lpVtbl);
+            if (is_iunk || !memcmp(interface16_instances[i]->riid, riid, sizeof(IID)))
             {
-                s = MapLS(&interface16_instances[i]->lpVtbl);
                 TRACE("32-bit interface %p -> %04x:%04x(%.*s)\n", iface32, SELECTOROF(s), OFFSETOF(s), strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
                 return s;
+            }
+            else
+            {
+                TRACE("32-bit interface %p is not %04x:%04x(%.*s)\n", iface32, SELECTOROF(s), OFFSETOF(s), strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
             }
         }
     }
@@ -125,6 +134,8 @@ void *iface16_32(REFIID riid, SEGPTR iface16)
     interface_entry *result;
     size_t i;
     interface_32 *i32;
+    LPVOID piface16 = MapSL(iface16);
+    BOOL is_iunk = IsEqualGUID(&IID_IUnknown, riid); /* FIXME */
     if (!iface16)
     {
         return 0;
@@ -132,12 +143,28 @@ void *iface16_32(REFIID riid, SEGPTR iface16)
     result = (interface_entry*)bsearch(riid, interfaces, interfaces_count, sizeof(interfaces[0]), iid_cmp);
     for (i = 0; i < interface32_instance_size; i++)
     {
+        if (interface16_instances[i] && (LPVOID)&interface16_instances[i]->lpVtbl == piface16)
+        {
+            if (is_iunk || !memcmp(interface16_instances[i]->riid, riid, sizeof(IID)))
+            {
+                TRACE("16-bit interface %04x:%04x -> %p(%.*s)\n", SELECTOROF(iface16), OFFSETOF(iface16), (void*)&interface16_instances[i]->lpVtbl, strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
+                return interface16_instances[i]->iface32;
+            }
+            else
+            {
+                TRACE("16-bit interface %04x:%04x is not %p(%.*s)\n", SELECTOROF(iface16), OFFSETOF(iface16), (void*)&interface32_instances[i]->lpVtbl, strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
+            }
+        }
         if (interface32_instances[i] && interface32_instances[i]->iface16 == iface16)
         {
-            if (!memcmp(interface32_instances[i]->riid, riid, sizeof(IID)))
+            if (is_iunk ||!memcmp(interface32_instances[i]->riid, riid, sizeof(IID)))
             {
                 TRACE("16-bit interface %04x:%04x -> %p(%.*s)\n", SELECTOROF(iface16), OFFSETOF(iface16), (void*)&interface32_instances[i]->lpVtbl, strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
                 return (void*)&interface32_instances[i]->lpVtbl;
+            }
+            else
+            {
+                TRACE("16-bit interface %04x:%04x is not %p(%.*s)\n", SELECTOROF(iface16), OFFSETOF(iface16), (void*)&interface32_instances[i]->lpVtbl, strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
             }
         }
     }
