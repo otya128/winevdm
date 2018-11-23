@@ -95,9 +95,11 @@ uuid.lib;ole32.lib;user32.lib;gdi32.lib;%(AdditionalDependencies)</AdditionalDep
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ifs_16.c" />
     <ClCompile Include="ole2obj.c" />
     <ClCompile Include="memlockbytes.c" />
     <ClCompile Include="ole2.c" />
+    <ClCompile Include="ifs_thunk.c" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="ole2.dll16.obj" />
@@ -111,6 +113,28 @@ uuid.lib;ole32.lib;user32.lib;gdi32.lib;%(AdditionalDependencies)</AdditionalDep
   </ItemGroup>
   <ItemGroup>
     <None Include="ole2.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ifs_16.h" />
+    <ClInclude Include="ifs_thunk.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ifs.idl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </ExcludedFromBuild>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(OutDir)widl" ifs.idl -o ifs_16.c &amp;&amp; "$(OutDir)widl" ifs.idl -o ifs_16.h</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ifs_16.c;ifs_16.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">None</OutputItemType>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</TreatOutputAsContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(OutDir)widl" ifs.idl -o ifs_16.c &amp;&amp; "$(OutDir)widl" ifs.idl -o ifs_16.h</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ifs_16.c;ifs_16.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">None</OutputItemType>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</TreatOutputAsContent>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)widl\relay16.c;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)widl\relay16.c;%(AdditionalInputs)</AdditionalInputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
