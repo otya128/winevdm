@@ -13,8 +13,8 @@
 13 stub OLESAVE
 14 stub OLERUN
 #15 ___EXPORTEDSTUB
-16 stub OLEISRUNNING
-17 stub OLELOCKRUNNING
+16 pascal -ret16 OleIsRunning(segptr) OleIsRunning16
+17 pascal OleLockRunning(segptr word word) OleLockRunning16
 18 pascal ReadClassStg(segptr ptr) ReadClassStg16
 19 pascal WriteClassStg(segptr ptr) WriteClassStg16
 20 pascal ReadClassStm(segptr ptr) ReadClassStm16
@@ -56,7 +56,7 @@
 56 pascal -ret16 OleMetafilePictFromIconAndLabel(word str str word) OleMetafilePictFromIconAndLabel16
 57 stub GETCLASSFILE
 58 stub OLEDRAW
-59 stub OLECREATEDEFAULTHANDLER
+59 pascal OleCreateDefaultHandler(ptr segptr ptr ptr) OleCreateDefaultHandler16
 60 stub OLECREATEEMBEDDINGHELPER
 61 stub OLECONVERTISTORAGETOOLESTREAMEX
 62 stub OLECONVERTOLESTREAMTOISTORAGEEX
@@ -81,7 +81,7 @@
 83 stub SETCONVERTSTG
 84 stub CREATESTREAMONHGLOBAL
 85 stub GETHGLOBALFROMSTREAM
-86 stub OLESETCONTAINEDOBJECT
+86 pascal OleSetContainedObject(segptr word) OleSetContainedObject16
 87 stub OLENOTEOBJECTVISIBLE
 88 stub OLECREATESTATICFROMDATA
 89 stub OLEREGGETUSERTYPE

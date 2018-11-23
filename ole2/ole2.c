@@ -469,3 +469,27 @@ HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, /*LPRUNNINGOBJECTTABLE16*
     *pprot = iface32_16(&IID_IRunningObjectTable, prot);
     return result;
 }
+
+HRESULT WINAPI OleCreateDefaultHandler16(REFCLSID clsid, SEGPTR pUnkOuter, REFIID riid, SEGPTR* ppvObj)
+{
+    LPVOID obj = NULL;
+    LPUNKNOWN a = (LPUNKNOWN)iface16_32(&IID_IUnknown, pUnkOuter);
+    HRESULT hr = OleCreateDefaultHandler(clsid, a, riid, &obj);
+    *ppvObj = iface32_16(riid, obj);
+    return hr;
+}
+
+HRESULT WINAPI OleSetContainedObject16(SEGPTR pUnk, BOOL fCon)
+{
+    return OleSetContainedObject((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fCon);
+}
+
+HRESULT WINAPI OleLockRunning16(SEGPTR pUnk, BOOL fLock, BOOL fLastUnlockCloses)
+{
+    return OleLockRunning((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fLock, fLastUnlockCloses);
+}
+
+BOOL WINAPI OleIsRunning16(SEGPTR pOleObject)
+{
+    return OleIsRunning((IOleObject*)iface16_32(&IID_IOleObject, pOleObject));
+}
