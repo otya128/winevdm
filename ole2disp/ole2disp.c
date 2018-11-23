@@ -575,32 +575,6 @@ void WINAPI VariantInit16(VARIANTARG16 *v)
     v->vt = VT_EMPTY;
 }
 
-HRESULT IUnknown16_Release(SEGPTR unk16)
-{
-    LPUNKNOWN16 iunk = (LPUNKNOWN16)MapSL(unk16);
-    IUnknown16Vtbl *vtbl = MapSL(iunk->lpVtbl);
-    SEGPTR func = vtbl->Release;
-    WORD args[2];
-    DWORD result;
-    args[1] = HIWORD(unk16);
-    args[0] = LOWORD(unk16);
-    WOWCallback16Ex(func, WCB16_PASCAL, sizeof(args), &args, &result);
-    return (HRESULT)result;
-}
-
-HRESULT IUnknown16_AddRef(SEGPTR unk16)
-{
-    LPUNKNOWN16 iunk = (LPUNKNOWN16)MapSL(unk16);
-    IUnknown16Vtbl *vtbl = MapSL(iunk->lpVtbl);
-    SEGPTR func = vtbl->AddRef;
-    WORD args[2];
-    DWORD result;
-    args[1] = HIWORD(unk16);
-    args[0] = LOWORD(unk16);
-    WOWCallback16Ex(func, WCB16_PASCAL, sizeof(args), &args, &result);
-    return (HRESULT)result;
-}
-
 HRESULT WINAPI VariantClear16(VARIANTARG16 *v)
 {
     TRACE("(%p)\n", v);
