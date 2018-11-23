@@ -15,6 +15,7 @@
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <RootNamespace>ole2thk</RootNamespace>
     <ProjectGuid>{94C8AE24-778A-4FEB-B3E1-457BDCCE06DF}</ProjectGuid>
+    <ProjectName>ole2thk</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -65,7 +66,7 @@
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 %(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>ole2thx.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>ole2thk.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -85,13 +86,13 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <ModuleDefinitionFile>ole2thx.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>ole2thk.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
 %(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="ole2thx.def" />
+    <None Include="ole2thk.def" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="ole2thk.dll16.obj" />
