@@ -49,6 +49,111 @@ NTSYSAPI BOOLEAN   WINAPI RtlCreateUnicodeStringFromAsciiz(PUNICODE_STRING, LPCS
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
+WINE_DEFAULT_DEBUG_CHANNEL(ole);
+#include "../ole2/ifs.h"
+/******************************************************************************
+ *		StgCreateDocFileA	[STORAGE.1]
+ */
+HRESULT WINAPI StgCreateDocFile16(
+	LPCOLESTR16 pwcsName,DWORD grfMode,DWORD reserved,/*IStorage16 * */SEGPTR *ppstgOpen
+) {
+    LPSTORAGE stg;
+    LPWSTR w = strdupAtoW(pwcsName);
+    HRESULT result;
+	TRACE("(%s,0x%08x,0x%08x,%p)\n",
+		pwcsName,grfMode,reserved,ppstgOpen
+	);
+    result = StgCreateDocfile(pwcsName, grfMode, reserved, &stg);
+    HeapFree(GetProcessHeap(), 0, w);
+    *ppstgOpen = iface32_16(&IID_IStorage, stg);
+    return result;
+}
+HRESULT WINAPI StgCreateDocfileOnILockBytes16(
+    SEGPTR plkbyt,
+    DWORD grfMode,
+    DWORD reserved,
+    /* IStorage16 */SEGPTR *ppstgOpen
+)
+{
+    HRESULT result;
+    IStorage *pstg;
+    TRACE("(%08x,%08x,%08x,%p)\n", plkbyt, grfMode, reserved, ppstgOpen);
+    result = StgCreateDocfileOnILockBytes(iface16_32(&IID_ILockBytes, plkbyt), grfMode, reserved, &pstg);
+    *ppstgOpen = iface32_16(&IID_IStorage, pstg);
+    return result;
+}
+
+/******************************************************************************
+ * StgOpenStorage [STORAGE.3]
+ */
+HRESULT WINAPI StgOpenStorage16(
+    LPCOLESTR16 pwcsName, /* IStorage16 * */SEGPTR pstgPriority, DWORD grfMode,
+    SNB16 snbExclude, DWORD reserved, /* IStorage16 * */SEGPTR *ppstgOpen
+) {
+    LPSTORAGE stg;
+    LPWSTR w = strdupAtoW(pwcsName);
+    HRESULT result;
+    IStorage *pstg;
+	TRACE("(%s,%p,0x%08x,%p,%d,%p)\n",
+              pwcsName,pstgPriority,grfMode,snbExclude,reserved,ppstgOpen
+	);
+    if (snbExclude)
+        FIXME("snbExclude\n");
+    result = StgOpenStorage(w, (IStorage*)iface16_32(&IID_IStorage, pstgPriority), grfMode, NULL, reserved, &pstg);
+    HeapFree(GetProcessHeap(), 0, w);
+    *ppstgOpen = iface32_16(&IID_IStorage, pstg);
+    return result;
+}
+/******************************************************************************
+ * StgIsStorageFile [STORAGE.5]
+ */
+HRESULT WINAPI StgIsStorageFile16(LPCOLESTR16 fn) {
+	UNICODE_STRING strW;
+	HRESULT ret;
+
+	RtlCreateUnicodeStringFromAsciiz(&strW, fn);
+	ret = StgIsStorageFile( strW.Buffer );
+	RtlFreeUnicodeString( &strW );
+
+	return ret;
+}
+
+/******************************************************************************
+ *              StgIsStorageILockBytes        [STORAGE.6]
+ *
+ * Determines if the ILockBytes contains a storage object.
+ */
+HRESULT WINAPI StgIsStorageILockBytes16(SEGPTR plkbyt)
+{
+    return StgIsStorageILockBytes((ILockBytes*)iface16_32(&IID_ILockBytes, plkbyt));
+}
+
+/******************************************************************************
+ *    StgOpenStorageOnILockBytes    [STORAGE.4]
+ *
+ * PARAMS
+ *  plkbyt  FIXME: Should probably be an ILockBytes16 *.
+ */
+HRESULT WINAPI StgOpenStorageOnILockBytes16(
+    SEGPTR plkbyt,
+    /* IStorage16 * */SEGPTR pstgPriority,
+    DWORD grfMode,
+    SNB16 snbExclude,
+    DWORD reserved,
+    /* IStorage16 * */SEGPTR *ppstgOpen)
+{
+    IStorage *pstg;
+    HRESULT result;
+	TRACE("(%x, %08x, 0x%08x, %p, %x, %p)\n", plkbyt, pstgPriority, grfMode, snbExclude, reserved, ppstgOpen);
+    if (snbExclude)
+        FIXME("snbExclude\n");
+    result = StgOpenStorageOnILockBytes((ILockBytes*)iface16_32(&IID_ILockBytes, plkbyt), (IStorage*)iface16_32(&IID_IStorage, pstgPriority),
+        grfMode, NULL, reserved, &pstg);
+    *ppstgOpen = iface32_16(&IID_IStorage, pstg);
+    return result;
+}
+
+#if 0
 #include "ifs.h"
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 WINE_DECLARE_DEBUG_CHANNEL(relay);
@@ -2186,3 +2291,5 @@ HRESULT WINAPI StgOpenStorageOnILockBytes16(
 	}
 	return S_OK;
 }
+
+#endif
