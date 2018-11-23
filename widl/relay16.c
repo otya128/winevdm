@@ -194,7 +194,7 @@ static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, con
 {
     enum type_type typtyp1 = type_get_type(t);
     enum type_conv_map type_conv_map = (enum type_conv_map)unmap;
-    if (typtyp1 == TYPE_BASIC)
+    if (typtyp1 == TYPE_BASIC && !t->is_alias)
     {
         switch (type_basic_get_type(t))
         {
@@ -233,7 +233,7 @@ static void write_type_conv1632(FILE *h, type_t *t, const char *expr_prefix, con
     type_t *typ2 = typtyp1 == TYPE_POINTER ? type_pointer_get_ref(t) : NULL;
     enum type_type typtyp2 = typ2 ? type_get_type(typ2) : -1;
     enum type_conv_map type_conv_map = (enum type_conv_map)unmap;
-    if (typtyp1 == TYPE_BASIC)
+    if (typtyp1 == TYPE_BASIC && !t->is_alias)
     {
         switch (type_basic_get_type(t))
         {
@@ -642,9 +642,9 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     }
                     fprintf(h, "    }\n");
                     if (is_1632)
-                        fprintf(h, "    IFACE_FREE_ARRAY(args16_%s);\n", arg->name);
-                    else
                         fprintf(h, "    IFACE_FREE_ARRAY(args32_%s);\n", arg->name);
+                    else
+                        fprintf(h, "    IFACE_FREE_ARRAY(args16_%s);\n", arg->name);
                 }
                 else
                 {
@@ -839,6 +839,7 @@ static void write_32_16_func(FILE *header, const statement_t *stmt, const type_t
     const var_t *func = stmt->u.var;
     if (!is_callas(func->attrs)) {
         const char *callconv = get_attrp(func->type->attrs, ATTR_CALLCONV);
+        type_t *ret_type = type_function_get_rettype(func->type);
         if (!callconv) callconv = "STDMETHODCALLTYPE";
         write_type_decl_left(header, type_function_get_rettype(func->type));
         fprintf(header, " %s %s_32_16_%s(%s *This", callconv, name, get_name(func), name);
@@ -849,6 +850,15 @@ static void write_32_16_func(FILE *header, const statement_t *stmt, const type_t
         fprintf(header, ")\n");
         fprintf(header, "{\n");
         fprintf(header, "    SEGPTR iface16 = get_interface16(This);\n");
+        if (type_get_type(ret_type) != TYPE_VOID)
+        {
+            fprintf(header, "    ");
+            write_type_decl_left3216(header, type_function_get_rettype(func->type));
+            fprintf(header, " result__ = {0};\n");
+            fprintf(header, "    ");
+            write_type_decl_left(header, type_function_get_rettype(func->type));
+            fprintf(header, " result32__ = {0};\n");
+        }
         write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_DECL, FALSE);
         write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_MAP, FALSE);
         fprintf(header, "    TRACE(\"(");
@@ -857,22 +867,25 @@ static void write_32_16_func(FILE *header, const statement_t *stmt, const type_t
         write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_TRACE_ARGS, FALSE);
         fprintf(header, ");\n");
         fprintf(header, "    ");
-        type_t *ret_type = type_function_get_rettype(func->type);
+        ret_type = type_function_get_rettype(func->type);
         if (type_get_type(ret_type) != TYPE_VOID)
         {
-            write_type_decl_left(header, ret_type);
-            fprintf(header, " result = (");
-            write_type_decl_left(header, ret_type);
+            fprintf(header, "result__ = (");
+            write_type_decl_left3216(header, ret_type);
             fprintf(header, ")");
         }
         fprintf(header, "%s16_%s(iface16", name, get_name(func));
         write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_CALL, FALSE);
         fprintf(header, ");\n");
+        if (type_get_type(ret_type) != TYPE_VOID)
+        {
+            write_type_conv1632(header, ret_type, "", "result__", "", "result32__", TYPE_CONV_MAP);
+        }
         write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_UNMAP, FALSE);
         write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_AFTER_CONV, FALSE);
         if (type_get_type(ret_type) != TYPE_VOID)
         {
-            fprintf(header, "    return result;\n");
+            fprintf(header, "    return result32__;\n");
         }
         fprintf(header, "}\n");
     }
@@ -881,6 +894,7 @@ static void write_16_32_func(FILE *header, const statement_t *stmt, const type_t
 {
     const var_t *func = stmt->u.var;
     const char *callconv = get_attrp(func->type->attrs, ATTR_CALLCONV);
+    type_t *ret_type = type_function_get_rettype(func->type);
     if (!callconv) callconv = "STDMETHODCALLTYPE";
     write_type_decl_left(header, type_function_get_rettype(func->type));
     fprintf(header, " %s %s_16_32_%s(SEGPTR This", callconv = "CDECL", name, get_name(func));
@@ -891,6 +905,15 @@ static void write_16_32_func(FILE *header, const statement_t *stmt, const type_t
     fprintf(header, ")\n");
     fprintf(header, "{\n");
     fprintf(header, "    %s *iface32 = (%s*)get_interface32(This);\n", name, name);
+    if (type_get_type(ret_type) != TYPE_VOID)
+    {
+        fprintf(header, "    ");
+        write_type_decl_left(header, type_function_get_rettype(func->type));
+        fprintf(header, " result__ = {0};\n");
+        fprintf(header, "    ");
+        write_type_decl_left3216(header, type_function_get_rettype(func->type));
+        fprintf(header, " result16__ = {0};\n");
+    }
     write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_DECL, TRUE);
     write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_MAP, TRUE);
     fprintf(header, "    TRACE(\"(");
@@ -899,22 +922,24 @@ static void write_16_32_func(FILE *header, const statement_t *stmt, const type_t
     write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_TRACE_ARGS, TRUE);
     fprintf(header, ");\n");
     fprintf(header, "    ");
-    type_t *ret_type = type_function_get_rettype(func->type);
     if (type_get_type(ret_type) != TYPE_VOID)
     {
-        write_type_decl_left(header, type_function_get_rettype(func->type));
-        fprintf(header, " result = (");
+        fprintf(header, "result__ = (");
         write_type_decl_left(header, type_function_get_rettype(func->type));
         fprintf(header, ")");
     }
     fprintf(header, "iface32->lpVtbl->%s(iface32", get_name(func));
     write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_CALL, TRUE);
     fprintf(header, ");\n");
+    if (type_get_type(ret_type) != TYPE_VOID)
+    {
+        write_type_conv3216(header, ret_type, "", "result__", "", "result16__", TYPE_CONV_MAP);
+    }
     write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_UNMAP, TRUE);
     write_args_conv(header, type_get_function_args(func->type), name, ARGS_CONV_AFTER_CONV, TRUE);
     if (type_get_type(ret_type) != TYPE_VOID)
     {
-        fprintf(header, "    return result;\n");
+        fprintf(header, "    return result16__;\n");
     }
     fprintf(header, "}\n");
 }
