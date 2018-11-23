@@ -1,6 +1,6 @@
 ; File generated automatically from commctrl\commctrl.dll16.spec; do not edit!
 
-LIBRARY commctrl\commctrl.dll16.spec
+LIBRARY commctrl.dll16
 
 EXPORTS
   _wine_spec_dos_header @1 DATA
