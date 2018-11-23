@@ -44,40 +44,12 @@
 #include "wine/winbase16.h"
 
 #include "wine/debug.h"
+#include "../ole2/ifs.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
-typedef LPSTR LPOLESTR16;
-typedef LPCSTR LPCOLESTR16;
-
-#define STDMETHOD16CALLTYPE __cdecl
-#define STDMETHOD16(m) HRESULT (STDMETHOD16CALLTYPE *m)
-#define STDMETHOD16_(t,m) t (STDMETHOD16CALLTYPE *m)
-
 #define CHARS_IN_GUID 39
 
-/***********************************************************************
- * IMalloc16 interface
- */
-
-typedef struct IMalloc16 *LPMALLOC16;
-
-#define INTERFACE IMalloc16
-DECLARE_INTERFACE_(IMalloc16,IUnknown)
-{
-    /*** IUnknown methods ***/
-    STDMETHOD16_(HRESULT,QueryInterface)(THIS_ REFIID riid, void** ppvObject) PURE;
-    STDMETHOD16_(ULONG,AddRef)(THIS) PURE;
-    STDMETHOD16_(ULONG,Release)(THIS) PURE;
-    /*** IMalloc16 methods ***/
-    STDMETHOD16_(LPVOID,Alloc)(THIS_ DWORD   cb) PURE;
-    STDMETHOD16_(LPVOID,Realloc)(THIS_ LPVOID  pv, DWORD  cb) PURE;
-    STDMETHOD16_(void,Free)(THIS_ LPVOID  pv) PURE;
-    STDMETHOD16_(DWORD,GetSize)(THIS_ LPVOID  pv) PURE;
-    STDMETHOD16_(INT16,DidAlloc)(THIS_ LPVOID  pv) PURE;
-    STDMETHOD16_(LPVOID,HeapMinimize)(THIS) PURE;
-};
-#undef INTERFACE
 
 static HTASK16 hETask = 0;
 static WORD Table_ETask[62];
@@ -635,12 +607,12 @@ HRESULT WINAPI CoRegisterMessageFilter16(
  *		CoLockObjectExternal	[COMPOBJ.63]
  */
 HRESULT WINAPI CoLockObjectExternal16(
-    LPUNKNOWN pUnk,		/* [in] object to be locked */
+    /*LPUNKNOWN*/SEGPTR pUnk,		/* [in] object to be locked */
     BOOL16 fLock,		/* [in] do lock */
     BOOL16 fLastUnlockReleases	/* [in] ? */
 ) {
-    FIXME("(%p,%d,%d),stub!\n",pUnk,fLock,fLastUnlockReleases);
-    return S_OK;
+    TRACE("(%p,%d,%d)\n",pUnk,fLock,fLastUnlockReleases);
+    return CoLockObjectExternal((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fLock, fLastUnlockReleases);
 }
 
 /***********************************************************************
