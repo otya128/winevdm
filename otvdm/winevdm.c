@@ -779,13 +779,22 @@ typedef enum _APPCOMPAT_USERFLAGS_HIGHPART
 void set_dll_path()
 {
     WCHAR mod_path[MAX_PATH];
+    DWORD attr;
     GetModuleFileNameW(NULL, mod_path, _countof(mod_path));
     LPWSTR last = wcsrchr(mod_path, L'\\');
     last[0] = 0;
     LPCWSTR dir = L"\\dll";
-    if (wcslen(last) + wcslen(dir) + 1 >= MAX_PATH)
-        return;
-    memcpy(last, dir, (wcslen(dir) + 1) * sizeof(*dir));
+    if (wcslen(last) + wcslen(dir) + 1 < MAX_PATH)
+    {
+        memcpy(last, dir, (wcslen(dir) + 1) * sizeof(*dir));
+        attr = GetFileAttributesW(mod_path);
+        if (attr != INVALID_FILE_ATTRIBUTES && attr & FILE_ATTRIBUTE_DIRECTORY)
+        {
+            SetDllDirectoryW(mod_path);
+            return;
+        }
+    }
+    last[0] = 0;
     SetDllDirectoryW(mod_path);
 }
 
