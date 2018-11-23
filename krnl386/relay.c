@@ -270,6 +270,13 @@ static const CALLFROM16 *get_entry_point( STACK16FRAME *frame, LPSTR module, LPS
     ET_ENTRY *entry;
 
     *pOrd = 0;
+    if (frame->module_cs == thunk32_relay_segment)
+    {
+        strcpy(func, thunk32_relay_array[frame->entry_ip / sizeof(*thunk32_relay_array)].name);
+        strcpy(module, "(thunk)");
+        *pOrd = 0;
+        goto end;
+    }
     if (!(pModule = NE_GetPtr(FarGetOwner16(GlobalHandle16(frame->module_cs)))))
     {
         module[0] = '\0';
