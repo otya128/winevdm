@@ -416,16 +416,30 @@ HRESULT WINAPI OleIsCurrentClipboard16(/*LPDATAOBJECT*/SEGPTR pDataObj)
     return hresult32_16(OleIsCurrentClipboard((IDataObject*)iface16_32(&IID_IDataObject, pDataObj)));
 }
 
-HRESULT WINAPI ReadFmtUserTypeStg16(LPSTORAGE16 *pstg, CLIPFORMAT *pcf, LPOLESTR16 *lplpszUserType)
+HRESULT WINAPI ReadFmtUserTypeStg16(/*LPSTORAGE16*/SEGPTR pstg, CLIPFORMAT *pcf, /*LPOLESTR16*/SEGPTR *lplpszUserType)
 {
-    FIXME("(%p,%p,%p),stub!\n", pstg, pcf, lplpszUserType);
-    return E_NOTIMPL;
+    LPOLESTR lpszUserType = NULL;
+    HRESULT result;
+    TRACE("(%p,%p,%p)\n", pstg, pcf, lplpszUserType);
+    result = ReadFmtUserTypeStg((IStorage*)iface16_32(&IID_IStorage, pstg), pcf, lplpszUserType ? lpszUserType : NULL);
+    if (lplpszUserType)
+    {
+        LPOLESTR16 a = strdupWtoA(lpszUserType);
+        TRACE("%s\n", a);
+        *lplpszUserType = MapLS(a);
+        CoTaskMemFree(lpszUserType);
+    }
+    return result;
 }
 
-HRESULT WINAPI WriteFmtUserTypeStg16(LPSTORAGE16 *pstg, CLIPFORMAT cf, LPOLESTR16 lpszUserType)
+HRESULT WINAPI WriteFmtUserTypeStg16(/*LPSTORAGE16*/SEGPTR pstg, CLIPFORMAT cf, LPOLESTR16 lpszUserType)
 {
-    FIXME("(%p,%04x,%s),stub!\n", pstg, cf, lpszUserType);
-    return E_NOTIMPL;
+    HRESULT result;
+    LPOLESTR w = strdupAtoW(lpszUserType);
+    TRACE("(%p,%04x,%s)\n", pstg, cf, lpszUserType);
+    result = WriteFmtUserTypeStg((IStorage*)iface16_32(&IID_IStorage, pstg), cf, w);
+    HeapFree(GetProcessHeap(), 0, w);
+    return result;
 }
 
 HRESULT WINAPI CreateDataAdviseHolder16(/*LPDATAADVISEHOLDER16*/SEGPTR *ppDAHolder)
@@ -496,4 +510,17 @@ HRESULT WINAPI OleLockRunning16(SEGPTR pUnk, BOOL fLock, BOOL fLastUnlockCloses)
 BOOL WINAPI OleIsRunning16(SEGPTR pOleObject)
 {
     return OleIsRunning((IOleObject*)iface16_32(&IID_IOleObject, pOleObject));
+}
+
+HOLEMENU16 WINAPI OleCreateMenuDescriptor16(HMENU16 hmenu, LPOLEMENUGROUPWIDTHS width)
+{
+    HOLEMENU om32 = OleCreateMenuDescriptor(HMENU_32(hmenu), width);
+    /* FIXME! */
+    return HWND_16(om32);
+}
+
+void WINAPI OleDestroyMenuDescriptor16(HOLEMENU16 olemenu)
+{
+    /* FIXME! */
+    OleDestroyMenuDescriptor(HWND_32(olemenu));
 }

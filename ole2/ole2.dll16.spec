@@ -37,9 +37,9 @@
 37 pascal DoDragDrop(segptr segptr long ptr) DoDragDrop16
 38 pascal CreateOleAdviseHolder(ptr) CreateOleAdviseHolder16
 39 pascal CreateDataAdviseHolder(ptr) CreateDataAdviseHolder16
-40 stub OLECREATEMENUDESCRIPTOR
+40 pascal -ret16 OleCreateMenuDescriptor(word ptr) OleCreateMenuDescriptor16
 41 pascal OleSetMenuDescriptor(word word word ptr ptr) OleSetMenuDescriptor16
-42 stub OLEDESTROYMENUDESCRIPTOR
+42 pascal -ret16 OleDestroyMenuDescriptor(word) OleDestroyMenuDescriptor16
 43 stub OPENORCREATESTREAM
 44 stub CREATEANTIMONIKER
 45 stub CREATEPOINTERMONIKER
@@ -69,8 +69,8 @@
 69 stub CREATEDATACACHE
 70 stub OLECONVERTISTORAGETOOLESTREAM
 71 stub OLECONVERTOLESTREAMTOISTORAGE
-74 pascal ReadFmtUserTypeStg(ptr ptr ptr) ReadFmtUserTypeStg16
-75 pascal WriteFmtUserTypeStg(ptr word str) WriteFmtUserTypeStg16
+74 pascal ReadFmtUserTypeStg(segptr ptr ptr) ReadFmtUserTypeStg16
+75 pascal WriteFmtUserTypeStg(segptr word str) WriteFmtUserTypeStg16
 76 pascal -ret16 OleFlushClipboard() OleFlushClipboard16
 77 pascal OleIsCurrentClipboard(segptr) OleIsCurrentClipboard16
 78 stub OLETRANSLATEACCELERATOR
