@@ -30,11 +30,7 @@
 #include "ole2.h"
 #include "oleauto.h"
 #include "winerror.h"
-#include "wownt32.h"
-#include "wine/windef16.h"
-#include "wine/winbase16.h"
 
-#include "../ole2/ifs.h"
 #include "ole2disp.h"
 
 #include "wine/debug.h"
@@ -43,24 +39,6 @@ WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
 #define E_OUTOFMEMORY16 MAKE_SCODE(SEVERITY_ERROR, FACILITY_NULL, 2)
 #define E_INVALIDARG16  MAKE_SCODE(SEVERITY_ERROR, FACILITY_NULL, 3)
-
-/* 16-bit SAFEARRAY implementation */
-typedef struct tagSAFEARRAYBOUND16
-{
-    ULONG cElements;
-    LONG  lLbound;
-} SAFEARRAYBOUND16;
-
-typedef struct tagSAFEARRAY16
-{
-    USHORT cDims;
-    USHORT fFeatures;
-    USHORT cbElements;
-    USHORT cLocks;
-    ULONG  handle;
-    SEGPTR pvData;
-    SAFEARRAYBOUND16 rgsabound[1];
-} SAFEARRAY16;
 
 #include <pshpack1.h>
 /* BSTR structure */
@@ -304,6 +282,223 @@ HRESULT WINAPI SafeArrayCopy16(SAFEARRAY16 *sa, SAFEARRAY16 **ppsaout)
     return E_INVALIDARG;
 }
 
+HRESULT WINAPI SafeArrayDestroy16(SAFEARRAY16 *psa)
+{
+  TRACE("(%p)\n", psa);
+
+  if(!psa)
+    return S_OK;
+
+  if(psa->cLocks > 0)
+    return DISP_E_ARRAYISLOCKED;
+
+  /* Native doesn't check to see if the free succeeds */
+  SafeArrayDestroyData16(psa);
+  SafeArrayDestroyDescriptor16(psa);
+  return S_OK;
+}
+
+/* Get the size of a supported VT type (0 means unsupported) */
+static DWORD SAFEARRAY_GetVTSize(VARTYPE vt)
+{
+  switch (vt)
+  {
+    case VT_I1:
+    case VT_UI1:      return sizeof(BYTE);
+    case VT_BOOL:
+    case VT_I2:
+    case VT_UI2:      return sizeof(SHORT);
+    case VT_I4:
+    case VT_UI4:
+    case VT_R4:
+    case VT_ERROR:    return sizeof(LONG);
+    case VT_R8:
+    case VT_I8:
+    case VT_UI8:      return sizeof(LONG64);
+    case VT_INT:
+    case VT_UINT:     return sizeof(INT);
+    case VT_INT_PTR:
+    case VT_UINT_PTR: return sizeof(UINT_PTR);
+    case VT_CY:       return sizeof(CY);
+    case VT_DATE:     return sizeof(DATE);
+    case VT_BSTR:     return sizeof(BSTR);
+    case VT_DISPATCH: return sizeof(LPDISPATCH);
+    case VT_VARIANT:  return sizeof(VARIANT);
+    case VT_UNKNOWN:  return sizeof(LPUNKNOWN);
+    case VT_DECIMAL:  return sizeof(DECIMAL);
+    /* Note: Return a non-zero size to indicate vt is valid. The actual size
+     * of a UDT is taken from the result of IRecordInfo_GetSize().
+     */
+    case VT_RECORD:   return 32;
+  }
+  return 0;
+}
+/* Set the hidden data for an array */
+static inline void SAFEARRAY_SetHiddenDWORD(SAFEARRAY16* psa, DWORD dw)
+{
+  /* Implementation data is stored in the 4 bytes before the header */
+  LPDWORD lpDw = (LPDWORD)psa;
+  lpDw[-1] = dw;
+}
+/************************************************************************
+ *		SafeArraySetIID (OLEAUT32.@)
+ *
+ * Set the IID for a SafeArray.
+ *
+ * PARAMS
+ *  psa  [I] Array to set the IID from
+ *  guid [I] IID
+ *
+ * RETURNS
+ *  Success: S_OK. The IID is stored with the array
+ *  Failure: An HRESULT error code indicating the error.
+ *
+ * NOTES
+ * See SafeArray.
+ */
+HRESULT WINAPI SafeArraySetIID(SAFEARRAY16 *psa, REFGUID guid)
+{
+  GUID* dest = (GUID*)psa;
+
+  TRACE("(%p,%s)\n", psa, debugstr_guid(guid));
+
+  if (!psa || !guid || !(psa->fFeatures & FADF_HAVEIID))
+    return E_INVALIDARG;
+
+  dest[-1] = *guid;
+  return S_OK;
+}
+/* Set the features of an array */
+static void SAFEARRAY_SetFeatures(VARTYPE vt, SAFEARRAY16 *psa)
+{
+  /* Set the IID if we have one, otherwise set the type */
+  if (vt == VT_DISPATCH)
+  {
+    psa->fFeatures = FADF_HAVEIID;
+    SafeArraySetIID(psa, &IID_IDispatch);
+  }
+  else if (vt == VT_UNKNOWN)
+  {
+    psa->fFeatures = FADF_HAVEIID;
+    SafeArraySetIID(psa, &IID_IUnknown);
+  }
+  else if (vt == VT_RECORD)
+    psa->fFeatures = FADF_RECORD;
+  else
+  {
+    psa->fFeatures = FADF_HAVEVARTYPE;
+    SAFEARRAY_SetHiddenDWORD(psa, vt);
+  }
+}
+/*************************************************************************
+ *		SafeArrayAllocDescriptorEx (OLEAUT32.41)
+ *
+ * Allocate and initialise a descriptor for a SafeArray of a given type.
+ *
+ * PARAMS
+ *  vt      [I] The type of items to store in the array
+ *  cDims   [I] Number of dimensions of the array
+ *  ppsaOut [O] Destination for new descriptor
+ *
+ * RETURNS
+ *  Success: S_OK. ppsaOut is filled with a newly allocated descriptor.
+ *  Failure: An HRESULT error code indicating the error.
+ *
+ * NOTES
+ *  - This function does not check that vt is an allowed VARTYPE.
+ *  - Unlike SafeArrayAllocDescriptor(), vt is associated with the array.
+ *  See SafeArray.
+ */
+HRESULT WINAPI SafeArrayAllocDescriptorEx16(VARTYPE vt, UINT cDims, SEGPTR *ppsaOut)
+{
+  ULONG cbElements;
+  HRESULT hRet;
+
+  TRACE("(%d->%s,%d,%p)\n", vt, debugstr_vt(vt), cDims, ppsaOut);
+    
+  cbElements = SAFEARRAY_GetVTSize(vt);
+  if (!cbElements)
+    WARN("Creating a descriptor with an invalid VARTYPE!\n");
+
+  hRet = SafeArrayAllocDescriptor16(cDims, ppsaOut);
+
+  if (SUCCEEDED(hRet))
+  {
+    SAFEARRAY_SetFeatures(vt, *ppsaOut);
+    ((SAFEARRAY16*)MapSL(*ppsaOut))->cbElements = cbElements;
+  }
+  return hRet;
+}
+/* Create an array */
+static SEGPTR SAFEARRAY_Create(VARTYPE vt, UINT cDims, const SAFEARRAYBOUND16 *rgsabound, ULONG ulSize)
+{
+    SEGPTR psa = NULL;
+  unsigned int i;
+
+  if (!rgsabound)
+    return NULL;
+
+  if (SUCCEEDED(SafeArrayAllocDescriptorEx16(vt, cDims, &psa)))
+  {
+    switch (vt)
+    {
+      case VT_BSTR:     ((SAFEARRAY16*)MapSL(psa))->fFeatures |= FADF_BSTR; break;
+      case VT_UNKNOWN:  ((SAFEARRAY16*)MapSL(psa))->fFeatures |= FADF_UNKNOWN; break;
+      case VT_DISPATCH: ((SAFEARRAY16*)MapSL(psa))->fFeatures |= FADF_DISPATCH; break;
+      case VT_VARIANT:  ((SAFEARRAY16*)MapSL(psa))->fFeatures |= FADF_VARIANT; break;
+    }
+
+    for (i = 0; i < cDims; i++)
+      memcpy(((SAFEARRAY16*)MapSL(psa))->rgsabound + i, rgsabound + cDims - 1 - i, sizeof(SAFEARRAYBOUND16));
+
+    if (ulSize)
+        ((SAFEARRAY16*)MapSL(psa))->cbElements = ulSize;
+
+    if (!((SAFEARRAY16*)MapSL(psa))->cbElements || FAILED(SafeArrayAllocData16(((SAFEARRAY16*)MapSL(psa)))))
+    {
+      SafeArrayDestroyDescriptor16(psa);
+      psa = NULL;
+    }
+  }
+  return psa;
+}
+/************************************************************************
+ *		VectorFromBstr (OLEAUT32.@)
+ *
+ * Create a SafeArray Vector from the bytes of a BSTR.
+ *
+ * PARAMS
+ *  bstr [I] String to get bytes from
+ *  ppsa [O] Destination for the array
+ *
+ * RETURNS
+ *  Success: S_OK. ppsa contains the strings bytes as a VT_UI1 array.
+ *  Failure: An HRESULT error code indicating the error.
+ *
+ * NOTES
+ * See SafeArray.
+ */
+HRESULT WINAPI VectorFromBstr16(SEGBSTR16 bstr, /* SAFEARRAY16 * */SEGPTR *ppsa)
+{
+  SAFEARRAYBOUND16 sab;
+
+  TRACE("(%p,%p)\n", bstr, ppsa);
+  
+  if (!ppsa)
+    return E_INVALIDARG;
+
+  sab.lLbound = 0;
+  sab.cElements = SysStringByteLen16(bstr);
+
+  *ppsa = SAFEARRAY_Create(VT_UI1, 1, &sab, 0);
+
+  if (*ppsa)
+  {
+    memcpy(((SAFEARRAY16*)MapSL(*ppsa))->pvData, bstr, sab.cElements);
+    return S_OK;
+  }
+  return E_OUTOFMEMORY;
+}
 /* This implementation of the BSTR API is 16-bit only. It
    represents BSTR as a 16:16 far pointer, and the strings
    as ISO-8859 */
@@ -344,6 +539,24 @@ static void BSTR_Free(SEGPTR in)
 static void* BSTR_GetAddr(SEGPTR in)
 {
     return in ? MapSL(in) : 0;
+}
+
+HRESULT WINAPI BstrFromVector16(SAFEARRAY16 *psa, /*BSTR*/SEGPTR *pbstr)
+{
+  TRACE("(%p,%p)\n", psa, pbstr);
+
+  if (!pbstr)
+    return E_INVALIDARG;
+
+  *pbstr = NULL;
+
+  if (!psa || psa->cbElements != 1 || psa->cDims != 1)
+    return E_INVALIDARG;
+
+  *pbstr = SysAllocStringByteLen16(psa->pvData, psa->rgsabound[0].cElements);
+  if (!*pbstr)
+    return E_OUTOFMEMORY;
+  return S_OK;
 }
 
 /******************************************************************************
@@ -410,6 +623,10 @@ INT16 WINAPI SysReAllocString16(SEGPTR *pbstr,LPCOLESTR16 oleStr)
  * NOTES
  *  See SysAllocStringByteLen16().
  */
+SEGPTR WINAPI SysAllocStringByteLen16(const char *oleStr, int len)
+{
+    return SysAllocStringLen16(oleStr, len);
+}
 SEGPTR WINAPI SysAllocStringLen16(const char *oleStr, int len)
 {
     SEGPTR out=BSTR_AllocBytes(len+1);
@@ -494,6 +711,10 @@ void WINAPI SysFreeString16(SEGPTR str)
  * RETURNS
  *  The allocated length of str, or 0 if str is NULL.
  */
+int WINAPI SysStringByteLen16(SEGPTR str)
+{
+    return SysStringLen16(str);
+}
 int WINAPI SysStringLen16(SEGPTR str)
 {
     if (!str)
