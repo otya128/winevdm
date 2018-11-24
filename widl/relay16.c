@@ -860,6 +860,7 @@ static void write_32_16_func(FILE *header, const statement_t *stmt, const type_t
     if (!is_callas(func->attrs)) {
         const char *callconv = get_attrp(func->type->attrs, ATTR_CALLCONV);
         type_t *ret_type = type_function_get_rettype(func->type);
+        fprintf(header, "#ifndef IFS3216_OVERWRITE_%s_%s\n", name, get_name(func));
         if (!callconv) callconv = "STDMETHODCALLTYPE";
         write_type_decl_left(header, type_function_get_rettype(func->type));
         fprintf(header, " %s %s_32_16_%s(%s *This", callconv, name, get_name(func), name);
@@ -908,6 +909,7 @@ static void write_32_16_func(FILE *header, const statement_t *stmt, const type_t
             fprintf(header, "    return result32__;\n");
         }
         fprintf(header, "}\n");
+        fprintf(header, "#endif\n");
     }
 }
 static void write_16_32_func(FILE *header, const statement_t *stmt, const type_t *iface, const char *name)
@@ -915,6 +917,7 @@ static void write_16_32_func(FILE *header, const statement_t *stmt, const type_t
     const var_t *func = stmt->u.var;
     const char *callconv = get_attrp(func->type->attrs, ATTR_CALLCONV);
     type_t *ret_type = type_function_get_rettype(func->type);
+    fprintf(header, "#ifndef IFS1632_OVERWRITE_%s_%s\n", name, get_name(func));
     if (!callconv) callconv = "STDMETHODCALLTYPE";
     write_type_decl_left(header, type_function_get_rettype(func->type));
     fprintf(header, " %s %s_16_32_%s(SEGPTR This", callconv = "CDECL", name, get_name(func));
@@ -962,6 +965,7 @@ static void write_16_32_func(FILE *header, const statement_t *stmt, const type_t
         fprintf(header, "    return result16__;\n");
     }
     fprintf(header, "}\n");
+    fprintf(header, "#endif\n");
 }
 static void do_write_c_method_def(FILE *header, const type_t *iface, const char *name)
 {
