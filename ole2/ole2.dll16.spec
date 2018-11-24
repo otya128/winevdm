@@ -46,7 +46,7 @@
 46 stub MONIKERRELATIVEPATHTO
 47 stub MONIKERCOMMONPREFIXWITH
 48 stub ISACCELERATOR
-49 pascal OleSetClipboard(ptr) OleSetClipboard16
+49 pascal OleSetClipboard(segptr) OleSetClipboard16
 50 pascal OleGetClipboard(ptr) OleGetClipboard16
 51 stub OLEDUPLICATEDATA
 52 stub OLEGETICONOFFILE
@@ -72,7 +72,7 @@
 74 pascal ReadFmtUserTypeStg(ptr ptr ptr) ReadFmtUserTypeStg16
 75 pascal WriteFmtUserTypeStg(ptr word str) WriteFmtUserTypeStg16
 76 pascal -ret16 OleFlushClipboard() OleFlushClipboard16
-77 pascal OleIsCurrentClipboard(ptr) OleIsCurrentClipboard16
+77 pascal OleIsCurrentClipboard(segptr) OleIsCurrentClipboard16
 78 stub OLETRANSLATEACCELERATOR
 79 pascal OleDoAutoConvert(ptr ptr) OleDoAutoConvert16
 80 stub OLEGETAUTOCONVERT

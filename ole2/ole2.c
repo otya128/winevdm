@@ -103,7 +103,7 @@ HRESULT WINAPI RegisterDragDrop16(
 	HWND16 hwnd,
 	/*LPDROPTARGET*/SEGPTR pDropTarget
 ) {
-	TRACE("(0x%04x,%p),stub!\n",hwnd,pDropTarget);
+	TRACE("(0x%04x,%p)\n",hwnd,pDropTarget);
 	return RegisterDragDrop(HWND_32(hwnd), (IDropTarget*)iface16_32(&IID_IDropTarget, pDropTarget));
 }
 
@@ -113,8 +113,8 @@ HRESULT WINAPI RegisterDragDrop16(
 HRESULT WINAPI RevokeDragDrop16(
 	HWND16 hwnd
 ) {
-	FIXME("(0x%04x),stub!\n",hwnd);
-	return S_OK;
+	TRACE("(0x%04x)\n",hwnd);
+	return RevokeDragDrop(HWND_32(hwnd));
 }
 
 /******************************************************************************
@@ -236,19 +236,23 @@ HRESULT WINAPI OleDoAutoConvert16(LPSTORAGE pStg, LPCLSID pClsidNew)
 /***********************************************************************
  *           OleSetClipboard                            [OLE2.49]
  */
-HRESULT WINAPI OleSetClipboard16(IDataObject* pDataObj)
+HRESULT WINAPI OleSetClipboard16(/* IDataObject* */SEGPTR pDataObj)
 {
-  FIXME("(%p): stub\n", pDataObj);
-  return S_OK;
+    TRACE("(%p)\n", pDataObj);
+    return hresult32_16(OleSetClipboard((IDataObject*)iface16_32(&IID_IDataObject, pDataObj)));
 }
 
 /***********************************************************************
  *           OleGetClipboard                            [OLE2.50]
  */
-HRESULT WINAPI OleGetClipboard16(IDataObject** ppDataObj)
+HRESULT WINAPI OleGetClipboard16(/* IDataObject* */SEGPTR* ppDataObj)
 {
-  FIXME("(%p): stub\n", ppDataObj);
-  return E_NOTIMPL;
+    HRESULT result;
+    IDataObject *pDataObj = NULL;
+    TRACE("(%p)\n", ppDataObj);
+    result = hresult32_16(OleGetClipboard(&pDataObj));
+    *ppDataObj = iface32_16(&IID_IDataObject, pDataObj);
+    return result;
 }
 
 /***********************************************************************
@@ -406,10 +410,10 @@ HRESULT WINAPI DoDragDrop16(LPDATAOBJECT pDataObj, LPDROPSOURCE pDropSource, DWO
     return DoDragDrop((IDataObject*)iface16_32(&IID_IDataObject, pDataObj), (IDropSource*)iface16_32(&IID_IDropSource, pDropSource), dwOKEffects, pdwEffect);
 }
 
-HRESULT WINAPI OleIsCurrentClipboard16(LPDATAOBJECT pDataObj)
+HRESULT WINAPI OleIsCurrentClipboard16(/*LPDATAOBJECT*/SEGPTR pDataObj)
 {
-    FIXME("(%p),stub!\n", pDataObj);
-    return S_OK;
+    TRACE("(%p)\n", pDataObj);
+    return hresult32_16(OleIsCurrentClipboard((IDataObject*)iface16_32(&IID_IDataObject, pDataObj)));
 }
 
 HRESULT WINAPI ReadFmtUserTypeStg16(LPSTORAGE16 *pstg, CLIPFORMAT *pcf, LPOLESTR16 *lplpszUserType)
