@@ -451,6 +451,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
         int is_out = is_attr(arg->attrs, ATTR_OUT);
         int is_in = is_attr(arg->attrs, ATTR_IN);
         int is_array = 0;
+        int is_byte_out = 0;
         enum type_type typtyp1 = type_get_type(arg->type);
         type_t *typ2 = typtyp1 == TYPE_POINTER ? type_pointer_get_ref(arg->type) : NULL;
         enum type_type typtyp2 = typ2 ? type_get_type(typ2) : -1;
@@ -468,7 +469,10 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
             }
             else
             {
-                is_out = 0;
+                is_byte_out = TRUE;
+                typ2 = array_elem_type;
+                typtyp1 = array_elem_type_type;
+                is_array = TRUE;
             }
         }
         if (args_conv == ARGS_CONV_CALL)
@@ -554,7 +558,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                 else
                     write_type_decl_left3216(h, typ2);
                 /* [out] interface conversion */
-                if (is_array)
+                if (is_array && !is_byte_out)
                 {
                     int count = 0;
                     expr_t *e;
@@ -573,7 +577,19 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                         assert(count++ == 0);
                     }
                     fprintf(h, " );\n");
-
+                }
+                else if (is_byte_out)
+                {
+                    assert(is_array);
+                    fprintf(h, " *args%d_%s = ", is_1632 ? 32 : 16, arg->name);
+                    if (is_1632)
+                    {
+                        fprintf(h, "MapSL(args16_%s);\n", arg->name);
+                    }
+                    else
+                    {
+                        fprintf(h, "%s;\n", arg->name);
+                    }
                 }
                 else
                 {
@@ -611,7 +627,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
             {
                 char buf[256];
                 char buf2[256];
-                if (is_array)
+                if (is_array && !is_byte_out)
                 {
                     int count = 0;
                     expr_t *e;
@@ -645,6 +661,10 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                         fprintf(h, "    IFACE_FREE_ARRAY(args32_%s);\n", arg->name);
                     else
                         fprintf(h, "    IFACE_FREE_ARRAY(args16_%s);\n", arg->name);
+                }
+                else if (is_byte_out)
+                {
+
                 }
                 else
                 {
