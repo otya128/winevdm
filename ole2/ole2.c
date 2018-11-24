@@ -524,3 +524,24 @@ void WINAPI OleDestroyMenuDescriptor16(HOLEMENU16 olemenu)
     /* FIXME! */
     OleDestroyMenuDescriptor(HWND_32(olemenu));
 }
+
+HRESULT WINAPI OleGetAutoConvert16(REFCLSID clsidOld, LPCLSID pclsidNew)
+{
+    HRESULT result = hresult32_16(OleGetAutoConvert(clsidOld, pclsidNew));
+    if (result == REGDB_E_KEYMISSING || result == REGDB_E_CLASSNOTREG)
+    {
+        FIXME("\n");
+        return result;
+    }
+    return result;
+}
+
+HRESULT WINAPI OleRun16(SEGPTR pUnk)
+{
+    return hresult32_16(OleRun((IUnknown*)iface16_32(&IID_IUnknown, pUnk)));
+}
+
+HRESULT WINAPI OleSave16(SEGPTR pPS, SEGPTR pStg, BOOL fSameAsLoad)
+{
+    return hresult32_16(OleSave((IPersistStorage*)iface16_32(&IID_IPersistStorage, pPS), (IStorage*)iface16_32(&IID_IStorage, pStg), fSameAsLoad));
+}

@@ -10,8 +10,8 @@
 10 stub OLECREATE
 11 stub OLECREATELINK
 12 pascal OleLoad(segptr ptr segptr ptr) OleLoad16
-13 stub OLESAVE
-14 stub OLERUN
+13 pascal OleSave(segptr segptr word) OleSave16
+14 pascal OleRun(segptr) OleRun16
 #15 ___EXPORTEDSTUB
 16 pascal -ret16 OleIsRunning(segptr) OleIsRunning16
 17 pascal OleLockRunning(segptr word word) OleLockRunning16
@@ -75,7 +75,7 @@
 77 pascal OleIsCurrentClipboard(segptr) OleIsCurrentClipboard16
 78 stub OLETRANSLATEACCELERATOR
 79 pascal OleDoAutoConvert(ptr ptr) OleDoAutoConvert16
-80 stub OLEGETAUTOCONVERT
+80 pascal OleGetAutoConvert(ptr ptr) OleGetAutoConvert16
 81 stub OLESETAUTOCONVERT
 82 pascal GetConvertStg(ptr) GetConvertStg16
 83 stub SETCONVERTSTG
