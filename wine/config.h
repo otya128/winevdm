@@ -6,7 +6,7 @@
 #ifndef WINE_CROSSTEST
 #define inline __inline
 /* Define to a function attribute for Microsoft hotpatch assembly prefix. */
-#define DECLSPEC_HOTPATCH __attribute__((__ms_hook_prologue__))
+#define DECLSPEC_HOTPATCH /* */
 
 /* Define to the file extension for executables. */
 #define EXEEXT ".exe"
