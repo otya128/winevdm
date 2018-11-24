@@ -490,21 +490,61 @@ a32 = *(struct tagOleMenuGroupWidths*)&a16
 #define MAP_SIZE32_16 FIXME("\n");
 #define MAP_PTR_LOGPALETTE16_32 FIXME("\n");
 #define MAP_PTR_LOGPALETTE32_16 FIXME("\n");
-#define MAP_PTR_DVTARGETDEVICE16_32 FIXME("\n");
-#define MAP_PTR_DVTARGETDEVICE32_16 FIXME("\n");
-#define MAP_LPMSG16_32 FIXME("\n");
-#define MAP_LPMSG32_16 FIXME("\n");
-#define MAP_LPCRECT16_32 FIXME("\n");
-#define MAP_LPCRECT32_16 FIXME("\n");
+#define MAP_PTR_DVTARGETDEVICE16_32(a32, a16) a32 = (DVTARGETDEVICE*)MapSL(a16)
+#define MAP_PTR_DVTARGETDEVICE32_16(a16, a32) a16 = MapLS(a32)
+void WINAPI window_message32_16(const MSG *msg32, MSG16 *msg16);
+void WINAPI window_message16_32(const MSG16 *msg16, MSG *msg32);
+static void map_msg16_32(MSG *a32, const MSG16 *a16)
+{
+    FIXME("unicode <-> ANSI\n");
+    window_message16_32(a16, a32);
+}
+static void map_msg32_16(MSG16 *a16, const MSG *a32)
+{
+    FIXME("unicode <-> ANSI\n");
+    window_message32_16(a32, a16);
+}
+#define MAP_LPMSG16_32(a32, a16) \
+    if (a16 == 0)\
+        a32 = NULL;\
+    else\
+        map_msg16_32(a32 = (LPMSG)alloca(sizeof(MSG)), (const MSG16*)MapSL(a16))
+#define MAP_LPMSG32_16(a16, a32) \
+    if (a32 == NULL)\
+        a16 = 0;\
+    else\
+        map_msg32_16((MSG16*)MapSL(a16 = MapLS(alloca(sizeof(MSG16)))), a32)
+#define MAP_LPCRECT16_32(a32, a16) map_rect16_32(a32 = (LPCRECT*)alloca(sizeof(RECT)), (RECT16*)MapSL(a16))
+#define MAP_LPCRECT32_16(a16, a32) map_rect32_16(MapSL(a16 = MapLS((const RECT16*)alloca(sizeof(RECT16)))), (RECT*)a32)
 #define MAP_LPCBORDERWIDTHS16_32 FIXME("\n");
 #define MAP_LPCBORDERWIDTHS32_16 FIXME("\n");
-#define MAP_IViewObjectCallback16_32 FIXME("\n");
-#define MAP_IViewObjectCallback32_16 FIXME("\n");
-#define MAP_HOLEMENU16_32 FIXME("\n");
-#define MAP_HOLEMENU32_16 FIXME("\n");
+#define MAP_IViewObjectCallback16_32(a32, a16) \
+    if (a16)\
+        FIXME("16-bit callback func ptr-> 32-bit callback func ptr\n");\
+    a32 = 0
+#define MAP_IViewObjectCallback32_16(a16, a32) \
+    if (a32)\
+        FIXME("32-bit callback func ptr -> 16-bit callback func ptr\n");\
+    a16 = 0
+#define MAP_HOLEMENU16_32(a32,a16) a32 = HWND_32(a16);FIXME("MAP_HOLEMENU16_32\n");
+#define MAP_HOLEMENU32_16(a16, a32) a16 = HWND_16(a32);FIXME("MAP_HOLEMENU32_16\n");
 
-#define MAP_STATDATA32_16 FIXME("\n");
-#define MAP_STATDATA16_32 FIXME("\n");
+static void map_statdata32_16(STATDATA16* a16, const STATDATA *a32)
+{
+    map_formatetc32_16(&a16->formatetc, &a32->formatetc);
+    a16->advf = a32->advf;
+    a16->pAdvSink = (IAdviseSink*)iface32_16(&IID_IAdviseSink, a32->pAdvSink);
+    a16->dwConnection = a32->dwConnection;
+}
+static void map_statdata16_32(STATDATA* a32, const STATDATA16 *a16)
+{
+    map_formatetc16_32(&a32->formatetc, &a16->formatetc);
+    a32->advf = a16->advf;
+    a32->pAdvSink = iface16_32(&IID_IAdviseSink, a16->pAdvSink);
+    a32->dwConnection = a16->dwConnection;
+}
+#define MAP_STATDATA32_16(a16, a32) map_statdata32_16(&a16, &a32)
+#define MAP_STATDATA16_32(a32, a16) FIXME("\n");
 
 #define MAP_STRUCT_tagOLEVERB32_16 FIXME("\n");
 #define MAP_STRUCT_tagOLEVERB16_32 FIXME("\n");
