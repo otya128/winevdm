@@ -67,6 +67,10 @@ static void write_args1632(FILE *h, const var_list_t *args, const char *name, in
             {
                 fprintf(h, "POINTL args16_%s", arg->name);
             }
+            else if (!strcmp(arg->type->c_name, "CY"))
+            {
+                fprintf(h, "CY args16_%s", arg->name);
+            }
             else
             {
                 assert(0);
@@ -286,6 +290,8 @@ static const char *handle16_table[] =
     "HOLEMENU",
     "HDC",
     "HGLOBAL",
+    "HFONT",
+    "HRGN",
 };
 static void get_type_size16(const type_t *type, int *size, int *is_ptr)
 {
@@ -305,7 +311,8 @@ static void get_type_size16(const type_t *type, int *size, int *is_ptr)
                     return;
                 }
             }
-            if (strcmp(type->name, "HRESULT"))
+            /* hard-coded */
+            if (strcmp(type->name, "HREFTYPE") && strcmp(type->name, "HRESULT"))
             {
                 *size = 0;
             }
@@ -320,7 +327,10 @@ static void get_type_size16(const type_t *type, int *size, int *is_ptr)
     {
     case TYPE_ENUM:
         /* fixme:ATTR_V1ENUM */
-        *size = 2;
+        if (is_attr(type->attrs, ATTR_V1ENUM))
+            *size = 4;
+        else
+            *size = 2;
         break;
     case TYPE_INTERFACE:
     case TYPE_POINTER:
@@ -389,7 +399,17 @@ static void get_type_size16(const type_t *type, int *size, int *is_ptr)
             *size = 4;
             break;
         }
+        if (!strcmp("POINT", type_get_name(type, NAME_DEFAULT)))
+        {
+            *size = 4;
+            break;
+        }
         if (!strcmp("POINTL", type_get_name(type, NAME_DEFAULT)))
+        {
+            *size = 8;
+            break;
+        }
+        if (!strcmp("CY", type_get_name(type, NAME_DEFAULT)))
         {
             *size = 8;
             break;
@@ -632,6 +652,8 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     int count = 0;
                     expr_t *e;
                     expr_list_t *len_is = get_attrp(arg->attrs, ATTR_LENGTHIS);
+                    if (!len_is)
+                        len_is = get_attrp(arg->attrs, ATTR_SIZEIS);
                     assert(len_is);
                     if (is_1632)
                     {
@@ -691,7 +713,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
             get_type_size16(arg->type, &size, &is_ptr);
             if (args_conv == ARGS_CONV_TRACE_ARGS)
             {
-                if (is_iid)
+                if (!is_out && is_iid)
                 {
                     fprintf(h, ", debugstr_guid(%s%s)", is_1632 ? "args32_" : "", arg->name);
                 }
@@ -703,17 +725,17 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
             }
             else
             {
-                if (is_iid)
+                if (!is_out && is_iid)
                 {
                     fprintf(h, ",%s", "%s");
                 }
-                else if (is_1632 && is_ptr)
+                else if (is_1632 && (is_ptr || is_out))
                 {
                     fprintf(h, ",%s", "%08x");
                 }
                 else
                 {
-                    if (is_ptr)
+                    if (is_ptr || is_out)
                     {
                         fprintf(h, ",%s", "%p");
                     }
@@ -1027,7 +1049,7 @@ static void do_write_vtable32(FILE *header, const type_t *iface, const char *nam
             first_iface = 0;
         }
         if (!is_callas(func->attrs)) {
-            fprintf(header, "    %s_32_16_%s,\n", name, func->name);
+            fprintf(header, "    %s_32_16_%s,\n", name, get_name(func));
         }
     }
 }
@@ -1075,7 +1097,7 @@ static void do_write_vtable16(FILE *header, const type_t *iface, const char *nam
         }
         if (!is_callas(func->attrs)) {
             fprintf(header, "    {");
-            fprintf(header, "%s_16_32_%s,\"%s::%s\",\"", name, func->name, name, func->name);
+            fprintf(header, "%s_16_32_%s,\"%s::%s\",\"", name, get_name(func), name, get_name(func));
             write_args16_str(header, type_get_function_args(func->type));
             fprintf(header, "\"},\n");
         }
@@ -1134,6 +1156,8 @@ static void build_iface_list( const statement_list_t *stmts, type_t **ifaces[], 
         if (stmt->type == STMT_TYPE && type_get_type(stmt->u.type) == TYPE_INTERFACE)
         {
             type_t *iface = stmt->u.type;
+            if (!get_attrp(iface->attrs, ATTR_UUID))
+                continue;
             *ifaces = xrealloc( *ifaces, (*count + 1) * sizeof(**ifaces) );
             (*ifaces)[(*count)++] = iface;
         }
@@ -1578,6 +1602,10 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                         {
                             fprintf(header, ",SIZE16 %s", arg->name);
                         }
+                        else if (n && !strcmp(n, "POINT"))
+                        {
+                            fprintf(header, ",POINT16 %s", arg->name);
+                        }
                         else
                         {
                             fprintf(header, ",DWORD %s", arg->name);
@@ -1591,6 +1619,10 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                         if (n && !strcmp(n, "POINTL"))
                         {
                             fprintf(header, ",POINTL %s", arg->name);
+                        }
+                        else if (n && !strcmp(n, "CY"))
+                        {
+                            fprintf(header, ",CY %s", arg->name);
                         }
                         else
                         {
@@ -1630,6 +1662,11 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                             fprintf(header, ", %s.cx", arg->name);
                             fprintf(header, ", %s.cy", arg->name);
                         }
+                        else if (n && !strcmp(n, "POINT"))
+                        {
+                            fprintf(header, ", %s.x", arg->name);
+                            fprintf(header, ", %s.y", arg->name);
+                        }
                         else
                         {
                             fprintf(header, ", LOWORD(%s)", arg->name);
@@ -1646,6 +1683,20 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                             fprintf(header, ", HIWORD(%s.x)", arg->name);
                             fprintf(header, ", LOWORD(%s.y)", arg->name);
                             fprintf(header, ", HIWORD(%s.y)", arg->name);
+                        }
+                        else if (n && !strcmp(n, "CY"))
+                        {
+                            fprintf(header, "\n#if defined(NONAMELESSUNION) || defined(NONAMELESSSTRUCT)\n", arg->name);
+                            fprintf(header, ", LOWORD(%s.DUMMYSTRUCTNAME.Lo)", arg->name);
+                            fprintf(header, ", HIWORD(%s.DUMMYSTRUCTNAME.Lo)", arg->name);
+                            fprintf(header, ", LOWORD(%s.DUMMYSTRUCTNAME.Hi)", arg->name);
+                            fprintf(header, ", HIWORD(%s.DUMMYSTRUCTNAME.Hi)", arg->name);
+                            fprintf(header, "\n#else\n", arg->name);
+                            fprintf(header, ", LOWORD(%s.Lo)", arg->name);
+                            fprintf(header, ", HIWORD(%s.Lo)", arg->name);
+                            fprintf(header, ", LOWORD(%s.Hi)", arg->name);
+                            fprintf(header, ", HIWORD(%s.Hi)", arg->name);
+                            fprintf(header, "\n#endif\n", arg->name);
                         }
                         else
                         {
@@ -1665,7 +1716,10 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
 
             fprintf(header, "    DWORD res;\n");
             fprintf(header, "    WOWCallback16Ex(GET_SEGPTR_METHOD_ADDR(%s16, This, %s), WCB16_PASCAL, %d, args, &res);\n", name, get_vtbl_entry_name(iface, func), args_size * 2);
-            fprintf(header, "    return res;\n");
+            if (type_get_type(type_function_get_rettype(func->type)) != TYPE_VOID)
+            {
+                fprintf(header, "    return res;\n");
+            }
             fprintf(header, "}\n\n");
         }
     }
