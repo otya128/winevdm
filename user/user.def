@@ -12,3 +12,5 @@ EXPORTS
   call_native_wndproc_context
   __wine_call_wndproc
   LoadBitmap16
+  window_message16_32
+  window_message32_16
