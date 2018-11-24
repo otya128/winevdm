@@ -723,14 +723,6 @@ int WINAPI SysStringLen16(SEGPTR str)
     return bb16->clSize;
 }
 
-/******************************************************************************
- * VariantChangeType [OLE2DISP.12]
- */
-HRESULT WINAPI VariantChangeType16(VARIANTARG16 *vargDest, VARIANTARG16 *varSrc, unsigned short flags, VARTYPE vt)
-{
-    FIXME("stub: (%p, %p, %d, %d)\n", vargDest, varSrc, flags, vt);
-    return E_NOTIMPL;
-}
 
 
 /******************************************************************************
@@ -770,20 +762,29 @@ HRESULT WINAPI RegisterActiveObject16(
 }
 
 /******************************************************************************
- * VariantChangeTypeEx [OLE2DISP.108]
- */
-HRESULT WINAPI VariantChangeTypeEx16(VARIANTARG16 *dest, const VARIANTARG16 *src, LCID lcid, USHORT flags, VARTYPE vt)
-{
-        FIXME("stub: %p %p %d %d %d\n", dest, src, lcid, flags, vt);
-        return E_INVALIDARG;
-}
-
-/******************************************************************************
  * SetErrorInfo [OLE2DISP.110]
  */
 HRESULT WINAPI SetErrorInfo16(ULONG dwReserved, IErrorInfo *perrinfo)
 {
         FIXME("stub: (%d, %p)\n", dwReserved, perrinfo);
+        return E_INVALIDARG;
+}
+
+#if 0
+/******************************************************************************
+ * VariantChangeType [OLE2DISP.12]
+ */
+HRESULT WINAPI VariantChangeType16(VARIANTARG16 *vargDest, VARIANTARG16 *varSrc, unsigned short flags, VARTYPE vt)
+{
+    FIXME("stub: (%p, %p, %d, %d)\n", vargDest, varSrc, flags, vt);
+    return E_NOTIMPL;
+}
+/******************************************************************************
+ * VariantChangeTypeEx [OLE2DISP.108]
+ */
+HRESULT WINAPI VariantChangeTypeEx16(VARIANTARG16 *dest, const VARIANTARG16 *src, LCID lcid, USHORT flags, VARTYPE vt)
+{
+        FIXME("stub: %p %p %d %d %d\n", dest, src, lcid, flags, vt);
         return E_INVALIDARG;
 }
 
@@ -908,3 +909,4 @@ HRESULT WINAPI VariantCopyInd16(VARIANT16 *v, VARIANTARG16 *src)
     *v = *src;
     return E_INVALIDARG;
 }
+#endif

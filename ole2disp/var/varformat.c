@@ -1,3 +1,4 @@
+#if 0
 /*
  * Variant formatting functions
  *
@@ -2619,3 +2620,4 @@ HRESULT WINAPI VarWeekdayName(INT iWeekday, INT fAbbrev, INT iFirstDay,
   }
   return S_OK;
 }
+#endif

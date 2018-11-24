@@ -22,6 +22,7 @@
 #include "winerror.h"
 #include "objbase.h"
 #include "oleauto.h"
+#include "../ole2disp.h"
 #include <math.h>
 
 /* Get just the type from a variant pointer */

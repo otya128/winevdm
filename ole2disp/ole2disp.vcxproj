@@ -96,6 +96,9 @@ ole2disp.def
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ole2disp.c" />
+    <ClCompile Include="var\varformat.c" />
+    <ClCompile Include="var\variant.c" />
+    <ClCompile Include="var\vartype.c" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="ole2disp.dll16.obj" />
@@ -109,6 +112,10 @@ ole2disp.def
   </ItemGroup>
   <ItemGroup>
     <None Include="ole2disp.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="var\resource.h" />
+    <ClInclude Include="var\variant.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
