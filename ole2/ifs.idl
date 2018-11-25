@@ -2350,3 +2350,2565 @@ interface IDropTarget : IUnknown
         [in] POINTL pt,
         [in, out] DWORD *pdwEffect);
 }
+/* STGMEDIUM.pUnkForRelease wrapper? */
+[
+  object,
+  uuid(F6989118-9D36-4B65-AE0C-0C20886D50F8),
+  pointer_default(unique)
+]
+interface ISTGMEDIUMRelease : IUnknown
+{
+}
+
+/*
+ * Copyright 2002 Ove Kaaven
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+ */
+
+#ifndef DO_NO_IMPORTS
+//import "objidl.idl";
+#endif
+
+interface IDispatch;
+interface ITypeInfo;
+interface ITypeLib;
+interface IRecordInfo;
+
+[
+  version(1.0),
+  pointer_default(unique)
+]
+interface IOleAutomationTypes
+{
+
+typedef CY CURRENCY;
+
+/* Safe Array */
+
+typedef struct tagSAFEARRAYBOUND {
+  ULONG cElements;
+  LONG lLbound;
+} SAFEARRAYBOUND, *LPSAFEARRAYBOUND;
+
+typedef [unique] struct _wireVARIANT *wireVARIANT;
+typedef [unique] struct _wireBRECORD *wireBRECORD;
+
+typedef struct _wireSAFEARR_BSTR {
+  ULONG Size;
+  [size_is(Size), ref] wireBSTR *aBstr;
+} SAFEARR_BSTR;
+
+typedef struct _wireSAFEARR_UNKNOWN {
+  ULONG Size;
+  [size_is(Size), ref] IUnknown **apUnknown;
+} SAFEARR_UNKNOWN;
+
+typedef struct _wireSAFEARR_DISPATCH {
+  ULONG Size;
+  [size_is(Size), ref] IDispatch **apDispatch;
+} SAFEARR_DISPATCH;
+
+typedef struct _wireSAFEARR_VARIANT {
+  ULONG Size;
+  [size_is(Size), ref] wireVARIANT *aVariant;
+} SAFEARR_VARIANT;
+
+typedef struct _wireSAFEARR_BRECORD {
+  ULONG Size;
+  [size_is(Size), ref] wireBRECORD *aRecord;
+} SAFEARR_BRECORD;
+
+typedef struct _wireSAFEARR_HAVEIID {
+  ULONG Size;
+  [size_is(Size), ref] IUnknown **apUnknown;
+  IID iid;
+} SAFEARR_HAVEIID;
+
+typedef [v1_enum] enum tagSF_TYPE {
+  SF_ERROR    = VT_ERROR,
+  SF_I1       = VT_I1,
+  SF_I2       = VT_I2,
+  SF_I4       = VT_I4,
+  SF_I8       = VT_I8,
+  SF_BSTR     = VT_BSTR,
+  SF_UNKNOWN  = VT_UNKNOWN,
+  SF_DISPATCH = VT_DISPATCH,
+  SF_VARIANT  = VT_VARIANT,
+  SF_RECORD   = VT_RECORD,
+  SF_HAVEIID  = VT_UNKNOWN|VT_RESERVED,
+} SF_TYPE;
+
+typedef union _wireSAFEARRAY_UNION switch(ULONG sfType) u {
+  case SF_BSTR:     SAFEARR_BSTR BstrStr;
+  case SF_UNKNOWN:  SAFEARR_UNKNOWN UnknownStr;
+  case SF_DISPATCH: SAFEARR_DISPATCH DispatchStr;
+  case SF_VARIANT:  SAFEARR_VARIANT VariantStr;
+  case SF_RECORD:   SAFEARR_BRECORD RecordStr;
+  case SF_HAVEIID:  SAFEARR_HAVEIID HaveIidStr;
+  case SF_I1:       BYTE_SIZEDARR ByteStr;
+  case SF_I2:       WORD_SIZEDARR WordStr;
+  case SF_I4:       DWORD_SIZEDARR LongStr;
+  case SF_I8:       HYPER_SIZEDARR HyperStr;
+} SAFEARRAYUNION;
+
+typedef [unique] struct _wireSAFEARRAY {
+  USHORT cDims;
+  USHORT fFeatures;
+  ULONG cbElements;
+  ULONG cLocks;
+  SAFEARRAYUNION uArrayStructs;
+  [size_is(cDims)] SAFEARRAYBOUND rgsabound[];
+} *wireSAFEARRAY;
+
+typedef [unique] wireSAFEARRAY *wirePSAFEARRAY;
+
+typedef struct tagSAFEARRAY {
+  USHORT cDims;
+  USHORT fFeatures;
+  ULONG cbElements;
+  ULONG cLocks;
+  PVOID pvData;
+  SAFEARRAYBOUND rgsabound[];
+} SAFEARRAY;
+
+typedef [wire_marshal(wirePSAFEARRAY)] SAFEARRAY *LPSAFEARRAY;
+
+const USHORT FADF_AUTO        = 0x0001;
+const USHORT FADF_STATIC      = 0x0002;
+const USHORT FADF_EMBEDDED    = 0x0004;
+const USHORT FADF_FIXEDSIZE   = 0x0010;
+const USHORT FADF_RECORD      = 0x0020;
+const USHORT FADF_HAVEIID     = 0x0040;
+const USHORT FADF_HAVEVARTYPE = 0x0080;
+const USHORT FADF_BSTR        = 0x0100;
+const USHORT FADF_UNKNOWN     = 0x0200;
+const USHORT FADF_DISPATCH    = 0x0400;
+const USHORT FADF_VARIANT     = 0x0800;
+const USHORT FADF_RESERVED    = 0xF008;
+/* Undocumented flags */
+const USHORT FADF_DATADELETED  = 0x1000; /* Data in a vector has been deleted */
+const USHORT FADF_CREATEVECTOR = 0x2000; /* This array is a vector */
+
+/* Variant */
+
+cpp_quote("#if (__STDC__ && !defined(_FORCENAMELESSUNION)) || defined(NONAMELESSUNION)")
+cpp_quote("#define __VARIANT_NAME_1 n1")
+cpp_quote("#define __VARIANT_NAME_2 n2")
+cpp_quote("#define __VARIANT_NAME_3 n3")
+cpp_quote("#define __VARIANT_NAME_4 brecVal")
+cpp_quote("#else")
+cpp_quote("#define __tagVARIANT")
+cpp_quote("#define __VARIANT_NAME_1")
+cpp_quote("#define __VARIANT_NAME_2")
+cpp_quote("#define __VARIANT_NAME_3")
+cpp_quote("#define __tagBRECORD")
+cpp_quote("#define __VARIANT_NAME_4")
+cpp_quote("#endif")
+
+typedef [wire_marshal(wireVARIANT)] struct tagVARIANT VARIANT;
+
+struct tagVARIANT {
+  union {
+    struct __tagVARIANT {
+      VARTYPE vt;
+      WORD wReserved1;
+      WORD wReserved2;
+      WORD wReserved3;
+      union {
+        signed char cVal;
+        USHORT uiVal;
+        ULONG ulVal;
+        INT intVal;
+        UINT uintVal;
+        BYTE bVal;
+        SHORT iVal;
+        LONG lVal;
+        FLOAT fltVal;
+        DOUBLE dblVal;
+        VARIANT_BOOL boolVal;
+#if 0 /* illegal in C++ */
+        _VARIANT_BOOL bool;
+#endif
+        SCODE scode;
+        DATE date;
+        BSTR bstrVal;
+        CY cyVal;
+        IUnknown *punkVal;
+        IDispatch *pdispVal;
+        SAFEARRAY *parray;
+        LONGLONG llVal;
+        ULONGLONG ullVal;
+        signed char *pcVal;
+        USHORT *puiVal;
+        ULONG *pulVal;
+        INT *pintVal;
+        UINT *puintVal;
+        BYTE *pbVal;
+        SHORT *piVal;
+        LONG *plVal;
+        FLOAT *pfltVal;
+        DOUBLE *pdblVal;
+        VARIANT_BOOL *pboolVal;
+#if 0
+        _VARIANT_BOOL *pbool;
+#endif
+        SCODE *pscode;
+        DATE *pdate;
+        BSTR *pbstrVal;
+        VARIANT *pvarVal;
+        PVOID byref;
+        CY *pcyVal;
+        DECIMAL *pdecVal;
+        IUnknown **ppunkVal;
+        IDispatch **ppdispVal;
+        SAFEARRAY **pparray;
+        LONGLONG *pllVal;
+        ULONGLONG *pullVal;
+        struct __tagBRECORD {
+          PVOID pvRecord;
+          IRecordInfo *pRecInfo;
+        } __VARIANT_NAME_4;
+      } __VARIANT_NAME_3;
+    } __VARIANT_NAME_2;
+
+    DECIMAL decVal;
+  } __VARIANT_NAME_1;
+};
+
+typedef VARIANT *LPVARIANT;
+typedef VARIANT VARIANTARG;
+typedef VARIANTARG *LPVARIANTARG;
+
+cpp_quote("#if 0")
+typedef const VARIANT *REFVARIANT;
+cpp_quote("#elif !defined(_REFVARIANT_DEFINED)")
+cpp_quote("#define _REFVARIANT_DEFINED")
+cpp_quote("#ifdef __cplusplus")
+cpp_quote("#define REFVARIANT const VARIANT &")
+cpp_quote("#else")
+cpp_quote("#define REFVARIANT const VARIANT *__MIDL_CONST")
+cpp_quote("#endif")
+cpp_quote("#endif")
+
+struct _wireBRECORD {
+  ULONG fFlags;
+  ULONG clSize;
+  IRecordInfo *pRecInfo;
+  [size_is(clSize)] byte *pRecord;
+};
+
+struct _wireVARIANT {
+  DWORD clSize;
+  DWORD rpcReserved;
+  USHORT vt;
+  USHORT wReserved1;
+  USHORT wReserved2;
+  USHORT wReserved3;
+  [switch_is(vt)] union {
+  [case(VT_EMPTY, VT_NULL)]    ;
+  [case(VT_I1)]                signed char cVal;
+  [case(VT_UI2)]               USHORT uiVal;
+  [case(VT_UI4)]               ULONG ulVal;
+  [case(VT_INT)]               INT intVal;
+  [case(VT_UINT)]              UINT uintVal;
+  [case(VT_UI1)]               BYTE bVal;
+  [case(VT_I2)]                SHORT iVal;
+  [case(VT_I4)]                LONG lVal;
+  [case(VT_R4)]                FLOAT fltVal;
+  [case(VT_R8)]                DOUBLE dblVal;
+  [case(VT_BOOL)]              VARIANT_BOOL boolVal;
+  [case(VT_ERROR)]             SCODE scode;
+  [case(VT_DATE)]              DATE date;
+  [case(VT_BSTR)]              wireBSTR bstrVal;
+  [case(VT_CY)]                CY cyVal;
+  [case(VT_DECIMAL)]           DECIMAL decVal;
+  [case(VT_UNKNOWN)]           IUnknown *punkVal;
+  [case(VT_DISPATCH)]          IDispatch *pdispVal;
+  [case(VT_ARRAY)]             wireSAFEARRAY parray;
+  [case(VT_I1|VT_BYREF)]       signed char *pcVal;
+  [case(VT_UI2|VT_BYREF)]      USHORT *puiVal;
+  [case(VT_UI4|VT_BYREF)]      ULONG *pulVal;
+  [case(VT_INT|VT_BYREF)]      INT *pintVal;
+  [case(VT_UINT|VT_BYREF)]     UINT *puintVal;
+  [case(VT_UI1|VT_BYREF)]      BYTE *pbVal;
+  [case(VT_I2|VT_BYREF)]       SHORT *piVal;
+  [case(VT_I4|VT_BYREF)]       LONG *plVal;
+  [case(VT_R4|VT_BYREF)]       FLOAT *pfltVal;
+  [case(VT_R8|VT_BYREF)]       DOUBLE *pdblVal;
+  [case(VT_BOOL|VT_BYREF)]     VARIANT_BOOL *pboolVal;
+  [case(VT_ERROR|VT_BYREF)]    SCODE *pscode;
+  [case(VT_DATE|VT_BYREF)]     DATE *pdate;
+  [case(VT_BSTR|VT_BYREF)]     wireBSTR *pbstrVal;
+  [case(VT_VARIANT|VT_BYREF)]  wireVARIANT *pvarVal;
+  [case(VT_CY|VT_BYREF)]       CY *pcyVal;
+  [case(VT_DECIMAL|VT_BYREF)]  DECIMAL *pdecVal;
+  [case(VT_UNKNOWN|VT_BYREF)]  IUnknown **ppunkVal;
+  [case(VT_DISPATCH|VT_BYREF)] IDispatch **ppdispVal;
+  [case(VT_ARRAY|VT_BYREF)]    wireSAFEARRAY *pparray;
+  [case(VT_RECORD, VT_RECORD|VT_BYREF)] wireBRECORD brecVal;
+  } DUMMYUNIONNAME;
+};
+
+/* Dispatch */
+
+typedef LONG DISPID;
+typedef DWORD HREFTYPE;
+typedef DISPID MEMBERID;
+
+typedef [v1_enum] enum tagTYPEKIND {
+  TKIND_ENUM = 0,
+  TKIND_RECORD,
+  TKIND_MODULE,
+  TKIND_INTERFACE,
+  TKIND_DISPATCH,
+  TKIND_COCLASS,
+  TKIND_ALIAS,
+  TKIND_UNION,
+  TKIND_MAX
+} TYPEKIND;
+
+typedef struct tagTYPEDESC {
+  [switch_is(vt)] union {
+  [case(VT_PTR, VT_SAFEARRAY)] struct tagTYPEDESC *lptdesc;
+  [case(VT_CARRAY)]            struct tagARRAYDESC *lpadesc;
+  [case(VT_USERDEFINED)]       HREFTYPE hreftype;
+  [default]                    ;
+  } DUMMYUNIONNAME;
+  VARTYPE vt;
+} TYPEDESC;
+
+typedef struct tagARRAYDESC {
+  TYPEDESC tdescElem;
+  USHORT cDims;
+  [size_is(cDims)] SAFEARRAYBOUND rgbounds[];
+} ARRAYDESC;
+
+typedef struct tagPARAMDESCEX {
+  ULONG cBytes;
+  VARIANTARG varDefaultValue;
+} PARAMDESCEX, *LPPARAMDESCEX;
+
+typedef struct tagPARAMDESC {
+  LPPARAMDESCEX pparamdescex;
+  USHORT wParamFlags;
+} PARAMDESC, *LPPARAMDESC;
+
+const USHORT PARAMFLAG_NONE         = 0x00;
+const USHORT PARAMFLAG_FIN          = 0x01;
+const USHORT PARAMFLAG_FOUT         = 0x02;
+const USHORT PARAMFLAG_FLCID        = 0x04;
+const USHORT PARAMFLAG_FRETVAL      = 0x08;
+const USHORT PARAMFLAG_FOPT         = 0x10;
+const USHORT PARAMFLAG_FHASDEFAULT  = 0x20;
+const USHORT PARAMFLAG_FHASCUSTDATA = 0x40;
+
+typedef struct tagIDLDESC {
+  ULONG_PTR dwReserved;
+  USHORT wIDLFlags;
+} IDLDESC, *LPIDLDESC;
+
+const USHORT IDLFLAG_NONE    = PARAMFLAG_NONE;
+const USHORT IDLFLAG_FIN     = PARAMFLAG_FIN;
+const USHORT IDLFLAG_FOUT    = PARAMFLAG_FOUT;
+const USHORT IDLFLAG_FLCID   = PARAMFLAG_FLCID;
+const USHORT IDLFLAG_FRETVAL = PARAMFLAG_FRETVAL;
+
+cpp_quote("#if 0") /* for IDL only */
+typedef struct tagELEMDESC {
+  TYPEDESC tdesc;
+  PARAMDESC paramdesc;
+} ELEMDESC;
+cpp_quote("#else") /* C/C++ defs */
+cpp_quote("typedef struct tagELEMDESC {")
+cpp_quote("  TYPEDESC tdesc;")
+cpp_quote("  union {")
+cpp_quote("    IDLDESC idldesc;")
+cpp_quote("    PARAMDESC paramdesc;")
+cpp_quote("  } DUMMYUNIONNAME;")
+cpp_quote("} ELEMDESC, *LPELEMDESC;")
+cpp_quote("#endif")
+
+typedef struct tagTYPEATTR {
+  GUID guid;
+  LCID lcid;
+  DWORD dwReserved;
+  MEMBERID memidConstructor;
+  MEMBERID memidDestructor;
+  LPOLESTR lpstrSchema;
+  ULONG cbSizeInstance;
+  TYPEKIND typekind;
+  WORD cFuncs;
+  WORD cVars;
+  WORD cImplTypes;
+  WORD cbSizeVft;
+  WORD cbAlignment;
+  WORD wTypeFlags;
+  WORD wMajorVerNum;
+  WORD wMinorVerNum;
+  TYPEDESC tdescAlias;
+  IDLDESC idldescType;
+} TYPEATTR, *LPTYPEATTR;
+
+typedef struct tagDISPPARAMS {
+  [size_is(cArgs)] VARIANTARG *rgvarg;
+  [size_is(cNamedArgs)] DISPID *rgdispidNamedArgs;
+  UINT cArgs;
+  UINT cNamedArgs;
+} DISPPARAMS;
+
+cpp_quote("#if 0") /* for IDL only */
+typedef struct tagEXCEPINFO {
+  WORD wCode;
+  WORD wReserved;
+  BSTR bstrSource;
+  BSTR bstrDescription;
+  BSTR bstrHelpFile;
+  DWORD dwHelpContext;
+  ULONG_PTR pvReserved;
+  ULONG_PTR pfnDeferredFillIn;
+  SCODE scode;
+} EXCEPINFO;
+cpp_quote("#else")
+cpp_quote("typedef struct tagEXCEPINFO {")
+cpp_quote("  WORD wCode;")
+cpp_quote("  WORD wReserved;")
+cpp_quote("  BSTR bstrSource;")
+cpp_quote("  BSTR bstrDescription;")
+cpp_quote("  BSTR bstrHelpFile;")
+cpp_quote("  DWORD dwHelpContext;")
+cpp_quote("  PVOID pvReserved;")
+cpp_quote("  HRESULT (__stdcall *pfnDeferredFillIn)(struct tagEXCEPINFO *);")
+cpp_quote("  SCODE scode;")
+cpp_quote("} EXCEPINFO, *LPEXCEPINFO;")
+cpp_quote("#endif")
+
+typedef [v1_enum] enum tagCALLCONV {
+  CC_FASTCALL = 0,
+  CC_CDECL = 1,
+  CC_MSCPASCAL,
+  CC_PASCAL = CC_MSCPASCAL,
+  CC_MACPASCAL,
+  CC_STDCALL,
+  CC_FPFASTCALL,
+  CC_SYSCALL,
+  CC_MPWCDECL,
+  CC_MPWPASCAL,
+  CC_MAX
+} CALLCONV;
+
+typedef [v1_enum] enum tagFUNCKIND {
+  FUNC_VIRTUAL,
+  FUNC_PUREVIRTUAL,
+  FUNC_NONVIRTUAL,
+  FUNC_STATIC,
+  FUNC_DISPATCH
+} FUNCKIND;
+
+typedef [v1_enum] enum tagINVOKEKIND {
+  INVOKE_FUNC = 1,
+  INVOKE_PROPERTYGET = 2,
+  INVOKE_PROPERTYPUT = 4,
+  INVOKE_PROPERTYPUTREF = 8
+} INVOKEKIND;
+
+typedef struct tagFUNCDESC {
+  MEMBERID memid;
+  [size_is(cScodes)] SCODE *lprgscode;
+  [size_is(cParams)] ELEMDESC *lprgelemdescParam;
+  FUNCKIND funckind;
+  INVOKEKIND invkind;
+  CALLCONV callconv;
+  SHORT cParams;
+  SHORT cParamsOpt;
+  SHORT oVft;
+  SHORT cScodes;
+  ELEMDESC elemdescFunc;
+  WORD wFuncFlags;
+} FUNCDESC, *LPFUNCDESC;
+
+typedef [v1_enum] enum tagVARKIND {
+  VAR_PERINSTANCE,
+  VAR_STATIC,
+  VAR_CONST,
+  VAR_DISPATCH
+} VARKIND;
+
+const USHORT IMPLTYPEFLAG_FDEFAULT       = 0x1;
+const USHORT IMPLTYPEFLAG_FSOURCE        = 0x2;
+const USHORT IMPLTYPEFLAG_FRESTRICTED    = 0x4;
+const USHORT IMPLTYPEFLAG_FDEFAULTVTABLE = 0x8;
+
+typedef struct tagVARDESC {
+  MEMBERID memid;
+  LPOLESTR lpstrSchema;
+  [switch_is(varkind)] union {
+  [case(VAR_PERINSTANCE, VAR_DISPATCH, VAR_STATIC)] ULONG oInst;
+  [case(VAR_CONST)] VARIANT *lpvarValue;
+  } DUMMYUNIONNAME;
+  ELEMDESC elemdescVar;
+  WORD wVarFlags;
+  VARKIND varkind;
+} VARDESC, *LPVARDESC;
+
+typedef enum tagTYPEFLAGS {
+  TYPEFLAG_FAPPOBJECT     = 0x0001,
+  TYPEFLAG_FCANCREATE     = 0x0002,
+  TYPEFLAG_FLICENSED      = 0x0004,
+  TYPEFLAG_FPREDECLID     = 0x0008,
+  TYPEFLAG_FHIDDEN        = 0x0010,
+  TYPEFLAG_FCONTROL       = 0x0020,
+  TYPEFLAG_FDUAL          = 0x0040,
+  TYPEFLAG_FNONEXTENSIBLE = 0x0080,
+  TYPEFLAG_FOLEAUTOMATION = 0x0100,
+  TYPEFLAG_FRESTRICTED    = 0x0200,
+  TYPEFLAG_FAGGREGATABLE  = 0x0400,
+  TYPEFLAG_FREPLACEABLE   = 0x0800,
+  TYPEFLAG_FDISPATCHABLE  = 0x1000,
+  TYPEFLAG_FREVERSEBIND   = 0x2000,
+  TYPEFLAG_FPROXY         = 0x4000
+} TYPEFLAGS;
+
+typedef enum tagFUNCFLAGS {
+  FUNCFLAG_FRESTRICTED       = 0x0001,
+  FUNCFLAG_FSOURCE           = 0x0002,
+  FUNCFLAG_FBINDABLE         = 0x0004,
+  FUNCFLAG_FREQUESTEDIT      = 0x0008,
+  FUNCFLAG_FDISPLAYBIND      = 0x0010,
+  FUNCFLAG_FDEFAULTBIND      = 0x0020,
+  FUNCFLAG_FHIDDEN           = 0x0040,
+  FUNCFLAG_FUSESGETLASTERROR = 0x0080,
+  FUNCFLAG_FDEFAULTCOLLELEM  = 0x0100,
+  FUNCFLAG_FUIDEFAULT        = 0x0200,
+  FUNCFLAG_FNONBROWSABLE     = 0x0400,
+  FUNCFLAG_FREPLACEABLE      = 0x0800,
+  FUNCFLAG_FIMMEDIATEBIND    = 0x1000
+} FUNCFLAGS;
+
+typedef enum tagVARFLAGS {
+  VARFLAG_FREADONLY        = 0x0001,
+  VARFLAG_FSOURCE          = 0x0002,
+  VARFLAG_FBINDABLE        = 0x0004,
+  VARFLAG_FREQUESTEDIT     = 0x0008,
+  VARFLAG_FDISPLAYBIND     = 0x0010,
+  VARFLAG_FDEFAULTBIND     = 0x0020,
+  VARFLAG_FHIDDEN          = 0x0040,
+  VARFLAG_FRESTRICTED      = 0x0080,
+  VARFLAG_FDEFAULTCOLLELEM = 0x0100,
+  VARFLAG_FUIDEFAULT       = 0x0200,
+  VARFLAG_FNONBROWSABLE    = 0x0400,
+  VARFLAG_FREPLACEABLE     = 0x0800,
+  VARFLAG_FIMMEDIATEBIND   = 0x1000
+} VARFLAGS;
+
+typedef [wire_marshal(DWORD)] struct tagCLEANLOCALSTORAGE {
+  IUnknown *pInterface;
+  PVOID pStorage;
+  DWORD flags;
+} CLEANLOCALSTORAGE;
+
+typedef struct tagCUSTDATAITEM {
+  GUID guid;
+  VARIANTARG varValue;
+} CUSTDATAITEM, *LPCUSTDATAITEM;
+
+typedef struct tagCUSTDATA {
+  DWORD cCustData;
+  [size_is(cCustData)] LPCUSTDATAITEM prgCustData;
+} CUSTDATA, *LPCUSTDATA;
+
+} /* interface IOleAutomationTypes */
+
+/******************** INTERFACES ********************/
+
+[
+  object,
+  uuid(00020400-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface IDispatch : IUnknown
+{
+  typedef [unique] IDispatch *LPDISPATCH;
+
+  const DISPID DISPID_UNKNOWN     = -1;
+  const DISPID DISPID_VALUE       =  0;
+  const DISPID DISPID_PROPERTYPUT = -3;
+  const DISPID DISPID_NEWENUM     = -4;
+  const DISPID DISPID_EVALUATE    = -5;
+  const DISPID DISPID_CONSTRUCTOR = -6;
+  const DISPID DISPID_DESTRUCTOR  = -7;
+  const DISPID DISPID_COLLECT     = -8;
+
+  HRESULT GetTypeInfoCount(
+    [out] UINT *pctinfo);
+
+  HRESULT GetTypeInfo(
+    [in] UINT iTInfo,
+    [in] LCID lcid,
+    [out] ITypeInfo **ppTInfo);
+
+  HRESULT GetIDsOfNames(
+    [in] REFIID riid,
+    [in, size_is(cNames)] LPOLESTR *rgszNames,
+    [in] UINT cNames,
+    [in] LCID lcid,
+    [out, size_is(cNames)] DISPID *rgDispId);
+
+  [local]
+  HRESULT Invoke(
+    [in] DISPID dispIdMember,
+    [in] REFIID riid,
+    [in] LCID lcid,
+    [in] WORD wFlags,
+    [in, out] DISPPARAMS *pDispParams,
+    [out] VARIANT *pVarResult,
+    [out] EXCEPINFO *pExcepInfo,
+    [out] UINT *puArgErr);
+
+  [call_as(Invoke)]
+  HRESULT RemoteInvoke(
+    [in] DISPID dispIdMember,
+    [in] REFIID riid,
+    [in] LCID lcid,
+    [in] DWORD dwFlags,
+    [in] DISPPARAMS *pDispParams,
+    [out] VARIANT *pVarResult,
+    [out] EXCEPINFO *pExcepInfo,
+    [out] UINT *pArgErr,
+    [in] UINT cVarRef,
+    [in, size_is(cVarRef)] UINT *rgVarRefIdx,
+    [in, out, size_is(cVarRef)] VARIANTARG *rgVarRef);
+}
+
+[
+  object,
+  uuid(00020404-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface IEnumVARIANT : IUnknown
+{
+  typedef [unique] IEnumVARIANT *LPENUMVARIANT;
+
+  [local]
+  HRESULT Next(
+    [in] ULONG celt,
+    [out] VARIANT *rgVar,
+    [out] ULONG *pCeltFetched);
+
+  [call_as(Next)]
+  HRESULT RemoteNext(
+    [in] ULONG celt,
+    [out, size_is(celt), length_is(*pCeltFetched)]
+    VARIANT *rgVar,
+    [out] ULONG *pCeltFetched);
+
+  HRESULT Skip(
+    [in] ULONG celt);
+
+  HRESULT Reset();
+
+  HRESULT Clone(
+    [out] IEnumVARIANT **ppEnum);
+}
+
+[
+  object,
+  uuid(00020403-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface ITypeComp : IUnknown
+{
+  typedef [unique] ITypeComp *LPTYPECOMP;
+
+  typedef [v1_enum] enum tagDESCKIND {
+    DESCKIND_NONE = 0,
+    DESCKIND_FUNCDESC,
+    DESCKIND_VARDESC,
+    DESCKIND_TYPECOMP,
+    DESCKIND_IMPLICITAPPOBJ,
+    DESCKIND_MAX
+  } DESCKIND;
+
+  typedef union tagBINDPTR {
+    FUNCDESC *lpfuncdesc;
+    VARDESC *lpvardesc;
+    ITypeComp *lptcomp;
+  } BINDPTR, *LPBINDPTR;
+
+  [local]
+  HRESULT Bind(
+    [in] LPOLESTR szName,
+    [in] ULONG lHashVal,
+    [in] WORD wFlags,
+    [out] ITypeInfo **ppTInfo,
+    [out] DESCKIND *pDescKind,
+    [out] BINDPTR *pBindPtr);
+
+  [call_as(Bind)]
+  HRESULT RemoteBind(
+    [in] LPOLESTR szName,
+    [in] ULONG lHashVal,
+    [in] WORD wFlags,
+    [out] ITypeInfo **ppTInfo,
+    [out] DESCKIND *pDescKind,
+    [out] LPFUNCDESC *ppFuncDesc,
+    [out] LPVARDESC *ppVarDesc,
+    [out] ITypeComp **ppTypeComp,
+    [out] CLEANLOCALSTORAGE *pDummy);
+
+  [local]
+  HRESULT BindType(
+    [in] LPOLESTR szName,
+    [in] ULONG lHashVal,
+    [out] ITypeInfo **ppTInfo,
+    [out] ITypeComp **ppTComp);
+
+  [call_as(BindType)]
+  HRESULT RemoteBindType(
+    [in] LPOLESTR szName,
+    [in] ULONG lHashVal,
+    [out] ITypeInfo **ppTInfo);
+}
+
+[
+  object,
+  uuid(00020401-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface ITypeInfo : IUnknown
+{
+  typedef [unique] ITypeInfo *LPTYPEINFO;
+
+  [local]
+  HRESULT GetTypeAttr(
+    [out] TYPEATTR **ppTypeAttr);
+
+  [call_as(GetTypeAttr)]
+  HRESULT RemoteGetTypeAttr(
+    [out] LPTYPEATTR *ppTypeAttr,
+    [out] CLEANLOCALSTORAGE *pDummy);
+
+  HRESULT GetTypeComp(
+    [out] ITypeComp **ppTComp);
+
+  [local]
+  HRESULT GetFuncDesc(
+    [in] UINT index,
+    [out] FUNCDESC **ppFuncDesc);
+
+  [call_as(GetFuncDesc)]
+  HRESULT RemoteGetFuncDesc(
+    [in] UINT index,
+    [out] LPFUNCDESC *ppFuncDesc,
+    [out] CLEANLOCALSTORAGE *pDummy);
+
+  [local]
+  HRESULT GetVarDesc(
+    [in] UINT index,
+    [out] VARDESC **ppVarDesc);
+
+  [call_as(GetVarDesc)]
+  HRESULT RemoteGetVarDesc(
+    [in] UINT index,
+    [out] LPVARDESC *ppVarDesc,
+    [out] CLEANLOCALSTORAGE *pDummy);
+
+  [local]
+  HRESULT GetNames(
+    [in] MEMBERID memid,
+    [out, size_is(cMaxNames), length_is(*pcNames)] BSTR *rgBstrNames,
+    [in] UINT cMaxNames,
+    [out] UINT *pcNames);
+
+  [call_as(GetNames)]
+  HRESULT RemoteGetNames(
+    [in] MEMBERID memid,
+    [out, size_is(cMaxNames), length_is(*pcNames)] BSTR *rgBstrNames,
+    [in] UINT cMaxNames,
+    [out] UINT *pcNames);
+
+  HRESULT GetRefTypeOfImplType(
+    [in] UINT index,
+    [out] HREFTYPE *pRefType);
+
+  HRESULT GetImplTypeFlags(
+    [in] UINT index,
+    [out] INT *pImplTypeFlags);
+
+  [local]
+  HRESULT GetIDsOfNames(
+    [in, size_is(cNames)] LPOLESTR *rgszNames,
+    [in] UINT cNames,
+    [out, size_is(cNames)] MEMBERID *pMemId);
+
+  [call_as(GetIDsOfNames)]
+  HRESULT LocalGetIDsOfNames();
+
+  [local]
+  HRESULT Invoke(
+    [in] PVOID pvInstance,
+    [in] MEMBERID memid,
+    [in] WORD wFlags,
+    [in, out] DISPPARAMS *pDispParams,
+    [out] VARIANT *pVarResult,
+    [out] EXCEPINFO *pExcepInfo,
+    [out] UINT *puArgErr);
+
+  [call_as(Invoke)]
+  HRESULT LocalInvoke();
+
+  [local]
+  HRESULT GetDocumentation(
+    [in] MEMBERID memid,
+    [out] BSTR *pBstrName,
+    [out] BSTR *pBstrDocString,
+    [out] DWORD *pdwHelpContext,
+    [out] BSTR *pBstrHelpFile);
+
+  [call_as(GetDocumentation)]
+  HRESULT RemoteGetDocumentation(
+    [in] MEMBERID memid,
+    [in] DWORD refPtrFlags,
+    [out] BSTR *pBstrName,
+    [out] BSTR *pBstrDocString,
+    [out] DWORD *pdwHelpContext,
+    [out] BSTR *pBstrHelpFile);
+
+  [local]
+  HRESULT GetDllEntry(
+    [in] MEMBERID memid,
+    [in] INVOKEKIND invKind,
+    [out] BSTR *pBstrDllName,
+    [out] BSTR *pBstrName,
+    [out] WORD *pwOrdinal);
+
+  [call_as(GetDllEntry)]
+  HRESULT RemoteGetDllEntry(
+    [in] MEMBERID memid,
+    [in] INVOKEKIND invKind,
+    [in] DWORD refPtrFlags,
+    [out] BSTR *pBstrDllName,
+    [out] BSTR *pBstrName,
+    [out] WORD *pwOrdinal);
+
+  HRESULT GetRefTypeInfo(
+    [in] HREFTYPE hRefType,
+    [out] ITypeInfo **ppTInfo);
+
+  [local]
+  HRESULT AddressOfMember(
+    [in] MEMBERID memid,
+    [in] INVOKEKIND invKind,
+    [out] PVOID *ppv);
+
+  [call_as(AddressOfMember)]
+  HRESULT LocalAddressOfMember();
+
+  [local]
+  HRESULT CreateInstance(
+    [in] IUnknown *pUnkOuter,
+    [in] REFIID riid,
+    [out, iid_is(riid)] PVOID *ppvObj);
+
+  [call_as(CreateInstance)]
+  HRESULT RemoteCreateInstance(
+    [in] REFIID riid,
+    [out, iid_is(riid)] IUnknown **ppvObj);
+
+  HRESULT GetMops(
+    [in] MEMBERID memid,
+    [out] BSTR *pBstrMops);
+
+  [local]
+  HRESULT GetContainingTypeLib(
+    [out] ITypeLib **ppTLib,
+    [out] UINT *pIndex);
+
+  [call_as(GetContainingTypeLib)]
+  HRESULT RemoteGetContainingTypeLib(
+    [out] ITypeLib **ppTLib,
+    [out] UINT *pIndex);
+
+  [local]
+  void ReleaseTypeAttr(
+    [in] TYPEATTR *pTypeAttr);
+
+  [call_as(ReleaseTypeAttr)]
+  HRESULT LocalReleaseTypeAttr();
+
+  [local]
+  void ReleaseFuncDesc(
+    [in] FUNCDESC *pFuncDesc);
+
+  [call_as(ReleaseFuncDesc)]
+  HRESULT LocalReleaseFuncDesc();
+
+  [local]
+  void ReleaseVarDesc(
+    [in] VARDESC *pVarDesc);
+
+  [call_as(ReleaseVarDesc)]
+  HRESULT LocalReleaseVarDesc();
+}
+
+[
+  object,
+  uuid(00020402-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface ITypeLib : IUnknown
+{
+  typedef [unique] ITypeLib *LPTYPELIB;
+
+  typedef [v1_enum] enum tagSYSKIND {
+    SYS_WIN16 = 0,
+    SYS_WIN32,
+    SYS_MAC,
+    SYS_WIN64
+  } SYSKIND;
+
+  typedef [v1_enum] enum tagLIBFLAGS {
+    LIBFLAG_FRESTRICTED   = 0x01,
+    LIBFLAG_FCONTROL      = 0x02,
+    LIBFLAG_FHIDDEN       = 0x04,
+    LIBFLAG_FHASDISKIMAGE = 0x08
+  } LIBFLAGS;
+
+  typedef struct tagTLIBATTR {
+    GUID guid;
+    LCID lcid;
+    SYSKIND syskind;
+    WORD wMajorVerNum;
+    WORD wMinorVerNum;
+    WORD wLibFlags;
+  } TLIBATTR, *LPTLIBATTR;
+
+  [local]
+  UINT GetTypeInfoCount();
+
+  [call_as(GetTypeInfoCount)]
+  HRESULT RemoteGetTypeInfoCount(
+    [out] UINT *pcTInfo);
+
+  HRESULT GetTypeInfo(
+    [in] UINT index,
+    [out] ITypeInfo **ppTInfo);
+
+  HRESULT GetTypeInfoType(
+    [in] UINT index,
+    [out] TYPEKIND *pTKind);
+
+  HRESULT GetTypeInfoOfGuid(
+    [in] REFGUID guid,
+    [out] ITypeInfo **ppTinfo);
+
+  [local]
+  HRESULT GetLibAttr(
+    [out] TLIBATTR **ppTLibAttr);
+
+  [call_as(GetLibAttr)]
+  HRESULT RemoteGetLibAttr(
+    [out] LPTLIBATTR *ppTLibAttr,
+    [out] CLEANLOCALSTORAGE *pDummy);
+
+  HRESULT GetTypeComp(
+    [out] ITypeComp **ppTComp);
+
+  [local]
+  HRESULT GetDocumentation(
+    [in] INT index,
+    [out] BSTR *pBstrName,
+    [out] BSTR *pBstrDocString,
+    [out] DWORD *pdwHelpContext,
+    [out] BSTR *pBstrHelpFile);
+
+  [call_as(GetDocumentation)]
+  HRESULT RemoteGetDocumentation(
+    [in] INT index,
+    [in] DWORD refPtrFlags,
+    [out] BSTR *pBstrName,
+    [out] BSTR *pBstrDocString,
+    [out] DWORD *pdwHelpContext,
+    [out] BSTR *pBstrHelpFile);
+
+  [local]
+  HRESULT IsName(
+    [in, out] LPOLESTR szNameBuf,
+    [in] ULONG lHashVal,
+    [out] BOOL *pfName);
+
+  [call_as(IsName)]
+  HRESULT RemoteIsName(
+    [in] LPOLESTR szNameBuf,
+    [in] ULONG lHashVal,
+    [out] BOOL *pfName,
+    [out] BSTR *pBstrLibName);
+
+  [local]
+  HRESULT FindName(
+    [in, out] LPOLESTR szNameBuf,
+    [in] ULONG lHashVal,
+    [out, size_is(*pcFound), length_is(*pcFound)] ITypeInfo **ppTInfo,
+    [out, size_is(*pcFound), length_is(*pcFound)] MEMBERID *rgMemId,
+    [in, out] USHORT *pcFound);
+
+  [call_as(FindName)]
+  HRESULT RemoteFindName(
+    [in] LPOLESTR szNameBuf,
+    [in] ULONG lHashVal,
+    [out, size_is(*pcFound), length_is(*pcFound)] ITypeInfo **ppTInfo,
+    [out, size_is(*pcFound), length_is(*pcFound)] MEMBERID *rgMemId,
+    [in, out] USHORT *pcFound,
+    [out] BSTR *pBstrLibName);
+
+  [local]
+  void ReleaseTLibAttr(
+    [in] TLIBATTR *pTLibAttr);
+
+  [call_as(ReleaseTLibAttr)]
+  HRESULT LocalReleaseTLibAttr();
+}
+
+
+[
+  object,
+  uuid(1CF2B120-547D-101B-8E65-08002B2BD119),
+  pointer_default(unique)
+]
+interface IErrorInfo : IUnknown
+{
+  typedef [unique] IErrorInfo *LPERRORINFO;
+
+  HRESULT GetGUID(
+    [out] GUID *pGUID);
+
+  HRESULT GetSource(
+    [out] BSTR *pBstrSource);
+
+  HRESULT GetDescription(
+    [out] BSTR *pBstrDescription);
+
+  HRESULT GetHelpFile(
+    [out] BSTR *pBstrHelpFile);
+
+  HRESULT GetHelpContext(
+    [out] DWORD *pdwHelpContext);
+}
+
+[
+  object,
+  uuid(22F03340-547D-101B-8E65-08002B2BD119),
+  pointer_default(unique)
+]
+interface ICreateErrorInfo : IUnknown
+{
+  typedef [unique] ICreateErrorInfo *LPCREATEERRORINFO;
+
+  HRESULT SetGUID(
+    [in] REFGUID rguid);
+
+  HRESULT SetSource(
+    [in] LPOLESTR szSource);
+
+  HRESULT SetDescription(
+    [in] LPOLESTR szDescription);
+
+  HRESULT SetHelpFile(
+    [in] LPOLESTR szHelpFile);
+
+  HRESULT SetHelpContext(
+    [in] DWORD dwHelpContext);
+}
+
+[
+  object,
+  uuid(DF0B3D60-548F-101B-8E65-08002B2BD119),
+  pointer_default(unique)
+]
+interface ISupportErrorInfo : IUnknown
+{
+  typedef [unique] ISupportErrorInfo *LPSUPPORTERRORINFO;
+
+  HRESULT InterfaceSupportsErrorInfo(
+    [in] REFIID riid);
+}
+
+[
+  object,
+  uuid(0000002E-0000-0000-C000-000000000046)
+]
+interface ITypeFactory : IUnknown
+{
+  HRESULT CreateFromTypeInfo(
+    [in] ITypeInfo *pTypeInfo,
+    [in] REFIID riid,
+    [out, iid_is(riid)] IUnknown **ppv);
+}
+
+[
+  local,
+  object,
+  uuid(00020405-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface ICreateTypeInfo : IUnknown
+{
+  typedef [unique] ICreateTypeInfo *LPCREATETYPEINFO;
+
+  HRESULT SetGuid(
+    [in] REFGUID guid);
+
+  HRESULT SetTypeFlags(
+    [in] UINT uTypeFlags);
+
+  HRESULT SetDocString(
+    [in] LPOLESTR pStrDoc);
+
+  HRESULT SetHelpContext(
+    [in] DWORD dwHelpContext);
+
+  HRESULT SetVersion(
+    [in] WORD wMajorVerNum,
+    [in] WORD wMinorVerNum);
+
+  HRESULT AddRefTypeInfo(
+    [in] ITypeInfo *pTInfo,
+    [in] HREFTYPE *phRefType);
+
+  HRESULT AddFuncDesc(
+    [in] UINT index,
+    [in] FUNCDESC *pFuncDesc);
+
+  HRESULT AddImplType(
+    [in] UINT index,
+    [in] HREFTYPE hRefType);
+
+  HRESULT SetImplTypeFlags(
+    [in] UINT index,
+    [in] INT implTypeFlags);
+
+  HRESULT SetAlignment(
+    [in] WORD cbAlignment);
+
+  HRESULT SetSchema(
+    [in] LPOLESTR pStrSchema);
+
+  HRESULT AddVarDesc(
+    [in] UINT index,
+    [in] VARDESC *pVarDesc);
+
+  HRESULT SetFuncAndParamNames(
+    [in] UINT index,
+    [in, size_is(cNames)] LPOLESTR *rgszNames,
+    [in] UINT cNames);
+
+  HRESULT SetVarName(
+    [in] UINT index,
+    [in] LPOLESTR szName);
+
+  HRESULT SetTypeDescAlias(
+    [in] TYPEDESC *pTDescAlias);
+
+  HRESULT DefineFuncAsDllEntry(
+    [in] UINT index,
+    [in] LPOLESTR szDllName,
+    [in] LPOLESTR szProcName);
+
+  HRESULT SetFuncDocString(
+    [in] UINT index,
+    [in] LPOLESTR szDocString);
+
+  HRESULT SetVarDocString(
+    [in] UINT index,
+    [in] LPOLESTR szDocString);
+
+  HRESULT SetFuncHelpContext(
+    [in] UINT index,
+    [in] DWORD dwHelpContext);
+
+  HRESULT SetVarHelpContext(
+    [in] UINT index,
+    [in] DWORD dwHelpContext);
+
+  HRESULT SetMops(
+    [in] UINT index,
+    [in] BSTR bstrMops);
+
+  HRESULT SetTypeIdldesc(
+    [in] IDLDESC * pIdlDesc);
+
+  HRESULT LayOut();
+}
+
+[
+  local,
+  object,
+  uuid(0002040E-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface ICreateTypeInfo2 : ICreateTypeInfo
+{
+  typedef [unique] ICreateTypeInfo2 *LPCREATETYPEINFO2;
+
+  HRESULT DeleteFuncDesc(
+    [in] UINT index);
+
+  HRESULT DeleteFuncDescByMemId(
+    [in] MEMBERID memid,
+    [in] INVOKEKIND invKind);
+
+  HRESULT DeleteVarDesc(
+    [in] UINT index);
+
+  HRESULT DeleteVarDescByMemId(
+    [in] MEMBERID memid);
+
+  HRESULT DeleteImplType(
+    [in] UINT index);
+
+  HRESULT SetCustData(
+    [in] REFGUID guid,
+    [in] VARIANT *pVarVal);
+
+  HRESULT SetFuncCustData( 
+    [in] UINT index, 
+    [in] REFGUID guid, 
+    [in] VARIANT *pVarVal);
+  
+  HRESULT SetParamCustData( 
+    [in] UINT indexFunc, 
+    [in] UINT indexParam, 
+    [in] REFGUID guid, 
+    [in] VARIANT *pVarVal);
+
+  HRESULT SetVarCustData( 
+    [in] UINT index, 
+    [in] REFGUID guid, 
+    [in] VARIANT *pVarVal);
+
+  HRESULT SetImplTypeCustData( 
+    [in] UINT index, 
+    [in] REFGUID guid, 
+    [in] VARIANT *pVarVal);
+
+  HRESULT SetHelpStringContext(
+    [in] ULONG dwHelpStringContext);
+
+  HRESULT SetFuncHelpStringContext(
+    [in] UINT index,
+    [in] ULONG dwHelpStringContext);
+
+  HRESULT SetVarHelpStringContext(
+    [in] UINT index,
+    [in] ULONG dwHelpStringContext);
+
+  HRESULT Invalidate();
+
+  HRESULT SetName(
+    [in] LPOLESTR szName);
+}
+
+[
+  local,
+  object,
+  uuid(00020406-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface ICreateTypeLib : IUnknown
+{
+  typedef [unique] ICreateTypeLib *LPCREATETYPELIB;
+
+  HRESULT CreateTypeInfo(
+    [in] LPOLESTR szName,
+    [in] TYPEKIND tkind,
+    [out] ICreateTypeInfo **ppCTInfo);
+
+  HRESULT SetName(
+    [in] LPOLESTR szName);
+
+  HRESULT SetVersion(
+    [in] WORD wMajorVerNum,
+    [in] WORD wMinorVerNum);
+
+  HRESULT SetGuid(
+    [in] REFGUID guid);
+
+  HRESULT SetDocString(
+    [in] LPOLESTR szDoc);
+
+  HRESULT SetHelpFileName(
+    [in] LPOLESTR szHelpFileName);
+
+  HRESULT SetHelpContext(
+    [in] DWORD dwHelpContext);
+
+  HRESULT SetLcid(
+    [in] LCID lcid);
+
+  HRESULT SetLibFlags(
+    [in] UINT uLibFlags);
+
+  HRESULT SaveAllChanges();
+}
+
+[
+  local,
+  object,
+  uuid(0002040F-0000-0000-C000-000000000046),
+  pointer_default(unique)
+]
+interface ICreateTypeLib2 : ICreateTypeLib
+{
+  typedef [unique] ICreateTypeLib2 *LPCREATETYPELIB2;
+
+  HRESULT DeleteTypeInfo(
+    [in] LPOLESTR szName);
+
+  HRESULT SetCustData(
+    [in] REFGUID guid,
+    [in] VARIANT *pVarVal);
+
+  HRESULT SetHelpStringContext(
+    [in] ULONG dwHelpStringContext);
+
+  HRESULT SetHelpStringDll(
+    [in] LPOLESTR szFileName);
+}
+
+
+/*****************************************************************************
+ * IErrorLog interface
+ */
+[
+  object,
+  uuid(3127ca40-446e-11ce-8135-00aa004bb851),
+  pointer_default(unique)
+]
+interface IErrorLog : IUnknown
+{
+  typedef IErrorLog *LPERRORLOG;
+
+  HRESULT AddError(
+    [in] LPCOLESTR pszPropName,
+    [in] EXCEPINFO *pExcepInfo);
+}
+
+
+/*****************************************************************************
+ * IPropertyBag interface
+ */
+[
+  object,
+  uuid(55272a00-42cb-11ce-8135-00aa004bb851),
+  pointer_default(unique)
+]
+interface IPropertyBag : IUnknown
+{
+  typedef IPropertyBag *LPPROPERTYBAG;
+
+  [local]
+  HRESULT Read(
+    [in] LPCOLESTR pszPropName,
+    [in, out] VARIANT *pVar,
+    [in] IErrorLog *pErrorLog);
+
+  [call_as(Read)]
+  HRESULT RemoteRead(
+    [in] LPCOLESTR pszPropName,
+    [out] VARIANT *pVar,
+    [in] IErrorLog *pErrorLog,
+    [in] DWORD varType,
+    [in] IUnknown *pUnkObj);
+
+  HRESULT Write(
+    [in] LPCOLESTR pszPropName,
+    [in] VARIANT *pVar);
+}
+
+/*
+ * Copyright (C) 1999 Paul Quinn
+ * Copyright (C) 1999 Francis Beaudet
+ * Copyright (C) 2003 Alexandre Julliard
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
+ */
+
+#ifndef DO_NO_IMPORTS
+//import "oleidl.idl";
+//import "../wine/windows/oaidl.idl";
+//import "../wine/windows/servprov.idl";
+//import "../wine/windows/urlmon.idl";
+#endif
+
+/*****************************************************************************
+ * IOleControlTypes interface
+ */
+[
+    pointer_default(unique)
+]
+interface IOleControlTypes
+{
+    typedef [v1_enum] enum tagUASFLAGS
+    {
+        UAS_NORMAL       = 0x0,
+        UAS_BLOCKED      = 0x1,
+        UAS_NOPARENTABLE = 0x2,
+        UAS_MASK         = 0x3
+    } UASFLAGS;
+
+    typedef enum tagREADYSTATE
+    {
+        READYSTATE_UNINITIALIZED  = 0,
+        READYSTATE_LOADING  = 1,
+        READYSTATE_LOADED = 2,
+        READYSTATE_INTERACTIVE  = 3,
+        READYSTATE_COMPLETE = 4
+    } READYSTATE;
+
+    typedef struct tagVARIANT_BLOB
+    {
+        DWORD clSize;
+        DWORD rpcReserved;
+        [size_is(clSize-1)] ULONGLONG ahData[];
+    } wireVARIANT_BLOB;
+
+    typedef struct tagUserVARIANT
+    {
+      wireVARIANT_BLOB pVarBlob;
+    } UserVARIANT;
+}
+
+
+/*****************************************************************************
+ * IFont interface
+ */
+[
+    object,
+    uuid(bef6e002-a874-101a-8bba-00aa00300cab),
+    pointer_default(unique)
+]
+interface IFont : IUnknown
+{
+    typedef IFont *LPFONT;
+    typedef TEXTMETRICW TEXTMETRICOLE, *LPTEXTMETRICOLE;
+
+    [propget] HRESULT Name( [out] BSTR *pname);
+    [propput] HRESULT Name( [in] BSTR name );
+    [propget] HRESULT Size( [out] CY *psize );
+    [propput] HRESULT Size( [in] CY size );
+    [propget] HRESULT Bold( [out] BOOL *pbold );
+    [propput] HRESULT Bold( [in] BOOL bold );
+    [propget] HRESULT Italic( [out] BOOL *pitalic );
+    [propput] HRESULT Italic( [in] BOOL italic );
+    [propget] HRESULT Underline( [out] BOOL *punderline );
+    [propput] HRESULT Underline( [in] BOOL underline );
+    [propget] HRESULT Strikethrough( [out] BOOL *pstrikethrough );
+    [propput] HRESULT Strikethrough( [in] BOOL strikethrough );
+    [propget] HRESULT Weight( [out] SHORT *pweight );
+    [propput] HRESULT Weight( [in] SHORT weight );
+    [propget] HRESULT Charset( [out] SHORT *pcharset );
+    [propput] HRESULT Charset( [in] SHORT charset );
+    [propget] HRESULT hFont( [out] HFONT *phfont );
+    HRESULT Clone( [out] IFont **ppfont );
+    HRESULT IsEqual( [in] IFont *pFontOther );
+    HRESULT SetRatio( [in] LONG cyLogical, [in] LONG cyHimetric );
+    HRESULT QueryTextMetrics( [out] TEXTMETRICOLE * ptm );
+    HRESULT AddRefHfont( [in] HFONT hfont );
+    HRESULT ReleaseHfont( [in] HFONT hfont );
+    HRESULT SetHdc( [in] HDC hdc );
+}
+
+
+/*****************************************************************************
+ * IFontDisp interface
+ */
+[
+    object,
+    uuid(bef6e003-a874-101a-8bba-00aa00300cab),
+    pointer_default(unique)
+]
+interface IFontDisp : IDispatch
+{
+    typedef IFontDisp *LPFONTDISP;
+}
+
+
+/*****************************************************************************
+ * IFontEventsDisp interface
+ */
+[
+    object,
+    uuid(4ef6100a-af88-11d0-9846-00c04fc29993),
+    pointer_default(unique)
+]
+interface IFontEventsDisp : IDispatch
+{
+    typedef IFontEventsDisp *LPFONTEVENTS;
+}
+
+
+/*****************************************************************************
+ * IPicture interface
+ */
+[
+    object,
+    uuid(7bf80980-bf32-101a-8bbb-00aa00300cab),
+    pointer_default(unique)
+]
+interface IPicture : IUnknown
+{
+    typedef IPicture *LPPICTURE;
+
+    typedef enum tagPicture
+    {
+        PICTURE_SCALABLE = 0x1,
+        PICTURE_TRANSPARENT = 0x2
+    } PICTUREATTRIBUTES;
+
+    typedef UINT OLE_HANDLE;
+    typedef LONG OLE_XPOS_HIMETRIC;
+    typedef LONG OLE_YPOS_HIMETRIC;
+    typedef LONG OLE_XSIZE_HIMETRIC;
+    typedef LONG OLE_YSIZE_HIMETRIC;
+
+    [propget] HRESULT Handle( [out] OLE_HANDLE *pHandle );
+    [propget] HRESULT hPal( [out] OLE_HANDLE *phPal );
+    [propget] HRESULT Type( [out] SHORT *pType );
+    [propget] HRESULT Width( [out] OLE_XSIZE_HIMETRIC *pWidth );
+    [propget] HRESULT Height( [out] OLE_YSIZE_HIMETRIC *pHeight );
+
+    HRESULT Render(
+        [in] HDC hdc,
+        [in] LONG x,
+        [in] LONG y,
+        [in] LONG cx,
+        [in] LONG cy,
+        [in] OLE_XPOS_HIMETRIC xSrc,
+        [in] OLE_YPOS_HIMETRIC ySrc,
+        [in] OLE_XSIZE_HIMETRIC cxSrc,
+        [in] OLE_YSIZE_HIMETRIC cySrc,
+        [in] LPCRECT pRcWBounds);
+
+    HRESULT set_hPal( [in] OLE_HANDLE hPal );
+
+    [propget] HRESULT CurDC( [out] HDC *phDC );
+
+    HRESULT SelectPicture(
+        [in] HDC hDCIn,
+        [out] HDC * phDCOut,
+        [out] OLE_HANDLE * phBmpOut);
+
+    [propget] HRESULT KeepOriginalFormat( [out] BOOL *pKeep );
+
+    [propput] HRESULT KeepOriginalFormat( [in] BOOL keep );
+
+    HRESULT PictureChanged();
+
+    HRESULT SaveAsFile(
+        [in] LPSTREAM pStream,
+        [in] BOOL fSaveMemCopy,
+        [out] LONG *pCbSize);
+
+    [propget] HRESULT Attributes( [out] DWORD *pDwAttr );
+}
+
+
+/*****************************************************************************
+ * IPictureDisp interface
+ */
+[
+    object,
+    uuid(7bf80981-bf32-101a-8bbb-00aa00300cab),
+    pointer_default(unique)
+]
+interface IPictureDisp : IDispatch
+{
+    typedef IPictureDisp *LPPICTUREDISP;
+}
+
+
+/*****************************************************************************
+ * IOleControl interface
+ */
+[
+    object,
+    uuid(b196b288-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+
+interface IOleControl : IUnknown
+{
+    typedef IOleControl *LPOLECONTROL;
+
+    typedef struct tagCONTROLINFO
+    {
+        ULONG cb;
+        HACCEL hAccel;
+        USHORT cAccel;
+        DWORD dwFlags;
+    } CONTROLINFO, *LPCONTROLINFO;
+
+    typedef enum tagCTRLINFO
+    {
+        CTRLINFO_EATS_RETURN = 1,
+        CTRLINFO_EATS_ESCAPE = 2
+    } CTRLINFO;
+
+    HRESULT GetControlInfo( [out] CONTROLINFO *pCI );
+    HRESULT OnMnemonic( [in] MSG *pMsg );
+    HRESULT OnAmbientPropertyChange( [in] DISPID dispID );
+    HRESULT FreezeEvents( [in] BOOL bFreeze );
+}
+
+
+/*****************************************************************************
+ * IOleControlSite interface
+ */
+[
+    object,
+    uuid(b196b289-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IOleControlSite : IUnknown
+{
+    typedef IOleControlSite *LPOLECONTROLSITE;
+
+    typedef struct tagPOINTF
+    {
+        FLOAT x;
+        FLOAT y;
+    } POINTF, *LPPOINTF;
+
+    typedef enum tagXFORMCOORDS
+    {
+	XFORMCOORDS_POSITION = 0x1,
+	XFORMCOORDS_SIZE = 0x2,
+	XFORMCOORDS_HIMETRICTOCONTAINER = 0x4,
+	XFORMCOORDS_CONTAINERTOHIMETRIC = 0x8,
+        XFORMCOORDS_EVENTCOMPAT = 0x10
+    } XFORMCOORDS;
+
+    HRESULT OnControlInfoChanged();
+
+    HRESULT LockInPlaceActive( [in] BOOL fLock );
+
+    HRESULT GetExtendedControl( [out] IDispatch ** ppDisp );
+
+    HRESULT TransformCoords(
+        [in, out] POINTL *pPtlHimetric,
+        [in, out] POINTF *pPtfContainer,
+        [in] DWORD dwFlags);
+
+    HRESULT TranslateAccelerator( [in] MSG *pMsg, [in] DWORD grfModifiers );
+
+    HRESULT OnFocus( [in] BOOL fGotFocus );
+
+    HRESULT ShowPropertyFrame();
+}
+
+
+/*****************************************************************************
+ * IOleInPlaceSiteEx interface
+ */
+[
+    object,
+    uuid(9c2cad80-3424-11cf-b670-00aa004cd6d8),
+    pointer_default(unique)
+]
+interface IOleInPlaceSiteEx : IOleInPlaceSite
+{
+    typedef IOleInPlaceSiteEx *LPOLEINPLACESITEEX;
+
+    typedef enum tagACTIVATEFLAGS
+    {
+        ACTIVATE_WINDOWLESS = 1
+    } ACTIVATE_FLAGS;
+
+    HRESULT OnInPlaceActivateEx( [out] BOOL * pfNoRedraw, [in] DWORD dwFlags );
+    HRESULT OnInPlaceDeactivateEx( [in] BOOL fNoRedraw );
+    HRESULT RequestUIActivate();
+}
+
+
+/*****************************************************************************
+ * IOleInPlaceSiteWindowless interface
+ */
+[
+    local,
+    object,
+    uuid(922eada0-3424-11cf-b670-00aa004cd6d8),
+    pointer_default(unique)
+]
+interface IOleInPlaceSiteWindowless : IOleInPlaceSiteEx
+{
+    typedef IOleInPlaceSiteWindowless *LPOLEINPLACESITEWINDOWLESS;
+
+    typedef enum tagOLEDCFLAGS
+    {
+        OLEDC_NODRAW = 0x1,
+        OLEDC_PAINTBKGND = 0x2,
+        OLEDC_OFFSCREEN = 0x4
+    } OLEDCFLAGS;
+
+    HRESULT CanWindowlessActivate();
+
+    HRESULT GetCapture();
+
+    HRESULT SetCapture( [in] BOOL fCapture );
+
+    HRESULT GetFocus();
+
+    HRESULT SetFocus( [in] BOOL fFocus );
+
+    HRESULT GetDC(
+        [in] LPCRECT pRect,
+        [in] DWORD grfFlags,
+        [out] HDC *phDC);
+
+    HRESULT ReleaseDC( [in] HDC hDC );
+
+    HRESULT InvalidateRect(
+        [in] LPCRECT pRect,
+        [in] BOOL fErase);
+
+    HRESULT InvalidateRgn(
+        [in] HRGN hRGN,
+        [in] BOOL fErase);
+
+    HRESULT ScrollRect(
+        [in] INT dx,
+        [in] INT dy,
+        [in] LPCRECT pRectScroll,
+        [in] LPCRECT pRectClip);
+
+    HRESULT AdjustRect( [in, out] LPRECT prc );
+
+    HRESULT OnDefWindowMessage(
+        [in] UINT msg,
+        [in] WPARAM wParam,
+        [in] LPARAM lParam,
+        [out] LRESULT *plResult);
+}
+
+
+/*****************************************************************************
+ * IOleInPlaceObjectWindowless interface
+ */
+[
+    local,
+    object,
+    uuid(1c2056cc-5ef4-101b-8bc8-00aa003e3b29),
+    pointer_default(unique)
+]
+interface IOleInPlaceObjectWindowless : IOleInPlaceObject
+{
+    typedef IOleInPlaceObjectWindowless *LPOLEINPLACEOBJECTWINDOWLESS;
+
+    HRESULT OnWindowMessage(
+        [in] UINT msg,
+        [in] WPARAM wParam,
+        [in] LPARAM lParam,
+        [out] LRESULT *plResult);
+
+    HRESULT GetDropTarget( [out] IDropTarget **ppDropTarget );
+}
+
+
+/*****************************************************************************
+ * IClassFactory2 interface
+ */
+[
+    object,
+    uuid(b196b28f-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IClassFactory2 : IClassFactory
+{
+    typedef IClassFactory2 *LPCLASSFACTORY2;
+
+    typedef struct tagLICINFO
+    {
+        LONG cbLicInfo;
+        BOOL fRuntimeKeyAvail;
+        BOOL fLicVerified;
+    } LICINFO, *LPLICINFO;
+
+    HRESULT GetLicInfo( [out] LICINFO *pLicInfo );
+
+    HRESULT RequestLicKey(
+        [in] DWORD dwReserved,
+        [out] BSTR *pBstrKey);
+
+    [local]
+    HRESULT CreateInstanceLic(
+        [in] IUnknown *pUnkOuter,
+        [in] IUnknown *pUnkReserved,
+        [in] REFIID riid,
+        [in] BSTR bstrKey,
+        [out, iid_is(riid)] PVOID *ppvObj);
+
+    [call_as(CreateInstanceLic)]
+    HRESULT RemoteCreateInstanceLic(
+        [in] REFIID riid,
+        [in] BSTR bstrKey,
+        [out, iid_is(riid)] IUnknown **ppvObj);
+}
+
+
+/*****************************************************************************
+ * IViewObject interface
+ */
+[
+    local,
+    object,
+    uuid(3af24292-0c96-11ce-a0cf-00aa00600ab8),
+    pointer_default(unique)
+]
+interface IViewObjectEx : IViewObject2
+{
+    typedef IViewObjectEx *LPVIEWOBJECTEX;
+
+    typedef enum tagVIEWSTATUS
+    {
+        VIEWSTATUS_OPAQUE = 1,
+        VIEWSTATUS_SOLIDBKGND = 2,
+        VIEWSTATUS_DVASPECTOPAQUE = 4,
+        VIEWSTATUS_DVASPECTTRANSPARENT = 8,
+        VIEWSTATUS_SURFACE = 16,
+        VIEWSTATUS_3DSURFACE = 32
+    } VIEWSTATUS;
+
+    typedef enum tagHITRESULT
+    {
+        HITRESULT_OUTSIDE = 0,
+        HITRESULT_TRANSPARENT = 1,
+        HITRESULT_CLOSE = 2,
+        HITRESULT_HIT = 3
+    } HITRESULT;
+
+    typedef enum tagDVASPECT2
+    {
+        DVASPECT_OPAQUE = 16,
+        DVASPECT_TRANSPARENT = 32
+    } DVASPECT2;
+
+    typedef struct tagExtentInfo
+    {
+        ULONG cb;
+        DWORD dwExtentMode;
+        SIZEL sizelProposed;
+    } DVEXTENTINFO;
+
+    typedef enum tagAspectInfoFlag
+    {
+        DVASPECTINFOFLAG_CANOPTIMIZE = 1
+    } DVASPECTINFOFLAG;
+
+    typedef struct tagAspectInfo
+    {
+        ULONG cb;
+        DWORD dwFlags;
+    } DVASPECTINFO;
+
+    HRESULT GetRect(
+        [in] DWORD dwAspect,
+        [out] LPRECTL pRect);
+
+    HRESULT GetViewStatus( [out] DWORD *pdwStatus );
+
+    HRESULT QueryHitPoint(
+        [in] DWORD dwAspect,
+        [in] LPCRECT pRectBounds,
+        [in] POINT ptlLoc,
+        [in] LONG lCloseHint,
+        [out] DWORD *pHitResult);
+
+    HRESULT QueryHitRect(
+        [in] DWORD dwAspect,
+        [in] LPCRECT pRectBounds,
+        [in] LPCRECT pRectLoc,
+        [in] LONG lCloseHint,
+        [out] DWORD *pHitResult);
+
+    HRESULT GetNaturalExtent (
+        [in] DWORD dwAspect,
+        [in] LONG lindex,
+        [in] DVTARGETDEVICE *ptd,
+        [in] HDC hicTargetDev,
+        [in] DVEXTENTINFO *pExtentInfo,
+        [out] LPSIZEL pSizel);
+}
+
+
+/*****************************************************************************
+ * IProvideClassInfo interface
+ */
+[
+    object,
+    uuid(b196b283-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IProvideClassInfo : IUnknown
+{
+    typedef IProvideClassInfo *LPPROVIDECLASSINFO;
+
+cpp_quote("#ifdef WINE_NO_UNICODE_MACROS")
+cpp_quote("#undef GetClassInfo")
+cpp_quote("#endif")
+
+    HRESULT GetClassInfo( [out] ITypeInfo ** ppTI );
+}
+
+
+/*****************************************************************************
+ * IProvideClassInfo2 interface
+ */
+[
+    object,
+    uuid(a6bc3ac0-dbaa-11ce-9de3-00aa004bb851),
+    pointer_default(unique)
+]
+interface IProvideClassInfo2 : IProvideClassInfo
+{
+    typedef IProvideClassInfo2 *LPPROVIDECLASSINFO2;
+
+    typedef enum tagGUIDKIND
+    {
+        GUIDKIND_DEFAULT_SOURCE_DISP_IID = 1
+    } GUIDKIND;
+
+    HRESULT GetGUID(
+        [in]  DWORD dwGuidKind,
+        [out] GUID *pGUID );
+}
+
+
+[
+    object,
+    uuid(a7aba9c1-8983-11cf-8f20-00805f2cd064),
+    pointer_default(unique)
+]
+interface IProvideMultipleClassInfo : IProvideClassInfo2
+{
+    cpp_quote("#define MULTICLASSINFO_GETTYPEINFO           0x00000001")
+    cpp_quote("#define MULTICLASSINFO_GETNUMRESERVEDDISPIDS 0x00000002")
+    cpp_quote("#define MULTICLASSINFO_GETIIDPRIMARY         0x00000004")
+    cpp_quote("#define MULTICLASSINFO_GETIIDSOURCE          0x00000008")
+
+    cpp_quote("#define TIFLAGS_EXTENDDISPATCHONLY           0x00000001")
+
+    typedef IProvideMultipleClassInfo *LPPROVIDEMULTIPLECLASSINFO;
+
+    HRESULT GetMultiTypeInfoCount( 
+        [out] ULONG *pcti);
+
+    HRESULT GetInfoOfIndex( 
+        [in] ULONG iti,
+        [in] DWORD dwFlags,
+        [out] ITypeInfo **pptiCoClass,
+        [out] DWORD *pdwTIFlags,
+        [out] ULONG *pcdispidReserved,
+        [out] IID *piidPrimary,
+        [out] IID *piidSource);
+}
+
+
+/*****************************************************************************
+ * IConnectionPoint interface
+ */
+interface IConnectionPointContainer; /* forward declarations */
+interface IEnumConnections;
+
+[
+    object,
+    uuid(b196b286-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IConnectionPoint : IUnknown
+{
+    typedef IConnectionPoint *PCONNECTIONPOINT, *LPCONNECTIONPOINT;
+
+    HRESULT GetConnectionInterface( [out] IID *pIID );
+    HRESULT GetConnectionPointContainer( [out] IConnectionPointContainer **ppCPC );
+    HRESULT Advise( [in] IUnknown *pUnkSink, [out] DWORD *pdwCookie );
+    HRESULT Unadvise( [in] DWORD dwCookie );
+    HRESULT EnumConnections( [out] IEnumConnections **ppEnum );
+}
+
+
+/*****************************************************************************
+ * IConnectionPointContainer interface
+ */
+interface IEnumConnectionPoints; /* forward declaration */
+[
+    object,
+    uuid(b196b284-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IConnectionPointContainer : IUnknown
+{
+    typedef IConnectionPointContainer *PCONNECTIONPOINTCONTAINER, *LPCONNECTIONPOINTCONTAINER;
+
+    HRESULT EnumConnectionPoints( [out] IEnumConnectionPoints **ppEnum );
+    HRESULT FindConnectionPoint( [in] REFIID riid, [out] IConnectionPoint **ppCP );
+}
+
+
+/*****************************************************************************
+ * IEnumConnections interface
+ */
+[
+    object,
+    uuid(b196b287-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IEnumConnections : IUnknown
+{
+    typedef IEnumConnections *PENUMCONNECTIONS, *LPENUMCONNECTIONS;
+
+    typedef struct tagCONNECTDATA
+    {
+        IUnknown *pUnk;
+        DWORD dwCookie;
+    } CONNECTDATA, *PCONNECTDATA, *LPCONNECTDATA;
+
+    [local]
+    HRESULT Next(
+        [in] ULONG cConnections,
+        [out, size_is(cConnections), length_is(*pcFetched)] LPCONNECTDATA rgcd,
+        [out] ULONG *pcFetched);
+
+    [call_as(Next)]
+    HRESULT RemoteNext(
+        [in] ULONG cConnections,
+        [out, size_is(cConnections), length_is(*pcFetched)] LPCONNECTDATA rgcd,
+        [out] ULONG *pcFetched);
+
+    HRESULT Skip( [in] ULONG cConnections );
+
+    HRESULT Reset();
+
+    HRESULT Clone( [out] IEnumConnections **ppEnum );
+}
+
+
+/*****************************************************************************
+ * IEnumConnectionPoints interface
+ */
+[
+    object,
+    uuid(b196b285-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IEnumConnectionPoints : IUnknown
+{
+    typedef IEnumConnectionPoints *PENUMCONNECTIONPOINTS, *LPENUMCONNECTIONPOINTS;
+
+    [local]
+    HRESULT Next(
+        [in] ULONG cConnections,
+        [out, size_is(cConnections), length_is(*pcFetched)] LPCONNECTIONPOINT *ppCP,
+        [out] ULONG *pcFetched);
+
+    [call_as(Next)]
+    HRESULT RemoteNext(
+        [in] ULONG cConnections,
+        [out, size_is(cConnections), length_is(*pcFetched)] LPCONNECTIONPOINT *ppCP,
+        [out] ULONG *pcFetched);
+
+    HRESULT Skip( [in] ULONG cConnections );
+
+    HRESULT Reset();
+
+    HRESULT Clone( [out] IEnumConnectionPoints **ppEnum );
+}
+
+
+/*****************************************************************************
+ * IPropertyPage interface
+ */
+interface IPropertyPageSite;  /* forward declaration */
+[
+    object,
+    uuid(b196b28d-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IPropertyPage : IUnknown
+{
+    typedef IPropertyPage *LPPROPERTYPAGE;
+
+    typedef struct tagPROPPAGEINFO
+    {
+        ULONG cb;
+        LPOLESTR pszTitle;
+        SIZE size;
+        LPOLESTR pszDocString;
+        LPOLESTR pszHelpFile;
+        DWORD dwHelpContext;
+    } PROPPAGEINFO, *LPPROPPAGEINFO;
+
+    HRESULT SetPageSite( [in] IPropertyPageSite *pPageSite );
+
+    HRESULT Activate(
+        [in] HWND hWndParent,
+        [in] LPCRECT pRect,
+        [in] BOOL bModal);
+
+    HRESULT Deactivate();
+
+    HRESULT GetPageInfo( [out] PROPPAGEINFO *pPageInfo );
+
+    HRESULT SetObjects(
+        [in] ULONG cObjects,
+        [in, size_is(cObjects)] IUnknown **ppUnk);
+
+    HRESULT Show( [in] UINT nCmdShow );
+
+    HRESULT Move( [in] LPCRECT pRect );
+
+    HRESULT IsPageDirty();
+
+    HRESULT Apply();
+
+    HRESULT Help( [in] LPCOLESTR pszHelpDir );
+
+    HRESULT TranslateAccelerator( [in] MSG *pMsg );
+}
+
+
+/*****************************************************************************
+ * IPropertyPage2 interface
+ */
+[
+    object,
+    uuid(01e44665-24ac-101b-84ed-08002b2ec713),
+    pointer_default(unique)
+]
+interface IPropertyPage2 : IPropertyPage
+{
+    typedef IPropertyPage2 *LPPROPERTYPAGE2;
+
+    HRESULT EditProperty( [in] DISPID dispID );
+}
+
+
+/*****************************************************************************
+ * IPropertyPageSite interface
+ */
+[
+    object,
+    uuid(b196b28c-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface IPropertyPageSite : IUnknown
+{
+    typedef IPropertyPageSite *LPPROPERTYPAGESITE;
+
+    typedef enum tagPROPPAGESTATUS
+    {
+        PROPPAGESTATUS_DIRTY = 0x1,
+        PROPPAGESTATUS_VALIDATE = 0x2,
+        PROPPAGESTATUS_CLEAN = 0x4
+    } PROPPAGESTATUS;
+
+    HRESULT OnStatusChange( [in] DWORD dwFlags );
+    HRESULT GetLocaleID( [out] LCID *pLocaleID );
+    HRESULT GetPageContainer( [out] IUnknown **ppUnk );
+    HRESULT TranslateAccelerator( [in] MSG *pMsg );
+}
+
+
+/*****************************************************************************
+ * IPropertyNotifySink interface
+ */
+[
+    object,
+    uuid(9bfbbc02-eff1-101a-84ed-00aa00341d07),
+    pointer_default(unique)
+]
+interface IPropertyNotifySink : IUnknown
+{
+    typedef IPropertyNotifySink *LPPROPERTYNOTIFYSINK;
+
+    HRESULT OnChanged( [in] DISPID dispID );
+    HRESULT OnRequestEdit( [in] DISPID dispID );
+}
+
+
+/*****************************************************************************
+ * ISimpleFrameSite interface
+ */
+[
+    object,
+    uuid(742b0e01-14e6-101b-914e-00aa00300cab),
+    pointer_default(unique)
+]
+interface ISimpleFrameSite : IUnknown
+{
+    typedef ISimpleFrameSite *LPSIMPLEFRAMESITE;
+
+    HRESULT PreMessageFilter(
+        [in] HWND hWnd,
+        [in] UINT msg,
+        [in] WPARAM wp,
+        [in] LPARAM lp,
+        [out] LRESULT *plResult,
+        [out] DWORD *pdwCookie);
+
+    HRESULT PostMessageFilter(
+        [in] HWND hWnd,
+        [in] UINT msg,
+        [in] WPARAM wp,
+        [in] LPARAM lp,
+        [out] LRESULT *plResult,
+        [in] DWORD dwCookie);
+}
+
+
+/*****************************************************************************
+ * IPersistStreamInit interface
+ */
+[
+    object,
+    uuid(7fd52380-4e07-101b-ae2d-08002b2ec713),
+    pointer_default(unique)
+]
+interface IPersistStreamInit : IPersist
+{
+    typedef IPersistStreamInit *LPPERSISTSTREAMINIT;
+
+    HRESULT IsDirty();
+    HRESULT Load( [in] LPSTREAM pStm );
+    HRESULT Save( [in] LPSTREAM pStm, [in] BOOL fClearDirty );
+    HRESULT GetSizeMax( [out] ULARGE_INTEGER *pcbSize );
+    HRESULT InitNew();
+}
+
+
+/*****************************************************************************
+ * IPersistMemory interface
+ */
+[
+    object,
+    uuid(bd1ae5e0-a6ae-11ce-bd37-504200c10000),
+    pointer_default(unique)
+]
+interface IPersistMemory : IPersist
+{
+    typedef IPersistMemory *LPPERSISTMEMORY;
+
+    HRESULT IsDirty();
+
+    [local]
+    HRESULT Load(
+        [in, size_is(cbSize)] LPVOID pMem,
+        [in] ULONG cbSize);
+
+    [call_as(Load)]
+    HRESULT RemoteLoad(
+        [in, size_is(cbSize)] BYTE *pMem,
+        [in] ULONG cbSize);
+
+    [local]
+    HRESULT Save(
+        [out, size_is(cbSize)] LPVOID pMem,
+        [in] BOOL fClearDirty,
+        [in] ULONG cbSize);
+
+    [call_as(Save)]
+    HRESULT RemoteSave(
+        [out, size_is(cbSize)] BYTE *pMem,
+        [in] BOOL fClearDirty,
+        [in] ULONG cbSize);
+
+    HRESULT GetSizeMax( [out] ULONG *pCbSize );
+    HRESULT InitNew();
+}
+
+
+/*****************************************************************************
+ * IPersistPropertyBag interface
+ */
+[
+    object,
+    uuid(37d84f60-42cb-11ce-8135-00aa004bb851),
+    pointer_default(unique)
+]
+interface IPersistPropertyBag : IPersist
+{
+    typedef IPersistPropertyBag *LPPERSISTPROPERTYBAG;
+
+    HRESULT InitNew();
+
+    HRESULT Load(
+        [in] IPropertyBag *pPropBag,
+        [in] IErrorLog *pErrorLog);
+
+    HRESULT Save(
+        [in] IPropertyBag *pPropBag,
+        [in] BOOL fClearDirty,
+        [in] BOOL fSaveAllProperties);
+}
+
+
+
+/*****************************************************************************
+ * ISpecifyPropertyPages interface
+ */
+[
+    object,
+    uuid(b196b28b-bab4-101a-b69c-00aa00341d07),
+    pointer_default(unique)
+]
+interface ISpecifyPropertyPages : IUnknown
+{
+    typedef ISpecifyPropertyPages *LPSPECIFYPROPERTYPAGES;
+
+    typedef struct tagCAUUID
+    {
+	ULONG cElems;
+        [size_is(cElems)] GUID *pElems;
+    } CAUUID, *LPCAUUID;
+
+    HRESULT GetPages( [out] CAUUID *pPages );
+}
+
+
+/*****************************************************************************
+ * IPerPropertyBrowsing interface
+ */
+[
+    object,
+    uuid(376bd3aa-3845-101b-84ed-08002b2ec713),
+    pointer_default(unique)
+]
+interface IPerPropertyBrowsing : IUnknown
+{
+    typedef IPerPropertyBrowsing *LPPERPROPERTYBROWSING;
+
+    typedef struct tagCALPOLESTR
+    {
+        ULONG cElems;
+        [size_is(cElems)] LPOLESTR *pElems;
+    } CALPOLESTR, *LPCALPOLESTR;
+
+    typedef struct tagCADWORD
+    {
+        ULONG cElems;
+        [size_is(cElems)] DWORD *pElems;
+    } CADWORD, *LPCADWORD;
+
+    HRESULT GetDisplayString(
+        [in] DISPID dispID,
+        [out] BSTR *pBstr);
+
+    HRESULT MapPropertyToPage(
+        [in] DISPID dispID,
+        [out] CLSID *pClsid);
+
+    HRESULT GetPredefinedStrings(
+        [in] DISPID dispID,
+        [out] CALPOLESTR *pCaStringsOut,
+        [out] CADWORD *pCaCookiesOut);
+
+    HRESULT GetPredefinedValue(
+        [in] DISPID dispID,
+        [in] DWORD dwCookie,
+        [out] VARIANT *pVarOut);
+}
+
+
+/*****************************************************************************
+ * IAdviseSinkEx interface
+ */
+[
+    object,
+    uuid(3af24290-0c96-11ce-a0cf-00aa00600ab8),
+    pointer_default(unique)
+]
+interface IAdviseSinkEx : IAdviseSink
+{
+    typedef IAdviseSinkEx *LPADVISESINKEX;
+
+    [local]
+    void OnViewStatusChange( [in] DWORD dwViewStatus );
+
+    [call_as(OnViewStatusChange)]
+    HRESULT RemoteOnViewStatusChange( [in] DWORD dwViewStatus );
+}
+
+
+/*****************************************************************************
+ * IPointerInactive interface
+ */
+[
+    object,
+    uuid(55980ba0-35aa-11cf-b671-00aa004cd6d8),
+    pointer_default(unique)
+]
+interface IPointerInactive : IUnknown
+{
+    typedef IPointerInactive *LPPOINTERINACTIVE;
+
+    HRESULT GetActivationPolicy(
+        [out] DWORD *pdwPolicy);
+
+    HRESULT OnInactiveMouseMove(
+        [in] LPCRECT pRectBounds,
+        [in] LONG x,
+        [in] LONG y,
+        [in] DWORD grfKeyState);
+
+    HRESULT OnInactiveSetCursor(
+        [in] LPCRECT pRectBounds,
+        [in] LONG x,
+        [in] LONG y,
+        [in] DWORD dwMouseMsg,
+        [in] BOOL fSetAlways);
+}
+
+
+/*****************************************************************************
+ * IObjectWithSite interface
+ */
+[
+    object,
+    uuid(fc4801a3-2ba9-11cf-a229-00aa003d7352),
+    pointer_default(unique)
+]
+interface IObjectWithSite : IUnknown
+{
+    typedef IObjectWithSite *LPOBJECTWITHSITE;
+
+    HRESULT SetSite(
+        [in] IUnknown * pUnkSite);
+
+    HRESULT GetSite(
+        [in] REFIID riid, 
+        [out, iid_is(riid)] PVOID *ppvSite);
+}
+
+
+/*****************************************************************************
+ * IOleUndoUnit interface
+ */
+interface IOleUndoManager;  /* forward declaration */
+[
+    object,
+    uuid(894ad3b0-ef97-11ce-9bc9-00aa00608e01),
+    pointer_default(unique)
+]
+interface IOleUndoUnit : IUnknown
+{
+    typedef IOleUndoUnit *LPOLEUNDOUNIT;
+
+    HRESULT Do( [in] IOleUndoManager *pUndoManager );
+    HRESULT GetDescription( [out] BSTR *pBstr );
+    HRESULT GetUnitType( [out] CLSID *pClsid, [out] LONG *plID );
+    HRESULT OnNextAdd();
+}
+
+
+/*****************************************************************************
+ * IOleParentUndoUnit interface
+ */
+[
+    object,
+    uuid(a1faf330-ef97-11ce-9bc9-00aa00608e01),
+    pointer_default(unique)
+]
+interface IOleParentUndoUnit : IOleUndoUnit
+{
+    typedef IOleParentUndoUnit *LPOLEPARENTUNDOUNIT;
+
+    HRESULT Open( [in] IOleParentUndoUnit *pPUU );
+    HRESULT Close( [in] IOleParentUndoUnit *pPUU, [in] BOOL fCommit );
+    HRESULT Add( [in] IOleUndoUnit *pUU );
+    HRESULT FindUnit( [in] IOleUndoUnit *pUU );
+    HRESULT GetParentState( [out] DWORD *pdwState );
+}
+
+
+/*****************************************************************************
+ * IEnumOleUndoUnits interface
+ */
+[
+    object,
+    uuid(b3e7c340-ef97-11ce-9bc9-00aa00608e01),
+    pointer_default(unique)
+]
+interface IEnumOleUndoUnits : IUnknown
+{
+    typedef IEnumOleUndoUnits *LPENUMOLEUNDOUNITS;
+
+    [local]
+    HRESULT Next(
+        [in] ULONG cElt,
+        [out, size_is(cElt), length_is(*pcEltFetched)] IOleUndoUnit **rgElt,
+        [out] ULONG *pcEltFetched);
+
+    [call_as(Next)]
+    HRESULT RemoteNext(
+        [in] ULONG cElt,
+        [out, size_is(cElt), length_is(*pcEltFetched)] IOleUndoUnit **rgElt,
+        [out] ULONG *pcEltFetched);
+
+    HRESULT Skip( [in] ULONG cElt );
+
+    HRESULT Reset();
+
+    HRESULT Clone( [out] IEnumOleUndoUnits **ppEnum );
+}
+
+
+/*****************************************************************************
+ * IOleUndoManager interface
+ */
+[
+    object,
+    uuid(d001f200-ef97-11ce-9bc9-00aa00608e01),
+    pointer_default(unique)
+]
+interface IOleUndoManager : IUnknown
+{
+cpp_quote("#define SID_SOleUndoManager IID_IOleUndoManager")
+    typedef IOleUndoManager *LPOLEUNDOMANAGER;
+
+    HRESULT Open( [in] IOleParentUndoUnit *pPUU );
+    HRESULT Close( [in] IOleParentUndoUnit *pPUU, [in] BOOL fCommit );
+    HRESULT Add( [in] IOleUndoUnit *pUU );
+    HRESULT GetOpenParentState( [out] DWORD *pdwState );
+    HRESULT DiscardFrom( [in] IOleUndoUnit *pUU );
+    HRESULT UndoTo( [in] IOleUndoUnit *pUU );
+    HRESULT RedoTo( [in] IOleUndoUnit *pUU );
+    HRESULT EnumUndoable( [out] IEnumOleUndoUnits **ppEnum );
+    HRESULT EnumRedoable( [out] IEnumOleUndoUnits **ppEnum );
+    HRESULT GetLastUndoDescription( [out] BSTR *pBstr );
+    HRESULT GetLastRedoDescription( [out] BSTR *pBstr );
+    HRESULT Enable( [in] BOOL fEnable );
+}
+
