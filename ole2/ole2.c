@@ -104,7 +104,7 @@ HRESULT WINAPI RegisterDragDrop16(
 	/*LPDROPTARGET*/SEGPTR pDropTarget
 ) {
 	TRACE("(0x%04x,%p)\n",hwnd,pDropTarget);
-	return RegisterDragDrop(HWND_32(hwnd), (IDropTarget*)iface16_32(&IID_IDropTarget, pDropTarget));
+	return hresult32_16(RegisterDragDrop(HWND_32(hwnd), (IDropTarget*)iface16_32(&IID_IDropTarget, pDropTarget)));
 }
 
 /***********************************************************************
@@ -114,7 +114,7 @@ HRESULT WINAPI RevokeDragDrop16(
 	HWND16 hwnd
 ) {
 	TRACE("(0x%04x)\n",hwnd);
-	return RevokeDragDrop(HWND_32(hwnd));
+	return hresult32_16(RevokeDragDrop(HWND_32(hwnd)));
 }
 
 /******************************************************************************
@@ -261,7 +261,7 @@ HRESULT WINAPI OleGetClipboard16(/* IDataObject* */SEGPTR* ppDataObj)
 
 HRESULT WINAPI OleFlushClipboard16(void)
 {
-  return OleFlushClipboard();
+  return hresult32_16(OleFlushClipboard());
 }
 
 #define GET_SEGPTR_METHOD_ADDR(ifacename,segptr,methodname) \
@@ -401,13 +401,13 @@ VOID WINAPI ReleaseStgMedium16(LPSTGMEDIUM medium)
 HRESULT WINAPI WriteClassStg16(/*IStorage **/SEGPTR stg, REFCLSID clsid)
 {
     TRACE("(%p %s)\n", stg, debugstr_guid(clsid));
-    return WriteClassStg((IStorage*)iface16_32(&IID_IStorage, stg), clsid);
+    return hresult32_16(WriteClassStg((IStorage*)iface16_32(&IID_IStorage, stg), clsid));
 }
 
 HRESULT WINAPI DoDragDrop16(LPDATAOBJECT pDataObj, LPDROPSOURCE pDropSource, DWORD dwOKEffects, LPDWORD pdwEffect)
 {
     TRACE("(%p,%p,%x,%p)\n", pDataObj, pDropSource, dwOKEffects, pdwEffect);
-    return DoDragDrop((IDataObject*)iface16_32(&IID_IDataObject, pDataObj), (IDropSource*)iface16_32(&IID_IDropSource, pDropSource), dwOKEffects, pdwEffect);
+    return hresult32_16(DoDragDrop((IDataObject*)iface16_32(&IID_IDataObject, pDataObj), (IDropSource*)iface16_32(&IID_IDropSource, pDropSource), dwOKEffects, pdwEffect));
 }
 
 HRESULT WINAPI OleIsCurrentClipboard16(/*LPDATAOBJECT*/SEGPTR pDataObj)
@@ -421,13 +421,17 @@ HRESULT WINAPI ReadFmtUserTypeStg16(/*LPSTORAGE16*/SEGPTR pstg, CLIPFORMAT *pcf,
     LPOLESTR lpszUserType = NULL;
     HRESULT result;
     TRACE("(%p,%p,%p)\n", pstg, pcf, lplpszUserType);
-    result = ReadFmtUserTypeStg((IStorage*)iface16_32(&IID_IStorage, pstg), pcf, lplpszUserType ? lpszUserType : NULL);
+    result = hresult32_16(ReadFmtUserTypeStg((IStorage*)iface16_32(&IID_IStorage, pstg), pcf, lplpszUserType ? lpszUserType : NULL));
     if (lplpszUserType)
     {
         LPOLESTR16 a = strdupWtoA(lpszUserType);
         TRACE("%s\n", a);
         *lplpszUserType = MapLS(a);
         CoTaskMemFree(lpszUserType);
+    }
+    if (!SUCCEEDED(result))
+    {
+        TRACE("failed: %08x\n", result);
     }
     return result;
 }
@@ -437,7 +441,7 @@ HRESULT WINAPI WriteFmtUserTypeStg16(/*LPSTORAGE16*/SEGPTR pstg, CLIPFORMAT cf, 
     HRESULT result;
     LPOLESTR w = strdupAtoW(lpszUserType);
     TRACE("(%p,%04x,%s)\n", pstg, cf, lpszUserType);
-    result = WriteFmtUserTypeStg((IStorage*)iface16_32(&IID_IStorage, pstg), cf, w);
+    result = hresult32_16(WriteFmtUserTypeStg((IStorage*)iface16_32(&IID_IStorage, pstg), cf, w));
     HeapFree(GetProcessHeap(), 0, w);
     return result;
 }
@@ -447,7 +451,7 @@ HRESULT WINAPI CreateDataAdviseHolder16(/*LPDATAADVISEHOLDER16*/SEGPTR *ppDAHold
     LPDATAADVISEHOLDER pDAHolder = NULL;
     HRESULT result;
     TRACE("(%p)\n", ppDAHolder);
-    result = CreateDataAdviseHolder(&pDAHolder);
+    result = hresult32_16(CreateDataAdviseHolder(&pDAHolder));
     *ppDAHolder = iface32_16(&IID_IDataAdviseHolder, pDAHolder);
     return result;
 }
@@ -456,7 +460,7 @@ HRESULT WINAPI CreateOleAdviseHolder16(/*LPOLEADVISEHOLDER16*/SEGPTR *ppOAHolder
     LPOLEADVISEHOLDER pOAHolder = NULL;
     HRESULT result;
     TRACE("(%p)\n", ppOAHolder);
-    result = CreateOleAdviseHolder(&pOAHolder);
+    result = hresult32_16(CreateOleAdviseHolder(&pOAHolder));
     *ppOAHolder = iface32_16(&IID_IOleAdviseHolder, pOAHolder);
     return result;
 }
@@ -469,7 +473,7 @@ HRESULT WINAPI CreateFileMoniker16(LPCOLESTR16 lpszPathName, /*LPMONIKER16*/SEGP
     LPMONIKER pmk = NULL;
     HRESULT result;
     TRACE("(%s,%p)\n", debugstr_a(lpszPathName), ppmk);
-    result = CreateFileMoniker(w, &pmk);
+    result = hresult32_16(CreateFileMoniker(w, &pmk));
     *ppmk = iface32_16(&IID_IMoniker, pmk);
     HeapFree(GetProcessHeap(), 0, w);
     return result;
@@ -483,7 +487,7 @@ HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, /*LPRUNNINGOBJECTTABLE16*
     LPRUNNINGOBJECTTABLE prot = NULL;
     HRESULT result;
     TRACE("(%d,%p)\n", reserved, pprot);
-    result = GetRunningObjectTable(reserved, &prot);
+    result = hresult32_16(GetRunningObjectTable(reserved, &prot));
     *pprot = iface32_16(&IID_IRunningObjectTable, prot);
     return result;
 }
@@ -492,24 +496,28 @@ HRESULT WINAPI OleCreateDefaultHandler16(REFCLSID clsid, SEGPTR pUnkOuter, REFII
 {
     LPVOID obj = NULL;
     LPUNKNOWN a = (LPUNKNOWN)iface16_32(&IID_IUnknown, pUnkOuter);
-    HRESULT hr = OleCreateDefaultHandler(clsid, a, riid, &obj);
+    TRACE("(%s,%08,%s,%p)\n", debugstr_guid(clsid), pUnkOuter, debugstr_guid(riid), ppvObj);
+    HRESULT hr = hresult32_16(OleCreateDefaultHandler(clsid, a, riid, &obj));
     *ppvObj = iface32_16(riid, obj);
     return hr;
 }
 
 HRESULT WINAPI OleSetContainedObject16(SEGPTR pUnk, BOOL fCon)
 {
-    return OleSetContainedObject((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fCon);
+    TRACE("(%08x,%d)\n", pUnk, fCon);
+    return hresult32_16(OleSetContainedObject((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fCon));
 }
 
 HRESULT WINAPI OleLockRunning16(SEGPTR pUnk, BOOL fLock, BOOL fLastUnlockCloses)
 {
-    return OleLockRunning((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fLock, fLastUnlockCloses);
+    TRACE("(%08x,%d,%d)\n", pUnk, fLock, fLastUnlockCloses);
+    return hresult32_16(OleLockRunning((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fLock, fLastUnlockCloses));
 }
 
 BOOL WINAPI OleIsRunning16(SEGPTR pOleObject)
 {
-    return OleIsRunning((IOleObject*)iface16_32(&IID_IOleObject, pOleObject));
+    TRACE("(%08x)\n", pOleObject);
+    return hresult32_16(OleIsRunning((IOleObject*)iface16_32(&IID_IOleObject, pOleObject)));
 }
 
 HOLEMENU16 WINAPI OleCreateMenuDescriptor16(HMENU16 hmenu, LPOLEMENUGROUPWIDTHS width)
