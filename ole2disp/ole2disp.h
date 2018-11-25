@@ -28,6 +28,7 @@
 #include "wine/windef16.h"
 #include "wine/winbase16.h"
 #include "../ole2/ifs.h"
+#include "wine/debug.h"
 
 typedef CHAR OLECHAR16;
 typedef LPSTR LPOLESTR16;
@@ -153,7 +154,6 @@ HRESULT WINAPI VariantChangeTypeEx16(VARIANTARG16* pvargDest, VARIANTARG16* pvar
                                    LCID lcid, USHORT wFlags, VARTYPE vt);
 HRESULT WINAPI VarCyNeg16(CY cyIn, CY* pCyOut);
 HRESULT WINAPI VarCyInt16(CY cyIn, CY* pCyOut);
-static inline const char *debugstr_variant16(const VARIANT16 *v) { return "FIXME:debugstr_variant16"; }
 
 void WINAPI VariantInit16(VARIANTARG16* pVarg);
 HRESULT WINAPI VariantClear16(VARIANTARG16* pVarg);
@@ -409,23 +409,23 @@ HRESULT WINAPI VarBoolFromUI416(ULONG ulIn, VARIANT_BOOL *pBoolOut);
 HRESULT WINAPI VarBoolFromDec16(DECIMAL* pDecIn, VARIANT_BOOL *pBoolOut);
 HRESULT WINAPI VarBoolFromI816(LONG64 llIn, VARIANT_BOOL *pBoolOut);
 HRESULT WINAPI VarBoolFromUI816(ULONG64 ullIn, VARIANT_BOOL *pBoolOut);
-HRESULT WINAPI VarBstrFromUI116(BYTE bIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromI216(short sIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromI416(LONG lIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromR416(FLOAT fltIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromR816(double dblIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromCy16(CY cyIn, LCID lcid, ULONG dwFlags, BSTR *pbstrOut);
-HRESULT WINAPI VarBstrFromDate16(DATE dateIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromBool16(VARIANT_BOOL boolIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromI116(signed char cIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromUI216(USHORT usIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromUI416(ULONG ulIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromDec16(DECIMAL* pDecIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromI816(LONG64 llIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromUI816(ULONG64 ullIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrFromDisp16(IDispatch* pdispIn, LCID lcid, ULONG dwFlags, BSTR* pbstrOut);
-HRESULT WINAPI VarBstrCat16(BSTR pbstrLeft, BSTR pbstrRight, BSTR *pbstrOut);
-HRESULT WINAPI VarBstrCmp16(BSTR pbstrLeft, BSTR pbstrRight, LCID lcid, DWORD dwFlags);
+HRESULT WINAPI VarBstrFromUI116(BYTE bIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromI216(short sIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromI416(LONG lIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromR416(FLOAT fltIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromR816(double dblIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromCy16(CY cyIn, LCID lcid, ULONG dwFlags, SEGBSTR16 *pbstrOut);
+HRESULT WINAPI VarBstrFromDate16(DATE dateIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromBool16(VARIANT_BOOL boolIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromI116(signed char cIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromUI216(USHORT usIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromUI416(ULONG ulIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromDec16(DECIMAL* pDecIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromI816(LONG64 llIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromUI816(ULONG64 ullIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrFromDisp16(IDispatch* pdispIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut);
+HRESULT WINAPI VarBstrCat16(SEGBSTR16 pbstrLeft, SEGBSTR16 pbstrRight, SEGBSTR16 *pbstrOut);
+HRESULT WINAPI VarBstrCmp16(SEGBSTR16 pbstrLeft, SEGBSTR16 pbstrRight, LCID lcid, DWORD dwFlags);
 HRESULT WINAPI VarDateFromUI116(BYTE bIn, DATE* pdateOut);
 HRESULT WINAPI VarDateFromI216(short sIn, DATE* pdateOut);
 HRESULT WINAPI VarDateFromI416(LONG lIn, DATE* pdateOut);
@@ -441,6 +441,83 @@ HRESULT WINAPI VarDateFromUI416(ULONG ulIn, DATE* pdateOut);
 HRESULT WINAPI VarDateFromDec16(DECIMAL *pdecIn, DATE* pdateOut);
 HRESULT WINAPI VarDateFromI816(LONG64 llIn, DATE* pdateOut);
 HRESULT WINAPI VarDateFromUI816(ULONG64 ullIn, DATE* pdateOut);
+
+
+static inline const char *wine_dbgstr_variant16( const VARIANT16 *v )
+{
+    if (!v)
+        return "(null)";
+
+    if (V_VT(v) & VT_BYREF) {
+        if (V_VT(v) == (VT_VARIANT|VT_BYREF))
+            return wine_dbg_sprintf( "%p {VT_VARIANT|VT_BYREF: %s}", v, wine_dbgstr_variant16(V_VARIANTREF16(v)) );
+        if (V_VT(v) == (VT_BSTR|VT_BYREF))
+            return wine_dbg_sprintf( "%p {VT_BSTR|VT_BYREF: %s}", v, V_BSTRREF(v) ? wine_dbgstr_w(*V_BSTRREF16(v)) : "(none)" );
+        return wine_dbg_sprintf( "%p {%s %p}", v, wine_dbgstr_vt(V_VT(v)), V_BYREF(v) );
+    }
+
+    if (V_ISARRAY(v) || V_ISVECTOR(v))
+        return wine_dbg_sprintf( "%p {%s %p}", v, wine_dbgstr_vt(V_VT(v)), V_ARRAY(v) );
+
+    switch(V_VT(v)) {
+    case VT_EMPTY:
+        return wine_dbg_sprintf( "%p {VT_EMPTY}", v );
+    case VT_NULL:
+        return wine_dbg_sprintf( "%p {VT_NULL}", v );
+    case VT_I2:
+        return wine_dbg_sprintf( "%p {VT_I2: %d}", v, V_I2(v) );
+    case VT_I4:
+        return wine_dbg_sprintf( "%p {VT_I4: %d}", v, V_I4(v) );
+    case VT_R4:
+        return wine_dbg_sprintf( "%p {VT_R4: %f}", v, V_R4(v) );
+    case VT_R8:
+        return wine_dbg_sprintf( "%p {VT_R8: %lf}", v, V_R8(v) );
+    case VT_CY:
+        return wine_dbg_sprintf( "%p {VT_CY: %s}", v, wine_dbgstr_longlong(V_CY(v).int64) );
+    case VT_DATE:
+        return wine_dbg_sprintf( "%p {VT_DATE: %lf}", v, V_DATE(v) );
+    case VT_LPSTR:
+        return wine_dbg_sprintf( "%p {VT_LPSTR: %s}", v, wine_dbgstr_a((const char *)BSTR_PTR(V_BSTR(v))) );
+    case VT_LPWSTR:
+        return wine_dbg_sprintf( "%p {VT_LPWSTR: %s}", v, wine_dbgstr_w((const char *)BSTR_PTR(V_BSTR(v))) );
+    case VT_BSTR:
+        return wine_dbg_sprintf( "%p {VT_BSTR: %s}", v, wine_dbgstr_a((const char *)BSTR_PTR(V_BSTR(v))) );
+    case VT_DISPATCH:
+        return wine_dbg_sprintf( "%p {VT_DISPATCH: %p}", v, V_DISPATCH(v) );
+    case VT_ERROR:
+        return wine_dbg_sprintf( "%p {VT_ERROR: %08x}", v, V_ERROR(v) );
+    case VT_BOOL:
+        return wine_dbg_sprintf( "%p {VT_BOOL: %x}", v, V_BOOL(v) );
+    case VT_UNKNOWN:
+        return wine_dbg_sprintf( "%p {VT_UNKNOWN: %p}", v, V_UNKNOWN(v) );
+    case VT_I1:
+        return wine_dbg_sprintf( "%p {VT_I1: %d}", v, V_I1(v) );
+    case VT_UI1:
+        return wine_dbg_sprintf( "%p {VT_UI1: %u}", v, V_UI1(v) );
+    case VT_UI2:
+        return wine_dbg_sprintf( "%p {VT_UI2: %d}", v, V_UI2(v) );
+    case VT_UI4:
+        return wine_dbg_sprintf( "%p {VT_UI4: %d}", v, V_UI4(v) );
+    case VT_I8:
+        return wine_dbg_sprintf( "%p {VT_I8: %s}", v, wine_dbgstr_longlong(V_I8(v)) );
+    case VT_UI8:
+        return wine_dbg_sprintf( "%p {VT_UI8: %s}", v, wine_dbgstr_longlong(V_UI8(v)) );
+    case VT_INT:
+        return wine_dbg_sprintf( "%p {VT_INT: %d}", v, V_INT(v) );
+    case VT_UINT:
+        return wine_dbg_sprintf( "%p {VT_UINT: %u}", v, V_UINT(v) );
+    case VT_VOID:
+        return wine_dbg_sprintf( "%p {VT_VOID}", v );
+#ifdef AVAIL_32BIT_VAR
+    case VT_RECORD:
+        return wine_dbg_sprintf( "%p {VT_RECORD: %p %p}", v, V_RECORD(v), V_RECORDINFO(v) );
+#endif
+    default:
+        return wine_dbg_sprintf( "%p {vt %s}", v, wine_dbgstr_vt(V_VT(v)) );
+    }
+}
+static inline const char *debugstr_variant16(const VARIANT16 *v) { return wine_dbgstr_variant16(v); }
+
 #ifdef AVAIL_32BIT_VAR
 #endif
 #endif /* !defined(__WINE_OLEAUT32_OLE2DISP_H) */
