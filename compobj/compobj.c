@@ -830,6 +830,6 @@ HRESULT WINAPI CoDisconnectObject16( /*LPUNKNOWN*/SEGPTR lpUnk, DWORD reserved )
 
 HRESULT WINAPI CoIsOle1Class16(REFCLSID rclsid)
 {
-    TRACE("(%p, 0x%08x)\n", lpUnk, reserved);
+    TRACE("(%p)\n", rclsid);
     return hresult32_16(CoIsOle1Class(rclsid));
 }
