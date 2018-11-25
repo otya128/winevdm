@@ -37,6 +37,7 @@ typedef LPCSTR LPCOLESTR16;
     ((SEGPTR)((const ifacename##Vtbl*)MapSL((SEGPTR)((ifacename*)MapSL(segptr))->lpVtbl))->methodname)
 #include "wownt32.h"
 #define STGMEDIUM16 /* FIXME*/
+#define tagBINDPTR /* FIXME */
 #include "ifs_16.h"
 
 SEGPTR iface32_16(REFIID riid, void *iface32);
@@ -55,6 +56,7 @@ void *iface16_32(REFIID riid, SEGPTR iface16);
 HRESULT hresult32_16(HRESULT hresult);
 HRESULT hresult16_32(HRESULT hresult);
 #undef STGMEDIUM16
+#undef tagBINDPTR
 
 static LPWSTR strdupAtoW(LPCSTR str)
 {

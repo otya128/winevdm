@@ -187,6 +187,50 @@ void *iface16_32(REFIID riid, SEGPTR iface16)
     register_instance32(i32);
     return (void*)&i32->lpVtbl;
 }
+
+
+HRESULT CDECL IOleInPlaceSiteWindowless_16_32_OnDefWindowMessage(SEGPTR This, DWORD args16_msg, DWORD args16_wParam, DWORD args16_lParam, SEGPTR args16_plResult)
+{
+    FIXME("\n");
+    return E_NOTIMPL16;
+}
+HRESULT STDMETHODCALLTYPE IOleInPlaceSiteWindowless_32_16_OnDefWindowMessage(IOleInPlaceSiteWindowless *This, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT *plResult)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
+HRESULT STDMETHODCALLTYPE IOleInPlaceObjectWindowless_32_16_OnWindowMessage(IOleInPlaceObjectWindowless *This, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT *plResult)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT CDECL IOleInPlaceObjectWindowless_16_32_OnWindowMessage(SEGPTR This, DWORD args16_msg, DWORD args16_wParam, DWORD args16_lParam, SEGPTR args16_plResult)
+{
+    FIXME("\n");
+    return E_NOTIMPL16;
+}
+HRESULT CDECL ISimpleFrameSite_16_32_PreMessageFilter(SEGPTR This, WORD args16_hWnd, DWORD args16_msg, DWORD args16_wp, DWORD args16_lp, SEGPTR args16_plResult, SEGPTR args16_pdwCookie)
+{
+    FIXME("\n");
+    return E_NOTIMPL16;
+}
+HRESULT STDMETHODCALLTYPE ISimpleFrameSite_32_16_PreMessageFilter(ISimpleFrameSite *This, HWND hWnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT *plResult, DWORD *pdwCookie)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+HRESULT CDECL ISimpleFrameSite_16_32_PostMessageFilter(SEGPTR This, WORD args16_hWnd, DWORD args16_msg, DWORD args16_wp, DWORD args16_lp, SEGPTR args16_plResult, DWORD args16_dwCookie)
+{
+    FIXME("\n");
+    return E_NOTIMPL16;
+}
+HRESULT STDMETHODCALLTYPE ISimpleFrameSite_32_16_PostMessageFilter(ISimpleFrameSite *This, HWND hWnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT *plResult, DWORD dwCookie)
+{
+    FIXME("\n");
+    return E_NOTIMPL;
+}
+
 struct hresult_map
 {
     HRESULT hresult16;
@@ -230,4 +274,33 @@ HRESULT hresult16_32(HRESULT hresult)
         }
     }
     return hresult;
+}
+/* {F6989118-9D36-4B65-AE0C-0C20886D50F8} */
+const IID IID_ISTGMEDIUMRelease = { 0xf6989118, 0x9d36, 0x4b65, { 0xae, 0xc, 0xc, 0x20, 0x88, 0x6d, 0x50, 0xf8 } };
+
+ULONG CDECL ISTGMEDIUMRelease_16_32_Release(SEGPTR This)
+{
+    ISTGMEDIUMRelease *iface32 = (ISTGMEDIUMRelease*)get_interface32(This);
+    STGMEDIUM *ptr = (STGMEDIUM*)get_interface32_ptr(This);
+    ULONG result;
+    TRACE("(%04x:%04x(%p))\n", SELECTOROF(This), OFFSETOF(This), iface32);
+    result = iface32->lpVtbl->Release(iface32);
+    if (result == 0)
+    {
+        TRACE("(%04x:%04x(%p)) free\n", SELECTOROF(This), OFFSETOF(This), iface32);
+    }
+    return result;
+}
+ULONG STDMETHODCALLTYPE ISTGMEDIUMRelease_32_16_Release(ISTGMEDIUMRelease *This)
+{
+    SEGPTR iface16 = get_interface16(This);
+    STGMEDIUM16 *ptr = (STGMEDIUM16*)get_interface16_ptr(This);
+    ULONG result;
+    TRACE("(%p(%04x:%04x))\n", This, SELECTOROF(iface16), OFFSETOF(iface16));
+    result = ISTGMEDIUMRelease16_Release(iface16);
+    if (result == 0)
+    {
+        TRACE("(%p(%04x:%04x)) free\n", This, SELECTOROF(iface16), OFFSETOF(iface16));
+    }
+    return result;
 }
