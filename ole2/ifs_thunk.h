@@ -98,31 +98,6 @@ typedef ULARGE_INTEGER TYP16_LARGE_INTEGER;
 typedef STATSTG16 TYP16_STATSTG;
 typedef SEGPTR TYP16_SNB;
 typedef SEGPTR TYP16_REFCLSID;
-typedef struct
-{
-    CLIPFORMAT cfFormat;
-    SEGPTR/*DVTARGETDEVICE FAR**/ ptd;
-    DWORD dwAspect;
-    LONG lindex;
-    DWORD tymed;
-} FORMATETC16;
-typedef struct {
-    DWORD tymed;
-    union {
-        HANDLE16 hGlobal;
-        SEGPTR/*LPSTR*/lpszFileName;
-        SEGPTR/*LPSTREAM*/pstm;
-        SEGPTR/*LPSTORAGE*/pstg;
-    };
-    SEGPTR /*LPUNKNOWN*/pUnkForRelease;
-} STGMEDIUM16;
-typedef struct
-{
-    FORMATETC16 formatetc;
-    DWORD advf;
-    /*LPADVISESINK*/SEGPTR pAdvSink;
-    DWORD dwConnection;
-} STATDATA16;
 typedef STATDATA16 TYP16_STATDATA;
 typedef FORMATETC16 TYP16_FORMATETC;
 typedef IID TYP16_IID;
@@ -231,136 +206,14 @@ static void map_statstg16_32(STATSTG *a32, STATSTG16 *a16)
 #define MAP_SNB32_16 MAP_LPOLESTR32_16
 #define UNMAP_SNB16_32 UNMAP_LPOLESTR16_32
 #define UNMAP_SNB32_16 UNMAP_LPOLESTR32_16
-extern const IID IID_ISTGMEDIUMRelease;
-typedef IUnknown ISTGMEDIUMRelease;
-typedef IUnknownVtbl ISTGMEDIUMReleaseVtbl;
 #define IFS1632_OVERWRITE_ISTGMEDIUMRelease_Release
 ULONG CDECL ISTGMEDIUMRelease_16_32_Release(SEGPTR This);
 #define IFS3216_OVERWRITE_ISTGMEDIUMRelease_Release
-ULONG STDMETHODCALLTYPE ISTGMEDIUMRelease_32_16_Release(ISTGMEDIUMRelease *This);
-typedef struct
-{
-    ISTGMEDIUMRelease ISTGMEDIUMRelease_iface;
-    LONG ref;
-} ISTGMEDIUM_impl;
-
-
-static inline ISTGMEDIUM_impl *impl_from_ISTGMEDIUMRelease(ISTGMEDIUMRelease *iface)
-{
-    return CONTAINING_RECORD(iface, ISTGMEDIUM_impl, ISTGMEDIUMRelease_iface);
-}
-
-static ULONG WINAPI ISTGMEDIUMRelease_AddRef(ISTGMEDIUMRelease *iface)
-{
-    ISTGMEDIUM_impl *This = impl_from_ISTGMEDIUMRelease(iface);
-    return InterlockedIncrement(&This->ref);
-}
-
-static ULONG WINAPI ISTGMEDIUMRelease_Release(ISTGMEDIUMRelease *iface)
-{
-    ISTGMEDIUM_impl *This = impl_from_ISTGMEDIUMRelease(iface);
-    return InterlockedDecrement(&This->ref);
-}
-
-static HRESULT WINAPI ISTGMEDIUMRelease_QueryInterface(ISTGMEDIUMRelease *iface,
-    REFIID riid,
-    void** ppvObject)
-{
-    *ppvObject = NULL;
-
-    if (IsEqualIID(riid, &IID_ISTGMEDIUMRelease) ||
-        IsEqualIID(riid, &IID_IUnknown))
-    {
-        *ppvObject = iface;
-        IUnknown_AddRef(iface);
-    }
-
-    return *ppvObject ? S_OK : E_NOINTERFACE;
-}
-
-static const ISTGMEDIUMReleaseVtbl ISTGMEDIUMRelease_VTable =
-{
-    ISTGMEDIUMRelease_QueryInterface, ISTGMEDIUMRelease_AddRef, ISTGMEDIUMRelease_Release
-};
-static void map_stgmedium32_16(STGMEDIUM16 *a16, STGMEDIUM *a32)
-{
-    IUnknown *punk = a32->pUnkForRelease;
-    interface_16 *i16;
-    a16->tymed = a32->tymed;
-    a16->pUnkForRelease = iface32_16(&IID_ISTGMEDIUMRelease, punk);
-    i16 = get_interface32_ptr(a16->pUnkForRelease);
-    switch ((TYMED)a32->tymed)
-    {
-    case TYMED_HGLOBAL:
-    {
-        GlobalFree(0);
-        LPVOID p = GlobalLock(a32->hGlobal);
-        SIZE_T size = GlobalSize(a32->hGlobal);
-        SEGPTR g16 = GlobalAlloc16(0, size);
-        LPVOID p32 = GlobalLock16(g16);
-        memcpy(p32, p, GlobalSize(a32->hGlobal));
-        WOWGlobalUnlock16(g16);
-        a16->hGlobal = g16;
-        FIXME("leak %04x(%p)\n", a16->hGlobal, a32->hGlobal);
-        break;
-    }
-    case TYMED_FILE:
-        a16->lpszFileName = MapLS(strdupWtoA(a32->lpszFileName));
-        break;
-    case TYMED_ISTREAM:
-        a16->pstm = iface32_16(&IID_IStream, a32->pstm);
-        break;
-    case TYMED_ISTORAGE:
-        a16->pstg = iface32_16(&IID_IStorage, a32->pstg);
-        break;
-    case TYMED_NULL:
-        break;
-    case TYMED_GDI:
-    case TYMED_MFPICT:
-    case TYMED_ENHMF:
-    default:
-        ERR("unsupported tymed %d\n", a32->tymed);
-        break;
-    }
-}
+extern const IID IID_ISTGMEDIUMRelease;
+typedef IUnknown ISTGMEDIUMRelease;
+typedef IUnknownVtbl ISTGMEDIUMReleaseVtbl;
+ULONG WINAPI ISTGMEDIUMRelease_32_16_Release(ISTGMEDIUMRelease *iface);
 #define MAP_STGMEDIUM32_16(a16, a32) map_stgmedium32_16((STGMEDIUM16*)&a16, &a32)
-static void map_stgmedium16_32(STGMEDIUM *a32, STGMEDIUM16 *a16)
-{
-    a32->tymed = a16->tymed;
-    a32->pUnkForRelease = (IUnknown*)iface16_32(&IID_ISTGMEDIUMRelease, a16->pUnkForRelease);
-    switch ((TYMED)a32->tymed)
-    {
-    case TYMED_HGLOBAL:
-    {
-        SIZE_T size = GlobalSize16(a16->hGlobal);
-        LPVOID p16 = GlobalLock16(a16->hGlobal);
-        LPVOID p32;
-        a32->hGlobal = GlobalAlloc(0, size);
-        p32 = GlobalLock(a32->hGlobal);
-        memcpy(p32, p16, size);
-        GlobalUnlock(a32->hGlobal);
-        FIXME("leak %p(%04x)\n", a32->hGlobal, a16->hGlobal);
-        break;
-    }
-    case TYMED_FILE:
-        a32->lpszFileName = strdupAtoW(MapSL(a16->lpszFileName));
-        break;
-    case TYMED_ISTREAM:
-        a32->pstm = (IStream*)iface16_32(&IID_IStream, a16->pstm);
-        break;
-    case TYMED_ISTORAGE:
-        a32->pstg = (IStorage*)iface16_32(&IID_IStorage, a16->pstg);
-        break;
-    case TYMED_NULL:
-        break;
-    case TYMED_GDI:
-    case TYMED_MFPICT:
-    case TYMED_ENHMF:
-    default:
-        ERR("unsupported tymed %d\n", a16->tymed);
-        break;
-    }
-}
 #define MAP_STGMEDIUM16_32(a32, a16) map_stgmedium16_32(&a32, &a16)
 #define UNMAP_IID_PTR16_32
 #define UNMAP_IID_PTR32_16
@@ -374,24 +227,7 @@ static void map_stgmedium16_32(STGMEDIUM *a32, STGMEDIUM16 *a16)
 #define UNMAP_LPINTERFACEINFO16_32
 #define UNMAP_PTR_STGMEDIUM32_16
 #define UNMAP_PTR_STGMEDIUM16_32
-
-static void map_formatetc16_32(FORMATETC *a32, FORMATETC16 *a16)
-{
-    a32->cfFormat = a16->cfFormat;
-    a32->ptd = (DVTARGETDEVICE*)MapSL(a16->ptd);
-    a32->dwAspect = a16->dwAspect;
-    a32->lindex = a16->lindex;
-    a32->tymed = a16->tymed;
-}
 #define MAP_PTR_FORMATETC16_32(a32, a16) map_formatetc16_32(a32 = (FORMATETC*)alloca(sizeof(FORMATETC)), (FORMATETC16*)MapSL(a16))
-static void map_formatetc32_16(FORMATETC16 *a16, FORMATETC *a32)
-{
-    a16->cfFormat = a32->cfFormat;
-    a16->ptd = MapLS(a32->ptd);
-    a16->dwAspect = a32->dwAspect;
-    a16->lindex = a32->lindex;
-    a16->tymed = a32->tymed;
-}
 #define MAP_PTR_FORMATETC32_16(a16, a32) map_formatetc32_16((FORMATETC16*)MapSL(a16 = MapLS(alloca(sizeof(FORMATETC16)))), a32);
 
 #define MAP_PTR_STGMEDIUM16_32(a32, a16) map_stgmedium16_32(a32 = (STGMEDIUM*)alloca(sizeof(STGMEDIUM)), (STGMEDIUM16*)MapSL(a16))

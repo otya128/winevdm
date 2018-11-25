@@ -7,7 +7,7 @@
 7 stub OLEQUERYCREATEFROMDATA
 8 stub OLECREATEFROMDATA
 9 stub OLECREATELINKFROMDATA
-10 stub OLECREATE
+10 pascal OleCreate(ptr ptr long ptr segptr segptr ptr) OleCreate16
 11 stub OLECREATELINK
 12 pascal OleLoad(segptr ptr segptr ptr) OleLoad16
 13 pascal OleSave(segptr segptr word) OleSave16

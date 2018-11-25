@@ -545,3 +545,17 @@ HRESULT WINAPI OleSave16(SEGPTR pPS, SEGPTR pStg, BOOL fSameAsLoad)
 {
     return hresult32_16(OleSave((IPersistStorage*)iface16_32(&IID_IPersistStorage, pPS), (IStorage*)iface16_32(&IID_IStorage, pStg), fSameAsLoad));
 }
+
+
+HRESULT WINAPI OleCreate16(REFCLSID rclsid, REFIID riid, DWORD renderopt, LPFORMATETC16 pFormatetc, SEGPTR pClientSite, SEGPTR lpStg, SEGPTR *ppvObj)
+{
+    HRESULT result;
+    FORMATETC formatetc32;
+    void *pvObj = NULL;
+    if (pFormatetc)
+        map_formatetc16_32(&formatetc32, pFormatetc);
+    TRACE("(%s,%s,%08x,%p,%08x,%08x,%p)\n", debugstr_guid(rclsid), debugstr_guid(riid), renderopt, pFormatetc, pClientSite, lpStg, ppvObj);
+    result = hresult32_16(OleCreate(rclsid, riid, renderopt, pFormatetc ? &formatetc32 : NULL, (IOleClientSite*)iface16_32(&IID_IOleClientSite, pClientSite), (IStorage*)iface16_32(&IID_IStorage, lpStg), &pvObj));
+    *ppvObj = iface32_16(riid, pvObj);
+    return result;
+}

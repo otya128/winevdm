@@ -82,6 +82,7 @@ static LPCSTR strdupWtoA(LPCWSTR str)
 }
 /**********************************************************************/
 
+#include <pshpack1.h>
 typedef struct tagSTATSTG16
 {
     LPOLESTR16 pwcsName;
@@ -96,5 +97,38 @@ typedef struct tagSTATSTG16
     DWORD grfStateBits;
     DWORD reserved;
 } STATSTG16;
+
+typedef struct
+{
+    CLIPFORMAT cfFormat;
+    SEGPTR/*DVTARGETDEVICE FAR**/ ptd;
+    DWORD dwAspect;
+    LONG lindex;
+    DWORD tymed;
+} FORMATETC16;
+typedef struct {
+    DWORD tymed;
+    union {
+        HANDLE16 hGlobal;
+        SEGPTR/*LPSTR*/lpszFileName;
+        SEGPTR/*LPSTREAM*/pstm;
+        SEGPTR/*LPSTORAGE*/pstg;
+    };
+    SEGPTR /*LPUNKNOWN*/pUnkForRelease;
+} STGMEDIUM16;
+typedef struct
+{
+    FORMATETC16 formatetc;
+    DWORD advf;
+    /*LPADVISESINK*/SEGPTR pAdvSink;
+    DWORD dwConnection;
+} STATDATA16;
+#include <poppack.h>
+
+void map_stgmedium32_16(STGMEDIUM16 *a16, const STGMEDIUM *a32);
+void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16);
+
+void map_formatetc16_32(FORMATETC *a32, const FORMATETC16 *a16);
+void map_formatetc32_16(FORMATETC16 *a16, const FORMATETC *a32);
 
 #endif /* __WINE_OLE_IFS_H */

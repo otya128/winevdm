@@ -147,12 +147,12 @@ void *iface16_32(REFIID riid, SEGPTR iface16)
         {
             if (is_iunk || !memcmp(interface16_instances[i]->riid, riid, sizeof(IID)))
             {
-                TRACE("16-bit interface %04x:%04x -> %p(%.*s)\n", SELECTOROF(iface16), OFFSETOF(iface16), (void*)&interface16_instances[i]->lpVtbl, strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
+                TRACE("16-bit interface %04x:%04x -> %p(%.*s)\n", SELECTOROF(iface16), OFFSETOF(iface16), interface16_instances[i]->iface32, strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
                 return interface16_instances[i]->iface32;
             }
             else
             {
-                TRACE("16-bit interface %04x:%04x is not %p(%.*s)\n", SELECTOROF(iface16), OFFSETOF(iface16), (void*)&interface32_instances[i]->lpVtbl, strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
+                TRACE("16-bit interface %04x:%04x is not %p(%.*s)\n", SELECTOROF(iface16), OFFSETOF(iface16), interface16_instances[i]->iface32, strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
             }
         }
         if (interface32_instances[i] && interface32_instances[i]->iface16 == iface16)
@@ -303,4 +303,146 @@ ULONG STDMETHODCALLTYPE ISTGMEDIUMRelease_32_16_Release(ISTGMEDIUMRelease *This)
         TRACE("(%p(%04x:%04x)) free\n", This, SELECTOROF(iface16), OFFSETOF(iface16));
     }
     return result;
+}
+
+ULONG STDMETHODCALLTYPE ISTGMEDIUMRelease_32_16_Release(ISTGMEDIUMRelease *This);
+typedef struct
+{
+    ISTGMEDIUMRelease ISTGMEDIUMRelease_iface;
+    LONG ref;
+} ISTGMEDIUM_impl;
+
+
+static inline ISTGMEDIUM_impl *impl_from_ISTGMEDIUMRelease(ISTGMEDIUMRelease *iface)
+{
+    return CONTAINING_RECORD(iface, ISTGMEDIUM_impl, ISTGMEDIUMRelease_iface);
+}
+
+static ULONG WINAPI ISTGMEDIUMRelease_AddRef(ISTGMEDIUMRelease *iface)
+{
+    ISTGMEDIUM_impl *This = impl_from_ISTGMEDIUMRelease(iface);
+    return InterlockedIncrement(&This->ref);
+}
+
+static ULONG WINAPI ISTGMEDIUMRelease_Release(ISTGMEDIUMRelease *iface)
+{
+    ISTGMEDIUM_impl *This = impl_from_ISTGMEDIUMRelease(iface);
+    return InterlockedDecrement(&This->ref);
+}
+
+static HRESULT WINAPI ISTGMEDIUMRelease_QueryInterface(ISTGMEDIUMRelease *iface,
+    REFIID riid,
+    void** ppvObject)
+{
+    *ppvObject = NULL;
+
+    if (IsEqualIID(riid, &IID_ISTGMEDIUMRelease) ||
+        IsEqualIID(riid, &IID_IUnknown))
+    {
+        *ppvObject = iface;
+        IUnknown_AddRef(iface);
+    }
+
+    return *ppvObject ? S_OK : E_NOINTERFACE;
+}
+
+static const ISTGMEDIUMReleaseVtbl ISTGMEDIUMRelease_VTable =
+{
+    ISTGMEDIUMRelease_QueryInterface, ISTGMEDIUMRelease_AddRef, ISTGMEDIUMRelease_Release
+};
+
+void map_formatetc16_32(FORMATETC *a32, const FORMATETC16 *a16)
+{
+    a32->cfFormat = a16->cfFormat;
+    a32->ptd = (DVTARGETDEVICE*)MapSL(a16->ptd);
+    a32->dwAspect = a16->dwAspect;
+    a32->lindex = a16->lindex;
+    a32->tymed = a16->tymed;
+}
+void map_formatetc32_16(FORMATETC16 *a16, const FORMATETC *a32)
+{
+    a16->cfFormat = a32->cfFormat;
+    a16->ptd = MapLS(a32->ptd);
+    a16->dwAspect = a32->dwAspect;
+    a16->lindex = a32->lindex;
+    a16->tymed = a32->tymed;
+}
+
+void map_stgmedium32_16(STGMEDIUM16 *a16, const STGMEDIUM *a32)
+{
+    IUnknown *punk = a32->pUnkForRelease;
+    interface_16 *i16;
+    a16->tymed = a32->tymed;
+    a16->pUnkForRelease = iface32_16(&IID_ISTGMEDIUMRelease, punk);
+    i16 = get_interface32_ptr(a16->pUnkForRelease);
+    switch ((TYMED)a32->tymed)
+    {
+    case TYMED_HGLOBAL:
+    {
+        GlobalFree(0);
+        LPVOID p = GlobalLock(a32->hGlobal);
+        SIZE_T size = GlobalSize(a32->hGlobal);
+        SEGPTR g16 = GlobalAlloc16(0, size);
+        LPVOID p32 = GlobalLock16(g16);
+        memcpy(p32, p, GlobalSize(a32->hGlobal));
+        WOWGlobalUnlock16(g16);
+        a16->hGlobal = g16;
+        FIXME("leak %04x(%p)\n", a16->hGlobal, a32->hGlobal);
+        break;
+    }
+    case TYMED_FILE:
+        a16->lpszFileName = MapLS(strdupWtoA(a32->lpszFileName));
+        break;
+    case TYMED_ISTREAM:
+        a16->pstm = iface32_16(&IID_IStream, a32->pstm);
+        break;
+    case TYMED_ISTORAGE:
+        a16->pstg = iface32_16(&IID_IStorage, a32->pstg);
+        break;
+    case TYMED_NULL:
+        break;
+    case TYMED_GDI:
+    case TYMED_MFPICT:
+    case TYMED_ENHMF:
+    default:
+        ERR("unsupported tymed %d\n", a32->tymed);
+        break;
+    }
+}
+void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
+{
+    a32->tymed = a16->tymed;
+    a32->pUnkForRelease = (IUnknown*)iface16_32(&IID_ISTGMEDIUMRelease, a16->pUnkForRelease);
+    switch ((TYMED)a32->tymed)
+    {
+    case TYMED_HGLOBAL:
+    {
+        SIZE_T size = GlobalSize16(a16->hGlobal);
+        LPVOID p16 = GlobalLock16(a16->hGlobal);
+        LPVOID p32;
+        a32->hGlobal = GlobalAlloc(0, size);
+        p32 = GlobalLock(a32->hGlobal);
+        memcpy(p32, p16, size);
+        GlobalUnlock(a32->hGlobal);
+        FIXME("leak %p(%04x)\n", a32->hGlobal, a16->hGlobal);
+        break;
+    }
+    case TYMED_FILE:
+        a32->lpszFileName = strdupAtoW(MapSL(a16->lpszFileName));
+        break;
+    case TYMED_ISTREAM:
+        a32->pstm = (IStream*)iface16_32(&IID_IStream, a16->pstm);
+        break;
+    case TYMED_ISTORAGE:
+        a32->pstg = (IStorage*)iface16_32(&IID_IStorage, a16->pstg);
+        break;
+    case TYMED_NULL:
+        break;
+    case TYMED_GDI:
+    case TYMED_MFPICT:
+    case TYMED_ENHMF:
+    default:
+        ERR("unsupported tymed %d\n", a16->tymed);
+        break;
+    }
 }
