@@ -63,7 +63,7 @@ HRESULT WINAPI StgCreateDocFile16(
 	TRACE("(%s,0x%08x,0x%08x,%p)\n",
 		pwcsName,grfMode,reserved,ppstgOpen
 	);
-    result = StgCreateDocfile(pwcsName, grfMode, reserved, &stg);
+    result = StgCreateDocfile(w, grfMode, reserved, &stg);
     HeapFree(GetProcessHeap(), 0, w);
     *ppstgOpen = iface32_16(&IID_IStorage, stg);
     return result;
