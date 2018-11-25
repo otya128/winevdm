@@ -402,7 +402,34 @@ void map_stgmedium32_16(STGMEDIUM16 *a16, const STGMEDIUM *a32)
     case TYMED_NULL:
         break;
     case TYMED_GDI:
+        a16->hGlobal = HBITMAP_16(a32->hBitmap);
+        break;
     case TYMED_MFPICT:
+    {
+        METAFILEPICT16 *pict16;
+        HGLOBAL data32 = a32->hGlobal;
+        HGLOBAL16 data16;
+        UINT size;
+        void *ptr;
+        METAFILEPICT *pict32 = GlobalLock(data32);
+
+        if (pict32)
+        {
+            if (!(data16 = GlobalAlloc16(GMEM_MOVEABLE, sizeof(*pict16)))) return 0;
+            pict16 = GlobalLock16(data16);
+            pict16->mm = pict32->mm;
+            pict16->xExt = pict32->xExt;
+            pict16->yExt = pict32->yExt;
+            size = GetMetaFileBitsEx(pict32->hMF, 0, NULL);
+            pict16->hMF = GlobalAlloc16(GMEM_MOVEABLE, size);
+            ptr = GlobalLock16(pict16->hMF);
+            GetMetaFileBitsEx(pict32->hMF, size, ptr);
+            GlobalUnlock16(pict16->hMF);
+            GlobalUnlock16(data16);
+            a16->hGlobal = data16;
+        }
+        break;
+    }
     case TYMED_ENHMF:
     default:
         ERR("unsupported tymed %d\n", a32->tymed);
@@ -439,7 +466,31 @@ void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
     case TYMED_NULL:
         break;
     case TYMED_GDI:
+        a32->hBitmap = HBITMAP_32(a16->hGlobal);
+        break;
     case TYMED_MFPICT:
+    {
+        METAHEADER *header;
+        METAFILEPICT *pict32;
+        HGLOBAL16 data16 = a16->hGlobal;
+        METAFILEPICT16 *pict16 = GlobalLock16(data16);
+        HGLOBAL data32;
+
+        if (pict16)
+        {
+            if (!(data32 = GlobalAlloc(GMEM_MOVEABLE, sizeof(*pict32)))) return 0;
+            pict32 = GlobalLock(data32);
+            pict32->mm = pict16->mm;
+            pict32->xExt = pict16->xExt;
+            pict32->yExt = pict16->yExt;
+            header = GlobalLock16(pict16->hMF);
+            pict32->hMF = SetMetaFileBitsEx(header->mtSize * 2, (BYTE *)header);
+            GlobalUnlock16(pict16->hMF);
+            GlobalUnlock(data32);
+            a32->hGlobal = data32;
+        }
+        break;
+    }
     case TYMED_ENHMF:
     default:
         ERR("unsupported tymed %d\n", a16->tymed);
