@@ -7150,8 +7150,8 @@ HRESULT WINAPI VarBstrCat16(SEGBSTR16 pbstrLeft, SEGBSTR16 pbstrRight, SEGBSTR16
   unsigned int lenLeft, lenRight;
 
   TRACE("%s,%s,%p\n",
-   debugstr_an(pbstrLeft, SysStringLen16(pbstrLeft)),
-   debugstr_an(pbstrRight, SysStringLen16(pbstrRight)), pbstrOut);
+   debugstr_an(BSTR_PTR(pbstrLeft), SysStringLen16(pbstrLeft)),
+   debugstr_an(BSTR_PTR(pbstrRight), SysStringLen16(pbstrRight)), BSTR_PTR(pbstrOut));
 
   if (!pbstrOut)
     return E_INVALIDARG;
@@ -7167,12 +7167,12 @@ HRESULT WINAPI VarBstrCat16(SEGBSTR16 pbstrLeft, SEGBSTR16 pbstrRight, SEGBSTR16
   ((OLECHAR16*)MapSL(*pbstrOut))[0] = '\0';
 
   if (pbstrLeft)
-    memcpy(*pbstrOut, pbstrLeft, lenLeft);
+    memcpy(BSTR_PTR(*pbstrOut), BSTR_PTR(pbstrLeft), lenLeft);
 
   if (pbstrRight)
-    memcpy((CHAR*)*pbstrOut + lenLeft, pbstrRight, lenRight);
+    memcpy(BSTR_PTR((CHAR*)*pbstrOut + lenLeft), BSTR_PTR(pbstrRight), lenRight);
 
-  TRACE("%s\n", debugstr_an(*pbstrOut, SysStringLen16(*pbstrOut)));
+  TRACE("%s\n", debugstr_an(BSTR_PTR(*pbstrOut), SysStringLen16(*pbstrOut)));
   return S_OK;
 }
 
@@ -7202,8 +7202,8 @@ HRESULT WINAPI VarBstrCmp16(SEGBSTR16 pbstrLeft, SEGBSTR16 pbstrRight, LCID lcid
     int ret;
 
     TRACE("%s,%s,%d,%08x\n",
-     debugstr_an(pbstrLeft, SysStringLen16(pbstrLeft)),
-     debugstr_an(pbstrRight, SysStringLen16(pbstrRight)), lcid, dwFlags);
+     debugstr_an(BSTR_PTR(pbstrLeft), SysStringLen16(pbstrLeft)),
+     debugstr_an(BSTR_PTR(pbstrRight), SysStringLen16(pbstrRight)), lcid, dwFlags);
 
     if (!pbstrLeft || !*BSTR_PTR(pbstrLeft))
     {
@@ -7217,7 +7217,7 @@ HRESULT WINAPI VarBstrCmp16(SEGBSTR16 pbstrLeft, SEGBSTR16 pbstrRight, LCID lcid
     {
       unsigned int lenLeft = SysStringByteLen16(pbstrLeft);
       unsigned int lenRight = SysStringByteLen16(pbstrRight);
-      ret = memcmp(pbstrLeft, pbstrRight, min(lenLeft, lenRight));
+      ret = memcmp(BSTR_PTR(pbstrLeft), BSTR_PTR(pbstrRight), min(lenLeft, lenRight));
       if (ret < 0)
         return VARCMP_LT;
       if (ret > 0)
@@ -7239,8 +7239,8 @@ HRESULT WINAPI VarBstrCmp16(SEGBSTR16 pbstrLeft, SEGBSTR16 pbstrRight, LCID lcid
           return lenLeft < lenRight ? VARCMP_LT : VARCMP_GT;
       }
 
-      hres = CompareStringA(lcid, dwFlags, pbstrLeft, lenLeft,
-              pbstrRight, lenRight) - CSTR_LESS_THAN;
+      hres = CompareStringA(lcid, dwFlags, BSTR_PTR(pbstrLeft), lenLeft,
+              BSTR_PTR(pbstrRight), lenRight) - CSTR_LESS_THAN;
       TRACE("%d\n", hres);
       return hres;
     }
