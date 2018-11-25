@@ -182,11 +182,18 @@ HGLOBAL16 WINAPI OleMetafilePictFromIconAndLabel16(
 /******************************************************************************
  *        CreateItemMoniker	(OLE2.27)
  */
-HRESULT WINAPI CreateItemMoniker16(LPCOLESTR16 lpszDelim,LPCOLESTR16 lpszItem,LPMONIKER* ppmk)
+HRESULT WINAPI CreateItemMoniker16(LPCOLESTR16 lpszDelim,LPCOLESTR16 lpszItem,SEGPTR* ppmk)
 {
-    FIXME("(%s,%p),stub!\n",lpszDelim,ppmk);
-    *ppmk = NULL;
-    return E_NOTIMPL;
+    LPMONIKER pmk;
+    HRESULT result;
+    LPOLESTR wdelim = strdupAtoW(lpszDelim);
+    LPOLESTR witem = strdupAtoW(lpszItem);
+    TRACE("(%s,%s,%p)\n",lpszDelim,lpszItem,ppmk);
+    result = hresult32_16(CreateItemMoniker(wdelim, witem, &pmk));
+    HeapFree(GetProcessHeap(), 0, wdelim);
+    HeapFree(GetProcessHeap(), 0, witem);
+    *ppmk = iface32_16(&IID_IMoniker, pmk);
+    return result;
 }
 
 
