@@ -451,8 +451,6 @@ static void map_statdata16_32(STATDATA* a32, const STATDATA16 *a16)
 #define MAP_STATDATA32_16(a16, a32) map_statdata32_16(&a16, &a32)
 #define MAP_STATDATA16_32(a32, a16) FIXME("\n");
 
-#define MAP_STRUCT_tagOLEVERB32_16 FIXME("\n");
-#define MAP_STRUCT_tagOLEVERB16_32 FIXME("\n");
 typedef unsigned int TYP16_LPOLEINPLACEFRAMEINFO;
 typedef unsigned int TYP16_LPOLEMENUGROUPWIDTHS;
 typedef SEGPTR TYP16_LPCRECT, TYP16_LPDATAOBJECT, TYP16_LPCBORDERWIDTHS, TYP16_LPCRECTL;
@@ -465,6 +463,10 @@ typedef struct TYP16_tagOLEVERB
     DWORD grfAttribs;
 } 	OLEVERB16;
 
+void map_oleverb16_32(OLEVERB* a32, const OLEVERB16 *a16);
+void map_oleverb32_16(OLEVERB16* a16, const OLEVERB *a32);
+#define MAP_STRUCT_tagOLEVERB16_32(a32, a16) map_oleverb16_32(&a32, &a16)
+#define MAP_STRUCT_tagOLEVERB32_16(a16, a32) map_oleverb32_16(&a16, &a32)
 #define MAP_PTR_DWORD16_32(a32, a16) a32 = (DWORD*)MapSL(a16)
 #define MAP_PTR_DWORD32_16(a16, a32) a16 = MapLS(a32)
 #define MAP_PTR_PTR_IFACE_IMoniker16_32(a32, a16) FIXME("\n")

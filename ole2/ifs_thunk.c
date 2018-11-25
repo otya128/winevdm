@@ -497,3 +497,18 @@ void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
         break;
     }
 }
+
+void map_oleverb16_32(OLEVERB* a32, const OLEVERB16 *a16)
+{
+    a32->fuFlags = a16->fuFlags;
+    a32->grfAttribs = a16->grfAttribs;
+    a32->lpszVerbName = strdupAtoW(MapSL(a16->lpszVerbName));
+    a32->lVerb = a16->lVerb;
+}
+void map_oleverb32_16(OLEVERB16* a16, const OLEVERB *a32)
+{
+    a16->fuFlags = a32->fuFlags;
+    a16->grfAttribs = a32->grfAttribs;
+    a16->lpszVerbName = MapLS(strdupWtoA(a32->lpszVerbName));
+    a16->lVerb = a32->lVerb;
+}
