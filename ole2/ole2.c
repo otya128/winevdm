@@ -203,8 +203,12 @@ HRESULT WINAPI OleSetMenuDescriptor16(
     LPOLEINPLACEFRAME        lpFrame,
     LPOLEINPLACEACTIVEOBJECT lpActiveObject)
 {
-    FIXME("(%p, %x, %x, %p, %p), stub!\n", hOleMenu, hwndFrame, hwndActiveObject, lpFrame, lpActiveObject);
-    return E_NOTIMPL;
+    HOLEMENU hOleMenu32;
+    TRACE("(%p, %x, %x, %p, %p)\n", hOleMenu, hwndFrame, hwndActiveObject, lpFrame, lpActiveObject);
+    hOleMenu32 = HWND_32(hOleMenu); /* FIXME */
+    return hresult32_16(OleSetMenuDescriptor(hOleMenu32, HWND_32(hwndFrame), HWND_32(hwndActiveObject),
+        (IOleInPlaceFrame*)iface16_32(&IID_IOleInPlaceFrame, lpFrame),
+        (IOleInPlaceActiveObject*)iface16_32(&IID_IOleInPlaceActiveObject, lpActiveObject)));
 }
 
 /******************************************************************************

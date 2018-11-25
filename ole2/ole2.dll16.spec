@@ -38,7 +38,7 @@
 38 pascal CreateOleAdviseHolder(ptr) CreateOleAdviseHolder16
 39 pascal CreateDataAdviseHolder(ptr) CreateDataAdviseHolder16
 40 pascal -ret16 OleCreateMenuDescriptor(word ptr) OleCreateMenuDescriptor16
-41 pascal OleSetMenuDescriptor(word word word ptr ptr) OleSetMenuDescriptor16
+41 pascal OleSetMenuDescriptor(word word word segptr segptr) OleSetMenuDescriptor16
 42 pascal -ret16 OleDestroyMenuDescriptor(word) OleDestroyMenuDescriptor16
 43 stub OPENORCREATESTREAM
 44 stub CREATEANTIMONIKER
