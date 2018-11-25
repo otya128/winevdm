@@ -521,15 +521,18 @@ HRESULT WINAPI CallObjectInWOW(LPVOID p1,LPVOID p2) {
  */
 HRESULT WINAPI CoRegisterClassObject16(
 	REFCLSID rclsid,
-	LPUNKNOWN pUnk,
+	/*LPUNKNOWN16*/SEGPTR pUnk,
 	DWORD dwClsContext, /* [in] CLSCTX flags indicating the context in which to run the executable */
 	DWORD flags,        /* [in] REGCLS flags indicating how connections are made */
 	LPDWORD lpdwRegister
 ) {
-	FIXME("(%s,%p,0x%08x,0x%08x,%p),stub\n",
+    HRESULT result;
+    TRACE("(%s,%p,0x%08x,0x%08x,%p)\n",
 		debugstr_guid(rclsid),pUnk,dwClsContext,flags,lpdwRegister
 	);
-	return 0;
+    result = hresult32_16(CoRegisterClassObject(rclsid, (IUnknown*)iface16_32(&IID_IUnknown, pUnk), dwClsContext, flags, lpdwRegister));
+    TRACE("%08x\n", result);
+    return result;
 }
 
 /******************************************************************************
@@ -538,8 +541,8 @@ HRESULT WINAPI CoRegisterClassObject16(
  */
 HRESULT WINAPI CoRevokeClassObject16(DWORD dwRegister) /* [in] token on class obj */
 {
-    FIXME("(0x%08x),stub!\n", dwRegister);
-    return 0;
+    TRACE("(0x%08x)\n", dwRegister);
+    return hresult32_16(CoRevokeClassObject(dwRegister));
 }
 
 /******************************************************************************
@@ -800,23 +803,33 @@ HRESULT WINAPI CoCreateGuid16(GUID *pguid)
  */
 HRESULT WINAPI CoCreateInstance16(
 	REFCLSID rclsid,
-	LPUNKNOWN pUnkOuter,
+	SEGPTR pUnkOuter,
 	DWORD dwClsContext,
 	REFIID iid,
-	LPVOID *ppv)
+	SEGPTR *ppv)
 {
-  FIXME("(%s, %p, %x, %s, %p), stub!\n",
+  LPVOID pv;
+  HRESULT result;
+  TRACE("(%s, %p, %x, %s, %p)\n",
 	debugstr_guid(rclsid), pUnkOuter, dwClsContext, debugstr_guid(iid),
 	ppv
   );
-  return E_NOTIMPL;
+  result = CoCreateInstance(rclsid, (IUnknown*)iface16_32(&IID_IUnknown, pUnkOuter), dwClsContext, iid, &pv);
+  *ppv = iface32_16(iid, pv);
+  return hresult32_16(result);
 }
 
 /***********************************************************************
  *           CoDisconnectObject [COMPOBJ.15]
  */
-HRESULT WINAPI CoDisconnectObject16( LPUNKNOWN lpUnk, DWORD reserved )
+HRESULT WINAPI CoDisconnectObject16( /*LPUNKNOWN*/SEGPTR lpUnk, DWORD reserved )
 {
-  FIXME("(%p, 0x%08x): stub!\n", lpUnk, reserved);
-  return E_NOTIMPL;
+  TRACE("(%p, 0x%08x)\n", lpUnk, reserved);
+  return hresult32_16(CoDisconnectObject((IUnknown*)iface16_32(&IID_IUnknown, lpUnk), reserved));
+}
+
+HRESULT WINAPI CoIsOle1Class16(REFCLSID rclsid)
+{
+    TRACE("(%p, 0x%08x)\n", lpUnk, reserved);
+    return hresult32_16(CoIsOle1Class(rclsid));
 }
