@@ -43,7 +43,19 @@ static void write_args1632(FILE *h, const var_list_t *args, const char *name, in
             }
             else
             {
-                fprintf(h, "DWORD args16_%s", arg->name);
+                /* hard-coded */
+                if (!strcmp(arg->type->c_name, "POINT"))
+                {
+                    fprintf(h, "POINT16 args16_%s", arg->name);
+                }
+                else if (!strcmp(arg->type->c_name, "SIZE"))
+                {
+                    fprintf(h, "SIZE16 args16_%s", arg->name);
+                }
+                else
+                {
+                    fprintf(h, "DWORD args16_%s", arg->name);
+                }
             }
         }
         else if (size == 2)
