@@ -571,3 +571,52 @@ HRESULT WINAPI OleCreate16(REFCLSID rclsid, REFIID riid, DWORD renderopt, LPFORM
     *ppvObj = iface32_16(riid, pvObj);
     return result;
 }
+
+HANDLE16 WINAPI OleDuplicateData16(HANDLE16 hSrc, CLIPFORMAT cfFormat, UINT16 uiFlags)
+{
+    HGLOBAL16 hDst;
+    LPVOID pDst;
+    DWORD size;
+    TRACE("(%04x,%04x,%04x)\n", hSrc, cfFormat, uiFlags);
+    if (cfFormat == CF_BITMAP)
+    {
+        return HBITMAP_16(OleDuplicateData(HBITMAP_32(hSrc), cfFormat, uiFlags));
+    }
+    if (cfFormat == CF_PALETTE)
+    {
+        return HPALETTE_16(OleDuplicateData(HPALETTE_32(hSrc), cfFormat, uiFlags));
+    }
+    if (cfFormat == CF_METAFILEPICT)
+    {
+        METAFILEPICT16 *pictSrc;
+        METAFILEPICT16 *pictDst;
+        void *pmfSrc;
+        void *pmfDst;
+        pictSrc = (METAFILEPICT16*)GlobalLock16(hSrc);
+        hDst = GlobalAlloc16(uiFlags, sizeof(*pictSrc));
+        pictDst = (METAFILEPICT16*)GlobalLock16(hDst);
+        pictDst->mm = pictSrc->mm;
+        pictDst->xExt = pictSrc->xExt;
+        pictDst->yExt = pictSrc->yExt;
+        size = GlobalSize16(pictSrc->hMF);
+        pictDst->hMF = GlobalAlloc16(uiFlags /* ? */, size);
+        pmfSrc = GlobalLock16(pictSrc->hMF);
+        pmfDst = GlobalLock16(pictDst->hMF);
+        memcpy(pmfDst, pmfSrc, size);
+        GlobalUnlock16(pictSrc->hMF);
+        GlobalUnlock16(pictDst->hMF);
+        GlobalUnlock16(hSrc);
+        GlobalUnlock16(hDst);
+        return hDst;
+    }
+    if (uiFlags == 0)
+        uiFlags = GMEM_MOVEABLE;
+    size = GlobalSize16(hSrc);
+    if (!size)
+        return 0;
+    hDst = GlobalAlloc16(uiFlags, size);
+    memcpy(GlobalLock16(hDst), GlobalLock16(hSrc), size);
+    GlobalUnlock16(hDst);
+    GlobalUnlock16(hSrc);
+    return hDst;
+}

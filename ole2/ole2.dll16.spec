@@ -48,7 +48,7 @@
 48 stub ISACCELERATOR
 49 pascal OleSetClipboard(segptr) OleSetClipboard16
 50 pascal OleGetClipboard(ptr) OleGetClipboard16
-51 stub OLEDUPLICATEDATA
+51 pascal -ret16 OleDuplicateData(word word word) OleDuplicateData16
 52 stub OLEGETICONOFFILE
 53 stub OLEGETICONOFCLASS
 54 pascal CreateILockBytesOnHGlobal(word word ptr) CreateILockBytesOnHGlobal16
