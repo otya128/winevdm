@@ -434,7 +434,275 @@ static void get_type_size16(const type_t *type, int *size, int *is_ptr)
     }
     return;
 }
+static type_t *find_identifier(const char *identifier, const type_t *cont_type, int *found_in_cont_type)
+{
+    type_t *type = NULL;
+    const var_t *field;
+    const var_list_t *fields = NULL;
 
+    *found_in_cont_type = 0;
+
+    if (cont_type)
+    {
+        switch (type_get_type(cont_type))
+        {
+        case TYPE_FUNCTION:
+            fields = type_function_get_args(cont_type);
+            break;
+        case TYPE_STRUCT:
+            fields = type_struct_get_fields(cont_type);
+            break;
+        case TYPE_UNION:
+        case TYPE_ENCAPSULATED_UNION:
+            fields = type_union_get_cases(cont_type);
+            break;
+        case TYPE_VOID:
+        case TYPE_BASIC:
+        case TYPE_ENUM:
+        case TYPE_MODULE:
+        case TYPE_COCLASS:
+        case TYPE_INTERFACE:
+        case TYPE_POINTER:
+        case TYPE_ARRAY:
+        case TYPE_BITFIELD:
+            /* nothing to do */
+            break;
+        case TYPE_ALIAS:
+            /* shouldn't get here because of using type_get_type above */
+            assert(0);
+            break;
+        }
+    }
+
+    if (fields) LIST_FOR_EACH_ENTRY( field, fields, const var_t, entry )
+        if (field->name && !strcmp(identifier, field->name))
+        {
+            type = field->type;
+            *found_in_cont_type = 1;
+            break;
+        }
+
+    if (!type)
+    {
+        var_t *const_var = find_const(identifier, 0);
+        if (const_var) type = const_var->type;
+    }
+
+    return type;
+}
+
+typedef void(*write_expr_callback_t)(FILE *h, void *udata, const char *iden, const char *local_var_prefix);
+void write_expr16(FILE *h, const expr_t *e, int brackets,
+                int toplevel, const char *toplevel_prefix,
+                const type_t *cont_type, const char *local_var_prefix, void *udata, write_expr_callback_t callback)
+{
+    switch (e->type)
+    {
+    case EXPR_VOID:
+        break;
+    case EXPR_NUM:
+        fprintf(h, "%u", e->u.lval);
+        break;
+    case EXPR_HEXNUM:
+        fprintf(h, "0x%x", e->u.lval);
+        break;
+    case EXPR_DOUBLE:
+        fprintf(h, "%#.15g", e->u.dval);
+        break;
+    case EXPR_TRUEFALSE:
+        if (e->u.lval == 0)
+            fprintf(h, "FALSE");
+        else
+            fprintf(h, "TRUE");
+        break;
+    case EXPR_IDENTIFIER:
+        if (toplevel && toplevel_prefix && cont_type)
+        {
+            int found_in_cont_type;
+            find_identifier(e->u.sval, cont_type, &found_in_cont_type);
+            if (found_in_cont_type)
+            {
+                fprintf(h, "%s%s", toplevel_prefix, e->u.sval);
+                break;
+            }
+        }
+        if (callback)
+        {
+            callback(h, udata, e->u.sval, local_var_prefix);
+        }
+        else
+        {
+            fprintf(h, "%s%s", local_var_prefix, e->u.sval);
+        }
+        break;
+    case EXPR_STRLIT:
+        fprintf(h, "\"%s\"", e->u.sval);
+        break;
+    case EXPR_WSTRLIT:
+        fprintf(h, "L\"%s\"", e->u.sval);
+        break;
+    case EXPR_CHARCONST:
+        fprintf(h, "'%s'", e->u.sval);
+        break;
+    case EXPR_LOGNOT:
+        fprintf(h, "!");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        break;
+    case EXPR_NOT:
+        fprintf(h, "~");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        break;
+    case EXPR_POS:
+        fprintf(h, "+");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        break;
+    case EXPR_NEG:
+        fprintf(h, "-");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        break;
+    case EXPR_ADDRESSOF:
+        fprintf(h, "&");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        break;
+    case EXPR_PPTR:
+        fprintf(h, "*");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        break;
+    case EXPR_CAST:
+        fprintf(h, "(");
+        write_type_decl(h, e->u.tref, NULL);
+        fprintf(h, ")");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        break;
+    case EXPR_SIZEOF:
+        fprintf(h, "sizeof(");
+        write_type_decl(h, e->u.tref, NULL);
+        fprintf(h, ")");
+        break;
+    case EXPR_SHL:
+    case EXPR_SHR:
+    case EXPR_MOD:
+    case EXPR_MUL:
+    case EXPR_DIV:
+    case EXPR_ADD:
+    case EXPR_SUB:
+    case EXPR_AND:
+    case EXPR_OR:
+    case EXPR_LOGOR:
+    case EXPR_LOGAND:
+    case EXPR_XOR:
+    case EXPR_EQUALITY:
+    case EXPR_INEQUALITY:
+    case EXPR_GTR:
+    case EXPR_LESS:
+    case EXPR_GTREQL:
+    case EXPR_LESSEQL:
+        if (brackets) fprintf(h, "(");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        switch (e->type)
+        {
+        case EXPR_SHL:          fprintf(h, " << "); break;
+        case EXPR_SHR:          fprintf(h, " >> "); break;
+        case EXPR_MOD:          fprintf(h, " %% "); break;
+        case EXPR_MUL:          fprintf(h, " * "); break;
+        case EXPR_DIV:          fprintf(h, " / "); break;
+        case EXPR_ADD:          fprintf(h, " + "); break;
+        case EXPR_SUB:          fprintf(h, " - "); break;
+        case EXPR_AND:          fprintf(h, " & "); break;
+        case EXPR_OR:           fprintf(h, " | "); break;
+        case EXPR_LOGOR:        fprintf(h, " || "); break;
+        case EXPR_LOGAND:       fprintf(h, " && "); break;
+        case EXPR_XOR:          fprintf(h, " ^ "); break;
+        case EXPR_EQUALITY:     fprintf(h, " == "); break;
+        case EXPR_INEQUALITY:   fprintf(h, " != "); break;
+        case EXPR_GTR:          fprintf(h, " > "); break;
+        case EXPR_LESS:         fprintf(h, " < "); break;
+        case EXPR_GTREQL:       fprintf(h, " >= "); break;
+        case EXPR_LESSEQL:      fprintf(h, " <= "); break;
+        default: break;
+        }
+        write_expr16(h, e->u.ext, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        if (brackets) fprintf(h, ")");
+        break;
+    case EXPR_MEMBER:
+        if (brackets) fprintf(h, "(");
+        if (e->ref->type == EXPR_PPTR)
+        {
+            write_expr16(h, e->ref->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+            fprintf(h, "->");
+        }
+        else
+        {
+            write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+            fprintf(h, ".");
+        }
+        write_expr16(h, e->u.ext, 1, 0, toplevel_prefix, cont_type, "", udata, callback);
+        if (brackets) fprintf(h, ")");
+        break;
+    case EXPR_COND:
+        if (brackets) fprintf(h, "(");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        fprintf(h, " ? ");
+        write_expr16(h, e->u.ext, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        fprintf(h, " : ");
+        write_expr16(h, e->ext2, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        if (brackets) fprintf(h, ")");
+        break;
+    case EXPR_ARRAY:
+        if (brackets) fprintf(h, "(");
+        write_expr16(h, e->ref, 1, toplevel, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        fprintf(h, "[");
+        write_expr16(h, e->u.ext, 1, 1, toplevel_prefix, cont_type, local_var_prefix, udata, callback);
+        fprintf(h, "]");
+        if (brackets) fprintf(h, ")");
+        break;
+    }
+}
+
+struct args_conv_callback_udata
+{
+    const var_list_t *args;
+};
+void args_conv_callback(FILE *h, void *udata, const char *iden, const char *local_prefix)
+{
+    const var_t *arg;
+    struct args_conv_callback_udata *ud = (struct args_conv_callback_udata*)udata;
+    LIST_FOR_EACH_ENTRY(arg, ud->args, const var_t, entry) {
+        expr_t *iid = get_attrp(arg->attrs, ATTR_IIDIS);
+        int is_out = is_attr(arg->attrs, ATTR_OUT);
+        int is_in = is_attr(arg->attrs, ATTR_IN);
+        int is_array = 0;
+        int is_byte_out = 0;
+        enum type_type typtyp1 = type_get_type(arg->type);
+        type_t *typ2 = typtyp1 == TYPE_POINTER ? type_pointer_get_ref(arg->type) : NULL;
+        enum type_type typtyp2 = typ2 ? type_get_type(typ2) : -1;
+        if (typtyp1 == TYPE_ARRAY)
+        {
+            type_t *array_elem_type = type_array_get_element(arg->type);
+            enum type_type array_elem_type_type = type_get_type(array_elem_type);
+            if (array_elem_type_type != TYPE_VOID)
+            {
+                typ2 = array_elem_type;
+                typtyp1 = array_elem_type_type;
+                is_array = TRUE;
+            }
+            else
+            {
+                is_byte_out = TRUE;
+                typ2 = array_elem_type;
+                typtyp1 = array_elem_type_type;
+                is_array = TRUE;
+            }
+        }
+        if (is_out && !strcmp(arg->name, iden))
+        {
+            fprintf(h, "(&%s%s)", local_prefix, iden);
+            return;
+        }
+    }
+    fprintf(h, "%s%s", local_prefix, iden);
+    return;
+}
 enum args_conv
 {
     ARGS_CONV_DECL,
@@ -619,6 +887,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                 /* [out] interface conversion */
                 if (is_array && !is_byte_out)
                 {
+                    struct args_conv_callback_udata udata = { args };
                     int count = 0;
                     expr_t *e;
                     expr_list_t *size_is = get_attrp(arg->attrs, ATTR_SIZEIS);
@@ -632,7 +901,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     fprintf(h, " ,");
                     LIST_FOR_EACH_ENTRY(e, size_is, expr_t, entry)
                     {
-                        write_expr(h, e, 1, 1, NULL, NULL, is_1632 ? "args32_" : ""); /* FIXME */
+                        write_expr16(h, e, 1, 1, NULL, NULL, is_1632 ? "args32_" : "", &udata, is_1632 ? args_conv_callback : NULL);
                         assert(count++ == 0);
                     }
                     fprintf(h, " );\n");
@@ -662,6 +931,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                 char buf2[256];
                 if (is_array && !is_byte_out)
                 {
+                    struct args_conv_callback_udata udata = { args };
                     int count = 0;
                     expr_t *e;
                     expr_list_t *len_is = get_attrp(arg->attrs, ATTR_LENGTHIS);
@@ -675,7 +945,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     fprintf(h, "    for (i__ = 0; i__ < (");
                     LIST_FOR_EACH_ENTRY(e, len_is, expr_t, entry)
                     {
-                        write_expr(h, e, 1, 1, NULL, NULL, is_1632 ? "&args32_" : "&args16_");
+                        write_expr16(h, e, 1, 1, NULL, NULL, is_1632 ? "args32_" : "args16_", &udata, args_conv_callback);
                         assert(count++ == 0);
                     }
                     fprintf(h, ") ; i__++)\n");
