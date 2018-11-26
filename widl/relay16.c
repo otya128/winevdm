@@ -206,6 +206,7 @@ enum type_conv_map
     TYPE_CONV_UNMAP,
     TYPE_CONV_INMAP,
     TYPE_CONV_MAP_MAPSL, /* (*(typ16*)MapSL(%s%s)) */
+    TYPE_CONV_MAP_ARRAY, /* (((typ16*)dst__)[i__]) */
 };
 static void write_type_decl_left3216(FILE *f, type_t *t);
 static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, const char *expr, const char *to, const char *to2, int unmap)
@@ -228,6 +229,12 @@ static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, con
                 write_type_decl_left3216(h, t);
                 fprintf(h, "*)MapSL(%s%s) = %s%s;\n", to, to2, expr_prefix, expr);
             }
+            else if (type_conv_map == TYPE_CONV_MAP_ARRAY)
+            {
+                fprintf(h, "    ((");
+                write_type_decl_left3216(h, t);
+                fprintf(h, "*)(%s%s))[i__] = %s%s;\n", to, to2, expr_prefix, expr);
+            }
             else
             {
                 fprintf(h, "    %s%s = %s%s;\n", to, to2, expr_prefix, expr);
@@ -244,6 +251,10 @@ static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, con
         if (type_conv_map == TYPE_CONV_MAP_MAPSL)
         {
             fprintf(h, "    *(SEGPTR*)MapSL(%s%s) = iface32_16(&IID_%s, %s%s);\n", to, to2, typ2->name, expr_prefix, expr);
+        }
+        else if (type_conv_map == TYPE_CONV_MAP_ARRAY)
+        {
+            fprintf(h, "    ((SEGPTR*)MapSL(%s%s))[i__] = iface32_16(&IID_%s, %s%s);\n", to, to2, typ2->name, expr_prefix, expr);
         }
         else
         {
@@ -263,6 +274,12 @@ static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, con
         fprintf(h, "32_16((*(");
         write_type_decl_left3216(h, t);
         fprintf(h, "*)MapSL(%s%s)), %s%s)", to, to2, expr_prefix, expr);
+    }
+    else if (type_conv_map == TYPE_CONV_MAP_ARRAY)
+    {
+        fprintf(h, "32_16((((");
+        write_type_decl_left3216(h, t);
+        fprintf(h, "*)(%s%s))[i__]), %s%s)", to, to2, expr_prefix, expr);
     }
     else
     {
@@ -992,7 +1009,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     if (is_1632)
                     {
                         snprintf(buf2, 256, "args32_%s[i__]", arg->name); /* FIXME */
-                        write_type_conv3216(h, typ2, buf2, "", "((SEGPTR*)dst__)[i__]", "", FALSE);
+                        write_type_conv3216(h, typ2, buf2, "", "dst__", "", TYPE_CONV_MAP_ARRAY);
                     }
                     else
                     {
