@@ -2773,6 +2773,7 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
 {
     WNDPROC16 winproc;
     LRESULT retval;
+    WNDPROC wndproc32 = (WNDPROC)GetWindowLongPtrA(HWND_32(msg->hwnd), GWLP_WNDPROC);
 
       /* Process timer messages */
     if ((msg->message == WM_TIMER) || (msg->message == WM_SYSTIMER))
@@ -2806,10 +2807,10 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
         }
 	}
 
-    if (!msg->hwnd || !(winproc = (WNDPROC16)GetWndProc16( msg->hwnd )))
+    if (!msg->hwnd || !(winproc = (WNDPROC16)GetWndProc16( msg->hwnd )) ||
+        wndproc32 != WindowProc16 /* OleSetMenuDescriptor put a window in a subclass */)
 	{
 		LRESULT result;
-		WNDPROC wndproc32 = (WNDPROC)GetWindowLongPtrA(HWND_32(msg->hwnd), GWLP_WNDPROC);
 		if (!wndproc32)
 		{
 			SetLastError(ERROR_INVALID_WINDOW_HANDLE);
