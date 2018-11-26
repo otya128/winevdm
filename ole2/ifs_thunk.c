@@ -512,3 +512,21 @@ void map_oleverb32_16(OLEVERB16* a16, const OLEVERB *a32)
     a16->lpszVerbName = MapLS(strdupWtoA(a32->lpszVerbName));
     a16->lVerb = a32->lVerb;
 }
+
+void map_oleinplaceframeinfo16_32(OLEINPLACEFRAMEINFO *a32, const struct TYP16_tagOleInPlaceFrameInfo *a16)
+{
+    a32->hwndFrame = HWND_32(a16->hwndFrame);
+    a32->fMDIApp = a16->fMDIApp;
+    a32->cb = a16->cb;
+    a32->haccel = HACCEL_32(a16->haccel);
+    a32->cAccelEntries = a16->cAccelEntries;
+}
+
+void map_oleinplaceframeinfo32_16(struct TYP16_tagOleInPlaceFrameInfo *a16, const OLEINPLACEFRAMEINFO *a32)
+{
+    a16->cb = a32->cb;
+    a16->fMDIApp = a32->fMDIApp;
+    a16->hwndFrame = HWND_16(a32->hwndFrame);
+    a16->haccel = HACCEL_32(a32->haccel);
+    a16->cAccelEntries = a32->cAccelEntries;
+}
