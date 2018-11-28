@@ -413,9 +413,17 @@ static void map_msg32_16(MSG16 *a16, const MSG *a32)
         a16 = 0;\
     else\
         map_msg32_16((MSG16*)MapSL(a16 = MapLS(alloca(sizeof(MSG16)))), a32)
-#define MAP_LPCRECT16_32(a32, a16) map_rect16_32(a32 = (LPCRECT*)alloca(sizeof(RECT)), (RECT16*)MapSL(a16))
+#define MAP_LPCRECT16_32(a32, a16) \
+    if (a16 == 0)\
+        a32 = NULL;\
+    else\
+        map_rect16_32(a32 = (LPCRECT*)alloca(sizeof(RECT)), (RECT16*)MapSL(a16))
 #define MAP_LPCBORDERWIDTHS16_32 MAP_LPCRECT16_32
-#define MAP_LPCRECT32_16(a16, a32) map_rect32_16(MapSL(a16 = MapLS((const RECT16*)alloca(sizeof(RECT16)))), (RECT*)a32)
+#define MAP_LPCRECT32_16(a16, a32) \
+    if (a32 == NULL)\
+        a16 = 0;\
+    else\
+        map_rect32_16(MapSL(a16 = MapLS((const RECT16*)alloca(sizeof(RECT16)))), (RECT*)a32)
 #define MAP_LPCBORDERWIDTHS32_16 MAP_LPCRECT32_16
 #define MAP_IViewObjectCallback16_32(a32, a16) \
     if (a16)\
