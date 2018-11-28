@@ -530,3 +530,17 @@ void map_oleinplaceframeinfo32_16(struct TYP16_tagOleInPlaceFrameInfo *a16, cons
     a16->haccel = HACCEL_32(a32->haccel);
     a16->cAccelEntries = a32->cAccelEntries;
 }
+
+void map_interfaceinfo16_32(INTERFACEINFO *a32, const INTERFACEINFO16 *a16)
+{
+    a32->pUnk = (IUnknown*)iface16_32(&IID_IUnknown, a16->pUnk);
+    a32->iid = a16->iid;
+    a32->wMethod = a16->wMethod;
+}
+
+void map_interfaceinfo32_16(INTERFACEINFO16 *a16, const INTERFACEINFO *a32)
+{
+    a16->pUnk = iface32_16(&IID_IUnknown, a32->pUnk);
+    a16->iid = a32->iid;
+    a16->wMethod = a32->wMethod;
+}

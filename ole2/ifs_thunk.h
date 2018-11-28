@@ -265,15 +265,9 @@ typedef struct
 } INTERFACEINFO16;
 
 
-static void map_interfaceinfo16_32(INTERFACEINFO *a32, INTERFACEINFO16 *a16)
-{
-    FIXME("\n");
-}
+void map_interfaceinfo16_32(INTERFACEINFO *a32, const INTERFACEINFO16 *a16);
 #define MAP_LPINTERFACEINFO16_32(a32, a16) map_interfaceinfo16_32(a32 = (INTERFACEINFO*)alloca(sizeof(INTERFACEINFO)), (INTERFACEINFO16*)MapSL(a16))
-static void map_interfaceinfo32_16(INTERFACEINFO16 *a16, INTERFACEINFO *a32)
-{
-    FIXME("\n");
-}
+void map_interfaceinfo32_16(INTERFACEINFO16 *a16, const INTERFACEINFO *a32);
 #define MAP_LPINTERFACEINFO32_16(a16, a32) map_interfaceinfo32_16((INTERFACEINFO16*)MapSL(a16 = MapLS(alloca(sizeof(INTERFACEINFO16)))), a32);
 
 #define MAP_IID_PTR16_32(a32, a16) a32 = (const IID*)MapSL(a16)
