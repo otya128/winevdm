@@ -4,7 +4,7 @@
 4 pascal DllGetClassObject(ptr ptr ptr) DllGetClassObject16
 #5 WEP
 6 stub OLEQUERYLINKFROMDATA
-7 stub OLEQUERYCREATEFROMDATA
+7 pascal OleQueryCreateFromData(segptr) OleQueryCreateFromData16
 8 stub OLECREATEFROMDATA
 9 stub OLECREATELINKFROMDATA
 10 pascal OleCreate(ptr ptr long ptr segptr segptr ptr) OleCreate16

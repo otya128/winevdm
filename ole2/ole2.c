@@ -651,3 +651,9 @@ HRESULT WINAPI CreateGenericComposite16(SEGPTR pmkFirst, SEGPTR pmkRest, SEGPTR 
     *ppmkComposite = iface32_16(&IID_IMoniker, pmkComposite);
     return result;
 }
+
+HRESULT WINAPI OleQueryCreateFromData16(SEGPTR pDataObject)
+{
+    TRACE("(%08x)\n", pDataObject);
+    return hresult32_16(OleQueryCreateFromData((IDataObject*)iface16_32(&IID_IDataObject, pDataObject)));
+}
