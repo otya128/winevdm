@@ -631,3 +631,13 @@ HANDLE16 WINAPI OleDuplicateData16(HANDLE16 hSrc, CLIPFORMAT cfFormat, UINT16 ui
     GlobalUnlock16(hSrc);
     return hDst;
 }
+
+HRESULT WINAPI CreateGenericComposite16(SEGPTR pmkFirst, SEGPTR pmkRest, SEGPTR *ppmkComposite)
+{
+    HRESULT result;
+    LPMONIKER pmkComposite = NULL;
+    TRACE("(%08x,%08x,%p)\n", pmkFirst, pmkRest, ppmkComposite);
+    result = hresult32_16(CreateGenericComposite((IMoniker*)iface16_32(&IID_IMoniker, pmkFirst), (IMoniker*)iface16_32(&IID_IMoniker, pmkRest), &pmkComposite));
+    *ppmkComposite = iface32_16(&IID_IMoniker, pmkComposite);
+    return result;
+}

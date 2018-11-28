@@ -26,7 +26,7 @@
 26 stub CREATEBINDCTX
 27 pascal CreateItemMoniker(str str ptr) CreateItemMoniker16
 28 pascal CreateFileMoniker(str ptr) CreateFileMoniker16
-29 stub CREATEGENERICCOMPOSITE
+29 pascal CreateGenericComposite(segptr segptr ptr) CreateGenericComposite16
 30 pascal GetRunningObjectTable(long ptr) GetRunningObjectTable16
 31 stub OLEGETMALLOC
 32 pascal ReleaseStgMedium(ptr) ReleaseStgMedium16
