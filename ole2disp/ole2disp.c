@@ -723,18 +723,82 @@ int WINAPI SysStringLen16(SEGPTR str)
     return bb16->clSize;
 }
 
+#include <pshpack1.h>
 
+typedef struct
+{
+    /* TCHAR* */SEGPTR szName;
+    VARTYPE vt;
+} PARAMDATA16, *LPPARAMDATA16;
+
+typedef struct
+{
+    /* TCHAR* */SEGPTR szName;
+    /* PARAMDATA* */SEGPTR ppdata;
+    DISPID dispid;
+    UINT16 iMeth;
+    /* CALLCONV */WORD cc;
+    UINT16 cArgs;
+    unsigned short wFlags;
+    VARTYPE vtReturn;
+} METHODDATA16, *LPMETHODDATA16;
+
+typedef struct
+{
+    /* METHODDATA * */ SEGPTR pmethdata;
+    UINT16 cMembers;
+} INTERFACEDATA16, *LPINTERFACEDATA16;
+#include <poppack.h>
 
 /******************************************************************************
  * CreateDispTypeInfo [OLE2DISP.31]
  */
 HRESULT WINAPI CreateDispTypeInfo16(
-	INTERFACEDATA *pidata,
+	INTERFACEDATA16 *pidata,
 	LCID lcid,
-	ITypeInfo **pptinfo)
+	SEGPTR *pptinfo)
 {
-	FIXME("(%p,%d,%p),stub\n",pidata,lcid,pptinfo);
-	return E_NOTIMPL;
+    int i;
+    INTERFACEDATA idata32;
+    PARAMDATA *params32;
+    METHODDATA16 *pimethdata16 = (METHODDATA16*)MapSL(pidata->pmethdata);
+    ITypeInfo *ptinfo = NULL;
+    HRESULT result;
+    TRACE("(%p,%d,%p)\n", pidata, lcid, pptinfo);
+    idata32.cMembers = pidata->cMembers;
+    idata32.pmethdata = (METHODDATA*)HeapAlloc(GetProcessHeap(), 0, (sizeof(PARAMDATA) + sizeof(METHODDATA)) * idata32.cMembers);
+    params32 = (PARAMDATA*)(idata32.pmethdata + idata32.cMembers);
+    for (i = 0; i < idata32.cMembers; i++)
+    {
+        PARAMDATA16 *param16 = (PARAMDATA16*)MapSL(pimethdata16[i].ppdata);
+        idata32.pmethdata[i].szName = strdupAtoW((LPCSTR)MapSL(pimethdata16[i].szName));
+        idata32.pmethdata[i].dispid = pimethdata16[i].dispid;
+        idata32.pmethdata[i].iMeth = pimethdata16[i].iMeth;
+        idata32.pmethdata[i].cc = pimethdata16[i].cc;
+        idata32.pmethdata[i].cArgs = pimethdata16[i].cArgs;
+        idata32.pmethdata[i].wFlags = pimethdata16[i].wFlags;
+        idata32.pmethdata[i].vtReturn = pimethdata16[i].vtReturn;
+        if (param16)
+        {
+            idata32.pmethdata[i].ppdata = params32 + i;
+            params32[i].szName = strdupAtoW((LPCSTR)MapSL(param16->szName));
+            params32[i].vt = param16->vt;
+        }
+        else
+        {
+            idata32.pmethdata[i].ppdata = NULL;
+        }
+    }
+    result = hresult32_16(CreateDispTypeInfo(&idata32, lcid, &ptinfo));
+    for (i = 0; i < idata32.cMembers; i++)
+    {
+        if (idata32.pmethdata[i].ppdata)
+            HeapFree(GetProcessHeap(), 0, idata32.pmethdata[i].ppdata->szName);
+        HeapFree(GetProcessHeap(), 0, idata32.pmethdata[i].szName);
+    }
+    HeapFree(GetProcessHeap(), 0, idata32.pmethdata);
+    *pptinfo = iface32_16(&IID_ITypeInfo, ptinfo);
+	return result;
 }
 
 /******************************************************************************
