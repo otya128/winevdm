@@ -57,7 +57,7 @@
 57 stub GETCLASSFILE
 58 stub OLEDRAW
 59 pascal OleCreateDefaultHandler(ptr segptr ptr ptr) OleCreateDefaultHandler16
-60 stub OLECREATEEMBEDDINGHELPER
+60 pascal OleCreateEmbeddingHelper(ptr segptr long segptr ptr ptr) OleCreateEmbeddingHelper16
 61 stub OLECONVERTISTORAGETOOLESTREAMEX
 62 stub OLECONVERTOLESTREAMTOISTORAGEEX
 63 stub SETDOCUMENTBITSTG

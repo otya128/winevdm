@@ -507,6 +507,16 @@ HRESULT WINAPI GetRunningObjectTable16(DWORD reserved, /*LPRUNNINGOBJECTTABLE16*
     return result;
 }
 
+HRESULT WINAPI OleCreateEmbeddingHelper16(REFCLSID rclsid, SEGPTR pUnkOuter, DWORD flags, SEGPTR pCF, REFIID riid, SEGPTR *ppvObj)
+{
+    LPVOID pvObj = NULL;
+    HRESULT result;
+    TRACE("(%s,%08x,%08x,%08x,%s,%p)\n", debugstr_guid(rclsid), pUnkOuter, flags, pCF, debugstr_guid(riid), ppvObj);
+    result = hresult32_16(OleCreateEmbeddingHelper(rclsid, (IUnknown*)iface16_32(&IID_IUnknown, pUnkOuter), flags, (IClassFactory*)iface16_32(&IID_IClassFactory, pCF), riid, &pvObj));
+    *ppvObj = iface32_16(riid, pvObj);
+    return result;
+}
+
 HRESULT WINAPI OleCreateDefaultHandler16(REFCLSID clsid, SEGPTR pUnkOuter, REFIID riid, SEGPTR* ppvObj)
 {
     LPVOID obj = NULL;
