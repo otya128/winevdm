@@ -229,10 +229,14 @@ HRESULT WINAPI OleLoad16(
     SEGPTR		pStg,
     REFIID            	riid,
     SEGPTR		pClientSite,
-    LPVOID*		ppvObj)
+    SEGPTR*		ppvObj)
 {
-  FIXME("(%x,%s,%x,%p), stub!\n", pStg, debugstr_guid(riid), pClientSite, ppvObj);
-  return E_NOTIMPL;
+    HRESULT result;
+    LPVOID pvObj = NULL;
+    TRACE("(%08x,%s,%08x,%p)\n", pStg, debugstr_guid(riid), pClientSite, ppvObj);
+    result = hresult32_16(OleLoad((IStorage*)iface16_32(&IID_IStorage, pStg), riid, (IOleClientSite*)iface16_32(&IID_IOleClientSite, pClientSite), &pvObj));
+    *ppvObj = iface32_16(riid, pvObj);
+    return result;
 }
 
 /******************************************************************************
