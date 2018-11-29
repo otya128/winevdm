@@ -194,6 +194,6 @@ DWORD WINAPI OaBuildVersion16(void)
 		return MAKELONG(3029, 10); /* Vista */
     default:
 	FIXME("Version value not known yet. Please investigate it!\n");
-		return 0;
+		return MAKELONG(3027, 3); /* WfW 3.11 */
     }
 }
