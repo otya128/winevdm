@@ -203,3 +203,9 @@ HRESULT WINAPI RegisterTypeLib16(SEGPTR /* ITypeLib* */ptlib, SEGPTR/* TCHAR* */
     FIXME("\n");
     return 0;
 }
+
+HRESULT WINAPI LoadRegTypeLib16(REFGUID guid, unsigned short wVerMajor, unsigned short wVerMinor, LCID lcid, SEGPTR /* ITypeLib* */ *lplptlib)
+{
+    FIXME("\n");
+    return 0;
+}
