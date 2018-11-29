@@ -730,8 +730,28 @@ typedef struct TYP16_tagCONNECTDATA
 #define MAP_PTR_IFACE_IUnknown_PTR32_16(a16, a32) FIXME("MAP_PTR_IFACE_IUnknown_PTR32_16\n")
 #define MAP_PTR_MSG16_32(a32, a16) FIXME("MAP_PTR_MSG16_32\n")
 #define MAP_PTR_MSG32_16(a16, a32) FIXME("MAP_PTR_MSG32_16\n")
-#define MAP_PTR_TLIBATTR16_32(a32, a16) FIXME("MAP_PTR_TLIBATTR16_32\n")
-#define MAP_PTR_TLIBATTR32_16(a16, a32) FIXME("MAP_PTR_TLIBATTR32_16\n")
+typedef struct
+{
+    GUID guid;
+    LCID lcid;
+    /*SYSKIND*/WORD syskind;
+    unsigned short wMajorVerNum;
+    unsigned short wMinorVerNum;
+    unsigned short wLibFlags;
+} TLIBATTR16;
+void map_tlibattr16_32(TLIBATTR *a32, const TLIBATTR16 *a16);
+#define MAP_PTR_TLIBATTR16_32(a32, a16) \
+{\
+    a32 = (TLIBATTR*)HeapAlloc(GetProcessHeap(), 0, sizeof(TLIBATTR)); /* leak */\
+    map_tlibattr16_32(a32, (TLIBATTR16*)MapSL(a16));\
+}
+void map_tlibattr32_16(TLIBATTR16 *a16, const TLIBATTR *a32);
+#define MAP_PTR_TLIBATTR32_16(a16, a32) \
+{\
+    TLIBATTR16 *p16 = (TLIBATTR16*)HeapAlloc(GetProcessHeap(), 0, sizeof(TLIBATTR16)); /* leak */\
+    map_tlibattr32_16(p16, a32);\
+    a16 = MapLS(p16);\
+}
 #define MAP_PTR_TYPEATTR16_32(a32, a16) FIXME("MAP_PTR_TYPEATTR16_32\n")
 #define MAP_PTR_TYPEATTR32_16(a16, a32) FIXME("MAP_PTR_TYPEATTR32_16\n")
 #define MAP_PTR_TYPEDESC16_32(a32, a16) FIXME("MAP_PTR_TYPEDESC16_32\n")

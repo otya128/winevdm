@@ -544,3 +544,23 @@ void map_interfaceinfo32_16(INTERFACEINFO16 *a16, const INTERFACEINFO *a32)
     a16->iid = a32->iid;
     a16->wMethod = a32->wMethod;
 }
+
+void map_tlibattr16_32(TLIBATTR *a32, const TLIBATTR16 *a16)
+{
+    a32->guid = a16->guid;
+    a32->lcid = a16->lcid;
+    a32->syskind = a16->syskind;
+    a32->wLibFlags = a16->wLibFlags;
+    a32->wMajorVerNum = a16->wMajorVerNum;
+    a32->wMinorVerNum = a16->wMinorVerNum;
+}
+
+void map_tlibattr32_16(TLIBATTR16 *a16, const TLIBATTR *a32)
+{
+    a16->guid = a32->guid;
+    a16->lcid = a32->lcid;
+    a16->syskind = a32->syskind;
+    a16->wLibFlags = a32->wLibFlags;
+    a16->wMajorVerNum = a32->wMajorVerNum;
+    a16->wMinorVerNum = a32->wMinorVerNum;
+}
