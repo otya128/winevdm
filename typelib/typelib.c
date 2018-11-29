@@ -39,6 +39,7 @@
 #include "objbase.h"
 #include "oleauto.h"
 #include "wine/debug.h"
+#include "../ole2/ifs.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
@@ -124,14 +125,17 @@ QueryPathOfRegTypeLib16(
  */
 HRESULT WINAPI LoadTypeLib16(
     LPSTR szFile, /* [in] Name of file to load from */
-    ITypeLib** pptLib) /* [out] Destination for loaded ITypeLib interface */
+    SEGPTR* pptLib) /* [out] Destination for loaded ITypeLib interface */
 {
-    FIXME("(%s,%p): stub\n",debugstr_a(szFile),pptLib);
-
-    if (pptLib!=0)
-      *pptLib=0;
-
-    return E_FAIL;
+    LPWSTR w;
+    HRESULT result;
+    ITypeLib *ptLib = NULL;
+    TRACE("(%s,%p)\n",debugstr_a(szFile),pptLib);
+    w = strdupAtoW(szFile);
+    result = hresult32_16(LoadTypeLib(w, &ptLib));
+    HeapFree(GetProcessHeap(), 0, w);
+    *pptLib = iface32_16(&IID_ITypeLib, ptLib);
+    return result;
 }
 
 /***********************************************************************
