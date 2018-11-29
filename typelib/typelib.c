@@ -197,3 +197,9 @@ DWORD WINAPI OaBuildVersion16(void)
 		return MAKELONG(3027, 3); /* WfW 3.11 */
     }
 }
+
+HRESULT WINAPI RegisterTypeLib16(SEGPTR /* ITypeLib* */ptlib, SEGPTR/* TCHAR* */ *szFullPath, SEGPTR/* TCHAR* */ *szHelpDir)
+{
+    FIXME("\n");
+    return 0;
+}
