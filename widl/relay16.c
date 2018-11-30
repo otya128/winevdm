@@ -384,7 +384,7 @@ static void get_type_size16(const type_t *type, int *size, int *is_ptr)
     case TYPE_ENUM:
         /* fixme:ATTR_V1ENUM */
         if (is_attr(type->attrs, ATTR_V1ENUM))
-            *size = 4;
+            *size = 2;
         else
             *size = 2;
         break;
@@ -409,7 +409,7 @@ static void get_type_size16(const type_t *type, int *size, int *is_ptr)
             *size = 8;
             break;
         case TYPE_BASIC_INT:
-            *size = 4;
+            *size = 2;
             break;
         case TYPE_BASIC_INT3264:
             *size = 4;
