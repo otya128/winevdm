@@ -259,6 +259,7 @@ HRESULT hresult32_16(HRESULT hresult)
             return hresult_table[i].hresult16;
         }
     }
+    TRACE("%08x\n", hresult);
     return hresult;
 }
 
@@ -273,6 +274,7 @@ HRESULT hresult16_32(HRESULT hresult)
             return hresult_table[i].hresult32;
         }
     }
+    TRACE("%08x\n", hresult);
     return hresult;
 }
 /* {F6989118-9D36-4B65-AE0C-0C20886D50F8} */
