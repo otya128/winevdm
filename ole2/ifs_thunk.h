@@ -511,8 +511,8 @@ typedef HRESULT TYP16_HRESULT;
 #define MAP_BOOL32_16(a16, a32) a16 = a32
 #define MAP_DWORD16_32(a32, a16) a32 = a16
 #define MAP_DWORD32_16(a16, a32) a16 = a32
-#define MAP_INT16_32(a32, a16) a32 = a16
-#define MAP_INT32_16(a16, a32) a16 = a32
+#define MAP_INT16_32(a32, a16) a32 = (INT)(INT16)a16
+#define MAP_INT32_16(a16, a32) a16 = (INT16)(INT)a32
 #define MAP_LONG16_32(a32, a16) a32 = a16
 #define MAP_LONG32_16(a16, a32) a16 = a32
 #define MAP_WORD16_32(a32, a16) a32 = a16
