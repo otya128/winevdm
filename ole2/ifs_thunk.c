@@ -566,3 +566,52 @@ void map_tlibattr32_16(TLIBATTR16 *a16, const TLIBATTR *a32)
     a16->wMajorVerNum = a32->wMajorVerNum;
     a16->wMinorVerNum = a32->wMinorVerNum;
 }
+
+void map_bstr16_32(BSTR *a32, const SEGPTR *a16)
+{
+    FIXME("\n");
+}
+
+#include <pshpack1.h>
+/* BSTR structure */
+typedef struct
+{
+    ULONG clSize;
+    byte abData[1];
+} BYTE_BLOB16;
+#include <poppack.h>
+
+
+SEGPTR get_blob16_from_bstr16(SEGPTR bstr)
+{
+    return bstr - sizeof(BYTE_BLOB16) + sizeof(OLECHAR16);
+}
+SEGPTR get_bstr16_from_blob16(SEGPTR blob)
+{
+    return blob + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16);
+}
+/******************************************************************************
+ *		BSTR_AllocBytes	[Internal]
+ */
+static SEGPTR BSTR_AllocBytes(int n)
+{
+    BYTE_BLOB16 *ptr = (BYTE_BLOB16*)HeapAlloc(GetProcessHeap(), 0, n + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16));
+    ptr->clSize = n - 1;
+    return get_bstr16_from_blob16((SEGPTR)MapLS((LPCVOID)ptr));
+}
+
+void map_bstr32_16(SEGPTR *a16, const BSTR *a32)
+{
+    UINT len;
+    int len16;
+    if (*a32 == NULL)
+    {
+        *a16 = 0;
+        return;
+    }
+    len = SysStringLen(*a32);
+    len16 = WideCharToMultiByte(CP_ACP, 0, *a32, len, NULL, 0, NULL, NULL);
+    *a16 = BSTR_AllocBytes(len16 + 1);
+    WideCharToMultiByte(CP_ACP, 0, *a32, len, MapSL(*a16), len16, NULL, NULL);
+    ((char*)MapSL(*a16))[len16] = 0;
+}
