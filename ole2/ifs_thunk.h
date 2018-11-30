@@ -541,8 +541,8 @@ typedef union tagBINDPTR16
     /*ITypeComp **/SEGPTR lptcomp;
 } 	BINDPTR16;
 typedef BINDPTR16 TYP16_BINDPTR;
-typedef DESCKIND TYP16_DESCKIND; /* 32-bit enum!! */
-typedef INVOKEKIND TYP16_INVOKEKIND; /* 32-bit enum!! */
+typedef WORD TYP16_DESCKIND;
+typedef WORD TYP16_INVOKEKIND;
 typedef SEGPTR TYP16_BSTR;
 typedef HREFTYPE TYP16_HREFTYPE;
 typedef SEGPTR TYP16_REFGUID;
