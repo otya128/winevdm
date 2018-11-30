@@ -615,3 +615,469 @@ void map_bstr32_16(SEGPTR *a16, const BSTR *a32)
     WideCharToMultiByte(CP_ACP, 0, *a32, len, MapSL(*a16), len16, NULL, NULL);
     ((char*)MapSL(*a16))[len16] = 0;
 }
+
+#ifdef IFS1632_OVERWRITE_ITypeLib_IsName
+HRESULT CDECL ITypeLib_16_32_IsName(SEGPTR This, SEGPTR args16_szNameBuf, DWORD args16_lHashVal, SEGPTR args16_pfName)
+{
+    ITypeLib *iface32 = (ITypeLib*)get_interface32(This);
+    HRESULT result__ = { 0 };
+    TYP16_HRESULT result16__ = { 0 };
+    LPOLESTR args32_szNameBuf = { 0 };
+    ULONG args32_lHashVal;
+    BOOL args32_pfName = { 0 };
+    int szNameBufLen = lstrlenA((const char*)MapSL(args16_szNameBuf)) + 1;
+    int widelen = MultiByteToWideChar(CP_ACP, 0, (const char*)MapSL(args16_szNameBuf), szNameBufLen, NULL, 0);
+    args32_szNameBuf = HeapAlloc(GetProcessHeap(), 0, widelen * sizeof(OLECHAR));
+    MultiByteToWideChar(CP_ACP, 0, (const char*)MapSL(args16_szNameBuf), szNameBufLen + 1, args32_szNameBuf, widelen);
+    MAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
+    TRACE("(%04x:%04x(%p),%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_szNameBuf, args16_lHashVal, args16_pfName);
+    result__ = (HRESULT)iface32->lpVtbl->IsName(iface32, args32_szNameBuf, args32_lHashVal, &args32_pfName);
+    MAP_HRESULT32_16(result16__, result__);
+    UNMAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
+    WideCharToMultiByte(CP_ACP, 0, args32_szNameBuf, widelen, (const char*)MapSL(args16_szNameBuf), szNameBufLen, NULL, NULL);
+    HeapFree(GetProcessHeap(), 0, args32_szNameBuf);
+    if (args16_pfName)
+    {
+        MAP_BOOL32_16((*(TYP16_BOOL*)MapSL(args16_pfName)), args32_pfName);
+    }
+    return result16__;
+}
+#endif
+#ifdef IFS3216_OVERWRITE_ITypeLib_IsName
+HRESULT STDMETHODCALLTYPE ITypeLib_32_16_IsName(ITypeLib *This, LPOLESTR szNameBuf, ULONG lHashVal, BOOL *pfName)
+{
+    SEGPTR iface16 = get_interface16(This);
+    TYP16_HRESULT result__ = { 0 };
+    HRESULT result32__ = { 0 };
+    TYP16_OLECHAR args16_szNameBuf = { 0 };
+    TYP16_ULONG args16_lHashVal;
+    TYP16_BOOL args16_pfName = { 0 };
+    INMAP_LPOLESTR32_16(args16_szNameBuf, szNameBuf);
+    MAP_ULONG32_16(args16_lHashVal, lHashVal);
+    TRACE("(%p(%04x:%04x),%p,%08x,%p)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), szNameBuf, lHashVal, pfName);
+    result__ = (TYP16_HRESULT)ITypeLib16_IsName(iface16, MapLS(&args16_szNameBuf), args16_lHashVal, MapLS(&args16_pfName));
+    MAP_HRESULT16_32(result32__, result__);
+    UNMAP_LPOLESTR32_16(args16_szNameBuf, szNameBuf);
+    UNMAP_ULONG32_16(args16_lHashVal, lHashVal);
+    if (szNameBuf)
+    {
+        MAP_OLECHAR16_32(*szNameBuf, args16_szNameBuf);
+    }
+    if (pfName)
+    {
+        MAP_BOOL16_32(*pfName, args16_pfName);
+    }
+    return result32__;
+}
+#endif
+
+FUNCDESC *map_funcdesc32(const FUNCDESC16 *a16)
+{
+    FIXME("\n");
+    return NULL;
+}
+#define FUNCDESC16_WRAPPER_MAGIC 'FDSC'
+typedef struct
+{
+    DWORD magic;
+    FUNCDESC *desc32;
+    FUNCDESC16 desc16;
+} FUNCDESC16_WRAPPER;
+void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32);
+void map_arraydesc32_16(ARRAYDESC16 *a16, const ARRAYDESC *a32)
+{
+    int i;
+    a16->cDims = a32->cDims;
+    map_typedesc32_16(&a16->tdescElem, &a32->tdescElem);
+    for (i = 0; i < a16->cDims; i++)
+    {
+        a16->rgbounds[i].cElements = a32->rgbounds[i].cElements;
+        a16->rgbounds[i].lLbound = a32->rgbounds[i].lLbound;
+    }
+}
+void map_idldesc32_16(IDLDESC16 *a16, const IDLDESC *a32)
+{
+    map_bstr32_16(&a16->bstrIDLInfo, a32);
+    a16->wIDLFlags = a32->wIDLFlags;
+}
+void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32)
+{
+    a16->vt = a32->vt;
+    switch (a32->vt)
+    {
+    case VT_PTR:
+    {
+        TYPEDESC16 *typ = (TYPEDESC16*)HeapAlloc(GetProcessHeap(), 0, sizeof(TYPEDESC16));
+        map_typedesc32_16(typ, a32->lptdesc);
+        a16->lptdesc = MapLS(typ);
+        break;
+    }
+    case VT_CARRAY:
+    {
+        ARRAYDESC16 *ary = (ARRAYDESC16*)HeapAlloc(GetProcessHeap(), 0, sizeof(ARRAYDESC16) - sizeof(SAFEARRAYBOUND16) * (a32->lpadesc->cDims - 1));
+        map_arraydesc32_16(ary, a32->lpadesc);
+        a16->lpadesc = MapLS(ary);
+        break;
+    }
+    case VT_USERDEFINED:
+        a16->hreftype = a32->hreftype;
+        break;
+    default:
+        a16->hreftype = 0xdeadbeef;
+        break;
+    }
+}
+void map_elemdesc32_16(ELEMDESC16 *a16, const ELEMDESC *a32)
+{
+    map_typedesc32_16(&a16->tdesc, &a32->tdesc);
+    map_idldesc32_16(&a16->idldesc, &a32->idldesc);
+}
+FUNCDESC16 *map_funcdesc16(const FUNCDESC *a32)
+{
+    int i;
+    FUNCDESC16 *a16;
+    ELEMDESC16 *elm16;
+    FUNCDESC16_WRAPPER *w = HeapAlloc(GetProcessHeap(), 0, sizeof(FUNCDESC16_WRAPPER) + sizeof(ELEMDESC16) * a32->cParams);
+    w->magic = FUNCDESC16_WRAPPER_MAGIC;
+    w->desc32 = a32;
+    a16 = &w->desc16;
+    elm16 = (ELEMDESC16*)(a16 + 1);
+    a16->memid = a32->memid;
+    a16->lprgscode = MapLS(a32->lprgscode);
+    a16->lprgelemdescParam = MapLS(elm16);
+    for (i = 0; i < a32->cParams; i++)
+    {
+        map_elemdesc32_16(elm16 + i, a32->lprgelemdescParam + i);
+    }
+    a16->funckind = a32->funckind;
+    a16->invkind = a32->invkind;
+    a16->callconv = a32->callconv;
+    a16->cParams = a32->cParams;
+    a16->cParamsOpt = a32->cParamsOpt;
+    a16->oVft = a32->oVft;
+    a16->cScodes = a32->cScodes;
+    map_elemdesc32_16(&a16->elemdescFunc, &a32->elemdescFunc);
+    a16->wFuncFlags = a32->wFuncFlags;
+    return a16;
+}
+
+void free_arraydesc16(ARRAYDESC16 *a16)
+{
+}
+
+void free_typedesc16(TYPEDESC16 *a16)
+{
+    switch (a16->vt)
+    {
+    case VT_PTR:
+    {
+        TYPEDESC16 *typ = (TYPEDESC16*)MapSL(a16->lptdesc);
+        free_typedesc16(typ);
+        HeapFree(GetProcessHeap(), 0, typ);
+        break;
+    }
+    case VT_CARRAY:
+    {
+        ARRAYDESC16 *ary = (ARRAYDESC16*)MapSL(a16->lpadesc);
+        free_arraydesc16(ary);
+        HeapFree(GetProcessHeap(), 0, ary);
+        break;
+    }
+    }
+}
+/******************************************************************************
+ * BSTR_Free [INTERNAL]
+ */
+static void BSTR_Free(SEGPTR in)
+{
+    if (!in)
+        return;
+    void *ptr = MapSL(get_blob16_from_bstr16(in));
+    UnMapLS(get_blob16_from_bstr16(in));
+    HeapFree(GetProcessHeap(), 0, ptr);
+}
+
+void free_idldesc16(IDLDESC16 *a16)
+{
+    BSTR_Free(a16->bstrIDLInfo);
+}
+void free_elemdesc16(ELEMDESC16 *a16)
+{
+    free_typedesc16(&a16->tdesc);
+    free_idldesc16(&a16->idldesc);
+}
+void free_funcdesc16(FUNCDESC16 *a16)
+{
+    int i;
+    ELEMDESC16 *elm16;
+    elm16 = (ELEMDESC16*)(a16 + 1);
+    free_elemdesc16(&a16->elemdescFunc);
+    for (i = 0; i < a16->cParams; i++)
+    {
+        free_elemdesc16(elm16 + i);
+    }
+}
+#ifdef IFS1632_OVERWRITE_ITypeInfo_ReleaseFuncDesc
+void CDECL ITypeInfo_16_32_ReleaseFuncDesc(SEGPTR This, SEGPTR args16_pFuncDesc)
+{
+    ITypeInfo *iface32 = (ITypeInfo*)get_interface32(This);
+    FUNCDESC16 *desc16 = (FUNCDESC16*)MapSL(args16_pFuncDesc);
+    FUNCDESC16_WRAPPER *wrap = CONTAINING_RECORD(desc16, FUNCDESC16_WRAPPER, desc16);
+    FUNCDESC *args32_pFuncDesc;
+    if (wrap->magic != FUNCDESC16_WRAPPER_MAGIC)
+    {
+        ERR("wrap->magic != FUNCDESC16_WRAPPER_MAGIC\n");
+        return;
+    }
+    args32_pFuncDesc = wrap->desc32;
+    TRACE("(%04x:%04x(%p),%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_pFuncDesc);
+    iface32->lpVtbl->ReleaseFuncDesc(iface32, args32_pFuncDesc);
+    free_funcdesc16(&wrap->desc16);
+    HeapFree(GetProcessHeap(), 0, wrap);
+}
+#endif
+#ifdef IFS3216_OVERWRITE_ITypeInfo_ReleaseFuncDesc
+void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseFuncDesc(ITypeInfo *This, FUNCDESC *pFuncDesc)
+{
+    FIXME("\n");
+    return;
+    SEGPTR iface16 = get_interface16(This);
+    SEGPTR args16_pFuncDesc;
+    MAP_PTR_FUNCDESC32_16(args16_pFuncDesc, pFuncDesc);
+    TRACE("(%p(%04x:%04x),%p)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), pFuncDesc);
+    ITypeInfo16_ReleaseFuncDesc(iface16, args16_pFuncDesc);
+    UNMAP_PTR_FUNCDESC32_16(args16_pFuncDesc, pFuncDesc);
+}
+#endif
+
+#define TYPEATTR16_WRAPPER_MAGIC 'tATR'
+typedef struct
+{
+    DWORD magic;
+    TYPEATTR *attr32;
+    TYPEATTR16 attr16;
+} TYPEATTR16_WRAPPER;
+TYPEATTR16 *map_typeattr32_16(const TYPEATTR *a32)
+{
+    TYPEATTR16_WRAPPER *w = (TYPEATTR16_WRAPPER*)HeapAlloc(GetProcessHeap(), 0, sizeof(TYPEATTR16_WRAPPER));
+    TYPEATTR16 *a16 = &w->attr16;
+    w->magic = TYPEATTR16_WRAPPER_MAGIC;
+    w->attr32 = a32;
+    a16->guid = a32->guid;
+    a16->lcid = a32->lcid;
+    a16->dwReserved = a32->dwReserved;
+    a16->memidConstructor = a32->memidConstructor;
+    a16->memidDestructor = a32->memidDestructor;
+    a16->lpstrSchema = a32->lpstrSchema /* FIXME? */;
+    a16->typekind = a32->typekind;
+    a16->cFuncs = a32->cFuncs;
+    a16->cVars = a32->cVars;
+    a16->cImplTypes = a32->cImplTypes;
+    a16->cbSizeVft = a32->cbSizeVft;
+    a16->cbAlignment = a32->cbAlignment;
+    a16->wTypeFlags = a32->wTypeFlags;
+    a16->wMajorVerNum = a32->wMajorVerNum;
+    a16->wMinorVerNum = a32->wMinorVerNum;
+    map_typedesc32_16(&a16->tdescAlias, &a32->tdescAlias);
+    map_idldesc32_16(&a16->idldescType, &a32->idldescType);
+    return a16;
+}
+
+void free_typeattr16(TYPEATTR16 *a16)
+{
+    free_typedesc16(&a16->tdescAlias);
+    free_idldesc16(&a16->idldescType);
+}
+
+#ifdef IFS1632_OVERWRITE_ITypeInfo_ReleaseTypeAttr
+void CDECL ITypeInfo_16_32_ReleaseTypeAttr(SEGPTR This, SEGPTR args16_pTypeAttr)
+{
+    ITypeInfo *iface32 = (ITypeInfo*)get_interface32(This);
+    TYPEATTR *args32_pTypeAttr;
+    TYPEATTR16_WRAPPER *w = CONTAINING_RECORD(MapSL(args16_pTypeAttr), TYPEATTR16_WRAPPER, attr16);
+    if (w->magic != TYPEATTR16_WRAPPER_MAGIC)
+    {
+        ERR("w->magic != TYPEATTR16_WRAPPER_MAGIC\n");
+        return;
+    }
+    args32_pTypeAttr = w->attr32;
+    TRACE("(%04x:%04x(%p),%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_pTypeAttr);
+    iface32->lpVtbl->ReleaseTypeAttr(iface32, args32_pTypeAttr);
+    free_typeattr16(&w->attr16);
+    HeapFree(GetProcessHeap(), 0, w);
+}
+#endif
+#ifdef IFS3216_OVERWRITE_ITypeInfo_ReleaseTypeAttr
+void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseTypeAttr(ITypeInfo *This, TYPEATTR *pTypeAttr)
+{
+    SEGPTR iface16 = get_interface16(This);
+    SEGPTR args16_pTypeAttr;
+    FIXME("\n");
+    return;
+    MAP_PTR_TYPEATTR32_16(args16_pTypeAttr, pTypeAttr);
+    TRACE("(%p(%04x:%04x),%p)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), pTypeAttr);
+    ITypeInfo16_ReleaseTypeAttr(iface16, args16_pTypeAttr);
+    UNMAP_PTR_TYPEATTR32_16(args16_pTypeAttr, pTypeAttr);
+}
+#endif
+
+VARDESC *map_vardesc32(const VARDESC16 *a16)
+{
+    FIXME("\n");
+    return NULL;
+}
+
+#define VARDESC16_WRAPPER_MAGIC 'Vmag'
+typedef struct
+{
+    DWORD magic;
+    VARDESC *desc32;
+    VARDESC16 desc16;
+} VARDESC16_WRAPPER;
+
+VARDESC16 *map_vardesc16(const VARDESC *a32)
+{
+    VARDESC16_WRAPPER *w = (VARDESC16_WRAPPER*)HeapAlloc(GetProcessHeap(), 0, sizeof(VARDESC16_WRAPPER));
+    VARDESC16 *a16 = &w->desc16;
+    w->magic = VARDESC16_WRAPPER_MAGIC;
+    w->desc32 = a32;
+    a16->memid = a32->memid;
+    a16->lpstrSchema = a32->lpstrSchema;
+    map_elemdesc32_16(&a16->elemdescVar, &a32->elemdescVar);
+    a16->wVarFlags = a32->wVarFlags;
+    a16->varkind = a32->varkind;
+    a16->lpvarValue = 0xcafebabe;
+    if (a16->varkind == VAR_CONST)
+    {
+        FIXME("VAR_CONST\n");
+        a16->lpvarValue = 0xdeadbeef;
+    }
+    if (a16->varkind == VAR_PERINSTANCE)
+    {
+        a16->oInst = a32->oInst;
+    }
+    return a16;
+}
+void map_bindptr16_32(BINDPTR *a32, const BINDPTR16 *a16, const DESCKIND kind)
+{
+    switch (kind)
+    {
+    case DESCKIND_NONE:
+        break;
+    case DESCKIND_VARDESC:
+        a32->lpvardesc = map_vardesc32((VARDESC16*)MapSL(a16->lpvardesc));
+        break;
+    case DESCKIND_FUNCDESC:
+        a32->lpfuncdesc = map_funcdesc32((FUNCDESC16*)MapSL(a16->lpfuncdesc));
+        break;
+    case DESCKIND_TYPECOMP:
+        a32->lptcomp = (ITypeComp*)iface16_32(&IID_ITypeComp, a16->lptcomp);
+        break;
+    case DESCKIND_IMPLICITAPPOBJ:
+        FIXME("DESCKIND_IMPLICITAPPOBJ\n");
+        break;
+    default:
+        FIXME("unknown DESCKIND %d\n", kind);
+        break;
+    }
+}
+
+void map_bindptr32_16(BINDPTR16 *a16, const BINDPTR *a32, TYP16_DESCKIND kind)
+{
+    switch (kind)
+    {
+    case DESCKIND_NONE:
+        break;
+    case DESCKIND_VARDESC:
+        a16->lpvardesc = MapLS(map_vardesc16(a32->lpvardesc));
+        break;
+    case DESCKIND_FUNCDESC:
+        a16->lpfuncdesc = MapLS(map_funcdesc16(a32->lpfuncdesc));
+        break;
+    case DESCKIND_TYPECOMP:
+        a16->lptcomp = iface32_16(&IID_ITypeComp, a32->lptcomp);
+        break;
+    case DESCKIND_IMPLICITAPPOBJ:
+        FIXME("DESCKIND_IMPLICITAPPOBJ\n");
+        break;
+    default:
+        FIXME("unknown DESCKIND %d\n", kind);
+        break;
+    }
+}
+#ifdef IFS1632_OVERWRITE_ITypeComp_Bind
+HRESULT CDECL ITypeComp_16_32_Bind(SEGPTR This, SEGPTR args16_szName, DWORD args16_lHashVal, WORD args16_wFlags, SEGPTR args16_ppTInfo, SEGPTR args16_pDescKind, SEGPTR args16_pBindPtr)
+{
+    ITypeComp *iface32 = (ITypeComp*)get_interface32(This);
+    HRESULT result__ = { 0 };
+    TYP16_HRESULT result16__ = { 0 };
+    LPOLESTR args32_szName;
+    ULONG args32_lHashVal;
+    WORD args32_wFlags;
+    ITypeInfo * args32_ppTInfo = { 0 };
+    DESCKIND args32_pDescKind = { 0 };
+    BINDPTR args32_pBindPtr = { 0 };
+    MAP_LPOLESTR16_32(args32_szName, args16_szName);
+    MAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
+    MAP_WORD16_32(args32_wFlags, args16_wFlags);
+    TRACE("(%04x:%04x(%p),%08x,%08x,%08x,%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_szName, args16_lHashVal, args16_wFlags, args16_ppTInfo, args16_pDescKind, args16_pBindPtr);
+    result__ = (HRESULT)iface32->lpVtbl->Bind(iface32, args32_szName, args32_lHashVal, args32_wFlags, &args32_ppTInfo, &args32_pDescKind, &args32_pBindPtr);
+    MAP_HRESULT32_16(result16__, result__);
+    UNMAP_LPOLESTR16_32(args32_szName, args16_szName);
+    UNMAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
+    UNMAP_WORD16_32(args32_wFlags, args16_wFlags);
+    if (args16_ppTInfo)
+    {
+        *(SEGPTR*)MapSL(args16_ppTInfo) = iface32_16(&IID_ITypeInfo, args32_ppTInfo);
+    }
+    if (args16_pDescKind)
+    {
+        MAP_DESCKIND32_16((*(TYP16_DESCKIND*)MapSL(args16_pDescKind)), args32_pDescKind);
+    }
+    if (args16_pBindPtr)
+    {
+        /**/
+        map_bindptr32_16(&(*(TYP16_BINDPTR*)MapSL(args16_pBindPtr)), &args32_pBindPtr, args32_pDescKind);
+        /**/
+    }
+    return result16__;
+}
+#endif
+#ifdef IFS3216_OVERWRITE_ITypeComp_Bind
+HRESULT STDMETHODCALLTYPE ITypeComp_32_16_Bind(ITypeComp *This, LPOLESTR szName, ULONG lHashVal, WORD wFlags, ITypeInfo **ppTInfo, DESCKIND *pDescKind, BINDPTR *pBindPtr)
+{
+    SEGPTR iface16 = get_interface16(This);
+    TYP16_HRESULT result__ = { 0 };
+    HRESULT result32__ = { 0 };
+    TYP16_LPOLESTR args16_szName;
+    TYP16_ULONG args16_lHashVal;
+    TYP16_WORD args16_wFlags;
+    SEGPTR args16_ppTInfo = { 0 };
+    TYP16_DESCKIND args16_pDescKind = { 0 };
+    TYP16_BINDPTR args16_pBindPtr = { 0 };
+    MAP_LPOLESTR32_16(args16_szName, szName);
+    MAP_ULONG32_16(args16_lHashVal, lHashVal);
+    MAP_WORD32_16(args16_wFlags, wFlags);
+    TRACE("(%p(%04x:%04x),%p,%08x,%08x,%p,%p,%p)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), szName, lHashVal, wFlags, ppTInfo, pDescKind, pBindPtr);
+    result__ = (TYP16_HRESULT)ITypeComp16_Bind(iface16, args16_szName, args16_lHashVal, args16_wFlags, MapLS(&args16_ppTInfo), MapLS(&args16_pDescKind), MapLS(&args16_pBindPtr));
+    MAP_HRESULT16_32(result32__, result__);
+    UNMAP_LPOLESTR32_16(args16_szName, szName);
+    UNMAP_ULONG32_16(args16_lHashVal, lHashVal);
+    UNMAP_WORD32_16(args16_wFlags, wFlags);
+    if (ppTInfo)
+    {
+        *ppTInfo = iface16_32(&IID_ITypeInfo, args16_ppTInfo);
+    }
+    if (pDescKind)
+    {
+        MAP_DESCKIND16_32(*pDescKind, args16_pDescKind);
+    }
+    if (pBindPtr)
+    {
+        /**/
+        map_bindptr16_32(&*pBindPtr, &args16_pBindPtr, args16_pDescKind);
+        /**/
+    }
+    return result32__;
+}
+#endif

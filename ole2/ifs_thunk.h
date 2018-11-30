@@ -810,8 +810,11 @@ void map_bstr32_16(SEGPTR *a16, const BSTR *a32);
 #define MAP_PTR_DVEXTENTINFO32_16(a16, a32) FIXME("MAP_PTR_DVEXTENTINFO32_16\n")
 #define MAP_PTR_EXCEPINFO16_32(a32, a16) FIXME("MAP_PTR_EXCEPINFO16_32\n")
 #define MAP_PTR_EXCEPINFO32_16(a16, a32) FIXME("MAP_PTR_EXCEPINFO32_16\n")
-#define MAP_PTR_FUNCDESC16_32(a32, a16) FIXME("MAP_PTR_FUNCDESC16_32\n")
-#define MAP_PTR_FUNCDESC32_16(a16, a32) FIXME("MAP_PTR_FUNCDESC32_16\n")
+FUNCDESC *map_funcdesc32(const FUNCDESC16 *a16);
+FUNCDESC16 *map_funcdesc16(const FUNCDESC *a32);
+/* GetFuncDesc -> ReleaseFuncDesc */
+#define MAP_PTR_FUNCDESC16_32(a32, a16) a32 = map_funcdesc32((FUNCDESC16*)MapSL(a16))
+#define MAP_PTR_FUNCDESC32_16(a16, a32) a16 = MapLS(map_funcdesc16(a32))
 #define MAP_PTR_HREFTYPE16_32(a32, a16) FIXME("MAP_PTR_HREFTYPE16_32\n")
 #define MAP_PTR_HREFTYPE32_16(a16, a32) FIXME("MAP_PTR_HREFTYPE32_16\n")
 #define MAP_PTR_IDLDESC16_32(a32, a16) FIXME("MAP_PTR_IDLDESC16_32\n")
@@ -843,7 +846,8 @@ void map_tlibattr32_16(TLIBATTR16 *a16, const TLIBATTR *a32);
     a16 = MapLS(p16);\
 }
 #define MAP_PTR_TYPEATTR16_32(a32, a16) FIXME("MAP_PTR_TYPEATTR16_32\n")
-#define MAP_PTR_TYPEATTR32_16(a16, a32) FIXME("MAP_PTR_TYPEATTR32_16\n")
+TYPEATTR16 *map_typeattr32_16(const TYPEATTR *a32);
+#define MAP_PTR_TYPEATTR32_16(a16, a32) a16 = MapLS(map_typeattr32_16(a32))
 #define MAP_PTR_TYPEDESC16_32(a32, a16) FIXME("MAP_PTR_TYPEDESC16_32\n")
 #define MAP_PTR_TYPEDESC32_16(a16, a32) FIXME("MAP_PTR_TYPEDESC32_16\n")
 #define MAP_PTR_VARDESC16_32(a32, a16) FIXME("MAP_PTR_VARDESC16_32\n")
@@ -969,4 +973,22 @@ HRESULT STDMETHODCALLTYPE ISimpleFrameSite_32_16_PostMessageFilter(ISimpleFrameS
 typedef VARIANT16 TYP16_VARIANT;
 typedef OLECHAR16 TYP16_OLECHAR;
 #include <poppack.h>
+#define IFS1632_OVERWRITE_ITypeLib_IsName
+HRESULT CDECL ITypeLib_16_32_IsName(SEGPTR This, SEGPTR args16_szNameBuf, DWORD args16_lHashVal, SEGPTR args16_pfName);
+#define IFS3216_OVERWRITE_ITypeLib_IsName
+HRESULT STDMETHODCALLTYPE ITypeLib_32_16_IsName(ITypeLib *This, LPOLESTR szNameBuf, ULONG lHashVal, BOOL *pfName);
+
+#define IFS1632_OVERWRITE_ITypeInfo_ReleaseFuncDesc
+void CDECL ITypeInfo_16_32_ReleaseFuncDesc(SEGPTR This, SEGPTR args16_pFuncDesc);
+#define IFS3216_OVERWRITE_ITypeInfo_ReleaseFuncDesc
+void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseFuncDesc(ITypeInfo *This, FUNCDESC *pFuncDesc);
+#define IFS1632_OVERWRITE_ITypeInfo_ReleaseTypeAttr
+void CDECL ITypeInfo_16_32_ReleaseTypeAttr(SEGPTR This, SEGPTR args16_pTypeAttr);
+#define IFS3216_OVERWRITE_ITypeInfo_ReleaseTypeAttr
+void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseTypeAttr(ITypeInfo *This, TYPEATTR *pTypeAttr);
+#define IFS1632_OVERWRITE_ITypeComp_Bind
+HRESULT CDECL ITypeComp_16_32_Bind(SEGPTR This, SEGPTR args16_szName, DWORD args16_lHashVal, WORD args16_wFlags, SEGPTR args16_ppTInfo, SEGPTR args16_pDescKind, SEGPTR args16_pBindPtr);
+#define IFS3216_OVERWRITE_ITypeComp_Bind
+HRESULT STDMETHODCALLTYPE ITypeComp_32_16_Bind(ITypeComp *This, LPOLESTR szName, ULONG lHashVal, WORD wFlags, ITypeInfo **ppTInfo, DESCKIND *pDescKind, BINDPTR *pBindPtr);
+
 #endif
