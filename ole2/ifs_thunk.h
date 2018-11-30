@@ -644,6 +644,94 @@ typedef struct TYP16_tagCONNECTDATA
     DWORD dwCookie;
 
 } CONNECTDATA16;
+typedef struct TYP16_tagTYPEDESC
+{
+    union
+    {
+        /* VT_PTR */
+        /*struct TYP16_tagTYPEDESC* */SEGPTR lptdesc;
+        /* VT_CARRAY */
+        /* struct TYP16_tagARRAYDESC* */ SEGPTR  lpadesc;
+        /* VT_USERDEFINED */
+        HREFTYPE hreftype;
+    } DUMMYUNIONNAME;
+    VARTYPE vt;
+} TYPEDESC16;
+
+typedef struct TYP16_tagIDLDESC
+{
+    /* BSTR */SEGPTR bstrIDLInfo;
+    unsigned short wIDLFlags;
+} IDLDESC16;
+
+typedef struct TYP16_tagELEMDESC
+{
+    TYPEDESC16 tdesc;
+    IDLDESC16 idldesc;
+}  ELEMDESC16;
+
+typedef struct TYP16_tagFUNCDESC
+{
+    MEMBERID memid;
+    /* SCODE* */SEGPTR lprgscode;
+    /* ELEMDESC* */SEGPTR lprgelemdescParam;
+    /* FUNCKIND */WORD funckind;
+    /* INVOKEKIND */WORD invkind;
+    /* CALLCONV */WORD callconv;
+    short cParams;
+    short cParamsOpt;
+    short oVft;
+    short cScodes;
+    ELEMDESC16 elemdescFunc;
+    unsigned short wFuncFlags;
+}  FUNCDESC16;
+
+typedef struct TYP16_tagARRAYDESC16
+{
+    TYPEDESC16 tdescElem;
+    USHORT cDims;
+    SAFEARRAYBOUND16 rgbounds[1];
+} ARRAYDESC16;
+
+typedef struct TYP16_tagTYPEATTR
+{
+    GUID guid;
+    LCID lcid;
+    unsigned long dwReserved;
+    MEMBERID memidConstructor;
+    MEMBERID memidDestructor;
+    /* char * */SEGPTR lpstrSchema;/* reserved */
+    unsigned long cbSizeInstance;
+    /* TYPEKIND */WORD typekind;
+    unsigned short cFuncs;
+    unsigned short cVars;
+    unsigned short cImplTypes;
+    unsigned short cbSizeVft;
+    unsigned short cbAlignment;
+    unsigned short wTypeFlags;
+    unsigned short wMajorVerNum;
+    unsigned short wMinorVerNum;
+    TYPEDESC16 tdescAlias;
+    IDLDESC16 idldescType;
+} TYPEATTR16;
+
+typedef struct TYP16_tagVARDESC
+{
+    MEMBERID memid;
+    /* char* */SEGPTR lpstrSchema;
+    union
+    {
+        /* VAR_PERINSTANCE */
+        unsigned long oInst;
+        /* VAR_CONST */
+        /* VARIANT* */SEGPTR lpvarValue;
+
+    } DUMMYUNIONNAME;
+    ELEMDESC16 elemdescVar;
+    unsigned short wVarFlags;
+    /* VARKIND */WORD varkind;
+} VARDESC16;
+
 #define INMAP_LPOLESTR16_32(a32, a16) FIXME("INMAP_LPOLESTR16_32\n")
 #define INMAP_LPOLESTR32_16(a16, a32) FIXME("INMAP_LPOLESTR32_16\n")
 #define INMAP_LPRECT16_32(a32, a16) FIXME("INMAP_LPRECT16_32\n")

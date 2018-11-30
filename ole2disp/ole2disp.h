@@ -102,11 +102,7 @@ typedef struct tagVARIANT16 {
 typedef VARIANT16 VARIANTARG16;
 typedef VARIANT16 *LPVARIANT16;
 /* 16-bit SAFEARRAY implementation */
-typedef struct tagSAFEARRAYBOUND16
-{
-    ULONG cElements;
-    LONG  lLbound;
-} SAFEARRAYBOUND16;
+
 
 typedef struct tagSAFEARRAY16
 {

@@ -83,6 +83,11 @@ static LPCSTR strdupWtoA(LPCWSTR str)
 /**********************************************************************/
 
 #include <pshpack1.h>
+typedef struct tagSAFEARRAYBOUND16
+{
+    ULONG cElements;
+    LONG  lLbound;
+} SAFEARRAYBOUND16;
 typedef struct tagSTATSTG16
 {
     LPOLESTR16 pwcsName;
