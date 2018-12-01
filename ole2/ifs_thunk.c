@@ -74,7 +74,7 @@ SEGPTR iface32_16(REFIID riid, void *iface32)
     size_t i;
     interface_16 *i16;
     SEGPTR s;
-    BOOL is_unk;
+    BOOL is_iunk;
     if (!iface32)
     {
         return 0;
