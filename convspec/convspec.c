@@ -47,6 +47,21 @@ int main(int argc, char* argv[])
 	exec_mode = MODE_DLL;
 	spec->type = SPEC_WIN16;
 	spec->file_name = spec_file_name;
+    /* remove dir */
+    if (strrchr(spec->file_name, '\\'))
+    {
+        spec->file_name = strrchr(spec->file_name, '\\') + 1;
+    }
+    if (strrchr(spec->file_name, '/'))
+    {
+        spec->file_name = strrchr(spec->file_name, '/') + 1;
+    }
+    /* remove spec extension */
+    if (strstr(spec->file_name, ".spec"))
+    {
+        spec->file_name = xstrdup(spec->file_name);
+        strstr(spec->file_name, ".spec")[0] = '\0';
+    }
 	output_file = stdout;
     target_cpu = CPU_x86;
     init_dll_name(spec);
