@@ -398,6 +398,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "commctrl", "commctrl\commct
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "typelib", "typelib\typelib.vcxproj", "{1AAA3531-513D-4A96-9795-D48CF33BF516}"
 	ProjectSection(ProjectDependencies) = postProject
+		{2D769A3B-881A-4307-B6C9-02EBC61211A4} = {2D769A3B-881A-4307-B6C9-02EBC61211A4}
 		{F9B66ABE-3489-434C-8340-65B3421DC30C} = {F9B66ABE-3489-434C-8340-65B3421DC30C}
 	EndProjectSection
 EndProject
