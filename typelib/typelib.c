@@ -106,7 +106,7 @@ QueryPathOfRegTypeLib16(
 		return E_FAIL;
 	}
     *path = SysAllocString16(pathname);
-    if (*path) return E_FAIL;
+    if (!*path) return E_FAIL16;
 	return S_OK;
 }
 
