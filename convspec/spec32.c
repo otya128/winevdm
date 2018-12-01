@@ -944,8 +944,21 @@ void output_def_file( DLLSPEC *spec, int include_private )
 
         if (odp->type == TYPE_STUB) continue;
 
+#ifndef WINEBUILD_MSVC
         output( "  %s", name );
+#else
+        /* FIXME: workaround */
+        if (name && *name == '_')
+        {
+            output("  %s", name + 1);
+        }
+        else
+        {
+            output("  %s", name);
+        }
+#endif
 
+#ifndef WINEBUILD_MSVC
         switch(odp->type)
         {
         case TYPE_EXTERN:
@@ -976,10 +989,22 @@ void output_def_file( DLLSPEC *spec, int include_private )
         default:
             assert(0);
         }
+#else
+
+        switch (odp->type)
+        {
+        case TYPE_EXTERN:
+            is_data = 1;
+            break;
+        }
+#endif
         output( " @%d", odp->ordinal );
         if (!odp->name || (odp->flags & FLAG_ORDINAL)) output( " NONAME" );
         if (is_data) output( " DATA" );
+        /* PRIVATE */
+#ifndef WINEBUILD_MSVC
         if (odp->flags & FLAG_PRIVATE) output( " PRIVATE" );
+#endif
         output( "\n" );
     }
     if (!total) warning( "%s: Import library doesn't export anything\n", spec->file_name );
