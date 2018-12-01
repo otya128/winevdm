@@ -736,13 +736,21 @@ extern "C"
 	}
     BOOL WINAPI dump(DWORD CtrlType)
     {
+        static BOOL dump;
         DWORD pid = GetCurrentProcessId();
         DWORD tid = GetCurrentThreadId();
         HANDLE hThreadSnap = INVALID_HANDLE_VALUE;
         THREADENTRY32 te32;
+        if (dump)
+        {
+            ExitProcess(0);
+        }
+        dump = TRUE;
         hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
         if (hThreadSnap == INVALID_HANDLE_VALUE)
             return false;
+        FILE *out = fdopen(dup(fileno(stdout)), "w");
+        fprintf(out, "dump\n");
         te32.dwSize = sizeof(THREADENTRY32);
         if (!Thread32First(hThreadSnap, &te32))
         {
@@ -780,7 +788,7 @@ extern "C"
             {
                 LDT_ENTRY entry = wine_ldt[i];
                 DWORD base = entry.BaseLow | (entry.HighWord.Bytes.BaseMid << 16);
-                DWORD limit = entry.LimitLow;
+                DWORD limit = wine_ldt_get_limit(&entry);
                 if (!base)
                     continue;
                 if ((entry.HighWord.Bytes.Flags1 & 0x0018) == 0x0018)
