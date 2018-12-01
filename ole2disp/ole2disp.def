@@ -4,3 +4,4 @@ LIBRARY ole2disp.dll16
 
 EXPORTS
   _wine_spec_dos_header @1 DATA
+  SysAllocString16 @2

@@ -133,3 +133,5 @@
 133 stub DLLCANUNLOADNOW
 #134 stub WEP
 #135 stub ___EXPORTEDSTUB
+
+@ stdcall -arch=win32 SysAllocString16(str)
