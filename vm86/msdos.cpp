@@ -1893,32 +1893,31 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
         }
         CONTEXT context;
         save_context(&context);
-        //return winehandler(ep->ExceptionRecord, NULL, &context, NULL);
         char buffer[256] = {}, buffer2[256] = {};
         if (!1) {
             __try
             {
 #if defined(HAS_I386)
-            UINT64 eip = m_eip;
+                UINT64 eip = m_eip;
 #else
-            UINT64 eip = m_pc - SREG_BASE(CS);
+                UINT64 eip = m_pc - SREG_BASE(CS);
 #endif
-            UINT8 *oprom = mem + SREG_BASE(CS) + eip;
+                UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 #if defined(HAS_I386)
-            if (m_operand_size) {
-                CPU_DISASSEMBLE_CALL(x86_32);
-            }
-            else
+                if (m_operand_size) {
+                    CPU_DISASSEMBLE_CALL(x86_32);
+                }
+                else
 #endif
-                i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-            oprom = mem + SREG_BASE(CS) + m_prev_eip;
+                    i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+                oprom = mem + SREG_BASE(CS) + m_prev_eip;
 #if defined(HAS_I386)
-            if (m_operand_size) {
-                CPU_DISASSEMBLE_CALL(x86_32);
-            }
-            else
+                if (m_operand_size) {
+                    CPU_DISASSEMBLE_CALL(x86_32);
+                }
+                else
 #endif
-                i386_dasm_one_ex(buffer2, m_prev_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+                    i386_dasm_one_ex(buffer2, m_prev_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
             }
             __except (EXCEPTION_CONTINUE_EXECUTION)
             {
