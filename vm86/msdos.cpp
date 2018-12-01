@@ -1309,6 +1309,14 @@ extern "C"
         SetEvent(inject_event);
     }
 	LONG catch_exception(_EXCEPTION_POINTERS *ep, PEXCEPTION_ROUTINE er);
+#if defined(TEMP_DASM)
+    BOOL dd;
+    __declspec(dllexport) void temp_dasm(BOOL a)
+    {
+        printf("temp_dasm\n");
+        dd = a;
+    }
+#endif
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
@@ -1707,8 +1715,28 @@ extern "C"
                         continue;
                     }
                 }
+#if defined(ADDR_TRACE)
+                static DWORD oldk = -1;
+                static DWORD old_cs;
+                static DWORD old_eip;
+
+                WORD k = !wine_ldt_copy.base[SELECTOROF(ADDR_TRACE)>> 3]  ? 0xdead : *(LPWORD)((LPBYTE)wine_ldt_copy.base[SELECTOROF(ADDR_TRACE) >> 3] + OFFSETOF(ADDR_TRACE));
+#endif
 #ifdef SUPPORT_DISASSEMBLER
-				if (dasm) {
+				if (dasm
+#if defined(TEMP_DASM)
+                    || dd
+#endif
+#if defined(ADDR_TRACE)
+                    || oldk != k
+#endif
+                    ) {
+#if defined(ADDR_TRACE)
+                    if (oldk != k)
+                    {
+                        fprintf(stderr, "CHANGED=========\n%04x:%04x %04x\n", SREG(CS), m_eip, k);
+                    }
+#endif
 					char buffer[256];
 #if defined(HAS_I386)
 					UINT64 eip = m_eip;
@@ -1716,7 +1744,17 @@ extern "C"
 					UINT64 eip = m_pc - SREG_BASE(CS);
 #endif
 					UINT8 *oprom = mem + SREG_BASE(CS) + eip;
-
+#if defined(ADDR_TRACE)
+                    if (oldk != k)
+                    {
+                        if ((SIZE_T)wine_ldt_copy.base[old_cs >> 3])
+                        {
+                            eip = old_eip;
+                            oprom = mem + (SIZE_T)wine_ldt_copy.base[old_cs >> 3] + eip;
+                        }
+                    }
+                    oldk = k;
+#endif
 					char *dbuf = NULL;
                     if (dasm_nest && dasm_nest < 8)
                         if (dasm_nest_sp_table[dasm_nest - 1] <= SREG_BASE(SS) + REG16(SP))
@@ -1746,7 +1784,7 @@ extern "C"
 					}
 					else
 #endif
-                        result = i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+                        result = i386_dasm_one_ex(buffer, eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
                     if (!memcmp(buffer, "call", 4))
                     {
                         if (dasm_nest < 8)
@@ -1761,14 +1799,36 @@ extern "C"
 						else
 	                        fprintf(stderr, "%02X", *oprom);
                         oprom++;
-                    }*/
+                    }
+                    if (dasm_buffering)
+                        dbuf += sprintf(dbuf, " ", *oprom);
+                    else
+                        fprintf(stderr, " ", *oprom);
+                    */
 					if (dasm_buffering)
 						dbuf += sprintf(dbuf, "\t%s\n", buffer);
 					else
 						fprintf(stderr, "\t%s\n", buffer);
-#if defined(TRACE_REGS)
-                    fprintf(stderr,
-                        "\
+#if !defined(TRACE_REGS)
+                    if (!dasm_buffering)
+                    {
+                        if (SREG(FS) || SREG(GS))
+                        {
+                            fprintf(stderr,
+                                "\
+EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X,\
+ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X,\
+ES:%04X,CS:%04X,SS:%04X,DS:%04X,FS:%04x,GS:%04x,\
+IP:%04X,address:%08X,\
+EFLAGS:%08X\
+\n",
+REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG32(EBP), REG32(ESI), REG32(EDI),
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags);
+                        }
+                        else
+                        {
+                            fprintf(stderr,
+                                "\
 EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X,\
 ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X,\
 ES:%04X,CS:%04X,SS:%04X,DS:%04X,\
@@ -1777,8 +1837,14 @@ EFLAGS:%08X\
 \n",
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG32(EBP), REG32(ESI), REG32(EDI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
+                        }
+                    }
 #endif
 				}
+#endif
+#if defined(ADDR_TRACE)
+                old_cs = SREG(CS);
+                old_eip = m_eip;
 #endif
 #if defined(HAS_I386)
 				m_cycles = 1;
