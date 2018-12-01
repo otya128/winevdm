@@ -74,11 +74,12 @@ SEGPTR iface32_16(REFIID riid, void *iface32)
     size_t i;
     interface_16 *i16;
     SEGPTR s;
-    BOOL is_iunk = IsEqualGUID(&IID_IUnknown, riid); /* FIXME */
+    BOOL is_unk;
     if (!iface32)
     {
         return 0;
     }
+    is_iunk = IsEqualGUID(&IID_IUnknown, riid); /* FIXME */
     result = (interface_entry*)bsearch(riid, interfaces, interfaces_count, sizeof(interfaces[0]), iid_cmp);
     for (i = 0; i < interface16_instance_size; i++)
     {
@@ -135,11 +136,12 @@ void *iface16_32(REFIID riid, SEGPTR iface16)
     size_t i;
     interface_32 *i32;
     LPVOID piface16 = MapSL(iface16);
-    BOOL is_iunk = IsEqualGUID(&IID_IUnknown, riid); /* FIXME */
+    BOOL is_iunk;
     if (!iface16)
     {
         return 0;
     }
+    is_iunk = IsEqualGUID(&IID_IUnknown, riid); /* FIXME */
     result = (interface_entry*)bsearch(riid, interfaces, interfaces_count, sizeof(interfaces[0]), iid_cmp);
     for (i = 0; i < interface32_instance_size; i++)
     {
