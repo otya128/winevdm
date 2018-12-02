@@ -228,6 +228,18 @@ HRESULT WINAPI RegisterTypeLib16(SEGPTR /* ITypeLib* */ptlib, LPCOLESTR16 szFull
 
 HRESULT WINAPI LoadRegTypeLib16(REFGUID guid, unsigned short wVerMajor, unsigned short wVerMinor, LCID lcid, SEGPTR /* ITypeLib* */ *lplptlib)
 {
-    FIXME("\n");
-    return 0;
+    ITypeLib *ptlib = NULL;
+    HRESULT result;
+    SEGPTR bstr16 = NULL;
+    if (SUCCEEDED(QueryPathOfRegTypeLib16(guid, wVerMajor, wVerMinor, lcid, &bstr16)))
+    {
+        result = LoadTypeLib16((LPSTR)MapSL(bstr16), lplptlib);
+        SysFreeString16(bstr16);
+        if (SUCCEEDED(result))
+            return result;
+    }
+    result = LoadRegTypeLib(guid, wVerMajor, wVerMinor, lcid, &ptlib);
+
+    *lplptlib = iface32_16(&IID_ITypeLib, ptlib);
+    return hresult32_16(result);
 }

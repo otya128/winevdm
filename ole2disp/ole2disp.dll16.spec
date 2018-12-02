@@ -135,3 +135,4 @@
 #135 stub ___EXPORTEDSTUB
 
 @ stdcall -arch=win32 SysAllocString16(str)
+@ stdcall -arch=win32 SysFreeString16(long)
