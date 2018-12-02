@@ -445,7 +445,8 @@ HDDEDATA WINAPI DdeClientTransaction16(LPVOID pData, DWORD cbData, HCONV hConv,
          * here rather than in the calling code. */
         pData = MapSL((SEGPTR)pData);
     }
-    int ret, count;
+    HDDEDATA ret;
+    DWORD count;
     ReleaseThunkLock(&count);
     ret = DdeClientTransaction(pData, cbData, hConv, hszItem,
                                 wFmt, wType, dwTimeout, pdwResult);
