@@ -33,7 +33,7 @@
 33 variable _IID_IDispatch(0x00020400 0x00000000 0x000000c0 0x46000000)
 34 variable _IID_IEnumVARIANT(0x00020404 0x00000000 0x000000c0 0x46000000)
 35 pascal RegisterActiveObject(segptr ptr long ptr) RegisterActiveObject16
-36 stub REVOKEACTIVEOBJECT
+36 pascal RevokeActiveObject(long segptr) RevokeActiveObject16
 37 stub GETACTIVEOBJECT
 38 pascal SafeArrayAllocDescriptor(word ptr) SafeArrayAllocDescriptor16
 39 pascal SafeArrayAllocData(ptr) SafeArrayAllocData16

@@ -825,6 +825,16 @@ HRESULT WINAPI RegisterActiveObject16(
 	return hresult32_16(RegisterActiveObject((IUnknown*)iface16_32(&IID_IUnknown, punk), rclsid, dwFlags, pdwRegister));
 }
 
+HRESULT WINAPI RevokeActiveObject16(unsigned long dwRegister, SEGPTR pvreserved)
+{
+    TRACE("(%08x, %08x)\n", dwRegister, pvreserved);
+    if (pvreserved)
+    {
+        ERR("pvreserved must be NULL.\n");
+    }
+    return hresult32_16(RevokeActiveObject(dwRegister, NULL));
+}
+
 /******************************************************************************
  * SetErrorInfo [OLE2DISP.110]
  */
