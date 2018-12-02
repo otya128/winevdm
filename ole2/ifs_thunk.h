@@ -851,7 +851,8 @@ TYPEATTR16 *map_typeattr32_16(const TYPEATTR *a32);
 #define MAP_PTR_TYPEDESC16_32(a32, a16) FIXME("MAP_PTR_TYPEDESC16_32\n")
 #define MAP_PTR_TYPEDESC32_16(a16, a32) FIXME("MAP_PTR_TYPEDESC32_16\n")
 #define MAP_PTR_VARDESC16_32(a32, a16) FIXME("MAP_PTR_VARDESC16_32\n")
-#define MAP_PTR_VARDESC32_16(a16, a32) FIXME("MAP_PTR_VARDESC32_16\n")
+VARDESC16 *map_vardesc16(const VARDESC *a32);
+#define MAP_PTR_VARDESC32_16(a16, a32) a16 = MapLS(map_vardesc16(a32))
 #define MAP_PTR_VARIANT16_32(a32, a16) FIXME("MAP_PTR_VARIANT16_32\n")
 #define MAP_PTR_VARIANT32_16(a16, a32) FIXME("MAP_PTR_VARIANT32_16\n")
 #define MAP_PVOID16_32(a32, a16) FIXME("MAP_PVOID16_32\n")
@@ -991,4 +992,8 @@ HRESULT CDECL ITypeComp_16_32_Bind(SEGPTR This, SEGPTR args16_szName, DWORD args
 #define IFS3216_OVERWRITE_ITypeComp_Bind
 HRESULT STDMETHODCALLTYPE ITypeComp_32_16_Bind(ITypeComp *This, LPOLESTR szName, ULONG lHashVal, WORD wFlags, ITypeInfo **ppTInfo, DESCKIND *pDescKind, BINDPTR *pBindPtr);
 
+#define IFS1632_OVERWRITE_ITypeInfo_ReleaseVarDesc
+void CDECL ITypeInfo_16_32_ReleaseVarDesc(SEGPTR This, SEGPTR args16_pVarDesc);
+#define IFS3216_OVERWRITE_ITypeInfo_ReleaseVarDesc
+void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseVarDesc(ITypeInfo *This, VARDESC *pVarDesc);
 #endif

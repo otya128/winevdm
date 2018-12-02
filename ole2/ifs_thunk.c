@@ -960,6 +960,16 @@ VARDESC16 *map_vardesc16(const VARDESC *a32)
     }
     return a16;
 }
+
+void free_vardesc16(VARDESC16 *a16)
+{
+    if (a16->varkind == VAR_CONST)
+    {
+        FIXME("VAR_CONST\n");
+    }
+    free_elemdesc16(&a16->elemdescVar);
+}
+
 void map_bindptr16_32(BINDPTR *a32, const BINDPTR16 *a16, const DESCKIND kind)
 {
     switch (kind)
@@ -1081,5 +1091,43 @@ HRESULT STDMETHODCALLTYPE ITypeComp_32_16_Bind(ITypeComp *This, LPOLESTR szName,
         /**/
     }
     return result32__;
+}
+#endif
+
+#ifdef IFS1632_OVERWRITE_ITypeInfo_ReleaseVarDesc
+void CDECL ITypeInfo_16_32_ReleaseVarDesc(SEGPTR This, SEGPTR args16_pVarDesc)
+{
+    ITypeInfo *iface32 = (ITypeInfo*)get_interface32(This);
+    VARDESC * args32_pVarDesc;
+
+    /**/
+    VARDESC16 *desc16 = (VARDESC16*)MapSL(args16_pVarDesc);
+    VARDESC16_WRAPPER *w = CONTAINING_RECORD(desc16, VARDESC16_WRAPPER, desc16);
+    if (w->magic != VARDESC16_WRAPPER_MAGIC)
+    {
+        ERR("w->magic != VARDESC16_WRAPPER_MAGIC\n");
+        return;
+    }
+    args32_pVarDesc = w->desc32;
+    /**/
+    
+    TRACE("(%04x:%04x(%p),%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_pVarDesc);
+    iface32->lpVtbl->ReleaseVarDesc(iface32, args32_pVarDesc);
+    /**/
+    free_vardesc16(desc16);
+    HeapFree(GetProcessHeap(), 0, w);
+    /**/
+}
+#endif
+#ifdef IFS3216_OVERWRITE_ITypeInfo_ReleaseVarDesc
+void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseVarDesc(ITypeInfo *This, VARDESC *pVarDesc)
+{
+    SEGPTR iface16 = get_interface16(This);
+    SEGPTR args16_pVarDesc;
+    MAP_PTR_VARDESC32_16(args16_pVarDesc, pVarDesc);
+    FIXME("\n");
+    TRACE("(%p(%04x:%04x),%p)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), pVarDesc);
+    ITypeInfo16_ReleaseVarDesc(iface16, args16_pVarDesc);
+    UNMAP_PTR_VARDESC32_16(args16_pVarDesc, pVarDesc);
 }
 #endif
