@@ -95,15 +95,29 @@ QueryPathOfRegTypeLib16(
 	} else {
 		sprintf(xguid,"<guid 0x%08x>",(DWORD)guid);
 		FIXME("(%s,%d,%d,0x%04x,%p),can't handle non-string guids.\n",xguid,wMaj,wMin,lcid,path);
-		return E_FAIL;
+		return E_FAIL16;
 	}
 	plen = sizeof(pathname);
-	if (RegQueryValueA(HKEY_LOCAL_MACHINE,typelibkey,pathname,&plen)) {
+	if (RegQueryValueA(HKEY_LOCAL_MACHINE,typelibkey,pathname,&plen) || !*pathname) {
 		/* try again without lang specific id */
 		if (SUBLANGID(lcid))
 			return QueryPathOfRegTypeLib16(guid,wMaj,wMin,PRIMARYLANGID(lcid),path);
-		FIXME("key %s not found\n",typelibkey);
-		return E_FAIL;
+
+        plen = sizeof(pathname);
+        if (RegQueryValueA(HKEY_CURRENT_USER, typelibkey, pathname, &plen) || !*pathname) {
+            sprintf(typelibkey, "Typelib\\{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\\%d.%d\\%x\\win16",
+                guid->Data1, guid->Data2, guid->Data3,
+                guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
+                guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7],
+                wMaj, wMin, lcid);
+            plen = sizeof(pathname);
+            if (RegQueryValue16(HKEY_LOCAL_MACHINE, typelibkey, pathname, &plen)) {
+                if (lcid)
+                    return QueryPathOfRegTypeLib16(guid, wMaj, wMin, 0, path);
+                FIXME("key %s not found\n", typelibkey);
+                return E_FAIL16;
+            }
+        }
 	}
     *path = SysAllocString16(pathname);
     if (!*path) return E_FAIL16;
