@@ -819,10 +819,10 @@ HRESULT WINAPI CreateStdDispatch16(
  * RegisterActiveObject [OLE2DISP.35]
  */
 HRESULT WINAPI RegisterActiveObject16(
-	IUnknown *punk, REFCLSID rclsid, DWORD dwFlags, unsigned long *pdwRegister
+	SEGPTR punk, REFCLSID rclsid, DWORD dwFlags, unsigned long *pdwRegister
 ) {
-	FIXME("(%p,%s,0x%08x,%p):stub\n",punk,debugstr_guid(rclsid),dwFlags,pdwRegister);
-	return S_OK;
+	TRACE("(%08x,%s,0x%08x,%p)\n",punk,debugstr_guid(rclsid),dwFlags,pdwRegister);
+	return hresult32_16(RegisterActiveObject((IUnknown*)iface16_32(&IID_IUnknown, punk), rclsid, dwFlags, pdwRegister));
 }
 
 /******************************************************************************
