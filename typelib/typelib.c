@@ -215,10 +215,15 @@ DWORD WINAPI OaBuildVersion16(void)
     }
 }
 
-HRESULT WINAPI RegisterTypeLib16(SEGPTR /* ITypeLib* */ptlib, SEGPTR/* TCHAR* */ *szFullPath, SEGPTR/* TCHAR* */ *szHelpDir)
+HRESULT WINAPI RegisterTypeLib16(SEGPTR /* ITypeLib* */ptlib, LPCOLESTR16 szFullPath, LPCOLESTR16 szHelpDir)
 {
-    FIXME("\n");
-    return 0;
+    LPOLESTR w1 = strdupAtoW(szFullPath);
+    LPOLESTR w2 = strdupAtoW(szHelpDir);
+    ITypeLib *lib32 = (ITypeLib*)iface16_32(&IID_ITypeLib, ptlib);
+    HRESULT result = RegisterTypeLibForUser(lib32, w1, w2);
+    HeapFree(GetProcessHeap(), 0, w1);
+    HeapFree(GetProcessHeap(), 0, w2);
+    return hresult32_16(result);
 }
 
 HRESULT WINAPI LoadRegTypeLib16(REFGUID guid, unsigned short wVerMajor, unsigned short wVerMinor, LCID lcid, SEGPTR /* ITypeLib* */ *lplptlib)
