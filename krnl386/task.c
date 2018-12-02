@@ -942,6 +942,8 @@ void WINAPI Yield16(void)
 
     if (pCurTask && pCurTask->hQueue)
     {
+        DWORD count;
+        ReleaseThunkLock(&count);
         HMODULE mod = GetModuleHandleA( "user32.dll" );
         if (mod)
         {
@@ -951,9 +953,11 @@ void WINAPI Yield16(void)
             {
                 MSG msg;
                 pPeekMessageW( &msg, 0, 0, 0, PM_REMOVE | PM_QS_SENDMESSAGE );
+                RestoreThunkLock(count);
                 return;
             }
         }
+        RestoreThunkLock(count);
     }
     OldYield16();
 }
