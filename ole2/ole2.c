@@ -394,6 +394,15 @@ HRESULT WINAPI ReadClassStm16(SEGPTR stream, CLSID *clsid)
 }
 
 /***********************************************************************
+ *    WriteClassStm (OLE2.21)
+ */
+HRESULT WINAPI WriteClassStm16(SEGPTR pStm, REFCLSID rclsid)
+{
+    TRACE("(%08x,%s)\n", pStm, debugstr_guid(rclsid));
+    return hresult32_16(WriteClassStm((IStream*)iface16_32(&IID_IStream, pStm), rclsid));
+}
+
+/***********************************************************************
  *              GetConvertStg (OLE2.82)
  */
 HRESULT WINAPI GetConvertStg16(LPSTORAGE stg)
