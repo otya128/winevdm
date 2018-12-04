@@ -374,10 +374,10 @@ static TDB *TASK_Create( NE_MODULE *pModule, UINT16 cmdShow, LPCSTR cmdline, BYT
         while ((*cmdline == ' ') || (*cmdline == '\t')) cmdline++;
         len = strlen(cmdline);
     }
-    if (len >= sizeof(pTask->pdb.cmdLine)) len = sizeof(pTask->pdb.cmdLine)-1;
+    if (len >= sizeof(pTask->pdb.cmdLine)) len = sizeof(pTask->pdb.cmdLine)-2;
     pTask->pdb.cmdLine[0] = len;
     memcpy( pTask->pdb.cmdLine + 1, cmdline, len );
-    /* pTask->pdb.cmdLine[len+1] = 0; */
+    pTask->pdb.cmdLine[len+1] = 0x0d;
 
     TRACE("cmdline='%.*s' task=%04x\n", len, cmdline, hTask );
 
