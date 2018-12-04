@@ -73,7 +73,7 @@
 75 pascal WriteFmtUserTypeStg(segptr word str) WriteFmtUserTypeStg16
 76 pascal -ret16 OleFlushClipboard() OleFlushClipboard16
 77 pascal OleIsCurrentClipboard(segptr) OleIsCurrentClipboard16
-78 stub OLETRANSLATEACCELERATOR
+78 pascal OleTranslateAccelerator(segptr ptr ptr) OleTranslateAccelerator16
 79 pascal OleDoAutoConvert(ptr ptr) OleDoAutoConvert16
 80 pascal OleGetAutoConvert(ptr ptr) OleGetAutoConvert16
 81 stub OLESETAUTOCONVERT
