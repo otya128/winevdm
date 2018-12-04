@@ -983,7 +983,10 @@ INT16 WINAPI SaveDC16( HDC16 hdc )
  */
 COLORREF WINAPI SetPixel16( HDC16 hdc, INT16 x, INT16 y, COLORREF color )
 {
-    return SetPixel( HDC_32(hdc), x, y, color );
+    int type = color >> 16;
+    if ((type != 0x10ff) || (type != 0x100) || ((type & 0xf00) != 0x200))
+        color &= 0xffffff;
+    return SetPixel( HDC_32(hdc), x, y, color);
 }
 
 
