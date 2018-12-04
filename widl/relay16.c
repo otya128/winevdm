@@ -254,7 +254,7 @@ static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, con
         }
         else if (type_conv_map == TYPE_CONV_MAP_ARRAY)
         {
-            fprintf(h, "    ((SEGPTR*)MapSL(%s%s))[i__] = iface32_16(&IID_%s, %s%s);\n", to, to2, typ2->name, expr_prefix, expr);
+            fprintf(h, "    ((SEGPTR*)(%s%s))[i__] = iface32_16(&IID_%s, %s%s);\n", to, to2, typ2->name, expr_prefix, expr);
         }
         else
         {
