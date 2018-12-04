@@ -1444,6 +1444,7 @@ DWORD NE_StartTask(void)
         /* Load first instance of NE module */
 
         pModule->ne_flags |= NE_FFLAGS_GUI;  /* FIXME: is this necessary? */
+        pModule->ne_flags |= NE_FFLAGS_MULTIPLEDATA;  /* Windows sets this flag. */
 
         hInstance = NE_DoLoadModule( pModule );
         hPrevInstance = 0;
