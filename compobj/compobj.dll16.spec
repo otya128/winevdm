@@ -216,3 +216,5 @@
 506 cdecl IMalloc16_GetSize(ptr segptr) IMalloc16_fnGetSize
 507 cdecl IMalloc16_DidAlloc(ptr segptr) IMalloc16_fnDidAlloc
 508 cdecl IMalloc16_HeapMinimize(ptr) IMalloc16_fnHeapMinimize
+
+@ stdcall -arch=win32 CoMemAlloc(long long long)
