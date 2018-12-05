@@ -377,7 +377,10 @@ static TDB *TASK_Create( NE_MODULE *pModule, UINT16 cmdShow, LPCSTR cmdline, BYT
     if (len >= sizeof(pTask->pdb.cmdLine)) len = sizeof(pTask->pdb.cmdLine)-2;
     pTask->pdb.cmdLine[0] = len;
     memcpy( pTask->pdb.cmdLine + 1, cmdline, len );
-    pTask->pdb.cmdLine[len+1] = 0x0d;
+    if (len == 0)
+    {
+        pTask->pdb.cmdLine[len+1] = 0x0d; /* Actual windows behaviour(but why?) */
+    }
 
     TRACE("cmdline='%.*s' task=%04x\n", len, cmdline, hTask );
 
