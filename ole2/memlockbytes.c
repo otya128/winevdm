@@ -80,6 +80,7 @@ static inline HGLOBALLockBytesImpl16 *impl_from_ILockBytes16(ILockBytes16 *iface
   return CONTAINING_RECORD(iface, HGLOBALLockBytesImpl16, ILockBytes16_iface);
 }
 
+static SEGPTR msegvt16;
 /******************************************************************************
  * This is the constructor for the HGLOBALLockBytesImpl16 class.
  *
@@ -95,7 +96,6 @@ HGLOBALLockBytesImpl16_Construct(HGLOBAL16 hGlobal,
   HGLOBALLockBytesImpl16* newLockBytes;
 
   static ILockBytes16Vtbl vt16;
-  static SEGPTR msegvt16;
   HMODULE16 hcomp = GetModuleHandle16("OLE2");
 
 
@@ -523,5 +523,22 @@ HRESULT WINAPI CreateILockBytesOnHGlobal16(
   if (newLockBytes != NULL)
     return HGLOBALLockBytesImpl16_QueryInterface(&newLockBytes->ILockBytes16_iface,
             &IID_ILockBytes, (void**)ppLkbyt);
-  return E_OUTOFMEMORY;
+  return E_OUTOFMEMORY16;
+}
+
+HRESULT WINAPI GetHGlobalFromILockBytes16(SEGPTR plkbyt, HGLOBAL16 *phglobal16)
+{
+    ILockBytes16 *lk32 = (ILockBytes16*)MapSL(plkbyt);
+    HGLOBALLockBytesImpl16 *This;
+    TRACE("(%08x,%p)\n", plkbyt, phglobal16);
+    if (!phglobal16)
+        return E_INVALIDARG16;
+    *phglobal16 = 0;
+    if (!plkbyt)
+        return E_INVALIDARG16;
+    if (lk32->lpVtbl != msegvt16)
+        return E_INVALIDARG16;
+    This = impl_from_ILockBytes16(lk32);
+    *phglobal16 = This->supportHandle;
+    return S_OK;
 }
