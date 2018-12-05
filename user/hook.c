@@ -835,21 +835,24 @@ void free_module_hooks(HINSTANCE16 hinst)
     QUEUE16 *q = (QUEUE16*)MapSL(MAKESEGPTR(hqFirst, 0));
     while (q)
     {
-        struct hook16_queue_info *info = get_hook_info(FALSE, q->hTask);
-        int i;
-        if (info)
+        if (IsTask16(q->hTask))
         {
-            for (i = 0; i < NB_HOOKS16; i++)
+            struct hook16_queue_info *info = get_hook_info(FALSE, q->hTask);
+            int i;
+            if (info)
             {
-                struct list *list = &info->hook_entry[i];
-                struct hook_entry *hook_entry, *next;
-                if (list->next == NULL)
-                    continue;
-                LIST_FOR_EACH_ENTRY_SAFE(hook_entry, next, list, struct hook_entry, entry)
+                for (i = 0; i < NB_HOOKS16; i++)
                 {
-                    if (hook_entry->hinst16 == hinst)
+                    struct list *list = &info->hook_entry[i];
+                    struct hook_entry *hook_entry, *next;
+                    if (list->next == NULL)
+                        continue;
+                    LIST_FOR_EACH_ENTRY_SAFE(hook_entry, next, list, struct hook_entry, entry)
                     {
-                        UnhookWindowsHookEx16(entry_to_hhook(hook_entry));
+                        if (hook_entry->hinst16 == hinst)
+                        {
+                            UnhookWindowsHookEx16(entry_to_hhook(hook_entry));
+                        }
                     }
                 }
             }
