@@ -680,3 +680,9 @@ HRESULT WINAPI OleTranslateAccelerator16(SEGPTR lpFrame, LPOLEINPLACEFRAMEINFO16
     result = OleTranslateAccelerator(lpFrame32, &frameInfo32, &msg32);
     return hresult32_16(result);
 }
+
+HRESULT WINAPI OleQueryLinkFromData16(SEGPTR pDataObject)
+{
+    TRACE("(%08x)\n", pDataObject);
+    return hresult32_16(OleQueryLinkFromData((IDataObject*)iface16_32(&IID_IDataObject, pDataObject)));
+}
