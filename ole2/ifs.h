@@ -118,7 +118,7 @@ typedef struct {
         SEGPTR/*LPSTR*/lpszFileName;
         SEGPTR/*LPSTREAM*/pstm;
         SEGPTR/*LPSTORAGE*/pstg;
-    };
+    } DUMMYUNIONNAME;
     SEGPTR /*LPUNKNOWN*/pUnkForRelease;
 } STGMEDIUM16;
 typedef struct

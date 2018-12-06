@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#define NONAMELESSUNION
 #include "windef.h"
 #include "winbase.h"
 #include "wingdi.h"
@@ -414,9 +415,83 @@ HRESULT WINAPI GetConvertStg16(LPSTORAGE stg)
 /***********************************************************************
  *              ReleaseStgMedium (OLE2.32)
  */
-VOID WINAPI ReleaseStgMedium16(LPSTGMEDIUM medium)
+VOID WINAPI ReleaseStgMedium16(STGMEDIUM16 *pmedium)
 {
-    FIXME("%p: unimplemented stub!\n", medium);
+    switch (pmedium->tymed)
+    {
+    case TYMED_HGLOBAL:
+    {
+        if ((pmedium->pUnkForRelease == 0) &&
+            (pmedium->u.hGlobal != 0))
+            GlobalFree16(pmedium->u.hGlobal);
+        break;
+    }
+    case TYMED_FILE:
+    {
+        if (pmedium->u.lpszFileName != 0)
+        {
+            if (pmedium->pUnkForRelease == 0)
+            {
+                DeleteFileA(MapSL(pmedium->u.lpszFileName));
+            }
+            FIXME("\n");
+            /*CoTaskMemFree(pmedium->u.lpszFileName);*/
+        }
+        break;
+    }
+    case TYMED_ISTREAM:
+    {
+        if (pmedium->u.pstm != 0)
+        {
+            IStream16_Release(pmedium->u.pstm);
+        }
+        break;
+    }
+    case TYMED_ISTORAGE:
+    {
+        if (pmedium->u.pstg != 0)
+        {
+            IStorage16_Release(pmedium->u.pstg);
+        }
+        break;
+    }
+    case TYMED_GDI:
+    {
+        if ((pmedium->pUnkForRelease == 0) &&
+            (pmedium->u.hGlobal != 0))
+            DeleteObject(HBITMAP_32(pmedium->u.hGlobal));
+        break;
+    }
+    case TYMED_MFPICT:
+    {
+        if ((pmedium->pUnkForRelease == 0) &&
+            (pmedium->u.hGlobal != 0))
+        {
+            LPMETAFILEPICT16 pMP = GlobalLock16(pmedium->u.hGlobal);
+            GlobalFree16(pMP->hMF);
+            GlobalUnlock16(pmedium->u.hGlobal);
+            GlobalFree16(pmedium->u.hGlobal);
+        }
+        break;
+    }
+    case TYMED_ENHMF:
+    {
+        FIXME("\n");
+    }
+    case TYMED_NULL:
+    default:
+        break;
+    }
+    pmedium->tymed = TYMED_NULL;
+
+    /*
+     * After cleaning up, the unknown is released
+     */
+    if (pmedium->pUnkForRelease != 0)
+    {
+        IUnknown16_Release(pmedium->pUnkForRelease);
+        pmedium->pUnkForRelease = 0;
+    }
 }
 
 /***********************************************************************
