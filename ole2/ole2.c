@@ -693,19 +693,36 @@ HRESULT WINAPI OleRegGetMiscStatus16(REFCLSID clsid, DWORD dwAspect, DWORD *pdwS
     return hresult32_16(OleRegGetMiscStatus(clsid, dwAspect, pdwStatus));
 }
 
-SEGPTR WINAPI dynamic_CoMemAlloc(DWORD size, MEMCTX dwMemContext, DWORD x)
+SEGPTR WINAPI dynamic_CoGetMalloc16(MEMCTX dwMemContext, SEGPTR *lpMalloc)
 {
-    static SEGPTR(WINAPI*pCoMemAlloc)(DWORD size, MEMCTX dwMemContext, DWORD x);
-    if (!pCoMemAlloc)
+    static HRESULT(WINAPI*pCoGetMalloc16)(MEMCTX dwMemContext, SEGPTR *lpMalloc);
+    if (!pCoGetMalloc16)
     {
         HMODULE compobj = GetModuleHandleW(L"COMPOBJ.DLL16");
         if (!compobj)
         {
             compobj = LoadLibraryW(L"COMPOBJ.DLL16");
         }
-        pCoMemAlloc = (SEGPTR(WINAPI*)(DWORD size, MEMCTX dwMemContext, DWORD x))GetProcAddress(compobj, "CoMemAlloc");
+        pCoGetMalloc16 = (HRESULT(WINAPI*)(MEMCTX dwMemContext, SEGPTR *lpMalloc))GetProcAddress(compobj, "CoGetMalloc16");
+        return E_FAIL;
     }
-    return pCoMemAlloc(size, dwMemContext, x);
+    return pCoGetMalloc16(dwMemContext, lpMalloc);
+}
+
+SEGPTR CoTaskMemAlloc16(DWORD size)
+{
+    SEGPTR imalloc = 0;
+    if (FAILED(dynamic_CoGetMalloc16(MEMCTX_TASK, &imalloc)))
+        return 0;
+    return IMalloc16_Alloc(imalloc, size);
+}
+
+void CoTaskMemFree16(SEGPTR ptr)
+{
+    SEGPTR imalloc = 0;
+    if (FAILED(dynamic_CoGetMalloc16(MEMCTX_TASK, &imalloc)))
+        return 0;
+    IMalloc16_Free(imalloc, ptr);
 }
 
 static SEGPTR taskmem_strdupWtoA(LPCWSTR str)
@@ -715,7 +732,7 @@ static SEGPTR taskmem_strdupWtoA(LPCWSTR str)
 
     if (!str) return NULL;
     len = WideCharToMultiByte(CP_ACP, 0, str, -1, NULL, 0, NULL, NULL);
-    ret = dynamic_CoMemAlloc(len * sizeof(CHAR), MEMCTX_TASK, 0);
+    ret = CoTaskMemAlloc16(len * sizeof(CHAR));
     if (ret) WideCharToMultiByte(CP_ACP, 0, str, -1, MapSL(ret), len, NULL, NULL);
     return ret;
 }
