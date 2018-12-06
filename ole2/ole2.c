@@ -874,3 +874,13 @@ HRESULT WINAPI OleNoteObjectVisible16(SEGPTR pUnk, BOOL fVisible)
     TRACE("(%08x,%d)\n", pUnk, fVisible);
     return hresult32_16(OleNoteObjectVisible((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fVisible));
 }
+
+HRESULT WINAPI OleRegEnumVerbs16(REFCLSID clsid, SEGPTR *ppenum)
+{
+    IEnumOLEVERB *penum = NULL;
+    HRESULT result;
+    TRACE("(%s,%p)\n", debugstr_guid(clsid), ppenum);
+    result = OleRegEnumVerbs(clsid, &penum);
+    *ppenum = iface32_16(&IID_IEnumOLEVERB, penum);
+    return hresult32_16(result);
+}

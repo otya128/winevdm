@@ -87,7 +87,7 @@
 89 pascal OleRegGetUserType(ptr long ptr) OleRegGetUserType16
 90 pascal OleRegGetMiscStatus(ptr long ptr) OleRegGetMiscStatus16
 91 stub OLEREGENUMFORMATETC
-92 stub OLEREGENUMVERBS
+92 pascal OleRegEnumVerbs(ptr ptr) OleRegEnumVerbs16
 93 stub OLEGETENUMFORMATETC
 100 stub MAKEDEBUGSTREAM
 104 stub DBGLOGOPEN
