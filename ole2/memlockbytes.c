@@ -202,7 +202,7 @@ HRESULT CDECL HGLOBALLockBytesImpl16_QueryInterface(
    * Perform a sanity check on the parameters.
    */
   if (ppvObject==0)
-    return E_INVALIDARG;
+    return E_INVALIDARG16;
 
   /*
    * Initialize the return parameter.
@@ -220,8 +220,7 @@ HRESULT CDECL HGLOBALLockBytesImpl16_QueryInterface(
    * Check that we obtained an interface.
    */
   if ((*ppvObject)==0) {
-    FIXME("Unknown IID %s\n", debugstr_guid(riid));
-    return E_NOINTERFACE;
+    return E_NOINTERFACE16;
   }
 
   /*
