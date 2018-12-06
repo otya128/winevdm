@@ -844,6 +844,59 @@ HRESULT WINAPI SetErrorInfo16(ULONG dwReserved, IErrorInfo *perrinfo)
         return E_INVALIDARG;
 }
 
+
+HRESULT WINAPI DispGetParam16(
+	DISPPARAMS16 *pdispparams, /* [in] Parameter list */
+	UINT16       position,    /* [in] Position of parameter to coerce in pdispparams */
+	VARTYPE      vtTarg,      /* [in] Type of value to coerce to */
+	VARIANT16    *pvarResult,  /* [out] Destination for resulting variant */
+	UINT16       *puArgErr)    /* [out] Destination for error code */
+{
+    /* position is counted backwards */
+    UINT pos;
+    HRESULT hr;
+
+    TRACE("position=%d, cArgs=%d, cNamedArgs=%d\n",
+          position, pdispparams->cArgs, pdispparams->cNamedArgs);
+
+    if (position < pdispparams->cArgs)
+    {
+      /* positional arg? */
+      pos = pdispparams->cArgs - position - 1;
+    }
+    else
+    {
+      /* FIXME: is this how to handle named args? */
+      for (pos=0; pos<pdispparams->cNamedArgs; pos++)
+        if (((DISPID*)MapSL(pdispparams->rgdispidNamedArgs))[pos] == position) break;
+
+      if (pos==pdispparams->cNamedArgs)
+        return DISP_E_PARAMNOTFOUND;
+    }
+
+    if (pdispparams->cArgs > 0 && !pdispparams->rgvarg)
+    {
+        hr = E_INVALIDARG;
+        goto done;
+    }
+
+    if (!pvarResult)
+    {
+        hr = E_INVALIDARG;
+        goto done;
+    }
+
+    hr = VariantChangeType16(pvarResult,
+                           &((VARIANT16*)MapSL(pdispparams->rgvarg))[pos],
+                           0, vtTarg);
+
+done:
+    if (FAILED(hr))
+        *puArgErr = pos;
+
+    return hr;
+}
+
 #if 0
 /******************************************************************************
  * VariantChangeType [OLE2DISP.12]

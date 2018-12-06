@@ -25,7 +25,7 @@
 25 stub SAFEARRAYGETELEMENT
 26 stub SAFEARRAYPUTELEMENT
 27 pascal SafeArrayCopy(ptr ptr) SafeArrayCopy16
-28 stub DISPGETPARAM
+28 pascal DispGetParam(ptr word word ptr ptr) DispGetParam16
 29 stub DISPGETIDSOFNAMES
 30 stub DISPINVOKE
 31 pascal CreateDispTypeInfo(ptr long ptr) CreateDispTypeInfo16

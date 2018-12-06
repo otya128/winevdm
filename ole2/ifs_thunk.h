@@ -24,6 +24,7 @@
 #include "wine/wingdi16.h"
 #include "wine/winuser16.h"
 #include "ifs.h"
+#include "../ole2disp/ole2disp.h"
 
 #include "wine/debug.h"
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
@@ -546,13 +547,6 @@ typedef WORD TYP16_INVOKEKIND;
 typedef SEGPTR TYP16_BSTR;
 typedef HREFTYPE TYP16_HREFTYPE;
 typedef SEGPTR TYP16_REFGUID;
-typedef struct tagDISPPARAMS16
-{
-    /* VARIANTARG* */SEGPTR rgvarg;
-    /* DISPID* */SEGPTR rgdispidNamedArgs;
-    UINT16 cArgs;
-    UINT16 cNamedArgs;
-} 	DISPPARAMS16;
 typedef DISPPARAMS16 TYP16_DISPPARAMS;
 typedef struct tagEXCEPINFO16 {
 	unsigned short wCode;

@@ -514,6 +514,13 @@ static inline const char *wine_dbgstr_variant16( const VARIANT16 *v )
 }
 static inline const char *debugstr_variant16(const VARIANT16 *v) { return wine_dbgstr_variant16(v); }
 
+typedef struct tagDISPPARAMS16
+{
+    /* VARIANTARG* */SEGPTR rgvarg;
+    /* DISPID* */SEGPTR rgdispidNamedArgs;
+    UINT16 cArgs;
+    UINT16 cNamedArgs;
+} 	DISPPARAMS16;
 #ifdef AVAIL_32BIT_VAR
 #endif
 #endif /* !defined(__WINE_OLEAUT32_OLE2DISP_H) */
