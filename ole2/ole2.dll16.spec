@@ -23,7 +23,7 @@
 23 stub MKPARSEDISPLAYNAME
 24 stub OLESAVETOSTREAM
 25 stub OLELOADFROMSTREAM
-26 stub CREATEBINDCTX
+26 pascal CreateBindCtx(long ptr) CreateBindCtx16
 27 pascal CreateItemMoniker(str str ptr) CreateItemMoniker16
 28 pascal CreateFileMoniker(str ptr) CreateFileMoniker16
 29 pascal CreateGenericComposite(segptr segptr ptr) CreateGenericComposite16
@@ -82,7 +82,7 @@
 84 stub CREATESTREAMONHGLOBAL
 85 stub GETHGLOBALFROMSTREAM
 86 pascal OleSetContainedObject(segptr word) OleSetContainedObject16
-87 stub OLENOTEOBJECTVISIBLE
+87 pascal OleNoteObjectVisible(segptr word) OleNoteObjectVisible16
 88 pascal OleCreateStaticFromData(segptr ptr long ptr segptr segptr ptr) OleCreateStaticFromData16
 89 pascal OleRegGetUserType(ptr long ptr) OleRegGetUserType16
 90 pascal OleRegGetMiscStatus(ptr long ptr) OleRegGetMiscStatus16

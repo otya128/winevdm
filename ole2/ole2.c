@@ -854,3 +854,23 @@ HRESULT WINAPI OleCreateStaticFromData16(SEGPTR pDataObject, REFIID riid, DWORD 
     *ppvObj = iface32_16(riid, pvObj);
     return hresult32_16(result);
 }
+
+HRESULT WINAPI CreateBindCtx16(DWORD dwReserved, SEGPTR *ppbc)
+{
+    IBindCtx *pbc = NULL;
+    HRESULT result;
+    if (dwReserved)
+    {
+        ERR("dwReserved must be zero.(%d)\n", dwReserved);
+    }
+    TRACE("(%d,%p)\n", dwReserved, ppbc);
+    result = CreateBindCtx(0, &pbc);
+    *ppbc = iface32_16(&IID_IBindCtx, pbc);
+    return hresult32_16(result);
+}
+
+HRESULT WINAPI OleNoteObjectVisible16(SEGPTR pUnk, BOOL fVisible)
+{
+    TRACE("(%08x,%d)\n", pUnk, fVisible);
+    return hresult32_16(OleNoteObjectVisible((IUnknown*)iface16_32(&IID_IUnknown, pUnk), fVisible));
+}
