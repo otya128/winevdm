@@ -84,8 +84,8 @@
 86 pascal OleSetContainedObject(segptr word) OleSetContainedObject16
 87 stub OLENOTEOBJECTVISIBLE
 88 stub OLECREATESTATICFROMDATA
-89 stub OLEREGGETUSERTYPE
-90 stub OLEREGGETMISCSTATUS
+89 pascal OleRegGetUserType(ptr long ptr) OleRegGetUserType16
+90 pascal OleRegGetMiscStatus(ptr long ptr) OleRegGetMiscStatus16
 91 stub OLEREGENUMFORMATETC
 92 stub OLEREGENUMVERBS
 93 stub OLEGETENUMFORMATETC

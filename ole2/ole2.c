@@ -686,3 +686,47 @@ HRESULT WINAPI OleQueryLinkFromData16(SEGPTR pDataObject)
     TRACE("(%08x)\n", pDataObject);
     return hresult32_16(OleQueryLinkFromData((IDataObject*)iface16_32(&IID_IDataObject, pDataObject)));
 }
+
+HRESULT WINAPI OleRegGetMiscStatus16(REFCLSID clsid, DWORD dwAspect, DWORD *pdwStatus)
+{
+    TRACE("(%s,%d,%p)\n", debugstr_guid(clsid), dwAspect, pdwStatus);
+    return hresult32_16(OleRegGetMiscStatus(clsid, dwAspect, pdwStatus));
+}
+
+SEGPTR WINAPI dynamic_CoMemAlloc(DWORD size, MEMCTX dwMemContext, DWORD x)
+{
+    static SEGPTR(WINAPI*pCoMemAlloc)(DWORD size, MEMCTX dwMemContext, DWORD x);
+    if (!pCoMemAlloc)
+    {
+        HMODULE compobj = GetModuleHandleW(L"COMPOBJ.DLL16");
+        if (!compobj)
+        {
+            compobj = LoadLibraryW(L"COMPOBJ.DLL16");
+        }
+        pCoMemAlloc = (SEGPTR(WINAPI*)(DWORD size, MEMCTX dwMemContext, DWORD x))GetProcAddress(compobj, "CoMemAlloc");
+    }
+    return pCoMemAlloc(size, dwMemContext, x);
+}
+
+static SEGPTR taskmem_strdupWtoA(LPCWSTR str)
+{
+    LPSTR ret;
+    INT len;
+
+    if (!str) return NULL;
+    len = WideCharToMultiByte(CP_ACP, 0, str, -1, NULL, 0, NULL, NULL);
+    ret = dynamic_CoMemAlloc(len * sizeof(CHAR), MEMCTX_TASK, 0);
+    if (ret) WideCharToMultiByte(CP_ACP, 0, str, -1, MapSL(ret), len, NULL, NULL);
+    return ret;
+}
+
+HRESULT WINAPI OleRegGetUserType16(REFCLSID clsid, DWORD dwFormOfType, SEGPTR *pszUserType)
+{
+    LPOLESTR szUserType;
+    HRESULT result;
+    TRACE("(%s,%d,%p)\n", debugstr_guid(clsid), dwFormOfType, pszUserType);
+    result = OleRegGetUserType(clsid, dwFormOfType, &szUserType);
+    *pszUserType = taskmem_strdupWtoA(szUserType);
+    CoTaskMemFree(szUserType);
+    return hresult32_16(result);
+}
