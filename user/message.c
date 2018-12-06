@@ -2825,26 +2825,6 @@ LONG WINAPI DispatchMessage16( const MSG16* msg )
     retval = CallWindowProc16( winproc, msg->hwnd, msg->message, msg->wParam, msg->lParam );
     TRACE_(message)("(0x%04x) [%04x] wp=%04x lp=%08lx returned %08lx\n",
 		msg->hwnd, msg->message, msg->wParam, msg->lParam, retval);
-	void *a = (void*)(GetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC));
-	if (a)// && !retval)
-	{
-		//SetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC, 0);
-		return retval;
-		MSG msg32;
-
-		msg32.hwnd = WIN_Handle32(msg->hwnd);
-		msg32.message = msg->message;
-		msg32.wParam = msg->wParam;
-		msg32.lParam = msg->lParam;
-		msg32.time = msg->time;
-		msg32.pt.x = msg->pt.x;
-		msg32.pt.y = msg->pt.y;
-		return DispatchMessageA(&msg32);
-		/*
-		LRESULT CALLBACK DefWndProca(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
-		return DefWndProca(msg->hwnd, msg->message, msg->wParam, msg->lParam);
-		*///SetWindowLongPtrA(HWND_32(msg->hwnd), DWLP_DLGPROC, 0);
-	}
     return retval;
 }
 
