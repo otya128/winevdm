@@ -710,7 +710,7 @@ SEGPTR WINAPI dynamic_CoMemAlloc(DWORD size, MEMCTX dwMemContext, DWORD x)
 
 static SEGPTR taskmem_strdupWtoA(LPCWSTR str)
 {
-    LPSTR ret;
+    SEGPTR ret;
     INT len;
 
     if (!str) return NULL;
