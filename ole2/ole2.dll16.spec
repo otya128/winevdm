@@ -5,7 +5,7 @@
 #5 WEP
 6 pascal OleQueryLinkFromData(segptr) OleQueryLinkFromData16
 7 pascal OleQueryCreateFromData(segptr) OleQueryCreateFromData16
-8 stub OLECREATEFROMDATA
+8 pascal OleCreateFromData(segptr ptr long ptr segptr segptr ptr) OleCreateFromData16
 9 stub OLECREATELINKFROMDATA
 10 pascal OleCreate(ptr ptr long ptr segptr segptr ptr) OleCreate16
 11 stub OLECREATELINK
@@ -83,7 +83,7 @@
 85 stub GETHGLOBALFROMSTREAM
 86 pascal OleSetContainedObject(segptr word) OleSetContainedObject16
 87 stub OLENOTEOBJECTVISIBLE
-88 stub OLECREATESTATICFROMDATA
+88 pascal OleCreateStaticFromData(segptr ptr long ptr segptr segptr ptr) OleCreateStaticFromData16
 89 pascal OleRegGetUserType(ptr long ptr) OleRegGetUserType16
 90 pascal OleRegGetMiscStatus(ptr long ptr) OleRegGetMiscStatus16
 91 stub OLEREGENUMFORMATETC

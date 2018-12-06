@@ -822,3 +822,35 @@ HRESULT WINAPI OleRegGetUserType16(REFCLSID clsid, DWORD dwFormOfType, SEGPTR *p
     CoTaskMemFree(szUserType);
     return hresult32_16(result);
 }
+
+HRESULT WINAPI OleCreateFromData16(SEGPTR pDataObject, REFIID riid, DWORD renderopt, FORMATETC16 *pFormatetc, SEGPTR pClientSite, SEGPTR pStg, SEGPTR *ppvObj)
+{
+    HRESULT result;
+    IDataObject *pDataObject32 = (IDataObject*)iface16_32(&IID_IDataObject, pDataObject);
+    FORMATETC fmt32;
+    IOleClientSite *pClientSite32 = (IOleClientSite*)iface16_32(&IID_IOleClientSite, pClientSite);
+    IStorage *pStg32 = (IStorage*)iface16_32(&IID_IStorage, pStg);
+    LPVOID pvObj = NULL;
+    if (pFormatetc)
+        map_formatetc16_32(&fmt32, pFormatetc);
+    TRACE("(%08x,%p,%d,%p,%08x,%08x,%p)\n", pDataObject, debugstr_guid(riid), renderopt, pFormatetc, pClientSite, pStg, ppvObj);
+    result = OleCreateFromData(pDataObject32, riid, renderopt, pFormatetc ? &fmt32 : NULL, pClientSite32, pStg32, &pvObj);
+    *ppvObj = iface32_16(riid, pvObj);
+    return hresult32_16(result);
+}
+
+HRESULT WINAPI OleCreateStaticFromData16(SEGPTR pDataObject, REFIID riid, DWORD renderopt, FORMATETC16 *pFormatetc, SEGPTR pClientSite, SEGPTR pStg, SEGPTR *ppvObj)
+{
+    HRESULT result;
+    IDataObject *pDataObject32 = (IDataObject*)iface16_32(&IID_IDataObject, pDataObject);
+    FORMATETC fmt32;
+    IOleClientSite *pClientSite32 = (IOleClientSite*)iface16_32(&IID_IOleClientSite, pClientSite);
+    IStorage *pStg32 = (IStorage*)iface16_32(&IID_IStorage, pStg);
+    LPVOID pvObj = NULL;
+    if (pFormatetc)
+        map_formatetc16_32(&fmt32, pFormatetc);
+    TRACE("(%08x,%p,%d,%p,%08x,%08x,%p)\n", pDataObject, debugstr_guid(riid), renderopt, pFormatetc, pClientSite, pStg, ppvObj);
+    result = OleCreateStaticFromData(pDataObject32, riid, renderopt, pFormatetc ? &fmt32 : NULL, pClientSite32, pStg32, &pvObj);
+    *ppvObj = iface32_16(riid, pvObj);
+    return hresult32_16(result);
+}
