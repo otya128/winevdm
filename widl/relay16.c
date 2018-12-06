@@ -303,7 +303,16 @@ static void write_type_conv1632(FILE *h, type_t *t, const char *expr_prefix, con
         case TYPE_BASIC_INT64:
             if (type_conv_map == TYPE_CONV_UNMAP)
                 return;
-            fprintf(h, "    %s%s = %s%s;\n", to, to2, expr_prefix, expr);
+            if (type_conv_map == TYPE_CONV_MAP_ARRAY)
+            {
+                fprintf(h, "    %s%s = ((", to, to2);
+                write_type_decl_left(h, t);
+                fprintf(h, "*)(%s%s))[i__];\n", expr_prefix, expr);
+            }
+            else
+            {
+                fprintf(h, "    %s%s = %s%s;\n", to, to2, expr_prefix, expr);
+            }
             return;
         }
     }
@@ -311,7 +320,14 @@ static void write_type_conv1632(FILE *h, type_t *t, const char *expr_prefix, con
     {
         if (type_conv_map == TYPE_CONV_UNMAP)
             return;
-        fprintf(h, "    %s%s = iface16_32(&IID_%s, %s%s);\n", to, to2, typ2->name, expr_prefix, expr);
+        if (type_conv_map == TYPE_CONV_MAP_ARRAY)
+        {
+            fprintf(h, "    %s%s = iface16_32(&IID_%s, ((void**)%s%s)[i__]);\n", to, to2, typ2->name, expr_prefix, expr);
+        }
+        else
+        {
+            fprintf(h, "    %s%s = iface16_32(&IID_%s, %s%s);\n", to, to2, typ2->name, expr_prefix, expr);
+        }
         return;
     }
     if (type_conv_map == TYPE_CONV_UNMAP)
@@ -321,7 +337,17 @@ static void write_type_conv1632(FILE *h, type_t *t, const char *expr_prefix, con
     else
         fprintf(h, "    MAP_");
     write_type_conv_macro(h, t);
-    fprintf(h, "16_32(%s%s, %s%s)", to, to2, expr_prefix, expr);
+    if (type_conv_map == TYPE_CONV_MAP_ARRAY)
+    {
+        fprintf(h, "16_32(%s%s, ", to, to2);
+        fprintf(h, "(((");
+        write_type_decl_left(h, t);
+        fprintf(h, "*)%s%s)[i__]))", expr_prefix, expr);
+    }
+    else
+    {
+        fprintf(h, "16_32(%s%s, %s%s)", to, to2, expr_prefix, expr);
+    }
     fprintf(h, ";\n");
 }
 
@@ -848,7 +874,14 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
             }
             else
             {
-                fprintf(h, ", args%d_%s", is_1632 ? 32 : 16, arg->name);
+                if (is_in && is_array && !is_1632)
+                {
+                    fprintf(h, ", MapLS(args16_%s)", arg->name);
+                }
+                else
+                {
+                    fprintf(h, ", args%d_%s", is_1632 ? 32 : 16, arg->name);
+                }
             }
         }
         else if (args_conv == ARGS_CONV_MAP || args_conv == ARGS_CONV_UNMAP)
@@ -866,7 +899,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
             else
                 prefix_src = "";
 
-            if (is_in)
+            if (is_in && (!is_array))
             {
                 enum type_conv_map map = TYPE_CONV_MAP;
                 if (is_out)
@@ -885,13 +918,13 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
         }
         else if (args_conv == ARGS_CONV_DECL)
         {
-            if (is_out)
+            if (is_out || (is_in && is_array))
             {
                 assert(typ2);
                 if (is_array && !ivar_defined)
                 {
                     fprintf(h, "    int i__;\n");
-                    if (is_1632)
+                    if (is_1632 || (is_in && is_array))
                         fprintf(h, "    void *dst__;\n");
                     ivar_defined = 1;
                 }
@@ -936,7 +969,7 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
         }
         else if (args_conv == ARGS_CONV_MAP_OUTARRAY)
         {
-            if (is_out)
+            if (is_out || (is_in && is_array))
             {
                 assert(typ2);
                 /* [out] interface conversion */
@@ -960,6 +993,42 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                         assert(count++ == 0);
                     }
                     fprintf(h, " );\n");
+                    if (is_in && is_array)
+                    {
+                        char buf2[256];
+                        struct args_conv_callback_udata udata = { args };
+                        int count = 0;
+                        expr_t *e;
+                        expr_list_t *len_is = get_attrp(arg->attrs, ATTR_LENGTHIS);
+                        if (!len_is)
+                            len_is = get_attrp(arg->attrs, ATTR_SIZEIS);
+                        assert(len_is);
+                        if (is_1632)
+                        {
+                            fprintf(h, "    dst__ = MapSL(args16_%s);\n", arg->name);
+                        }
+                        fprintf(h, "    for (i__ = 0; i__ < (");
+                        LIST_FOR_EACH_ENTRY(e, len_is, expr_t, entry)
+                        {
+                            write_expr16(h, e, 1, 1, NULL, NULL, is_1632 ? "args32_" : "args16_", &udata, args_conv_callback);
+                            assert(count++ == 0);
+                        }
+                        fprintf(h, ") ; i__++)\n");
+                        fprintf(h, "    {\n");
+                        fprintf(h, "    ");
+                        if (!is_1632)
+                        {
+                            snprintf(buf2, 256, "args16_%s[i__]", arg->name); /* FIXME */
+                            write_type_conv3216(h, typ2, arg->name, "[i__]", buf2, "", FALSE);
+                        }
+                        else
+                        {
+                            snprintf(buf2, 256, "args32_%s[i__]", arg->name); /* FIXME */
+                            write_type_conv1632(h, typ2, "dst__", "", buf2, "", TYPE_CONV_MAP_ARRAY);
+                        }
+                        fprintf(h, "    }\n");
+                        /* FIXME: UNMAP */
+                    }
                 }
             }
         }
