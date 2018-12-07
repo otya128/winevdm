@@ -8683,7 +8683,11 @@ HRESULT WINAPI CreateDispTypeInfo16Impl(
     pTypeLibImpl = TypeLibImpl_Constructor();
     if (!pTypeLibImpl) return E_FAIL;
 
+#if 0
     pTypeLibImpl->TypeInfoCount = 2;
+#else
+    pTypeLibImpl->TypeInfoCount = 1;
+#endif
     pTypeLibImpl->typeinfos = heap_alloc_zero(pTypeLibImpl->TypeInfoCount * sizeof(ITypeInfoImpl*));
 
     pTIIface = pTypeLibImpl->typeinfos[0] = ITypeInfoImpl_Constructor();
@@ -8741,6 +8745,7 @@ HRESULT WINAPI CreateDispTypeInfo16Impl(
 
     dump_TypeInfo(pTIIface);
 
+#if 0
     pTIClass = pTypeLibImpl->typeinfos[1] = ITypeInfoImpl_Constructor();
     pTIClass->pTypeLib = pTypeLibImpl;
     pTIClass->index = 1;
@@ -8769,6 +8774,9 @@ HRESULT WINAPI CreateDispTypeInfo16Impl(
     dump_TypeInfo(pTIClass);
 
     *pptinfo = (ITypeInfo *)&pTIClass->ITypeInfo2_iface;
+#else
+    *pptinfo = (ITypeInfo *)&pTIIface->ITypeInfo2_iface;
+#endif
 
     ITypeInfo_AddRef(*pptinfo);
     ITypeLib2_Release(&pTypeLibImpl->ITypeLib2_iface);
