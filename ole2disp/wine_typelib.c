@@ -2839,6 +2839,7 @@ static HRESULT MSFT_ReadAllRefs(TLBContext *pcx)
 
     return S_OK;
 }
+#endif
 
 /* Because type library parsing has some degree of overhead, and some apps repeatedly load the same
  * typelibs over and over, we cache them here. According to MSDN Microsoft have a similar scheme in
@@ -2856,6 +2857,7 @@ static CRITICAL_SECTION_DEBUG cache_section_debug =
 static CRITICAL_SECTION cache_section = { &cache_section_debug, -1, 0, 0, 0, 0 };
 
 
+#if 0
 typedef struct TLB_PEFile
 {
     IUnknown IUnknown_iface;
@@ -3419,6 +3421,7 @@ static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath
 
     return ret;
 }
+#endif
 
 /*================== ITypeLib(2) Methods ===================================*/
 
@@ -3445,6 +3448,7 @@ static ITypeLibImpl* TypeLibImpl_Constructor(void)
     return pTypeLibImpl;
 }
 
+#if 0
 /****************************************************************************
  *	ITypeLib2_Constructor_MSFT
  *
@@ -4686,6 +4690,7 @@ static ITypeLib2* ITypeLib2_Constructor_SLTG(LPVOID pLib, DWORD dwTLBLength)
     heap_free(pOtherTypeInfoBlks);
     return &pTypeLibImpl->ITypeLib2_iface;
 }
+#endif
 
 static HRESULT WINAPI ITypeLib2_fnQueryInterface(ITypeLib2 *iface, REFIID riid, void **ppv)
 {
@@ -5264,7 +5269,6 @@ static HRESULT WINAPI ITypeLib2_fnGetDocumentation2(
     }
     return result;
 }
-#endif
 
 static HRESULT TLB_copy_all_custdata(struct list *custdata_list, CUSTDATA *pCustData)
 {
@@ -5291,7 +5295,6 @@ static HRESULT TLB_copy_all_custdata(struct list *custdata_list, CUSTDATA *pCust
 }
 
 
-#if 0
 /* ITypeLib2::GetAllCustData
  *
  * Gets all custom data items for the library.
@@ -5327,7 +5330,6 @@ static const ITypeLib2Vtbl tlbvt = {
     ITypeLib2_fnGetAllCustData
  };
 
-#endif
 
 static HRESULT WINAPI ITypeLibComp_fnQueryInterface(ITypeComp * iface, REFIID riid, LPVOID * ppv)
 {
@@ -8666,7 +8668,7 @@ static ITypeLibImpl* TypeLibImpl_Constructor_stub(void)
  *  This call allows an objects methods to be accessed through IDispatch, by
  *  building an ITypeInfo object that IDispatch can use to call through.
  */
-HRESULT WINAPI CreateDispTypeInfo(
+HRESULT WINAPI CreateDispTypeInfo16Impl(
 	INTERFACEDATA *pidata, /* [I] Description of the interface to build type info for */
 	LCID lcid, /* [I] Locale Id */
 	ITypeInfo **pptinfo) /* [O] Destination for created ITypeInfo object */
@@ -8678,7 +8680,7 @@ HRESULT WINAPI CreateDispTypeInfo(
     TLBRefType *ref;
 
     TRACE("\n");
-    pTypeLibImpl = TypeLibImpl_Constructor_stub();
+    pTypeLibImpl = TypeLibImpl_Constructor();
     if (!pTypeLibImpl) return E_FAIL;
 
     pTypeLibImpl->TypeInfoCount = 2;

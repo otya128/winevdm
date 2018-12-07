@@ -750,6 +750,10 @@ typedef struct
 } INTERFACEDATA16, *LPINTERFACEDATA16;
 #include <poppack.h>
 
+HRESULT WINAPI CreateDispTypeInfo16Impl(
+    INTERFACEDATA *pidata, /* [I] Description of the interface to build type info for */
+    LCID lcid, /* [I] Locale Id */
+    ITypeInfo **pptinfo); /* [O] Destination for created ITypeInfo object */
 /******************************************************************************
  * CreateDispTypeInfo [OLE2DISP.31]
  */
@@ -758,14 +762,6 @@ HRESULT WINAPI CreateDispTypeInfo16(
 	LCID lcid,
 	SEGPTR *pptinfo)
 {
-    FIXME("\n");
-    if (!pidata)
-        return E_INVALIDARG16;
-    if (!pptinfo)
-        return E_INVALIDARG16;
-    *pptinfo = 0;
-    return E_NOTIMPL16;
-#if 0
     int i;
     INTERFACEDATA idata32;
     PARAMDATA *params32;
@@ -797,7 +793,7 @@ HRESULT WINAPI CreateDispTypeInfo16(
             idata32.pmethdata[i].ppdata = NULL;
         }
     }
-    result = hresult32_16(CreateDispTypeInfo(&idata32, lcid, &ptinfo));
+    result = hresult32_16(CreateDispTypeInfo16Impl(&idata32, lcid, &ptinfo));
     for (i = 0; i < idata32.cMembers; i++)
     {
         if (idata32.pmethdata[i].ppdata)
@@ -807,7 +803,6 @@ HRESULT WINAPI CreateDispTypeInfo16(
     HeapFree(GetProcessHeap(), 0, idata32.pmethdata);
     *pptinfo = iface32_16(&IID_ITypeInfo, ptinfo);
 	return result;
-#endif
 }
 
 /******************************************************************************
