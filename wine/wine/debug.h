@@ -270,7 +270,7 @@ static inline const char *wine_dbgstr_vt( VARTYPE vt )
 
     return wine_dbg_sprintf( "vt(invalid %x)", vt );
 }
-/*
+
 static inline const char *wine_dbgstr_variant( const VARIANT *v )
 {
     if (!v)
@@ -342,7 +342,7 @@ static inline const char *wine_dbgstr_variant( const VARIANT *v )
         return wine_dbg_sprintf( "%p {vt %s}", v, wine_dbgstr_vt(V_VT(v)) );
     }
 }
-*/
+
 #endif /* defined(__oaidl_h__) && defined(V_VT) */
 
 #ifndef WINE_TRACE
