@@ -853,8 +853,15 @@ VARDESC16 *map_vardesc16(const VARDESC *a32);
 #define MAP_PTR_VARDESC32_16(a16, a32) a16 = MapLS(map_vardesc16(a32))
 #define MAP_PTR_VARIANT16_32(a32, a16) FIXME("MAP_PTR_VARIANT16_32\n")
 #define MAP_PTR_VARIANT32_16(a16, a32) FIXME("MAP_PTR_VARIANT32_16\n")
-#define MAP_PVOID16_32(a32, a16) FIXME("MAP_PVOID16_32\n")
-#define MAP_PVOID32_16(a16, a32) FIXME("MAP_PVOID32_16\n")
+#if 0
+#define MAP_PVOID16_32(a32, a16) MAP_PTR_VOID16_32(a32, a16)
+#define MAP_PVOID32_16(a16, a32) MAP_PTR_VOID32_16(a16, a32)
+#else
+/* Pass segmented pointers directly?? */
+/* This macro appears only in ITypeInfo::Invoke */
+#define MAP_PVOID16_32(a32, a16) a32 = a16
+#define MAP_PVOID32_16(a16, a32) a16 = a32
+#endif
 #define MAP_REFGUID16_32(a32, a16) *(GUID**)&a32 = (GUID*)MapSL(a16)
 #define MAP_REFGUID32_16(a16, a32) a16 = MapLS(a32)
 #define MAP_SHORT16_32(a32, a16) a32 = (SHORT)a16
@@ -943,8 +950,8 @@ void map_variant32_16(VARIANT16 *dst, const VARIANT *src);
 #define UNMAP_PTR_VARDESC32_16(a16, a32) FIXME("UNMAP_PTR_VARDESC32_16\n")
 #define UNMAP_PTR_VARIANT16_32(a32, a16) FIXME("UNMAP_PTR_VARIANT16_32\n")
 #define UNMAP_PTR_VARIANT32_16(a16, a32) FIXME("UNMAP_PTR_VARIANT32_16\n")
-#define UNMAP_PVOID16_32(a32, a16) FIXME("UNMAP_PVOID16_32\n")
-#define UNMAP_PVOID32_16(a16, a32) FIXME("UNMAP_PVOID32_16\n")
+#define UNMAP_PVOID16_32(a32, a16)
+#define UNMAP_PVOID32_16(a16, a32)
 #define UNMAP_REFGUID16_32(a32, a16)
 #define UNMAP_REFGUID32_16(a16, a32)
 #define UNMAP_SHORT16_32(a32, a16) FIXME("UNMAP_SHORT16_32\n")
