@@ -205,8 +205,10 @@ enum type_conv_map
     TYPE_CONV_MAP,
     TYPE_CONV_UNMAP,
     TYPE_CONV_INMAP,
+    TYPE_CONV_OUTMAP,
     TYPE_CONV_MAP_MAPSL, /* (*(typ16*)MapSL(%s%s)) */
     TYPE_CONV_MAP_ARRAY, /* (((typ16*)dst__)[i__]) */
+    TYPE_CONV_OUTMAP_MAPSL, /* (*(typ16*)MapSL(%s%s)) */
 };
 static void write_type_decl_left3216(FILE *f, type_t *t);
 static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, const char *expr, const char *to, const char *to2, int unmap)
@@ -266,10 +268,14 @@ static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, con
         fprintf(h, "    UNMAP_");
     else if (type_conv_map == TYPE_CONV_INMAP)
         fprintf(h, "    INMAP_");
+    else if (type_conv_map == TYPE_CONV_OUTMAP)
+        fprintf(h, "    OUTMAP_");
+    else if (type_conv_map == TYPE_CONV_OUTMAP_MAPSL)
+        fprintf(h, "    OUTMAP_");
     else
         fprintf(h, "    MAP_");
     write_type_conv_macro(h, t);
-    if (type_conv_map == TYPE_CONV_MAP_MAPSL)
+    if (type_conv_map == TYPE_CONV_MAP_MAPSL || type_conv_map == TYPE_CONV_OUTMAP_MAPSL)
     {
         fprintf(h, "32_16((*(");
         write_type_decl_left3216(h, t);
@@ -334,6 +340,8 @@ static void write_type_conv1632(FILE *h, type_t *t, const char *expr_prefix, con
         fprintf(h,"    UNMAP_");
     else if (type_conv_map == TYPE_CONV_INMAP)
         fprintf(h, "    INMAP_");
+    else if (type_conv_map == TYPE_CONV_OUTMAP)
+        fprintf(h, "    OUTMAP_");
     else
         fprintf(h, "    MAP_");
     write_type_conv_macro(h, t);
@@ -906,13 +914,16 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     map = TYPE_CONV_INMAP;
                 if (args_conv == ARGS_CONV_UNMAP)
                     map = TYPE_CONV_UNMAP;
-                if (is_1632)
+                if (args_conv != ARGS_CONV_UNMAP || !is_out)
                 {
-                    write_type_conv1632(h, map_type, prefix_src, arg->name, prefix_dst, arg->name, map);
-                }
-                else
-                {
-                    write_type_conv3216(h, map_type, prefix_src, arg->name, prefix_dst, arg->name, map);
+                    if (is_1632)
+                    {
+                        write_type_conv1632(h, map_type, prefix_src, arg->name, prefix_dst, arg->name, map);
+                    }
+                    else
+                    {
+                        write_type_conv3216(h, map_type, prefix_src, arg->name, prefix_dst, arg->name, map);
+                    }
                 }
             }
         }
@@ -1100,13 +1111,13 @@ static void write_args_conv(FILE *h, const var_list_t *args, const char *name, e
                     if (is_1632)
                     {
                         fprintf(h, "    if (args16_%s)\n    {\n    ", arg->name);
-                        write_type_conv3216(h, typ2, "args32_", arg->name, "args16_", arg->name, TYPE_CONV_MAP_MAPSL);
+                        write_type_conv3216(h, typ2, "args32_", arg->name, "args16_", arg->name, is_in ? TYPE_CONV_OUTMAP_MAPSL : TYPE_CONV_MAP_MAPSL);
                         fprintf(h, "    }\n", arg->name);
                     }
                     else
                     {
                         fprintf(h, "    if (%s)\n    {\n    ", arg->name);
-                        write_type_conv1632(h, typ2, "args16_", arg->name, "*", arg->name, TYPE_CONV_MAP);
+                        write_type_conv1632(h, typ2, "args16_", arg->name, "*", arg->name, is_in ? TYPE_CONV_OUTMAP : TYPE_CONV_MAP);
                         fprintf(h, "    }\n", arg->name);
                     }
                 }
