@@ -76,6 +76,9 @@
 /*#include "variant.h"*/
 #include "wine/heap.h"
 #include "wine/list.h"
+#include "wine/winbase16.h"
+#include "wownt32.h"
+#include "wine/windef16.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 WINE_DECLARE_DEBUG_CHANNEL(typelib);
@@ -6321,8 +6324,9 @@ extern LONGLONG call_method( void *func, int nb_args, const DWORD *args, int *st
 extern double call_double_method( void *func, int nb_args, const DWORD *args, int *stack_offset );
 LONGLONG call_method(void *func, int nb_args, const DWORD *args, int *stack_offset)
 {
-    FIXME("\n");
-    return 0;
+    DWORD ret;
+    WOWCallback16Ex(func, WCB16_PASCAL, nb_args * 2, args, &ret);
+    return ret;
 }
 double call_double_method(void *func, int nb_args, const DWORD *args, int *stack_offset)
 {
@@ -6705,13 +6709,14 @@ DispCallFunc(
     int argspos, stack_offset;
     void *func;
     UINT i;
-    DWORD *args;
+    WORD *args;
+#define WRITE_DWORD(v) args[argspos++] = LOWORD(v);args[argspos++] = HIWORD(v)
 
     TRACE("(%p, %ld, %d, %d, %d, %p, %p, %p (vt=%d))\n",
         pvInstance, oVft, cc, vtReturn, cActuals, prgvt, prgpvarg,
         pvargResult, V_VT(pvargResult));
 
-    if (cc != CC_STDCALL && cc != CC_CDECL)
+    if (cc != /*CC_STDCALL*/CC_MSCPASCAL && cc != CC_CDECL)
     {
         FIXME("unsupported calling convention %d\n",cc);
         return E_INVALIDARG;
@@ -6721,12 +6726,12 @@ DispCallFunc(
     args = heap_alloc(sizeof(VARIANT) * cActuals + sizeof(DWORD) * 2 );
 
     /* start at 1 in case we need to pass a pointer to the return value as arg 0 */
-    argspos = 1;
+    argspos = 2;
     if (pvInstance)
     {
-        const FARPROC *vtable = *(FARPROC **)pvInstance;
-        func = vtable[oVft/sizeof(void *)];
-        args[argspos++] = (DWORD)pvInstance; /* the This pointer is always the first parameter */
+        const FARPROC *vtable = *(FARPROC **)MapSL(pvInstance); /* We expect pvInstance to be segmented pointer.!? */
+        func = ((SEGPTR*)MapSL(vtable))[oVft/sizeof(void *)];
+        WRITE_DWORD((DWORD)pvInstance); /* the This pointer is always the first parameter */
     }
     else func = (void *)oVft;
 
@@ -6744,18 +6749,25 @@ DispCallFunc(
         case VT_DATE:
         case VT_CY:
             memcpy( &args[argspos], &V_I8(arg), sizeof(V_I8(arg)) );
-            argspos += sizeof(V_I8(arg)) / sizeof(DWORD);
+            argspos += sizeof(V_I8(arg)) / sizeof(WORD);
             break;
         case VT_DECIMAL:
         case VT_VARIANT:
             memcpy( &args[argspos], arg, sizeof(*arg) );
-            argspos += sizeof(*arg) / sizeof(DWORD);
+            argspos += sizeof(*arg) / sizeof(WORD);
             break;
         case VT_BOOL:  /* VT_BOOL is 16-bit but BOOL is 32-bit, needs to be extended */
             args[argspos++] = V_BOOL(arg);
             break;
+        case VT_UI4:
+        case VT_I4:
+            WRITE_DWORD(V_UI4(arg));
+        case VT_UI2:
+        case VT_I2:
+            args[argspos++] = V_UI2(arg);
+            break;
         default:
-            args[argspos++] = V_UI4(arg);
+            FIXME("unk type %s\n", debugstr_vt(V_VT(arg)));
             break;
         }
         TRACE("arg %u: type %s %s\n", i, debugstr_vt(prgvt[i]), debugstr_variant(arg));
@@ -6764,14 +6776,14 @@ DispCallFunc(
     switch (vtReturn)
     {
     case VT_EMPTY:
-        call_method( func, argspos - 1, args + 1, &stack_offset );
+        call_method( func, argspos - 2, args + 2, &stack_offset );
         break;
     case VT_R4:
-        V_R4(pvargResult) = call_double_method( func, argspos - 1, args + 1, &stack_offset );
+        V_R4(pvargResult) = call_double_method( func, argspos - 2, args + 2, &stack_offset );
         break;
     case VT_R8:
     case VT_DATE:
-        V_R8(pvargResult) = call_double_method( func, argspos - 1, args + 1, &stack_offset );
+        V_R8(pvargResult) = call_double_method( func, argspos - 2, args + 2, &stack_offset );
         break;
     case VT_DECIMAL:
     case VT_VARIANT:
@@ -6781,14 +6793,14 @@ DispCallFunc(
     case VT_I8:
     case VT_UI8:
     case VT_CY:
-        V_UI8(pvargResult) = call_method( func, argspos - 1, args + 1, &stack_offset );
+        V_UI8(pvargResult) = call_method( func, argspos - 2, args + 2, &stack_offset );
         break;
     case VT_HRESULT:
         WARN("invalid return type %u\n", vtReturn);
         heap_free( args );
         return E_INVALIDARG;
     default:
-        V_UI4(pvargResult) = call_method( func, argspos - 1, args + 1, &stack_offset );
+        V_UI4(pvargResult) = call_method( func, argspos - 2, args + 2, &stack_offset );
         break;
     }
     heap_free( args );
@@ -7793,8 +7805,6 @@ static BOOL CALLBACK search_res_tlb(HMODULE hModule, LPCWSTR lpszType, LPWSTR lp
 }
 
 #if 1
-#include "wine/winbase16.h"
-#include "wine/windef16.h"
 static HRESULT WINAPI
 QueryPathOfRegTypeLib16(
 	REFGUID guid,	/* [in] Guid to get the key name for */
