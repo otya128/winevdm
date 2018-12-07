@@ -818,6 +818,17 @@ HRESULT WINAPI CreateDispTypeInfo16(
 	return result;
 }
 
+HRESULT WINAPI DispGetIDsOfNames16(SEGPTR ptinfo, SEGPTR rgszNames, UINT16 cNames, SEGPTR pMemId)
+{
+    return ITypeInfo16_GetIDsOfNames(ptinfo, rgszNames, cNames, pMemId);
+}
+
+HRESULT WINAPI DispInvoke16(SEGPTR _this, SEGPTR ptinfo, LONG dispidMember, UINT16 wFlags, SEGPTR pparams, SEGPTR pvarResult, SEGPTR pexcepinfo, SEGPTR puArgErr)
+{
+    return ITypeInfo16_Invoke(ptinfo, _this, dispidMember, wFlags,
+        pparams, pvarResult, pexcepinfo, puArgErr);
+}
+
 /******************************************************************************
  * CreateStdDispatch [OLE2DISP.32]
  */

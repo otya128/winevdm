@@ -26,8 +26,8 @@
 26 stub SAFEARRAYPUTELEMENT
 27 pascal SafeArrayCopy(ptr ptr) SafeArrayCopy16
 28 pascal DispGetParam(ptr word word ptr ptr) DispGetParam16
-29 stub DISPGETIDSOFNAMES
-30 stub DISPINVOKE
+29 pascal DispGetIDsOfNames(segptr segptr word segptr) DispGetIDsOfNames16
+30 pascal DispInvoke(segptr segptr long word segptr segptr segptr segptr) DispInvoke16
 31 pascal CreateDispTypeInfo(ptr long ptr) CreateDispTypeInfo16
 32 pascal CreateStdDispatch(ptr ptr ptr ptr) CreateStdDispatch16
 33 variable _IID_IDispatch(0x00020400 0x00000000 0x000000c0 0x46000000)
