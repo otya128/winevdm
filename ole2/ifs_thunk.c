@@ -1365,8 +1365,8 @@ void map_excepinfo16_32(EXCEPINFO *a32, const EXCEPINFO16 *a16)
     map_bstr16_32(&a32->bstrHelpFile, &a16->bstrHelpFile);
     a32->wReserved = a16->dwHelpContext;
     a32->pvReserved = a16->pvReserved;
-    if (a16->pexcepinfo)
-        ERR("pexcepinfo\n");
+    if (a16->pfnDeferredFillIn)
+        ERR("pfnDeferredFillIn\n");
     a32->pfnDeferredFillIn = 0;
     a32->scode = a16->scode;
 }
@@ -1381,8 +1381,8 @@ void map_excepinfo32_16(EXCEPINFO16 *a16, const EXCEPINFO *a32)
     a16->wReserved = a32->dwHelpContext;
     a16->pvReserved = a32->pvReserved;
     if (a32->pfnDeferredFillIn)
-        ERR("pexcepinfo\n");
-    a16->pexcepinfo = 0;
+        ERR("pfnDeferredFillIn\n");
+    a16->pfnDeferredFillIn = 0;
     a16->scode = a32->scode;
 }
 

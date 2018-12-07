@@ -556,7 +556,7 @@ typedef struct tagEXCEPINFO16 {
 	TYP16_BSTR bstrHelpFile;
 	unsigned long dwHelpContext;
 	/* void* */SEGPTR pvReserved;	
-	SEGPTR pexcepinfo/* HRESULT (*pfnDeferredFillIn)(EXCEPINFO * pexcepinfo) */;
+	SEGPTR pfnDeferredFillIn/* HRESULT (*pfnDeferredFillIn)(EXCEPINFO * pexcepinfo) */;
 	SCODE scode;
 } EXCEPINFO16;
 typedef EXCEPINFO16 TYP16_EXCEPINFO;
