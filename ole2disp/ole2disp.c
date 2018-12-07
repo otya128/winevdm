@@ -763,44 +763,57 @@ HRESULT WINAPI CreateDispTypeInfo16(
 	SEGPTR *pptinfo)
 {
     int i;
-    INTERFACEDATA idata32;
-    PARAMDATA *params32;
+    INTERFACEDATA *pidata32 = HeapAlloc(GetProcessHeap(), 0, sizeof(INTERFACEDATA));
     METHODDATA16 *pimethdata16 = (METHODDATA16*)MapSL(pidata->pmethdata);
     ITypeInfo *ptinfo = NULL;
     HRESULT result;
     TRACE("(%p,%d,%p)\n", pidata, lcid, pptinfo);
-    idata32.cMembers = pidata->cMembers;
-    idata32.pmethdata = (METHODDATA*)HeapAlloc(GetProcessHeap(), 0, (sizeof(PARAMDATA) + sizeof(METHODDATA)) * idata32.cMembers);
-    params32 = (PARAMDATA*)(idata32.pmethdata + idata32.cMembers);
-    for (i = 0; i < idata32.cMembers; i++)
+    pidata32->cMembers = pidata->cMembers;
+    pidata32->pmethdata = (METHODDATA*)HeapAlloc(GetProcessHeap(), 0, sizeof(METHODDATA) * pidata32->cMembers);
+    for (i = 0; i < pidata32->cMembers; i++)
     {
         PARAMDATA16 *param16 = (PARAMDATA16*)MapSL(pimethdata16[i].ppdata);
-        idata32.pmethdata[i].szName = strdupAtoW((LPCSTR)MapSL(pimethdata16[i].szName));
-        idata32.pmethdata[i].dispid = pimethdata16[i].dispid;
-        idata32.pmethdata[i].iMeth = pimethdata16[i].iMeth;
-        idata32.pmethdata[i].cc = pimethdata16[i].cc;
-        idata32.pmethdata[i].cArgs = pimethdata16[i].cArgs;
-        idata32.pmethdata[i].wFlags = pimethdata16[i].wFlags;
-        idata32.pmethdata[i].vtReturn = pimethdata16[i].vtReturn;
+        pidata32->pmethdata[i].szName = strdupAtoW((LPCSTR)MapSL(pimethdata16[i].szName));
+        pidata32->pmethdata[i].dispid = pimethdata16[i].dispid;
+        pidata32->pmethdata[i].iMeth = pimethdata16[i].iMeth;
+        pidata32->pmethdata[i].cc = pimethdata16[i].cc;
+        pidata32->pmethdata[i].cArgs = pimethdata16[i].cArgs;
+        pidata32->pmethdata[i].wFlags = pimethdata16[i].wFlags;
+        pidata32->pmethdata[i].vtReturn = pimethdata16[i].vtReturn;
         if (param16)
         {
-            idata32.pmethdata[i].ppdata = params32 + i;
-            params32[i].szName = strdupAtoW((LPCSTR)MapSL(param16->szName));
-            params32[i].vt = param16->vt;
+            PARAMDATA *param32 = (PARAMDATA*)HeapAlloc(GetProcessHeap(), 0, sizeof(PARAMDATA) * pimethdata16[i].cArgs);
+            int j;
+            pidata32->pmethdata[i].ppdata = param32;
+            for (j = 0; j < pimethdata16[i].cArgs; j++)
+            {
+                param32[j].szName = strdupAtoW((LPCSTR)MapSL(param16[j].szName));
+                param32[j].vt = param16[j].vt;
+            }
         }
         else
         {
-            idata32.pmethdata[i].ppdata = NULL;
+            pidata32->pmethdata[i].ppdata = NULL;
         }
     }
-    result = hresult32_16(CreateDispTypeInfo16Impl(&idata32, lcid, &ptinfo));
-    for (i = 0; i < idata32.cMembers; i++)
+    result = hresult32_16(CreateDispTypeInfo16Impl(pidata32, lcid, &ptinfo));
+    if (1)
     {
-        if (idata32.pmethdata[i].ppdata)
-            HeapFree(GetProcessHeap(), 0, idata32.pmethdata[i].ppdata->szName);
-        HeapFree(GetProcessHeap(), 0, idata32.pmethdata[i].szName);
+        for (i = 0; i < pidata32->cMembers; i++)
+        {
+            if (pidata32->pmethdata[i].ppdata)
+            {
+                int j;
+                for (j = 0; j < pidata32->pmethdata[i].cArgs; j++)
+                {
+                    HeapFree(GetProcessHeap(), 0, pidata32->pmethdata[i].ppdata[j].szName);
+                }
+            }
+            HeapFree(GetProcessHeap(), 0, pidata32->pmethdata[i].szName);
+        }
+        HeapFree(GetProcessHeap(), 0, pidata32->pmethdata);
+        HeapFree(GetProcessHeap(), 0, pidata32);
     }
-    HeapFree(GetProcessHeap(), 0, idata32.pmethdata);
     *pptinfo = iface32_16(&IID_ITypeInfo, ptinfo);
 	return result;
 }
