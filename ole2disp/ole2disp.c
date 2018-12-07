@@ -758,6 +758,14 @@ HRESULT WINAPI CreateDispTypeInfo16(
 	LCID lcid,
 	SEGPTR *pptinfo)
 {
+    FIXME("\n");
+    if (!pidata)
+        return E_INVALIDARG16;
+    if (!pptinfo)
+        return E_INVALIDARG16;
+    *pptinfo = 0;
+    return E_NOTIMPL16;
+#if 0
     int i;
     INTERFACEDATA idata32;
     PARAMDATA *params32;
@@ -799,6 +807,7 @@ HRESULT WINAPI CreateDispTypeInfo16(
     HeapFree(GetProcessHeap(), 0, idata32.pmethdata);
     *pptinfo = iface32_16(&IID_ITypeInfo, ptinfo);
 	return result;
+#endif
 }
 
 /******************************************************************************
