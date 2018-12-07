@@ -70,15 +70,17 @@
 
 #include "wine/unicode.h"
 #include "objbase.h"
-#include "typelib.h"
+#include "wine_typelib.h"
 #include "wine/debug.h"
-#include "variant.h"
+#define __WINE_ALLOC_SIZE(x)
+/*#include "variant.h"*/
 #include "wine/heap.h"
 #include "wine/list.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 WINE_DECLARE_DEBUG_CHANNEL(typelib);
 
+#if 0
 typedef struct
 {
     WORD     offset;
@@ -98,6 +100,7 @@ typedef struct
      * Name info array.
      */
 } NE_TYPEINFO;
+#endif
 
 static HRESULT typedescvt_to_variantvt(ITypeInfo *tinfo, const TYPEDESC *tdesc, VARTYPE *vt);
 static HRESULT TLB_AllocAndInitVarDesc(const VARDESC *src, VARDESC **dest_ptr);
@@ -284,6 +287,7 @@ static WCHAR *get_lcid_subkey( LCID lcid, SYSKIND syskind, WCHAR *buffer )
     return buffer;
 }
 
+#if 0
 static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath, ITypeLib2 **ppTypeLib);
 
 struct tlibredirect_data
@@ -1043,6 +1047,7 @@ HRESULT WINAPI UnRegisterTypeLibForUser(
           debugstr_guid(libid), wVerMajor, wVerMinor, lcid, syskind);
     return UnRegisterTypeLib(libid, wVerMajor, wVerMinor, lcid, syskind);
 }
+#endif
 
 /*======================= ITypeLib implementation =======================*/
 
@@ -2012,6 +2017,7 @@ static HRESULT TLB_size_instance(ITypeInfoImpl *info, SYSKIND sys,
     return S_OK;
 }
 
+#if 0
 /**********************************************************************
  *
  *  Functions for reading MSFT typelibs (those created by CreateTypeLib2)
@@ -5258,6 +5264,7 @@ static HRESULT WINAPI ITypeLib2_fnGetDocumentation2(
     }
     return result;
 }
+#endif
 
 static HRESULT TLB_copy_all_custdata(struct list *custdata_list, CUSTDATA *pCustData)
 {
@@ -5284,6 +5291,7 @@ static HRESULT TLB_copy_all_custdata(struct list *custdata_list, CUSTDATA *pCust
 }
 
 
+#if 0
 /* ITypeLib2::GetAllCustData
  *
  * Gets all custom data items for the library.
@@ -5319,6 +5327,7 @@ static const ITypeLib2Vtbl tlbvt = {
     ITypeLib2_fnGetAllCustData
  };
 
+#endif
 
 static HRESULT WINAPI ITypeLibComp_fnQueryInterface(ITypeComp * iface, REFIID riid, LPVOID * ppv)
 {
@@ -6308,6 +6317,17 @@ static HRESULT WINAPI ITypeInfo_fnGetIDsOfNames( ITypeInfo2 *iface,
 
 extern LONGLONG call_method( void *func, int nb_args, const DWORD *args, int *stack_offset );
 extern double call_double_method( void *func, int nb_args, const DWORD *args, int *stack_offset );
+LONGLONG call_method(void *func, int nb_args, const DWORD *args, int *stack_offset)
+{
+    FIXME("\n");
+    return 0;
+}
+double call_double_method(void *func, int nb_args, const DWORD *args, int *stack_offset)
+{
+    FIXME("\n");
+    return 0;
+}
+#if 0
 __ASM_GLOBAL_FUNC( call_method,
                    "pushl %ebp\n\t"
                    __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")
@@ -6344,6 +6364,7 @@ __ASM_GLOBAL_FUNC( call_method,
                    "ret" )
 __ASM_GLOBAL_FUNC( call_double_method,
                    "jmp " __ASM_NAME("call_method") )
+#endif
 
 /* ITypeInfo::Invoke
  *
@@ -7769,6 +7790,72 @@ static BOOL CALLBACK search_res_tlb(HMODULE hModule, LPCWSTR lpszType, LPWSTR lp
     return TRUE;
 }
 
+#if 1
+#include "wine/winbase16.h"
+#include "wine/windef16.h"
+static HRESULT WINAPI
+QueryPathOfRegTypeLib16(
+	REFGUID guid,	/* [in] Guid to get the key name for */
+	WORD wMaj,	/* [in] Major version */
+	WORD wMin,	/* [in] Minor version */
+	LCID lcid,	/* [in] Locale Id */
+	/* BSTR16 */SEGPTR *path)	/* [out] Destination for the registry key name */
+{
+	char	xguid[80];
+	char	typelibkey[100],pathname[260];
+	LONG	plen;
+        char   *ret;
+
+	TRACE("\n");
+    *path = 0;
+	if (HIWORD(guid)) {
+            sprintf( typelibkey, "SOFTWARE\\Classes\\Typelib\\{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\\%d.%d\\%x\\win16",
+                     guid->Data1, guid->Data2, guid->Data3,
+                     guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
+                     guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7],
+                     wMaj,wMin,lcid);
+	} else {
+		sprintf(xguid,"<guid 0x%08x>",(DWORD)guid);
+		FIXME("(%s,%d,%d,0x%04x,%p),can't handle non-string guids.\n",xguid,wMaj,wMin,lcid,path);
+		return E_FAIL;
+	}
+	plen = sizeof(pathname);
+	if (RegQueryValueA(HKEY_LOCAL_MACHINE,typelibkey,pathname,&plen) || !*pathname) {
+		/* try again without lang specific id */
+		if (SUBLANGID(lcid))
+			return QueryPathOfRegTypeLib16(guid,wMaj,wMin,PRIMARYLANGID(lcid),path);
+
+        plen = sizeof(pathname);
+        if (RegQueryValueA(HKEY_CURRENT_USER, typelibkey, pathname, &plen) || !*pathname) {
+            sprintf(typelibkey, "Typelib\\{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\\%d.%d\\%x\\win16",
+                guid->Data1, guid->Data2, guid->Data3,
+                guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
+                guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7],
+                wMaj, wMin, lcid);
+            plen = sizeof(pathname);
+            if (RegQueryValue16(HKEY_LOCAL_MACHINE, typelibkey, pathname, &plen)) {
+                if (lcid)
+                    return QueryPathOfRegTypeLib16(guid, wMaj, wMin, 0, path);
+                FIXME("key %s not found\n", typelibkey);
+                return E_FAIL;
+            }
+        }
+	}
+    {
+        UINT len = MultiByteToWideChar(CP_ACP, 0, pathname, -1, NULL, 0);
+        *path = SysAllocStringLen(L"", len);
+        MultiByteToWideChar(CP_ACP, 0, pathname, -1, *path, len);
+    }
+    if (!*path) return E_FAIL;
+	return S_OK;
+}
+static HRESULT query_typelib_path(REFGUID guid, WORD wMaj, WORD wMin,
+    SYSKIND syskind, LCID lcid, BSTR *path, BOOL redir)
+{
+    HRESULT a = QueryPathOfRegTypeLib16(guid, wMaj, wMin, lcid, path);
+    return a;
+}
+#endif
 /* ITypeInfo::GetRefTypeInfo
  *
  * If a type description references other type descriptions, it retrieves
@@ -8543,6 +8630,28 @@ static const ITypeInfo2Vtbl tinfvt =
     ITypeInfo2_fnGetAllImplTypeCustData,
 };
 
+static ITypeLibImpl* TypeLibImpl_Constructor_stub(void)
+{
+    ITypeLibImpl* pTypeLibImpl;
+
+    pTypeLibImpl = heap_alloc_zero(sizeof(ITypeLibImpl));
+    if (!pTypeLibImpl) return NULL;
+
+    pTypeLibImpl->ITypeLib2_iface.lpVtbl = &tlbvt;
+    pTypeLibImpl->ITypeComp_iface.lpVtbl = &tlbtcvt;
+    pTypeLibImpl->ICreateTypeLib2_iface.lpVtbl = &CreateTypeLib2Vtbl;
+    pTypeLibImpl->ref = 1;
+
+    list_init(&pTypeLibImpl->implib_list);
+    list_init(&pTypeLibImpl->custdata_list);
+    list_init(&pTypeLibImpl->name_list);
+    list_init(&pTypeLibImpl->string_list);
+    list_init(&pTypeLibImpl->guid_list);
+    list_init(&pTypeLibImpl->ref_list);
+    pTypeLibImpl->dispatch_href = -1;
+
+    return pTypeLibImpl;
+}
 /******************************************************************************
  * CreateDispTypeInfo [OLEAUT32.31]
  *
@@ -8569,7 +8678,7 @@ HRESULT WINAPI CreateDispTypeInfo(
     TLBRefType *ref;
 
     TRACE("\n");
-    pTypeLibImpl = TypeLibImpl_Constructor();
+    pTypeLibImpl = TypeLibImpl_Constructor_stub();
     if (!pTypeLibImpl) return E_FAIL;
 
     pTypeLibImpl->TypeInfoCount = 2;
@@ -8808,6 +8917,7 @@ static const ITypeCompVtbl tcompvt =
     ITypeComp_fnBindType
 };
 
+#if 0
 HRESULT WINAPI CreateTypeLib2(SYSKIND syskind, LPCOLESTR szFile,
         ICreateTypeLib2** ppctlib)
 {
@@ -8837,6 +8947,7 @@ HRESULT WINAPI CreateTypeLib2(SYSKIND syskind, LPCOLESTR szFile,
     ITypeLib2_Release(&This->ITypeLib2_iface);
     return hres;
 }
+#endif
 
 static HRESULT WINAPI ICreateTypeLib2_fnQueryInterface(ICreateTypeLib2 *iface,
         REFIID riid, void **object)
