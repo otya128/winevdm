@@ -571,6 +571,11 @@ void map_tlibattr32_16(TLIBATTR16 *a16, const TLIBATTR *a32)
 
 void map_bstr16_32(BSTR *a32, const SEGPTR *a16)
 {
+    if (!*a16)
+    {
+        *a32 = NULL;
+        return;
+    }
     FIXME("\n");
 }
 
@@ -1131,3 +1136,285 @@ void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseVarDesc(ITypeInfo *This, VARDESC *
     UNMAP_PTR_VARDESC32_16(args16_pVarDesc, pVarDesc);
 }
 #endif
+
+#ifndef VT_EXTRA_TYPE
+#define VT_EXTRA_TYPE (VT_VECTOR|VT_ARRAY|VT_BYREF|VT_RESERVED)
+#endif
+void map_variant32_16(VARIANT16 *dst, const VARIANT *src)
+{
+    enum VARENUM t = V_VT(src) & VT_TYPEMASK;
+    enum VARENUM e = V_VT(src) & VT_EXTRA_TYPE;
+    dst->llVal = src->llVal;
+    dst->vt = src->vt;
+    if (V_ISARRAY(src))
+    {
+        FIXME("V_ISARRAY\n");
+        return;
+    }
+    else if (V_VT(src) == (VT_BSTR | VT_BYREF))
+    {
+        FIXME("VT_BSTR | VT_BYREF\n");
+    }
+    else if (V_VT(src) == (VT_DISPATCH | VT_BYREF) || V_VT(src) == (VT_UNKNOWN | VT_BYREF))
+    {
+        FIXME("t32 == (VT_DISPATCH | VT_BYREF) || t32 == (VT_UNKNOWN | VT_BYREF)\n");
+    }
+    else if (V_VT(src) == (VT_VARIANT | VT_BYREF))
+    {
+        FIXME("VT_VARIANT | VT_BYREF\n");
+    }
+    else if (V_VT(src) == (VT_DECIMAL | VT_BYREF))
+    {
+        FIXME("VT_DECIMAL\n");
+    }
+    else
+    {
+        switch (t)
+        {
+        case VT_EMPTY:
+        case VT_NULL:
+        case VT_VOID:
+            break;
+        case VT_I2:
+        case VT_I4:
+        case VT_R4:
+        case VT_R8:
+        case VT_CY:
+        case VT_DATE:
+        case VT_ERROR:
+        case VT_BOOL:
+        case VT_I1:
+        case VT_UI1:
+        case VT_UI2:
+        case VT_UI4:
+        case VT_I8:
+        case VT_UI8:
+        case VT_INT:
+        case VT_UINT:
+        case VT_HRESULT:
+            dst->llVal = src->llVal;
+            break;
+        case VT_DECIMAL:
+            break;
+        case VT_BSTR:
+        case VT_DISPATCH:
+        case VT_VARIANT:
+        case VT_UNKNOWN:
+        case VT_PTR:
+        case VT_SAFEARRAY:
+        case VT_CARRAY:
+        case VT_USERDEFINED:
+        case VT_LPSTR:
+        case VT_LPWSTR:
+        case VT_RECORD:
+        case VT_INT_PTR:
+        case VT_UINT_PTR:
+        case VT_FILETIME:
+        case VT_BLOB:
+        case VT_STREAM:
+        case VT_STORAGE:
+        case VT_STREAMED_OBJECT:
+        case VT_STORED_OBJECT:
+        case VT_BLOB_OBJECT:
+        case VT_CF:
+        case VT_CLSID:
+        case VT_VERSIONED_STREAM:
+        case VT_BSTR_BLOB:
+            FIXME("unsupported \n", debugstr_vt(src->vt));
+            break;
+        default:
+            FIXME("unknown \n", debugstr_vt(src->vt));
+            return;
+        }
+    }
+}
+void map_variant16_32(VARIANT *dst, const VARIANT16 *src)
+{
+    enum VARENUM t = V_VT(src) & VT_TYPEMASK;
+    enum VARENUM e = V_VT(src) & VT_EXTRA_TYPE;
+    dst->llVal = src->llVal;
+    dst->vt = src->vt;
+    if (V_ISARRAY(src))
+    {
+        FIXME("V_ISARRAY\n");
+        return;
+    }
+    else if (V_VT(src) == (VT_BSTR | VT_BYREF))
+    {
+        FIXME("VT_BSTR | VT_BYREF\n");
+    }
+    else if (V_VT(src) == (VT_DISPATCH | VT_BYREF) || V_VT(src) == (VT_UNKNOWN | VT_BYREF))
+    {
+        FIXME("t32 == (VT_DISPATCH | VT_BYREF) || t32 == (VT_UNKNOWN | VT_BYREF)\n");
+    }
+    else if (V_VT(src) == (VT_VARIANT | VT_BYREF))
+    {
+        FIXME("VT_VARIANT | VT_BYREF\n");
+    }
+    else if (V_VT(src) == (VT_DECIMAL | VT_BYREF))
+    {
+        FIXME("VT_DECIMAL\n");
+    }
+    else
+    {
+        switch (t)
+        {
+        case VT_EMPTY:
+        case VT_NULL:
+        case VT_VOID:
+            break;
+        case VT_I2:
+        case VT_I4:
+        case VT_R4:
+        case VT_R8:
+        case VT_CY:
+        case VT_DATE:
+        case VT_ERROR:
+        case VT_BOOL:
+        case VT_I1:
+        case VT_UI1:
+        case VT_UI2:
+        case VT_UI4:
+        case VT_I8:
+        case VT_UI8:
+        case VT_INT:
+        case VT_UINT:
+        case VT_HRESULT:
+            dst->llVal = src->llVal;
+            break;
+        case VT_DECIMAL:
+            break;
+        case VT_BSTR:
+        case VT_DISPATCH:
+        case VT_VARIANT:
+        case VT_UNKNOWN:
+        case VT_PTR:
+        case VT_SAFEARRAY:
+        case VT_CARRAY:
+        case VT_USERDEFINED:
+        case VT_LPSTR:
+        case VT_LPWSTR:
+        case VT_RECORD:
+        case VT_INT_PTR:
+        case VT_UINT_PTR:
+        case VT_FILETIME:
+        case VT_BLOB:
+        case VT_STREAM:
+        case VT_STORAGE:
+        case VT_STREAMED_OBJECT:
+        case VT_STORED_OBJECT:
+        case VT_BLOB_OBJECT:
+        case VT_CF:
+        case VT_CLSID:
+        case VT_VERSIONED_STREAM:
+        case VT_BSTR_BLOB:
+            FIXME("unsupported \n", debugstr_vt(src->vt));
+            break;
+        default:
+            FIXME("unknown \n", debugstr_vt(src->vt));
+            return;
+        }
+    }
+}
+
+void map_dispparams32_16(DISPPARAMS16 *a16, const DISPPARAMS *a32)
+{
+    VARIANT16 *v16;
+    int i;
+    a16->cArgs = a32->cArgs;
+    a16->cNamedArgs = a32->cNamedArgs;
+    a16->rgdispidNamedArgs = MapLS(a32->rgdispidNamedArgs);
+    v16 = HeapAlloc(GetProcessHeap(), 0, sizeof(VARIANT16) * a16->cArgs);
+    a16->rgvarg = MapLS(v16);
+    for (i = 0; i < a16->cArgs; i++)
+    {
+        map_variant32_16(v16 + i, a32->rgvarg + i);
+    }
+}
+
+void map_dispparams16_32(DISPPARAMS *a32, const DISPPARAMS16 *a16)
+{
+    VARIANT16 *v16;
+    int i;
+    a32->cArgs = a16->cArgs;
+    a32->cNamedArgs = a16->cNamedArgs;
+    a32->rgdispidNamedArgs = MapSL(a16->rgdispidNamedArgs);
+    a32->rgvarg = HeapAlloc(GetProcessHeap(), 0, sizeof(VARIANT) * a32->cArgs);
+    v16 = (VARIANT16*)MapSL(a16->rgvarg);
+    for (i = 0; i < a16->cArgs; i++)
+    {
+        map_variant16_32(a32->rgvarg + i, v16 + i);
+    }
+}
+
+void free_dispparams32(const DISPPARAMS *a32)
+{
+    HeapFree(GetProcessHeap(), 0, a32->rgvarg);
+}
+void free_dispparams16(const DISPPARAMS16 *a16)
+{
+    HeapFree(GetProcessHeap(), 0, MapSL(a16->rgvarg));
+}
+
+void map_excepinfo16_32(EXCEPINFO *a32, const EXCEPINFO16 *a16)
+{
+    a32->wCode = a16->wCode;
+    a32->wReserved = a16->wReserved;
+    map_bstr16_32(&a32->bstrSource, &a16->bstrSource);
+    map_bstr16_32(&a32->bstrDescription, &a16->bstrDescription);
+    map_bstr16_32(&a32->bstrHelpFile, &a16->bstrHelpFile);
+    a32->wReserved = a16->dwHelpContext;
+    a32->pvReserved = a16->pvReserved;
+    if (a16->pexcepinfo)
+        ERR("pexcepinfo\n");
+    a32->pfnDeferredFillIn = 0;
+    a32->scode = a16->scode;
+}
+
+void map_excepinfo32_16(EXCEPINFO16 *a16, const EXCEPINFO *a32)
+{
+    a16->wCode = a32->wCode;
+    a16->wReserved = a32->wReserved;
+    map_bstr32_16(&a16->bstrSource, &a32->bstrSource);
+    map_bstr32_16(&a16->bstrDescription, &a32->bstrDescription);
+    map_bstr32_16(&a16->bstrHelpFile, &a32->bstrHelpFile);
+    a16->wReserved = a32->dwHelpContext;
+    a16->pvReserved = a32->pvReserved;
+    if (a32->pfnDeferredFillIn)
+        ERR("pexcepinfo\n");
+    a16->pexcepinfo = 0;
+    a16->scode = a32->scode;
+}
+
+static HMODULE get_hmodule_helper(const char *mod)
+{
+    HMODULE hmod = GetModuleHandleA(mod);
+    if (hmod)
+        return hmod;
+    return LoadLibraryA(mod);
+}
+static void dynamic_SysFreeString16(SEGPTR bstr)
+{
+    static void (WINAPI*pSysFreeString16)(SEGPTR);
+    if (!pSysFreeString16)
+    {
+        pSysFreeString16 = GetProcAddress(get_hmodule_helper("OLE2DISP.DLL16"), "SysFreeString16");
+    }
+    if (!pSysFreeString16)
+        return;
+    pSysFreeString16(bstr);
+}
+
+void free_excepinfo16(const EXCEPINFO16 *a16)
+{
+    dynamic_SysFreeString16(a16->bstrSource);
+    dynamic_SysFreeString16(a16->bstrDescription);
+    dynamic_SysFreeString16(a16->bstrHelpFile);
+}
+
+void free_excepinfo32(const EXCEPINFO *a32)
+{
+    SysFreeString(a32->bstrSource);
+    SysFreeString(a32->bstrDescription);
+    SysFreeString(a32->bstrHelpFile);
+}
