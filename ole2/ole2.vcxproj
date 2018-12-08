@@ -95,6 +95,7 @@ uuid.lib;ole32.lib;user32.lib;gdi32.lib;%(AdditionalDependencies)</AdditionalDep
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="hglobalstream.c" />
     <ClCompile Include="ifs_16.c" />
     <ClCompile Include="memlockbytes.c" />
     <ClCompile Include="ole2.c" />
