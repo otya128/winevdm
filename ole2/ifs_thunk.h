@@ -388,8 +388,8 @@ a32 = *(struct tagOleMenuGroupWidths*)&a16
     ((SIZE16*)&a16)->cx = a32.cx;\
     ((SIZE16*)&a16)->cy = a32.cy
 
-#define MAP_PTR_LOGPALETTE16_32 FIXME("\n");
-#define MAP_PTR_LOGPALETTE32_16 FIXME("\n");
+#define MAP_PTR_LOGPALETTE16_32(a32, a16) a32 = (LOGPALETTE*)MapSL(a16)
+#define MAP_PTR_LOGPALETTE32_16(a16, a32) a16 = MapLS(a32)
 #define MAP_PTR_DVTARGETDEVICE16_32(a32, a16) a32 = (DVTARGETDEVICE*)MapSL(a16)
 #define MAP_PTR_DVTARGETDEVICE32_16(a16, a32) a16 = MapLS(a32)
 void WINAPI window_message32_16(const MSG *msg32, MSG16 *msg16);
@@ -1029,4 +1029,13 @@ HRESULT STDMETHODCALLTYPE ITypeComp_32_16_Bind(ITypeComp *This, LPOLESTR szName,
 void CDECL ITypeInfo_16_32_ReleaseVarDesc(SEGPTR This, SEGPTR args16_pVarDesc);
 #define IFS3216_OVERWRITE_ITypeInfo_ReleaseVarDesc
 void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseVarDesc(ITypeInfo *This, VARDESC *pVarDesc);
+
+typedef struct tagSIZEL
+{
+    LONG cx;
+    LONG cy;
+};
+#define TYP16_tagSIZEL tagSIZEL
+#define MAP_STRUCT_tagSIZEL16_32(a32, a16) *(SIZEL*)&a32 = *(SIZEL*)&a16
+#define MAP_STRUCT_tagSIZEL32_16(a16, a32) *(SIZEL*)&a16 = *(SIZEL*)&a32
 #endif
