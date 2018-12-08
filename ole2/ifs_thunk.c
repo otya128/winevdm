@@ -1418,3 +1418,49 @@ void free_excepinfo32(const EXCEPINFO *a32)
     SysFreeString(a32->bstrDescription);
     SysFreeString(a32->bstrHelpFile);
 }
+
+#ifdef IFS1632_OVERWRITE_ITypeInfo_Invoke
+HRESULT CDECL ITypeInfo_16_32_Invoke(SEGPTR This, SEGPTR args16_pvInstance, DWORD args16_memid, WORD args16_wFlags, SEGPTR args16_pDispParams, SEGPTR args16_pVarResult, SEGPTR args16_pExcepInfo, SEGPTR args16_puArgErr)
+{
+    ITypeInfo *iface32 = (ITypeInfo*)get_interface32(This);
+    HRESULT result__ = { 0 };
+    TYP16_HRESULT result16__ = { 0 };
+    PVOID args32_pvInstance;
+    MEMBERID args32_memid;
+    WORD args32_wFlags;
+    DISPPARAMS args32_pDispParams = { 0 };
+    VARIANT args32_pVarResult = { 0 };
+    EXCEPINFO args32_pExcepInfo = { 0 };
+    UINT args32_puArgErr = { 0 };
+    /**/
+    /* MAP_PVOID16_32(args32_pvInstance, args16_pvInstance); */
+    args32_pvInstance = args16_pvInstance;
+    /**/
+    MAP_MEMBERID16_32(args32_memid, args16_memid);
+    MAP_WORD16_32(args32_wFlags, args16_wFlags);
+    INMAP_PTR_DISPPARAMS16_32(args32_pDispParams, args16_pDispParams);
+    TRACE("(%04x:%04x(%p),%08x,%08x,%08x,%08x,%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_pvInstance, args16_memid, args16_wFlags, args16_pDispParams, args16_pVarResult, args16_pExcepInfo, args16_puArgErr);
+    result__ = (HRESULT)iface32->lpVtbl->Invoke(iface32, args32_pvInstance, args32_memid, args32_wFlags, &args32_pDispParams, &args32_pVarResult, &args32_pExcepInfo, &args32_puArgErr);
+    MAP_HRESULT32_16(result16__, result__);
+    /* UNMAP_PVOID16_32(args32_pvInstance, args16_pvInstance); */
+    UNMAP_MEMBERID16_32(args32_memid, args16_memid);
+    UNMAP_WORD16_32(args32_wFlags, args16_wFlags);
+    if (args16_pDispParams)
+    {
+        OUTMAP_DISPPARAMS32_16((*(TYP16_DISPPARAMS*)MapSL(args16_pDispParams)), args32_pDispParams);
+    }
+    if (args16_pVarResult)
+    {
+        MAP_VARIANT32_16((*(TYP16_VARIANT*)MapSL(args16_pVarResult)), args32_pVarResult);
+    }
+    if (args16_pExcepInfo)
+    {
+        MAP_EXCEPINFO32_16((*(TYP16_EXCEPINFO*)MapSL(args16_pExcepInfo)), args32_pExcepInfo);
+    }
+    if (args16_puArgErr)
+    {
+        MAP_UINT32_16((*(TYP16_UINT*)MapSL(args16_puArgErr)), args32_puArgErr);
+    }
+    return result16__;
+}
+#endif

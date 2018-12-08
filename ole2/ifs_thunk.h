@@ -776,8 +776,8 @@ void map_excepinfo32_16(EXCEPINFO16 *a16, const EXCEPINFO *a32);
 #define MAP_HRGN32_16(a16, a32) FIXME("MAP_HRGN32_16\n")
 #define MAP_IID16_32(a32, a16) FIXME("MAP_IID16_32\n")
 #define MAP_IID32_16(a16, a32) FIXME("MAP_IID32_16\n")
-#define MAP_INVOKEKIND16_32(a32, a16) FIXME("MAP_INVOKEKIND16_32\n")
-#define MAP_INVOKEKIND32_16(a16, a32) FIXME("MAP_INVOKEKIND32_16\n")
+#define MAP_INVOKEKIND16_32(a32, a16) a32 = a16
+#define MAP_INVOKEKIND32_16(a16, a32) a16 = a32
 #define MAP_LCID16_32(a32, a16) a32 = a16
 #define MAP_LCID32_16(a16, a32) a16 = a32
 #define MAP_LICINFO16_32(a32, a16) FIXME("MAP_LICINFO16_32\n")
@@ -853,15 +853,8 @@ VARDESC16 *map_vardesc16(const VARDESC *a32);
 #define MAP_PTR_VARDESC32_16(a16, a32) a16 = MapLS(map_vardesc16(a32))
 #define MAP_PTR_VARIANT16_32(a32, a16) FIXME("MAP_PTR_VARIANT16_32\n")
 #define MAP_PTR_VARIANT32_16(a16, a32) FIXME("MAP_PTR_VARIANT32_16\n")
-#if 0
 #define MAP_PVOID16_32(a32, a16) MAP_PTR_VOID16_32(a32, a16)
 #define MAP_PVOID32_16(a16, a32) MAP_PTR_VOID32_16(a16, a32)
-#else
-/* Pass segmented pointers directly?? */
-/* This macro appears only in ITypeInfo::Invoke */
-#define MAP_PVOID16_32(a32, a16) a32 = a16
-#define MAP_PVOID32_16(a16, a32) a16 = a32
-#endif
 #define MAP_REFGUID16_32(a32, a16) *(GUID**)&a32 = (GUID*)MapSL(a16)
 #define MAP_REFGUID32_16(a16, a32) a16 = MapLS(a32)
 #define MAP_SHORT16_32(a32, a16) a32 = (SHORT)a16
@@ -1038,4 +1031,7 @@ typedef struct tagSIZEL
 #define TYP16_tagSIZEL tagSIZEL
 #define MAP_STRUCT_tagSIZEL16_32(a32, a16) *(SIZEL*)&a32 = *(SIZEL*)&a16
 #define MAP_STRUCT_tagSIZEL32_16(a16, a32) *(SIZEL*)&a16 = *(SIZEL*)&a32
+
+#define IFS1632_OVERWRITE_ITypeInfo_Invoke
+HRESULT CDECL ITypeInfo_16_32_Invoke(SEGPTR This, SEGPTR args16_pvInstance, DWORD args16_memid, WORD args16_wFlags, SEGPTR args16_pDispParams, SEGPTR args16_pVarResult, SEGPTR args16_pExcepInfo, SEGPTR args16_puArgErr);
 #endif
