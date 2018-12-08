@@ -22,7 +22,7 @@
 22 stub BINDMONIKER
 23 stub MKPARSEDISPLAYNAME
 24 stub OLESAVETOSTREAM
-25 stub OLELOADFROMSTREAM
+25 pascal OleLoadFromStream(segptr ptr ptr) OleLoadFromStream16
 26 pascal CreateBindCtx(long ptr) CreateBindCtx16
 27 pascal CreateItemMoniker(str str ptr) CreateItemMoniker16
 28 pascal CreateFileMoniker(str ptr) CreateFileMoniker16
@@ -55,7 +55,7 @@
 55 pascal GetHGlobalFromILockBytes(segptr ptr) GetHGlobalFromILockBytes16
 56 pascal -ret16 OleMetafilePictFromIconAndLabel(word str str word) OleMetafilePictFromIconAndLabel16
 57 stub GETCLASSFILE
-58 stub OLEDRAW
+58 pascal OleDraw(segptr long word ptr) OleDraw16
 59 pascal OleCreateDefaultHandler(ptr segptr ptr ptr) OleCreateDefaultHandler16
 60 pascal OleCreateEmbeddingHelper(ptr segptr long segptr ptr ptr) OleCreateEmbeddingHelper16
 61 stub OLECONVERTISTORAGETOOLESTREAMEX

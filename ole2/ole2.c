@@ -884,3 +884,40 @@ HRESULT WINAPI OleRegEnumVerbs16(REFCLSID clsid, SEGPTR *ppenum)
     *ppenum = iface32_16(&IID_IEnumOLEVERB, penum);
     return hresult32_16(result);
 }
+
+HRESULT WINAPI OleDraw16(SEGPTR pUnk, DWORD dwAspect, HDC16 hdcDraw, const RECT16 const *lpcBounds)
+{
+    HRESULT result;
+    RECT rect32;
+    IUnknown *pUnk32;
+    if (lpcBounds)
+    {
+        TRACE("(%08x,%d,%04x,%p{%d,%d,%d,%d})\n", pUnk, dwAspect, hdcDraw, lpcBounds, lpcBounds->left, lpcBounds->top, lpcBounds->right, lpcBounds->bottom);
+    }
+    else
+    {
+        TRACE("(%08x,%d,%04x,%p)\n", pUnk, dwAspect, hdcDraw, lpcBounds);
+    }
+    pUnk32 = (IUnknown*)iface16_32(&IID_IUnknown, pUnk);
+    if (lpcBounds)
+    {
+        rect32.left = lpcBounds->left;
+        rect32.right = lpcBounds->right;
+        rect32.bottom = lpcBounds->bottom;
+        rect32.top = lpcBounds->top;
+    }
+    result = OleDraw(pUnk32, dwAspect, HDC_32(hdcDraw), lpcBounds ? &rect32 : NULL);
+    return hresult32_16(result);
+}
+
+HRESULT WINAPI OleLoadFromStream16(SEGPTR pStm, REFIID riid, SEGPTR *ppvObj)
+{
+    IStream *pStm32;
+    void *pvObj = NULL;
+    HRESULT result;
+    TRACE("(%08x,%s,%p)\n", pStm, debugstr_guid(riid), ppvObj);
+    pStm32 = (IStream*)iface16_32(&IID_IStream, pStm);
+    result = OleLoadFromStream(pStm32, riid, &pvObj);
+    *ppvObj = iface32_16(riid, pvObj);
+    return hresult32_16(result);
+}
