@@ -48,6 +48,8 @@
  */
 
 #include "config.h"
+#undef HAVE_STRNCASECMP
+#define HAVE__STRNICMP
 #include "wine/port.h"
 
 #include <stdlib.h>
@@ -82,7 +84,15 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 WINE_DECLARE_DEBUG_CHANNEL(typelib);
-
+typedef struct _FILE_NAME_INFORMATION {
+    ULONG FileNameLength;
+    WCHAR FileName[1];
+} FILE_NAME_INFORMATION, *PFILE_NAME_INFORMATION;
+HRESULT WINAPI LoadTypeLibEx16Impl(
+    LPCOLESTR szFile,  /* [in] Name of file to load from */
+    REGKIND  regkind,  /* [in] Specify kind of registration */
+    ITypeLib **pptLib); /* [out] Pointer to pointer to loaded type library */
+HRESULT WINAPI LoadTypeLib16Impl(const OLECHAR *szFile, ITypeLib * *pptLib);
 #if 0
 typedef struct
 {
@@ -290,7 +300,7 @@ static WCHAR *get_lcid_subkey( LCID lcid, SYSKIND syskind, WCHAR *buffer )
     return buffer;
 }
 
-#if 0
+#if 1
 static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath, ITypeLib2 **ppTypeLib);
 
 struct tlibredirect_data
@@ -455,10 +465,10 @@ HRESULT WINAPI CreateTypeLib(
  * SEE
  *  LoadTypeLibEx, LoadRegTypeLib, CreateTypeLib.
  */
-HRESULT WINAPI LoadTypeLib(const OLECHAR *szFile, ITypeLib * *pptLib)
+HRESULT WINAPI LoadTypeLib16Impl(const OLECHAR *szFile, ITypeLib * *pptLib)
 {
     TRACE("(%s,%p)\n",debugstr_w(szFile), pptLib);
-    return LoadTypeLibEx(szFile, REGKIND_DEFAULT, pptLib);
+    return LoadTypeLibEx16Impl(szFile, REGKIND_DEFAULT, pptLib);
 }
 
 /******************************************************************************
@@ -470,7 +480,7 @@ HRESULT WINAPI LoadTypeLib(const OLECHAR *szFile, ITypeLib * *pptLib)
  *    Success: S_OK
  *    Failure: Status
  */
-HRESULT WINAPI LoadTypeLibEx(
+HRESULT WINAPI LoadTypeLibEx16Impl(
     LPCOLESTR szFile,  /* [in] Name of file to load from */
     REGKIND  regkind,  /* [in] Specify kind of registration */
     ITypeLib **pptLib) /* [out] Pointer to pointer to loaded type library */
@@ -2020,7 +2030,7 @@ static HRESULT TLB_size_instance(ITypeInfoImpl *info, SYSKIND sys,
     return S_OK;
 }
 
-#if 0
+#if 1
 /**********************************************************************
  *
  *  Functions for reading MSFT typelibs (those created by CreateTypeLib2)
@@ -2860,7 +2870,7 @@ static CRITICAL_SECTION_DEBUG cache_section_debug =
 static CRITICAL_SECTION cache_section = { &cache_section_debug, -1, 0, 0, 0, 0 };
 
 
-#if 0
+#if 1
 typedef struct TLB_PEFile
 {
     IUnknown IUnknown_iface;
@@ -3013,6 +3023,7 @@ static const IUnknownVtbl TLB_NEFile_Vtable =
     TLB_NEFile_Release
 };
 
+#pragma comment(lib, "lz32.lib")
 /***********************************************************************
  *           read_xx_header         [internal]
  */
@@ -3451,7 +3462,7 @@ static ITypeLibImpl* TypeLibImpl_Constructor(void)
     return pTypeLibImpl;
 }
 
-#if 0
+#if 1
 /****************************************************************************
  *	ITypeLib2_Constructor_MSFT
  *
@@ -5466,7 +5477,10 @@ static HRESULT WINAPI ITypeLibComp_fnBind(
                 if (subtypeinfo) ITypeInfo_Release(subtypeinfo);
 
                 if (pTypeInfo->hreftype == -1)
+                {
                     FIXME("no hreftype for interface %p\n", pTypeInfo);
+                    tdesc_appobject.u.hreftype = 4;
+                }
 
                 hr = TLB_AllocAndInitVarDesc(&vardesc_appobject, &pBindPtr->lpvardesc);
                 if (FAILED(hr))
@@ -7804,7 +7818,7 @@ static BOOL CALLBACK search_res_tlb(HMODULE hModule, LPCWSTR lpszType, LPWSTR lp
     return TRUE;
 }
 
-#if 1
+#if 0
 static HRESULT WINAPI
 QueryPathOfRegTypeLib16(
 	REFGUID guid,	/* [in] Guid to get the key name for */

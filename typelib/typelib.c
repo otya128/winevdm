@@ -124,6 +124,8 @@ QueryPathOfRegTypeLib16(
 	return S_OK;
 }
 
+/* yeah */
+HRESULT WINAPI LoadTypeLib16Impl(const OLECHAR *szFile, ITypeLib * *pptLib);
 /******************************************************************************
  * LoadTypeLib [TYPELIB.3]
  *
@@ -145,7 +147,7 @@ HRESULT WINAPI LoadTypeLib16(
     ITypeLib *ptLib = NULL;
     TRACE("(%s,%p)\n",debugstr_a(szFile),pptLib);
     w = strdupAtoW(szFile);
-    result = hresult32_16(LoadTypeLib(w, &ptLib));
+    result = hresult32_16(LoadTypeLib16Impl(w, &ptLib));
     HeapFree(GetProcessHeap(), 0, w);
     *pptLib = iface32_16(&IID_ITypeLib, ptLib);
     return result;

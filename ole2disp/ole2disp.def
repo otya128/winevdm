@@ -6,3 +6,4 @@ EXPORTS
   _wine_spec_dos_header @1 DATA
   SysAllocString16 @2
   SysFreeString16 @3
+  LoadTypeLib16Impl @4
