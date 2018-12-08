@@ -833,14 +833,17 @@ HRESULT WINAPI DispInvoke16(SEGPTR _this, SEGPTR ptinfo, LONG dispidMember, UINT
  * CreateStdDispatch [OLE2DISP.32]
  */
 HRESULT WINAPI CreateStdDispatch16(
-        IUnknown16* punkOuter,
-        void* pvThis,
-	ITypeInfo* ptinfo,
-	IUnknown** ppunkStdDisp)
+    SEGPTR punkOuter,
+    SEGPTR pvThis,
+    SEGPTR ptinfo,
+    SEGPTR* ppunkStdDisp)
 {
-	FIXME("(%p,%p,%p,%p),stub\n",punkOuter, pvThis, ptinfo,
-               ppunkStdDisp);
-	return 0;
+    HRESULT result;
+    IUnknown *punkStdDisp = NULL;
+    TRACE("(%p,%p,%p,%p)\n",punkOuter, pvThis, ptinfo, ppunkStdDisp);
+    result = CreateStdDispatch((IUnknown*)iface16_32(&IID_IUnknown, punkOuter), pvThis, (ITypeInfo*)iface16_32(&IID_ITypeInfo, ptinfo), &punkStdDisp);
+    *ppunkStdDisp = iface32_16(&IID_IUnknown, punkStdDisp);
+    return hresult32_16(result);
 }
 
 /******************************************************************************
@@ -861,6 +864,20 @@ HRESULT WINAPI RevokeActiveObject16(unsigned long dwRegister, SEGPTR pvreserved)
         ERR("pvreserved must be NULL.\n");
     }
     return hresult32_16(RevokeActiveObject(dwRegister, NULL));
+}
+
+HRESULT WINAPI GetActiveObject16(REFCLSID rclsid, SEGPTR pvreserved, SEGPTR *ppunk)
+{
+    HRESULT result;
+    IUnknown *punk = NULL;
+    TRACE("(%s,%08x,%p)\n", debugstr_guid(rclsid, pvreserved, ppunk));
+    if (pvreserved)
+    {
+        ERR("pvreserved must be NULL.\n");
+    }
+    result = GetActiveObject(rclsid, NULL, &punk);
+    *ppunk = iface32_16(&IID_IUnknown, punk);
+    return hresult32_16(result);
 }
 
 /******************************************************************************

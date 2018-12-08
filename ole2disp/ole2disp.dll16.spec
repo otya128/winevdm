@@ -29,12 +29,12 @@
 29 pascal DispGetIDsOfNames(segptr segptr word segptr) DispGetIDsOfNames16
 30 pascal DispInvoke(segptr segptr long word segptr segptr segptr segptr) DispInvoke16
 31 pascal CreateDispTypeInfo(ptr long ptr) CreateDispTypeInfo16
-32 pascal CreateStdDispatch(ptr ptr ptr ptr) CreateStdDispatch16
+32 pascal CreateStdDispatch(segptr segptr segptr ptr) CreateStdDispatch16
 33 variable _IID_IDispatch(0x00020400 0x00000000 0x000000c0 0x46000000)
 34 variable _IID_IEnumVARIANT(0x00020404 0x00000000 0x000000c0 0x46000000)
 35 pascal RegisterActiveObject(segptr ptr long ptr) RegisterActiveObject16
 36 pascal RevokeActiveObject(long segptr) RevokeActiveObject16
-37 stub GETACTIVEOBJECT
+37 pascal GetActiveObject(ptr segptr ptr) GetActiveObject16
 38 pascal SafeArrayAllocDescriptor(word ptr) SafeArrayAllocDescriptor16
 39 pascal SafeArrayAllocData(ptr) SafeArrayAllocData16
 40 pascal SafeArrayDestroyDescriptor(segptr) SafeArrayDestroyDescriptor16
