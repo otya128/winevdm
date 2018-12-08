@@ -866,10 +866,30 @@ HRESULT WINAPI RevokeActiveObject16(unsigned long dwRegister, SEGPTR pvreserved)
 /******************************************************************************
  * SetErrorInfo [OLE2DISP.110]
  */
-HRESULT WINAPI SetErrorInfo16(ULONG dwReserved, IErrorInfo *perrinfo)
+HRESULT WINAPI SetErrorInfo16(ULONG dwReserved, SEGPTR perrinfo)
 {
-        FIXME("stub: (%d, %p)\n", dwReserved, perrinfo);
-        return E_INVALIDARG;
+    TRACE("(%08x,%08x)\n", dwReserved, perrinfo);
+    return hresult32_16(SetErrorInfo(dwReserved, (IErrorInfo*)iface16_32(&IID_IErrorInfo, perrinfo)));
+}
+
+HRESULT WINAPI GetErrorInfo16(ULONG dwReserved, SEGPTR *pperrinfo)
+{
+    HRESULT result;
+    IErrorInfo *perrinfo = NULL;
+    TRACE("(%08x,%08x)\n", dwReserved, pperrinfo);
+    result = GetErrorInfo(dwReserved, &perrinfo);
+    *pperrinfo = iface32_16(&IID_IErrorInfo, perrinfo);
+    return hresult32_16(result);
+}
+
+HRESULT WINAPI CreateErrorInfo16(SEGPTR *pperrinfo)
+{
+    HRESULT result;
+    ICreateErrorInfo *perrinfo = NULL;
+    TRACE("(%p)\n", perrinfo);
+    result = CreateErrorInfo(&perrinfo);
+    *pperrinfo = iface32_16(&IID_ICreateErrorInfo, perrinfo);
+    return hresult32_16(result);
 }
 
 

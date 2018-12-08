@@ -107,9 +107,9 @@
 107 stub DOINVOKEMETHOD
 108 pascal VariantChangeTypeEx(ptr ptr long word word) VariantChangeTypeEx16
 109 stub SAFEARRAYPTROFINDEX
-110 pascal SetErrorInfo(long ptr) SetErrorInfo16
-111 stub GETERRORINFO
-112 stub CREATEERRORINFO
+110 pascal SetErrorInfo(long segptr) SetErrorInfo16
+111 pascal GetErrorInfo(long ptr)  GetErrorInfo16
+112 pascal CreateErrorInfo(ptr) CreateErrorInfo16
 113 variable _IID_IErrorInfo(0x1cf2b120 0x101b547d 0x0008658e 0x19d12b2b)
 114 variable _IID_ICreateErrorInfo(0x22f03340 0x101b547d 0x0008658e 0x19d12b2b)
 115 variable _IID_ISupportErrorInfo(0xdf0b3d60 0x101b548f 0x0008658e 0x19d12b2b)
