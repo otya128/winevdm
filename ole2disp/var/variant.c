@@ -1663,7 +1663,7 @@ static void VARIANT_GetLocalisedNumberChars(VARIANT_NUMBER_CHARS *lpChars, LCID 
  *  - I am unsure if this function should parse non-Arabic (e.g. Thai)
  *   numerals, so this has not been implemented.
  */
-HRESULT WINAPI VarParseNumFromStr16(OLECHAR *lpszStr, LCID lcid, ULONG dwFlags,
+HRESULT WINAPI VarParseNumFromStr16(OLECHAR16 *lpszStr, LCID lcid, ULONG dwFlags,
                                   NUMPARSE *pNumprs, BYTE *rgbDig)
 {
   VARIANT_NUMBER_CHARS chars;
@@ -1672,7 +1672,7 @@ HRESULT WINAPI VarParseNumFromStr16(OLECHAR *lpszStr, LCID lcid, ULONG dwFlags,
   int iMaxDigits = ARRAY_SIZE(rgbTmp);
   int cchUsed = 0;
 
-  TRACE("(%s,%d,0x%08x,%p,%p)\n", debugstr_w(lpszStr), lcid, dwFlags, pNumprs, rgbDig);
+  TRACE("(%s,%d,0x%08x,%p,%p)\n", debugstr_a(lpszStr), lcid, dwFlags, pNumprs, rgbDig);
 
   if (!pNumprs || !rgbDig)
     return E_INVALIDARG;
