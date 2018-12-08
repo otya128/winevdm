@@ -25,6 +25,11 @@
 import "../wine/windows/wtypes.idl";
 #endif
 
+typedef struct tagSIZEL
+{
+    LONG cx;
+    LONG cy;
+} SIZEL, *PSIZEL, *LPSIZEL;
 [
   local,
   object,
