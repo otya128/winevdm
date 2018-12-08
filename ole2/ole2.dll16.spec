@@ -79,8 +79,8 @@
 81 stub OLESETAUTOCONVERT
 82 pascal GetConvertStg(ptr) GetConvertStg16
 83 stub SETCONVERTSTG
-84 stub CREATESTREAMONHGLOBAL
-85 stub GETHGLOBALFROMSTREAM
+84 pascal CreateStreamOnHGlobal(word word ptr) CreateStreamOnHGlobal16
+85 pascal GetHGlobalFromStream(ptr ptr) GetHGlobalFromStream16
 86 pascal OleSetContainedObject(segptr word) OleSetContainedObject16
 87 pascal OleNoteObjectVisible(segptr word) OleNoteObjectVisible16
 88 pascal OleCreateStaticFromData(segptr ptr long ptr segptr segptr ptr) OleCreateStaticFromData16
@@ -156,3 +156,19 @@
 507 cdecl HGLOBALLockBytesImpl16_LockRegion(ptr int64 int64 long) HGLOBALLockBytesImpl16_LockRegion
 508 cdecl HGLOBALLockBytesImpl16_UnlockRegion(ptr int64 int64 long) HGLOBALLockBytesImpl16_UnlockRegion
 509 cdecl HGLOBALLockBytesImpl16_Stat(ptr ptr long) HGLOBALLockBytesImpl16_Stat
+
+# WINE MemStream implementation.
+510 cdecl HGLOBALStreamImpl16_QueryInterface(segptr ptr ptr) HGLOBALStreamImpl16_QueryInterface
+511 cdecl HGLOBALStreamImpl16_AddRef(ptr) HGLOBALStreamImpl16_AddRef
+512 cdecl HGLOBALStreamImpl16_Release(ptr) HGLOBALStreamImpl16_Release
+513 cdecl HGLOBALStreamImpl16_Read(ptr ptr long ptr) HGLOBALStreamImpl16_Read
+514 cdecl HGLOBALStreamImpl16_Write(ptr ptr long ptr) HGLOBALStreamImpl16_Write
+515 cdecl HGLOBALStreamImpl16_Seek(ptr int64 long ptr) HGLOBALStreamImpl16_Seek
+516 cdecl HGLOBALStreamImpl16_SetSize(ptr int64) HGLOBALStreamImpl16_SetSize
+517 cdecl HGLOBALStreamImpl16_CopyTo(ptr segptr int64 ptr ptr) HGLOBALStreamImpl16_CopyTo
+518 cdecl HGLOBALStreamImpl16_Commit(ptr long) HGLOBALStreamImpl16_Commit
+519 cdecl HGLOBALStreamImpl16_Revert(ptr) HGLOBALStreamImpl16_Revert
+520 cdecl HGLOBALStreamImpl16_LockRegion(ptr int64 int64 long) HGLOBALStreamImpl16_LockRegion
+521 cdecl HGLOBALStreamImpl16_UnlockRegion(ptr int64 int64 long) HGLOBALStreamImpl16_UnlockRegion
+522 cdecl HGLOBALStreamImpl16_Stat(ptr ptr long) HGLOBALStreamImpl16_Stat
+523 cdecl HGLOBALStreamImpl16_Clone(ptr ptr) HGLOBALStreamImpl16_Clone

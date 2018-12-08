@@ -41,22 +41,36 @@
 #include "winternl.h"
 
 #include "wine/debug.h"
+#include "wine/winbase16.h"
+#include "ifs.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(storage);
 
+HRESULT CDECL HGLOBALStreamImpl16_SetSize(
+    IStream16*      iface,
+    ULARGE_INTEGER  libNewSize);
+HRESULT CDECL HGLOBALStreamImpl16_Read(
+    IStream16*     iface,
+    void*          pv,        /* [length_is][size_is][out] */
+    ULONG          cb,        /* [in] */
+    ULONG*         pcbRead);  /* [out] */
+HRESULT WINAPI CreateStreamOnHGlobal16(
+    HGLOBAL16 hGlobal,
+    BOOL      fDeleteOnRelease,
+    SEGPTR*   ppstm);
 /****************************************************************************
  * HGLOBALStreamImpl definition.
  *
- * This class implements the IStream interface and represents a stream
+ * This class implements the IStream16 interface and represents a stream
  * supported by an HGLOBAL pointer.
  */
 typedef struct
 {
-  IStream IStream_iface;
+  IStream16 IStream16_iface;
   LONG ref;
 
   /* support for the stream */
-  HGLOBAL supportHandle;
+  HGLOBAL16 supportHandle;
 
   /* if TRUE the HGLOBAL is destroyed when the stream is finally released */
   BOOL deleteOnRelease;
@@ -68,17 +82,17 @@ typedef struct
   ULARGE_INTEGER currentPosition;
 } HGLOBALStreamImpl;
 
-static inline HGLOBALStreamImpl *impl_from_IStream(IStream *iface)
+static inline HGLOBALStreamImpl *impl_from_IStream16(IStream16 *iface)
 {
-  return CONTAINING_RECORD(iface, HGLOBALStreamImpl, IStream_iface);
+  return CONTAINING_RECORD(iface, HGLOBALStreamImpl, IStream16_iface);
 }
 
-static HRESULT WINAPI HGLOBALStreamImpl_QueryInterface(
-		  IStream*     iface,
+HRESULT CDECL HGLOBALStreamImpl16_QueryInterface(
+		  SEGPTR         iface,
 		  REFIID         riid,	      /* [in] */
-		  void**         ppvObject)   /* [iid_is][out] */
+		  SEGPTR*        ppvObject)   /* [iid_is][out] */
 {
-  HGLOBALStreamImpl* This = impl_from_IStream(iface);
+  HGLOBALStreamImpl* This = impl_from_IStream16((IStream16*)MapSL(iface));
 
   if (ppvObject==0)
     return E_INVALIDARG;
@@ -89,34 +103,34 @@ static HRESULT WINAPI HGLOBALStreamImpl_QueryInterface(
       IsEqualIID(&IID_ISequentialStream, riid) ||
       IsEqualIID(&IID_IStream, riid))
   {
-    *ppvObject = &This->IStream_iface;
+    *ppvObject = iface;
   }
 
   if ((*ppvObject)==0)
-    return E_NOINTERFACE;
+    return E_NOINTERFACE16;
 
-  IStream_AddRef(iface);
+  IStream16_AddRef(iface);
 
   return S_OK;
 }
 
-static ULONG WINAPI HGLOBALStreamImpl_AddRef(IStream* iface)
+ULONG CDECL HGLOBALStreamImpl16_AddRef(IStream16* iface)
 {
-  HGLOBALStreamImpl* This = impl_from_IStream(iface);
+  HGLOBALStreamImpl* This = impl_from_IStream16(iface);
   return InterlockedIncrement(&This->ref);
 }
 
-static ULONG WINAPI HGLOBALStreamImpl_Release(
-		IStream* iface)
+ULONG CDECL HGLOBALStreamImpl16_Release(
+		IStream16* iface)
 {
-  HGLOBALStreamImpl* This= impl_from_IStream(iface);
+  HGLOBALStreamImpl* This= impl_from_IStream16(iface);
   ULONG ref = InterlockedDecrement(&This->ref);
 
   if (!ref)
   {
     if (This->deleteOnRelease)
     {
-      GlobalFree(This->supportHandle);
+      GlobalFree16(This->supportHandle);
       This->supportHandle = NULL;
     }
 
@@ -135,13 +149,13 @@ static ULONG WINAPI HGLOBALStreamImpl_Release(
  *
  * See the documentation of ISequentialStream for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_Read(
-		  IStream*     iface,
+HRESULT CDECL HGLOBALStreamImpl16_Read(
+		  IStream16*     iface,
 		  void*          pv,        /* [length_is][size_is][out] */
 		  ULONG          cb,        /* [in] */
 		  ULONG*         pcbRead)   /* [out] */
 {
-  HGLOBALStreamImpl* This = impl_from_IStream(iface);
+  HGLOBALStreamImpl* This = impl_from_IStream16(iface);
 
   void* supportBuffer;
   ULONG bytesReadBuffer;
@@ -166,7 +180,7 @@ static HRESULT WINAPI HGLOBALStreamImpl_Read(
   /*
    * Lock the buffer in position and copy the data.
    */
-  supportBuffer = GlobalLock(This->supportHandle);
+  supportBuffer = GlobalLock16(This->supportHandle);
   if (!supportBuffer)
   {
       WARN("read from invalid hglobal %p\n", This->supportHandle);
@@ -189,7 +203,7 @@ static HRESULT WINAPI HGLOBALStreamImpl_Read(
   /*
    * Cleanup
    */
-  GlobalUnlock(This->supportHandle);
+  GlobalUnlock16(This->supportHandle);
 
   /*
    * Always returns S_OK even if the end of the stream is reached before the
@@ -209,13 +223,13 @@ static HRESULT WINAPI HGLOBALStreamImpl_Read(
  *
  * See the documentation of ISequentialStream for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_Write(
-	          IStream*     iface,
+HRESULT CDECL HGLOBALStreamImpl16_Write(
+	          IStream16*     iface,
 		  const void*    pv,          /* [size_is][in] */
 		  ULONG          cb,          /* [in] */
 		  ULONG*         pcbWritten)  /* [out] */
 {
-  HGLOBALStreamImpl* This = impl_from_IStream(iface);
+  HGLOBALStreamImpl* This = impl_from_IStream16(iface);
 
   void*          supportBuffer;
   ULARGE_INTEGER newSize;
@@ -244,10 +258,10 @@ static HRESULT WINAPI HGLOBALStreamImpl_Write(
   if (newSize.u.LowPart > This->streamSize.u.LowPart)
   {
     /* grow stream */
-    HRESULT hr = IStream_SetSize(iface, newSize);
+    HRESULT hr = HGLOBALStreamImpl16_SetSize(iface, newSize);
     if (FAILED(hr))
     {
-      ERR("IStream_SetSize failed with error 0x%08x\n", hr);
+      ERR("IStream16_SetSize failed with error 0x%08x\n", hr);
       return hr;
     }
   }
@@ -255,7 +269,7 @@ static HRESULT WINAPI HGLOBALStreamImpl_Write(
   /*
    * Lock the buffer in position and copy the data.
    */
-  supportBuffer = GlobalLock(This->supportHandle);
+  supportBuffer = GlobalLock16(This->supportHandle);
   if (!supportBuffer)
   {
       WARN("write to invalid hglobal %p\n", This->supportHandle);
@@ -272,7 +286,7 @@ static HRESULT WINAPI HGLOBALStreamImpl_Write(
   /*
    * Cleanup
    */
-  GlobalUnlock(This->supportHandle);
+  GlobalUnlock16(This->supportHandle);
 
 out:
   /*
@@ -284,20 +298,20 @@ out:
 }
 
 /***
- * This method is part of the IStream interface.
+ * This method is part of the IStream16 interface.
  *
  * It will move the current stream pointer according to the parameters
  * given.
  *
- * See the documentation of IStream for more info.
+ * See the documentation of IStream16 for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_Seek(
-		  IStream*      iface,
+HRESULT CDECL HGLOBALStreamImpl16_Seek(
+		  IStream16*      iface,
 		  LARGE_INTEGER   dlibMove,         /* [in] */
 		  DWORD           dwOrigin,         /* [in] */
 		  ULARGE_INTEGER* plibNewPosition) /* [out] */
 {
-  HGLOBALStreamImpl* This = impl_from_IStream(iface);
+  HGLOBALStreamImpl* This = impl_from_IStream16(iface);
 
   ULARGE_INTEGER newPosition = This->currentPosition;
   HRESULT hr = S_OK;
@@ -350,20 +364,20 @@ end:
 }
 
 /***
- * This method is part of the IStream interface.
+ * This method is part of the IStream16 interface.
  *
  * It will change the size of a stream.
  *
  * TODO: Switch from small blocks to big blocks and vice versa.
  *
- * See the documentation of IStream for more info.
+ * See the documentation of IStream16 for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_SetSize(
-				     IStream*      iface,
+HRESULT CDECL HGLOBALStreamImpl16_SetSize(
+				     IStream16*      iface,
 				     ULARGE_INTEGER  libNewSize)   /* [in] */
 {
-  HGLOBALStreamImpl* This = impl_from_IStream(iface);
-  HGLOBAL supportHandle;
+  HGLOBALStreamImpl* This = impl_from_IStream16(iface);
+  HGLOBAL16 supportHandle;
 
   TRACE("(%p, %d)\n", iface, libNewSize.u.LowPart);
 
@@ -377,7 +391,7 @@ static HRESULT WINAPI HGLOBALStreamImpl_SetSize(
   /*
    * Re allocate the HGlobal to fit the new size of the stream.
    */
-  supportHandle = GlobalReAlloc(This->supportHandle, libNewSize.u.LowPart, 0);
+  supportHandle = GlobalReAlloc16(This->supportHandle, libNewSize.u.LowPart, 0);
 
   if (supportHandle == 0)
     return E_OUTOFMEMORY;
@@ -389,15 +403,15 @@ static HRESULT WINAPI HGLOBALStreamImpl_SetSize(
 }
 
 /***
- * This method is part of the IStream interface.
+ * This method is part of the IStream16 interface.
  *
- * It will copy the 'cb' Bytes to 'pstm' IStream.
+ * It will copy the 'cb' Bytes to 'pstm' IStream16.
  *
- * See the documentation of IStream for more info.
+ * See the documentation of IStream16 for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_CopyTo(
-				    IStream*      iface,
-				    IStream*      pstm,         /* [unique][in] */
+HRESULT CDECL HGLOBALStreamImpl16_CopyTo(
+				    IStream16*      iface,
+				    SEGPTR          pstm,         /* [unique][in] */
 				    ULARGE_INTEGER  cb,           /* [in] */
 				    ULARGE_INTEGER* pcbRead,      /* [out] */
 				    ULARGE_INTEGER* pcbWritten)   /* [out] */
@@ -408,7 +422,7 @@ static HRESULT WINAPI HGLOBALStreamImpl_CopyTo(
   ULARGE_INTEGER totalBytesRead;
   ULARGE_INTEGER totalBytesWritten;
 
-  TRACE("(%p, %p, %d, %p, %p)\n", iface, pstm,
+  TRACE("(%p, %08x, %d, %p, %p)\n", iface, pstm,
 	cb.u.LowPart, pcbRead, pcbWritten);
 
   if ( pstm == 0 )
@@ -424,7 +438,7 @@ static HRESULT WINAPI HGLOBALStreamImpl_CopyTo(
     else
       copySize = cb.u.LowPart;
 
-    hr = IStream_Read(iface, tmpBuffer, copySize, &bytesRead);
+    hr = HGLOBALStreamImpl16_Read(iface, tmpBuffer, copySize, &bytesRead);
     if (FAILED(hr))
         break;
 
@@ -432,7 +446,7 @@ static HRESULT WINAPI HGLOBALStreamImpl_CopyTo(
 
     if (bytesRead)
     {
-        hr = IStream_Write(pstm, tmpBuffer, bytesRead, &bytesWritten);
+        hr = IStream16_Write(pstm, tmpBuffer, bytesRead, MapLS(&bytesWritten));
         if (FAILED(hr))
             break;
 
@@ -452,44 +466,44 @@ static HRESULT WINAPI HGLOBALStreamImpl_CopyTo(
 }
 
 /***
- * This method is part of the IStream interface.
+ * This method is part of the IStream16 interface.
  *
  * For streams supported by HGLOBALS, this function does nothing.
  * This is what the documentation tells us.
  *
- * See the documentation of IStream for more info.
+ * See the documentation of IStream16 for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_Commit(
-		  IStream*      iface,
+HRESULT CDECL HGLOBALStreamImpl16_Commit(
+		  IStream16*      iface,
 		  DWORD         grfCommitFlags)  /* [in] */
 {
   return S_OK;
 }
 
 /***
- * This method is part of the IStream interface.
+ * This method is part of the IStream16 interface.
  *
  * For streams supported by HGLOBALS, this function does nothing.
  * This is what the documentation tells us.
  *
- * See the documentation of IStream for more info.
+ * See the documentation of IStream16 for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_Revert(
-		  IStream* iface)
+HRESULT CDECL HGLOBALStreamImpl16_Revert(
+		  IStream16* iface)
 {
   return S_OK;
 }
 
 /***
- * This method is part of the IStream interface.
+ * This method is part of the IStream16 interface.
  *
  * For streams supported by HGLOBALS, this function does nothing.
  * This is what the documentation tells us.
  *
- * See the documentation of IStream for more info.
+ * See the documentation of IStream16 for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_LockRegion(
-		  IStream*       iface,
+HRESULT CDECL HGLOBALStreamImpl16_LockRegion(
+		  IStream16*       iface,
 		  ULARGE_INTEGER libOffset,   /* [in] */
 		  ULARGE_INTEGER cb,          /* [in] */
 		  DWORD          dwLockType)  /* [in] */
@@ -498,15 +512,15 @@ static HRESULT WINAPI HGLOBALStreamImpl_LockRegion(
 }
 
 /*
- * This method is part of the IStream interface.
+ * This method is part of the IStream16 interface.
  *
  * For streams supported by HGLOBALS, this function does nothing.
  * This is what the documentation tells us.
  *
- * See the documentation of IStream for more info.
+ * See the documentation of IStream16 for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_UnlockRegion(
-		  IStream*       iface,
+HRESULT CDECL HGLOBALStreamImpl16_UnlockRegion(
+		  IStream16*       iface,
 		  ULARGE_INTEGER libOffset,   /* [in] */
 		  ULARGE_INTEGER cb,          /* [in] */
 		  DWORD          dwLockType)  /* [in] */
@@ -515,21 +529,21 @@ static HRESULT WINAPI HGLOBALStreamImpl_UnlockRegion(
 }
 
 /***
- * This method is part of the IStream interface.
+ * This method is part of the IStream16 interface.
  *
  * This method returns information about the current
  * stream.
  *
- * See the documentation of IStream for more info.
+ * See the documentation of IStream16 for more info.
  */
-static HRESULT WINAPI HGLOBALStreamImpl_Stat(
-		  IStream*     iface,
-		  STATSTG*     pstatstg,     /* [out] */
+HRESULT CDECL HGLOBALStreamImpl16_Stat(
+		  IStream16*     iface,
+		  STATSTG16*     pstatstg,     /* [out] */
 		  DWORD        grfStatFlag)  /* [in] */
 {
-  HGLOBALStreamImpl* This = impl_from_IStream(iface);
+  HGLOBALStreamImpl* This = impl_from_IStream16(iface);
 
-  memset(pstatstg, 0, sizeof(STATSTG));
+  memset(pstatstg, 0, sizeof(STATSTG16));
 
   pstatstg->pwcsName = NULL;
   pstatstg->type     = STGTY_STREAM;
@@ -538,59 +552,64 @@ static HRESULT WINAPI HGLOBALStreamImpl_Stat(
   return S_OK;
 }
 
-static HRESULT WINAPI HGLOBALStreamImpl_Clone(
-		  IStream*     iface,
-		  IStream**    ppstm) /* [out] */
+HRESULT CDECL HGLOBALStreamImpl16_Clone(
+		  IStream16*     iface,
+		  SEGPTR*        ppstm) /* [out] */
 {
-  HGLOBALStreamImpl* This = impl_from_IStream(iface);
+  HGLOBALStreamImpl* This = impl_from_IStream16(iface);
   ULARGE_INTEGER dummy;
   LARGE_INTEGER offset;
   HRESULT hr;
 
   TRACE(" Cloning %p (deleteOnRelease=%d seek position=%ld)\n",iface,This->deleteOnRelease,(long)This->currentPosition.QuadPart);
-  hr = CreateStreamOnHGlobal(This->supportHandle, FALSE, ppstm);
+  hr = CreateStreamOnHGlobal16(This->supportHandle, FALSE, ppstm);
   if(FAILED(hr))
     return hr;
   offset.QuadPart = (LONGLONG)This->currentPosition.QuadPart;
-  IStream_Seek(*ppstm, offset, STREAM_SEEK_SET, &dummy);
+  IStream16_Seek(*ppstm, *(ULARGE_INTEGER*)&offset, STREAM_SEEK_SET, MapLS(&dummy));
   return S_OK;
 }
 
-static const IStreamVtbl HGLOBALStreamImplVtbl =
-{
-    HGLOBALStreamImpl_QueryInterface,
-    HGLOBALStreamImpl_AddRef,
-    HGLOBALStreamImpl_Release,
-    HGLOBALStreamImpl_Read,
-    HGLOBALStreamImpl_Write,
-    HGLOBALStreamImpl_Seek,
-    HGLOBALStreamImpl_SetSize,
-    HGLOBALStreamImpl_CopyTo,
-    HGLOBALStreamImpl_Commit,
-    HGLOBALStreamImpl_Revert,
-    HGLOBALStreamImpl_LockRegion,
-    HGLOBALStreamImpl_UnlockRegion,
-    HGLOBALStreamImpl_Stat,
-    HGLOBALStreamImpl_Clone
-};
-
+static IStream16Vtbl HGLOBALStreamImplVtbl;
+static SEGPTR SegHGLOBALStreamImplVtbl;
 /***********************************************************************
  *           CreateStreamOnHGlobal     [OLE32.@]
  */
-HRESULT WINAPI CreateStreamOnHGlobal(
-		HGLOBAL   hGlobal,
+HRESULT WINAPI CreateStreamOnHGlobal16(
+		HGLOBAL16 hGlobal,
 		BOOL      fDeleteOnRelease,
-		LPSTREAM* ppstm)
+		SEGPTR*   ppstm)
 {
   HGLOBALStreamImpl* This;
 
   if (!ppstm)
-    return E_INVALIDARG;
+    return E_INVALIDARG16;
 
   This = HeapAlloc(GetProcessHeap(), 0, sizeof(HGLOBALStreamImpl));
-  if (!This) return E_OUTOFMEMORY;
+  if (!This) return E_OUTOFMEMORY16;
 
-  This->IStream_iface.lpVtbl = &HGLOBALStreamImplVtbl;
+  if (!SegHGLOBALStreamImplVtbl)
+  {
+      HMODULE16 hole = GetModuleHandle16("OLE2");
+#define VTENT(x) HGLOBALStreamImplVtbl.x = (void*)GetProcAddress16(hole,"HGLOBALStreamImpl16_"#x);assert(HGLOBALStreamImplVtbl.x)
+      VTENT(QueryInterface);
+      VTENT(AddRef);
+      VTENT(Release);
+      VTENT(Read);
+      VTENT(Write);
+      VTENT(Seek);
+      VTENT(SetSize);
+      VTENT(CopyTo);
+      VTENT(Commit);
+      VTENT(Revert);
+      VTENT(LockRegion);
+      VTENT(UnlockRegion);
+      VTENT(Stat);
+      VTENT(Clone);
+#undef VTENT
+      SegHGLOBALStreamImplVtbl = MapLS(&HGLOBALStreamImplVtbl);
+  }
+  This->IStream16_iface.lpVtbl = SegHGLOBALStreamImplVtbl;
   This->ref = 1;
 
   /* initialize the support */
@@ -599,7 +618,7 @@ HRESULT WINAPI CreateStreamOnHGlobal(
 
   /* allocate a handle if one is not supplied */
   if (!This->supportHandle)
-    This->supportHandle = GlobalAlloc(GMEM_MOVEABLE|GMEM_NODISCARD|GMEM_SHARE, 0);
+    This->supportHandle = GlobalAlloc16(GMEM_MOVEABLE|GMEM_NODISCARD|GMEM_SHARE, 0);
 
   /* start at the beginning */
   This->currentPosition.u.HighPart = 0;
@@ -607,9 +626,9 @@ HRESULT WINAPI CreateStreamOnHGlobal(
 
   /* initialize the size of the stream to the size of the handle */
   This->streamSize.u.HighPart = 0;
-  This->streamSize.u.LowPart = GlobalSize(This->supportHandle);
+  This->streamSize.u.LowPart = GlobalSize16(This->supportHandle);
 
-  *ppstm = &This->IStream_iface;
+  *ppstm = MapLS(&This->IStream16_iface);
 
   return S_OK;
 }
@@ -617,24 +636,24 @@ HRESULT WINAPI CreateStreamOnHGlobal(
 /***********************************************************************
  *           GetHGlobalFromStream     [OLE32.@]
  */
-HRESULT WINAPI GetHGlobalFromStream(IStream* pstm, HGLOBAL* phglobal)
+HRESULT WINAPI GetHGlobalFromStream16(IStream16* pstm, HGLOBAL16* phglobal)
 {
   HGLOBALStreamImpl* pStream;
 
   if (pstm == NULL)
-    return E_INVALIDARG;
+    return E_INVALIDARG16;
 
-  pStream = (HGLOBALStreamImpl*) pstm;
+  pStream = impl_from_IStream16(pstm);
 
   /*
    * Verify that the stream object was created with CreateStreamOnHGlobal.
    */
-  if (pStream->IStream_iface.lpVtbl == &HGLOBALStreamImplVtbl)
+  if (pStream->IStream16_iface.lpVtbl == SegHGLOBALStreamImplVtbl)
     *phglobal = pStream->supportHandle;
   else
   {
     *phglobal = 0;
-    return E_INVALIDARG;
+    return E_INVALIDARG16;
   }
 
   return S_OK;
