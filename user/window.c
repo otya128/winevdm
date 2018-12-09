@@ -177,19 +177,57 @@ BOOL is_dialog(HWND hwnd)
     return FALSE;
 }
 
+struct ThreadWindows
+{
+    UINT numHandles;
+    UINT numAllocs;
+    HWND *handles;
+};
+
+static BOOL CALLBACK MSGBOX_EnumProc(HWND hwnd, LPARAM lParam)
+{
+    struct ThreadWindows *threadWindows = (struct ThreadWindows *)lParam;
+
+    if (!EnableWindow(hwnd, FALSE))
+    {
+        if(threadWindows->numHandles >= threadWindows->numAllocs)
+        {
+            threadWindows->handles = HeapReAlloc(GetProcessHeap(), 0, threadWindows->handles,
+                                                 (threadWindows->numAllocs*2)*sizeof(HWND));
+            threadWindows->numAllocs *= 2;
+        }
+        threadWindows->handles[threadWindows->numHandles++]=hwnd;
+    }
+    return TRUE;
+}
+
 /**************************************************************************
  *              MessageBox   (USER.1)
  */
 INT16 WINAPI MessageBox16( HWND16 hwnd, LPCSTR text, LPCSTR title, UINT16 type )
 {
     DWORD count;
+    struct ThreadWindows threadWindows;
     ReleaseThunkLock(&count);
 #ifdef ATTACH_THREAD_INPUT
     //Force to set window to foreground.
     DWORD foregroundID = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
     AttachThreadInput(GetCurrentThreadId(), foregroundID, TRUE);
 #endif
-    int ret = MessageBoxA( WIN_Handle32(hwnd), text, title, type );
+    if ((type & MB_TASKMODAL) && (hwnd == NULL))
+    {
+        threadWindows.numHandles = 0;
+        threadWindows.numAllocs = 10;
+        threadWindows.handles = HeapAlloc(GetProcessHeap(), 0, 10*sizeof(HWND));
+        EnumThreadWindows(GetCurrentThreadId(), MSGBOX_EnumProc, (LPARAM)&threadWindows);
+    }
+    int ret = MessageBoxA( WIN_Handle32(hwnd), text, title, type & ~MB_TASKMODAL );
+    if ((type & MB_TASKMODAL) && (hwnd == NULL))
+    {
+        for (int i = 0; i < threadWindows.numHandles; i++)
+            EnableWindow(threadWindows.handles[i], TRUE);
+        HeapFree(GetProcessHeap(), 0, threadWindows.handles);
+    }
 #ifdef ATTACH_THREAD_INPUT
     AttachThreadInput(GetCurrentThreadId(), foregroundID, FALSE);
 #endif
