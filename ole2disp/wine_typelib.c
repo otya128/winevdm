@@ -5429,7 +5429,50 @@ static HRESULT WINAPI ITypeLibComp_fnBind(
             ITypeInfo *subtypeinfo;
             BINDPTR subbindptr;
             DESCKIND subdesckind;
+            if (pTypeInfo->Name && !strcmpW(pTypeInfo->Name->str, szName))
+            {
+                TYPEDESC tdesc_appobject;
+                const VARDESC vardesc_appobject =
+                {
+                    ID_DEFAULTINST, /* memid */
+                    NULL,       /* lpstrSchema */
+                    {
+                        0       /* oInst */
+                    },
+                    {
+                                /* ELEMDESC */
+                        {
+                                /* TYPEDESC */
+                                {
+                                    &tdesc_appobject
+                                },
+                                VT_PTR
+                        },
+                    },
+                    0,          /* wVarFlags */
+                    VAR_STATIC  /* varkind */
+                };
 
+                tdesc_appobject.u.hreftype = pTypeInfo->hreftype;
+                tdesc_appobject.vt = VT_USERDEFINED;
+
+                TRACE("found in implicit app object: %s\n", debugstr_w(szName));
+
+
+                if (pTypeInfo->hreftype == -1)
+                {
+                    FIXME("no hreftype for interface %p\n", pTypeInfo);
+                }
+
+                hr = TLB_AllocAndInitVarDesc(&vardesc_appobject, &pBindPtr->lpvardesc);
+                if (FAILED(hr))
+                    return hr;
+
+                *pDescKind = DESCKIND_VARDESC;
+                *ppTInfo = (ITypeInfo *)&pTypeInfo->ITypeInfo2_iface;
+                ITypeInfo_AddRef(*ppTInfo);
+                return S_OK;
+            }
             hr = ITypeComp_Bind(pSubTypeComp, szName, lHash, wFlags,
                 &subtypeinfo, &subdesckind, &subbindptr);
             if (SUCCEEDED(hr) && (subdesckind != DESCKIND_NONE))
@@ -5437,7 +5480,7 @@ static HRESULT WINAPI ITypeLibComp_fnBind(
                 TYPEDESC tdesc_appobject;
                 const VARDESC vardesc_appobject =
                 {
-                    -2,         /* memid */
+                    ID_DEFAULTINST, /* memid */
                     NULL,       /* lpstrSchema */
                     {
                         0       /* oInst */
@@ -5479,7 +5522,6 @@ static HRESULT WINAPI ITypeLibComp_fnBind(
                 if (pTypeInfo->hreftype == -1)
                 {
                     FIXME("no hreftype for interface %p\n", pTypeInfo);
-                    tdesc_appobject.u.hreftype = 4;
                 }
 
                 hr = TLB_AllocAndInitVarDesc(&vardesc_appobject, &pBindPtr->lpvardesc);
