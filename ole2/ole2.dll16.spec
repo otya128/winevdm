@@ -19,8 +19,8 @@
 19 pascal WriteClassStg(segptr ptr) WriteClassStg16
 20 pascal ReadClassStm(segptr ptr) ReadClassStm16
 21 pascal WriteClassStm(segptr ptr) WriteClassStm16
-22 stub BINDMONIKER
-23 stub MKPARSEDISPLAYNAME
+22 pascal BindMoniker(segptr long ptr ptr) BindMoniker16
+23 pascal MkParseDisplayName(segptr str ptr ptr) MkParseDisplayName16
 24 stub OLESAVETOSTREAM
 25 pascal OleLoadFromStream(segptr ptr ptr) OleLoadFromStream16
 26 pascal CreateBindCtx(long ptr) CreateBindCtx16

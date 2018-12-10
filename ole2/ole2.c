@@ -921,3 +921,30 @@ HRESULT WINAPI OleLoadFromStream16(SEGPTR pStm, REFIID riid, SEGPTR *ppvObj)
     *ppvObj = iface32_16(riid, pvObj);
     return hresult32_16(result);
 }
+
+HRESULT WINAPI MkParseDisplayName16(SEGPTR pbc, LPSTR szUserName, ULONG *pchEaten, SEGPTR *ppmk)
+{
+    HRESULT result;
+    IBindCtx *pbc32;
+    LPOLESTR szUserName32;
+    IMoniker *pmk = NULL;
+    TRACE("(%08x,%s,%p,%p)\n", pbc, debugstr_a(szUserName), pchEaten, ppmk);
+    szUserName32 = strdupAtoW(szUserName);
+    pbc32 = (IBindCtx*)iface16_32(&IID_IBindCtx, pbc);
+    result = MkParseDisplayName(pbc32, szUserName32, pchEaten, &pmk);
+    HeapFree(GetProcessHeap(), 0, szUserName32);
+    *ppmk = iface32_16(&IID_IMoniker, pmk);
+    return hresult32_16(result);
+}
+
+HRESULT WINAPI BindMoniker16(SEGPTR pmk, DWORD grfOpt, REFIID riid, SEGPTR *ppvObj)
+{
+    HRESULT result;
+    IMoniker *pmk32;
+    LPVOID pvObj = NULL;
+    TRACE("(%08x,%d,%s,%p)\n", pmk, grfOpt, debugstr_guid(riid), ppvObj);
+    pmk32 = (IMoniker*)iface16_32(&IID_IMoniker, pmk);
+    result = BindMoniker(pmk32, grfOpt, riid, &pvObj);
+    *ppvObj = iface32_16(riid, pvObj);
+    return hresult32_16(result);
+}
