@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef SEGPTR SEGIDispatch;
 WINE_DEFAULT_DEBUG_CHANNEL(variant);
 #define strcmpiA strcmpi
 #define strcmpA strcmp
@@ -55,6 +56,12 @@ extern HMODULE hProxyDll DECLSPEC_HIDDEN;
 static const OLECHAR16 szFloatFormatW[] = { '%','.','7','G','\0' };
 static const OLECHAR16 szDoubleFormatW[] = { '%','.','1','5','G','\0' };
 
+static void fix_double(double *dbl)
+{
+    ULARGE_INTEGER lng = *(ULARGE_INTEGER*)dbl;
+    ULARGE_INTEGER swapped = { lng.u.HighPart, lng.u.LowPart };
+    *dbl = *(double*)&swapped;
+}
 /* Copy data from one variant to another. */
 static inline void VARIANT_CopyData(const VARIANT16 *srcVar, VARTYPE vt, void *pOut)
 {
@@ -104,7 +111,7 @@ static inline void VARIANT_CopyData(const VARIANT16 *srcVar, VARTYPE vt, void *p
 static HRESULT VARIANT_NumberFromBstr(OLECHAR16* pStrIn, LCID lcid, ULONG ulFlags,
                                       void* pOut, VARTYPE vt)
 {
-  VARIANTARG dstVar;
+  VARIANTARG16 dstVar;
   HRESULT hRet;
   NUMPARSE np;
   BYTE rgb[1024];
@@ -126,11 +133,11 @@ static HRESULT VARIANT_NumberFromBstr(OLECHAR16* pStrIn, LCID lcid, ULONG ulFlag
 }
 
 /* Coerce VT_DISPATCH to another type */
-static HRESULT VARIANT_FromDisp(IDispatch* pdispIn, LCID lcid, void* pOut,
+static HRESULT VARIANT_FromDisp(SEGIDispatch pdispIn, LCID lcid, void* pOut,
                                 VARTYPE vt, DWORD dwFlags)
 {
-  static DISPPARAMS emptyParams = { NULL, NULL, 0, 0 };
-  VARIANTARG srcVar, dstVar;
+  static DISPPARAMS16 emptyParams = { NULL, NULL, 0, 0 };
+  VARIANTARG16 srcVar, dstVar;
   HRESULT hRet;
 
   if (!pdispIn)
@@ -138,9 +145,8 @@ static HRESULT VARIANT_FromDisp(IDispatch* pdispIn, LCID lcid, void* pOut,
 
   /* Get the default 'value' property from the IDispatch */
   VariantInit16(&srcVar);
-  FIXME("\n");
-  hRet = IDispatch_Invoke(pdispIn, DISPID_VALUE, &IID_NULL, lcid, DISPATCH_PROPERTYGET,
-                          &emptyParams, &srcVar, NULL, NULL);
+  hRet = IDispatch16_Invoke(pdispIn, DISPID_VALUE, MapLS(&IID_NULL), lcid, DISPATCH_PROPERTYGET,
+                          MapLS(&emptyParams), MapLS(&srcVar), NULL, NULL);
 
   if (SUCCEEDED(hRet))
   {
@@ -460,7 +466,7 @@ HRESULT WINAPI VarI1FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, signed
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarI1FromDisp16(IDispatch* pdispIn, LCID lcid, signed char* pcOut)
+HRESULT WINAPI VarI1FromDisp16(SEGIDispatch pdispIn, LCID lcid, signed char* pcOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pcOut, VT_I1, 0);
 }
@@ -665,6 +671,7 @@ HRESULT WINAPI VarUI1FromR416(FLOAT fltIn, BYTE* pbOut)
  */
 HRESULT WINAPI VarUI1FromR816(double dblIn, BYTE* pbOut)
 {
+  fix_double(&dblIn);
   if (dblIn < -0.5 || dblIn >= UI1_MAX + 0.5)
     return DISP_E_OVERFLOW;
   VARIANT_DutchRound(BYTE, dblIn, *pbOut);
@@ -690,10 +697,8 @@ HRESULT WINAPI VarUI1FromR816(double dblIn, BYTE* pbOut)
  */
 HRESULT WINAPI VarUI1FromCy16(CY cyIn, BYTE* pbOut)
 {
-  ULONG i = UI1_MAX + 1;
-
-  VarUI4FromCy(cyIn, &i);
-  return _VarUI1FromUI4(i, pbOut);
+  fix_double(&cyIn);
+  return VarUI1FromCy(cyIn, pbOut);
 }
 
 /************************************************************************
@@ -712,7 +717,7 @@ HRESULT WINAPI VarUI1FromCy16(CY cyIn, BYTE* pbOut)
  */
 HRESULT WINAPI VarUI1FromDate16(DATE dateIn, BYTE* pbOut)
 {
-  return VarUI1FromR8(dateIn, pbOut);
+  return VarUI1FromR816(dateIn, pbOut);
 }
 
 /************************************************************************
@@ -753,7 +758,7 @@ HRESULT WINAPI VarUI1FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, BYTE*
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarUI1FromDisp16(IDispatch* pdispIn, LCID lcid, BYTE* pbOut)
+HRESULT WINAPI VarUI1FromDisp16(SEGIDispatch pdispIn, LCID lcid, BYTE* pbOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pbOut, VT_UI1, 0);
 }
@@ -1054,7 +1059,7 @@ HRESULT WINAPI VarI2FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, SHORT*
  *           DISP_E_OVERFLOW, if the value will not fit in the destination,
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarI2FromDisp16(IDispatch* pdispIn, LCID lcid, SHORT* psOut)
+HRESULT WINAPI VarI2FromDisp16(SEGIDispatch pdispIn, LCID lcid, SHORT* psOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, psOut, VT_I2, 0);
 }
@@ -1368,7 +1373,7 @@ HRESULT WINAPI VarUI2FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, USHOR
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarUI2FromDisp16(IDispatch* pdispIn, LCID lcid, USHORT* pusOut)
+HRESULT WINAPI VarUI2FromDisp16(SEGIDispatch pdispIn, LCID lcid, USHORT* pusOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pusOut, VT_UI2, 0);
 }
@@ -1644,7 +1649,7 @@ HRESULT WINAPI VarI4FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, LONG *
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarI4FromDisp16(IDispatch* pdispIn, LCID lcid, LONG *piOut)
+HRESULT WINAPI VarI4FromDisp16(SEGIDispatch pdispIn, LCID lcid, LONG *piOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, piOut, VT_I4, 0);
 }
@@ -1872,6 +1877,7 @@ HRESULT WINAPI VarUI4FromR416(FLOAT fltIn, ULONG *pulOut)
  */
 HRESULT WINAPI VarUI4FromR816(double dblIn, ULONG *pulOut)
 {
+  fix_double(&dblIn);
   if (dblIn < -0.5 || dblIn >= UI4_MAX + 0.5)
     return DISP_E_OVERFLOW;
   VARIANT_DutchRound(ULONG, dblIn, *pulOut);
@@ -1893,7 +1899,7 @@ HRESULT WINAPI VarUI4FromR816(double dblIn, ULONG *pulOut)
  */
 HRESULT WINAPI VarUI4FromDate16(DATE dateIn, ULONG *pulOut)
 {
-  return VarUI4FromR8(dateIn, pulOut);
+  return VarUI4FromR816(dateIn, pulOut);
 }
 
 /************************************************************************
@@ -1912,7 +1918,7 @@ HRESULT WINAPI VarUI4FromDate16(DATE dateIn, ULONG *pulOut)
 HRESULT WINAPI VarUI4FromCy16(CY cyIn, ULONG *pulOut)
 {
   double d = cyIn.int64 / CY_MULTIPLIER_F;
-  return VarUI4FromR8(d, pulOut);
+  return VarUI4FromR816(d, pulOut);
 }
 
 /************************************************************************
@@ -1953,7 +1959,7 @@ HRESULT WINAPI VarUI4FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, ULONG
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarUI4FromDisp16(IDispatch* pdispIn, LCID lcid, ULONG *pulOut)
+HRESULT WINAPI VarUI4FromDisp16(SEGIDispatch pdispIn, LCID lcid, ULONG *pulOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pulOut, VT_UI4, 0);
 }
@@ -2260,7 +2266,7 @@ HRESULT WINAPI VarI8FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, LONG64
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarI8FromDisp16(IDispatch* pdispIn, LCID lcid, LONG64* pi64Out)
+HRESULT WINAPI VarI8FromDisp16(SEGIDispatch pdispIn, LCID lcid, LONG64* pi64Out)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pi64Out, VT_I8, 0);
 }
@@ -2589,7 +2595,7 @@ HRESULT WINAPI VarUI8FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, ULONG
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarUI8FromDisp16(IDispatch* pdispIn, LCID lcid, ULONG64* pui64Out)
+HRESULT WINAPI VarUI8FromDisp16(SEGIDispatch pdispIn, LCID lcid, ULONG64* pui64Out)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pui64Out, VT_UI8, 0);
 }
@@ -2866,7 +2872,7 @@ HRESULT WINAPI VarR4FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, float 
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarR4FromDisp16(IDispatch* pdispIn, LCID lcid, float *pFltOut)
+HRESULT WINAPI VarR4FromDisp16(SEGIDispatch pdispIn, LCID lcid, float *pFltOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pFltOut, VT_R4, 0);
 }
@@ -3189,7 +3195,7 @@ HRESULT WINAPI VarR8FromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, double
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarR8FromDisp16(IDispatch* pdispIn, LCID lcid, double *pDblOut)
+HRESULT WINAPI VarR8FromDisp16(SEGIDispatch pdispIn, LCID lcid, double *pDblOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pDblOut, VT_R8, 0);
 }
@@ -3615,7 +3621,7 @@ HRESULT WINAPI VarCyFromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, CY* pC
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarCyFromDisp16(IDispatch* pdispIn, LCID lcid, CY* pCyOut)
+HRESULT WINAPI VarCyFromDisp16(SEGIDispatch pdispIn, LCID lcid, CY* pCyOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pCyOut, VT_CY, 0);
 }
@@ -4316,7 +4322,7 @@ HRESULT WINAPI VarDecFromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, DECIM
  *  Success: S_OK.
  *  Failure: DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarDecFromDisp16(IDispatch* pdispIn, LCID lcid, DECIMAL* pDecOut)
+HRESULT WINAPI VarDecFromDisp16(SEGIDispatch pdispIn, LCID lcid, DECIMAL* pDecOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pDecOut, VT_DECIMAL, 0);
 }
@@ -6240,7 +6246,7 @@ VarBoolFromStr_CheckLocalised:
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarBoolFromDisp16(IDispatch* pdispIn, LCID lcid, VARIANT_BOOL *pBoolOut)
+HRESULT WINAPI VarBoolFromDisp16(SEGIDispatch pdispIn, LCID lcid, VARIANT_BOOL *pBoolOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pBoolOut, VT_BOOL, 0);
 }
@@ -7125,7 +7131,7 @@ HRESULT WINAPI VarBstrFromUI816(ULONG64 ullIn, LCID lcid, ULONG dwFlags, SEGBSTR
  *  Failure: E_INVALIDARG, if the source value is invalid
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarBstrFromDisp16(IDispatch* pdispIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
+HRESULT WINAPI VarBstrFromDisp16(SEGIDispatch pdispIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pbstrOut, VT_BSTR, dwFlags);
 }
@@ -7353,7 +7359,7 @@ HRESULT WINAPI VarDateFromR816(double dblIn, DATE* pdateOut)
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  *           DISP_E_TYPEMISMATCH, if the type cannot be converted
  */
-HRESULT WINAPI VarDateFromDisp16(IDispatch* pdispIn, LCID lcid, DATE* pdateOut)
+HRESULT WINAPI VarDateFromDisp16(SEGIDispatch pdispIn, LCID lcid, DATE* pdateOut)
 {
   return VARIANT_FromDisp(pdispIn, lcid, pdateOut, VT_DATE, 0);
 }

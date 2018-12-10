@@ -988,7 +988,7 @@ HRESULT WINAPI VariantCopyInd16(VARIANT16* pvargDest, VARIANTARG16* pvargSrc)
   else
   {
     /* Copy the pointed to data into this variant */
-    memcpy(&V_BYREF(pvargDest), V_BYREF(pSrc), VARIANT_DataSize(pSrc));
+    memcpy(&V_BYREF(pvargDest), MapSL(V_BYREF(pSrc)), VARIANT_DataSize(pSrc));
   }
 
   V_VT(pvargDest) = V_VT(pSrc) & ~VT_BYREF;

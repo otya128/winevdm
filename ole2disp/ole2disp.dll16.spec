@@ -113,15 +113,15 @@
 113 variable _IID_IErrorInfo(0x1cf2b120 0x101b547d 0x0008658e 0x19d12b2b)
 114 variable _IID_ICreateErrorInfo(0x22f03340 0x101b547d 0x0008658e 0x19d12b2b)
 115 variable _IID_ISupportErrorInfo(0xdf0b3d60 0x101b548f 0x0008658e 0x19d12b2b)
-116 stub VARUI1FROMI2
-117 stub VARUI1FROMI4
-118 stub VARUI1FROMR4
-119 stub VARUI1FROMR8
-120 stub VARUI1FROMCY
-121 stub VARUI1FROMDATE
-122 stub VARUI1FROMSTR
-123 stub VARUI1FROMDISP
-124 stub VARUI1FROMBOOL
+116 pascal VarUI1FromI2(word ptr) VarUI1FromI216
+117 pascal VarUI1FromI4(long ptr) VarUI1FromI416
+118 pascal VarUI1FromR4(long ptr) VarUI1FromR416
+119 pascal VarUI1FromR8(double ptr) VarUI1FromR816
+120 pascal VarUI1FromCy(int64 ptr) VarUI1FromCy16
+121 pascal VarUI1FromDate(double ptr) VarUI1FromDate16
+122 pascal VarUI1FromStr(str long long ptr) VarUI1FromStr16
+123 pascal VarUI1FromDisp(segptr long ptr) VarUI1FromDisp16
+124 pascal VarUI1FromBool(word ptr) VarUI1FromBool16
 125 stub VARI2FROMUI1
 126 stub VARI4FROMUI1
 127 stub VARR4FROMUI1
