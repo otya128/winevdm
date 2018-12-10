@@ -424,7 +424,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     switch (vtFrom)
     {
     case VT_EMPTY:
-      V_BSTR(pd) = SysAllocStringLen(NULL, 0);
+      V_BSTR(pd) = SysAllocStringLen16(NULL, 0);
       return V_BSTR(pd) ? S_OK : E_OUTOFMEMORY;
     case VT_BOOL:
       if (wFlags & (VARIANT_ALPHABOOL|VARIANT_LOCALBOOL))

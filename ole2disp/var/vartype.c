@@ -6412,7 +6412,7 @@ static HRESULT VARIANT_BstrFromUInt(ULONG64 ulVal, LCID lcid, DWORD dwFlags, SEG
   szOut = VARIANT_WriteNumber(ulVal, szOut);
 
   *pbstrOut = VARIANT_MakeBstr(lcid, dwFlags, szOut);
-  TRACE("returning %s\n", debugstr_a(*pbstrOut));
+  TRACE("returning %s\n", debugstr_a(MapSL(*pbstrOut)));
   return *pbstrOut ? S_OK : E_OUTOFMEMORY;
 }
 
