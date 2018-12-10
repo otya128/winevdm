@@ -282,9 +282,10 @@ HRESULT WINAPI SafeArrayCopy16(SAFEARRAY16 *sa, SAFEARRAY16 **ppsaout)
     return E_INVALIDARG;
 }
 
-HRESULT WINAPI SafeArrayDestroy16(SAFEARRAY16 *psa)
+HRESULT WINAPI SafeArrayDestroy16(SEGPTR spsa)
 {
-  TRACE("(%p)\n", psa);
+  SAFEARRAY16 *psa = (SAFEARRAY16*)MapSL(spsa);
+  TRACE("(%08x)\n", spsa);
 
   if(!psa)
     return S_OK;
@@ -294,7 +295,7 @@ HRESULT WINAPI SafeArrayDestroy16(SAFEARRAY16 *psa)
 
   /* Native doesn't check to see if the free succeeds */
   SafeArrayDestroyData16(psa);
-  SafeArrayDestroyDescriptor16(psa);
+  SafeArrayDestroyDescriptor16(spsa);
   return S_OK;
 }
 

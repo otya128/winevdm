@@ -13,7 +13,7 @@
 13 stub VARIANTTIMETODOSDATETIME
 14 stub DOSDATETIMETOVARIANTTIME
 15 stub SAFEARRAYCREATE
-16 stub SAFEARRAYDESTROY
+16 pascal SafeArrayDestroy(segptr) SafeArrayDestroy16
 17 pascal -ret16 SafeArrayGetDim(ptr) SafeArrayGetDim16
 18 pascal -ret16 SafeArrayGetElemsize(ptr) SafeArrayGetElemsize16
 19 pascal SafeArrayGetUBound(ptr word ptr) SafeArrayGetUBound16
