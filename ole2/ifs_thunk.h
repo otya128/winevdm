@@ -738,7 +738,7 @@ void map_dispparams16_32(DISPPARAMS *a32, const DISPPARAMS16 *a16);
 #define INMAP_PTR_POINTF32_16(a16, a32) FIXME("INMAP_PTR_POINTF32_16\n")
 #define INMAP_PTR_POINTL16_32(a32, a16) FIXME("INMAP_PTR_POINTL16_32\n")
 #define INMAP_PTR_POINTL32_16(a16, a32) FIXME("INMAP_PTR_POINTL32_16\n")
-#define INMAP_PTR_USHORT16_32(a32, a16) FIXME("INMAP_PTR_USHORT16_32\n")
+#define INMAP_PTR_USHORT16_32(a32, a16) args32_pcFound = *(USHORT*)MapSL(args16_pcFound)
 #define INMAP_PTR_USHORT32_16(a16, a32) FIXME("INMAP_PTR_USHORT32_16\n")
 #define INMAP_PTR_VARIANT16_32(a32, a16) FIXME("INMAP_PTR_VARIANT16_32\n")
 #define INMAP_PTR_VARIANT32_16(a16, a32) FIXME("INMAP_PTR_VARIANT32_16\n")
@@ -1034,4 +1034,7 @@ typedef struct tagSIZEL
 
 #define IFS1632_OVERWRITE_ITypeInfo_Invoke
 HRESULT CDECL ITypeInfo_16_32_Invoke(SEGPTR This, SEGPTR args16_pvInstance, DWORD args16_memid, WORD args16_wFlags, SEGPTR args16_pDispParams, SEGPTR args16_pVarResult, SEGPTR args16_pExcepInfo, SEGPTR args16_puArgErr);
+
+#define IFS1632_OVERWRITE_ITypeLib_FindName
+HRESULT CDECL ITypeLib_16_32_FindName(SEGPTR This, SEGPTR args16_szNameBuf, DWORD args16_lHashVal, SEGPTR args16_ppTInfo, SEGPTR args16_rgMemId, SEGPTR args16_pcFound);
 #endif

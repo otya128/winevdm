@@ -650,6 +650,54 @@ HRESULT CDECL ITypeLib_16_32_IsName(SEGPTR This, SEGPTR args16_szNameBuf, DWORD 
     return result16__;
 }
 #endif
+
+#ifdef IFS1632_OVERWRITE_ITypeLib_FindName
+HRESULT CDECL ITypeLib_16_32_FindName(SEGPTR This, SEGPTR args16_szNameBuf, DWORD args16_lHashVal, SEGPTR args16_ppTInfo, SEGPTR args16_rgMemId, SEGPTR args16_pcFound)
+{
+    ITypeLib *iface32 = (ITypeLib*)get_interface32(This);
+    HRESULT result__ = { 0 };
+    TYP16_HRESULT result16__ = { 0 };
+    OLECHAR *args32_szNameBuf = { 0 };
+    ULONG args32_lHashVal;
+    int i__;
+    void *dst__;
+    ITypeInfo * *args32_ppTInfo;
+    MEMBERID *args32_rgMemId;
+    USHORT args32_pcFound = { 0 };
+    int szNameBufLen = lstrlenA((const char*)MapSL(args16_szNameBuf)) + 1;
+    int widelen = MultiByteToWideChar(CP_ACP, 0, (const char*)MapSL(args16_szNameBuf), szNameBufLen, NULL, 0);
+    args32_szNameBuf = HeapAlloc(GetProcessHeap(), 0, widelen * sizeof(OLECHAR));
+    MultiByteToWideChar(CP_ACP, 0, (const char*)MapSL(args16_szNameBuf), szNameBufLen + 1, args32_szNameBuf, widelen);
+    MAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
+    INMAP_PTR_USHORT16_32(args32_pcFound, args16_pcFound);
+    args32_ppTInfo = IFACE_ALLOC_ARRAY(ITypeInfo *, *(&args32_pcFound));
+    args32_rgMemId = IFACE_ALLOC_ARRAY(MEMBERID, *(&args32_pcFound));
+    TRACE("(%04x:%04x(%p),%08x,%08x,%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_szNameBuf, args16_lHashVal, args16_ppTInfo, args16_rgMemId, args16_pcFound);
+    result__ = (HRESULT)iface32->lpVtbl->FindName(iface32, args32_szNameBuf, args32_lHashVal, args32_ppTInfo, args32_rgMemId, &args32_pcFound);
+    MAP_HRESULT32_16(result16__, result__);
+    UNMAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
+    WideCharToMultiByte(CP_ACP, 0, args32_szNameBuf, widelen, (const char*)MapSL(args16_szNameBuf), szNameBufLen, NULL, NULL);
+    HeapFree(GetProcessHeap(), 0, args32_szNameBuf);
+    dst__ = MapSL(args16_ppTInfo);
+    for (i__ = 0; i__ < (*(&args32_pcFound)); i__++)
+    {
+        ((SEGPTR*)(dst__))[i__] = iface32_16(&IID_ITypeInfo, args32_ppTInfo[i__]);
+    }
+    IFACE_FREE_ARRAY(args32_ppTInfo);
+    dst__ = MapSL(args16_rgMemId);
+    for (i__ = 0; i__ < (*(&args32_pcFound)); i__++)
+    {
+        MAP_MEMBERID32_16((((TYP16_MEMBERID*)(dst__))[i__]), args32_rgMemId[i__]);
+    }
+    IFACE_FREE_ARRAY(args32_rgMemId);
+    if (args16_pcFound)
+    {
+        OUTMAP_USHORT32_16((*(TYP16_USHORT*)MapSL(args16_pcFound)), args32_pcFound);
+    }
+    return result16__;
+}
+#endif
+
 #ifdef IFS3216_OVERWRITE_ITypeLib_IsName
 HRESULT STDMETHODCALLTYPE ITypeLib_32_16_IsName(ITypeLib *This, LPOLESTR szNameBuf, ULONG lHashVal, BOOL *pfName)
 {
