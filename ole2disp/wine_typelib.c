@@ -4373,6 +4373,43 @@ static void SLTG_ProcessEnum(char *pBlk, ITypeInfoImpl *pTI,
   SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, NULL);
 }
 
+static void SLTG_DoModuleEntry(char *pNameTable, ITypeInfoImpl *pTI, int count, int size, char *base)
+{
+    SLTG_ModuleEntryInfo *pEntry = (SLTG_ModuleEntryInfo*)(base + size);
+    TLBString *dllname = NULL;
+    int i = 0;
+    for (i = count - 1; i >= 0; i--)
+    {
+        TLBString *name = SLTG_ReadName(pNameTable, pEntry->module - 1, pTI->pTypeLib);
+        if (!dllname)
+        {
+            dllname = name;
+        }
+        else if (wcscmp(name->str, dllname->str))
+        {
+            FIXME("%s != %s\n", debugstr_w(name->str), debugstr_w(dllname->str));
+        }
+        if (pEntry->is_ord)
+        {
+            TRACE_(typelib)("rel off = %04x, module=%s, entry=%d, %04x\n", (size_t)pEntry - (size_t)base, debugstr_w(name->str), pEntry->ord_or_entry_offs, pEntry->prev_offset);
+            pTI->funcdescs[i].Entry = (TLBString*)pEntry->ord_or_entry_offs;
+        }
+        else
+        {
+            char *n = base + pEntry->ord_or_entry_offs;
+            TRACE_(typelib)("rel off = %04x, module=%s, entry=%s, %04x\n", (size_t)pEntry - (size_t)base, debugstr_w(name->str), n, pEntry->prev_offset);
+            pTI->funcdescs[i].Entry = SLTG_ReadName(pNameTable, n - pNameTable, pTI->pTypeLib);
+        }
+        if (pEntry->prev_offset == 0xffff)
+            break;
+        pEntry = (SLTG_ModuleEntryInfo*)(base + pEntry->prev_offset);
+    }
+    if (dllname)
+    {
+        pTI->DllName = dllname;
+    }
+}
+
 static void SLTG_ProcessModule(char *pBlk, ITypeInfoImpl *pTI,
 			       char *pNameTable, SLTG_TypeInfoHeader *pTIHeader,
 			       const SLTG_TypeInfoTail *pTITail)
@@ -4387,6 +4424,10 @@ static void SLTG_ProcessModule(char *pBlk, ITypeInfoImpl *pTI,
 
   if (pTITail->funcs_off != 0xffff)
     SLTG_DoFuncs(pBlk, pBlk + pTITail->funcs_off, pTI, pTITail->cFuncs, pNameTable, ref_lookup);
+
+  if (pTITail->cFuncs != 0)
+    SLTG_DoModuleEntry(pNameTable, pTI, pTITail->cFuncs, pTITail->module_entry_info_size, (char*)pTITail + pTITail->module_entry_info_off - 2);
+
   heap_free(ref_lookup);
   if (TRACE_ON(typelib))
     dump_TypeInfo(pTI);

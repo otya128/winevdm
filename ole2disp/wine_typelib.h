@@ -451,6 +451,10 @@ typedef struct {
 /*30*/  WORD res30; /* always ffff */
 /*32*/  WORD res32;
 /*34*/  WORD res34;
+/*36*/  BYTE module_entry_info_off;
+/*37*/  BYTE res37;
+/*38*/  WORD res38;
+/*3a*/  WORD module_entry_info_size;
 } SLTG_TypeInfoTail;
 
 typedef struct {
@@ -593,6 +597,19 @@ WORD offset from start of block to SAFEARRAY
 WORD typeofarray
 */
 
+
+typedef struct
+{
+    WORD is_ord;
+    WORD module;
+    WORD ord_or_entry_offs;
+    WORD prev_offset;
+    WORD res0a;/* always 0 */
+    WORD res0c;/* always 0 */
+    WORD res0e;/* always 0 */
+    WORD res10;/* always 0 */
+    /* 2-byte aligned null-terminated string (is_ord = 0) */
+} SLTG_ModuleEntryInfo;
 #include "poppack.h"
 
 HRESULT ITypeInfoImpl_GetInternalFuncDesc( ITypeInfo *iface, UINT index, const FUNCDESC **ppFuncDesc ) DECLSPEC_HIDDEN;
