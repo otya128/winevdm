@@ -4692,6 +4692,16 @@ static ITypeLib2* ITypeLib2_Constructor_SLTG(LPVOID pLib, DWORD dwTLBLength)
       case TKIND_COCLASS:
 	SLTG_ProcessCoClass((char *)(pMemHeader + 1), *ppTypeInfoImpl, pNameTable,
                             pTIHeader, pTITail);
+    {
+        TLBRefType *ref_type, *ref_type_next;
+        LIST_FOR_EACH_ENTRY_SAFE(ref_type, ref_type_next, &(*ppTypeInfoImpl)->pTypeLib->ref_list, TLBRefType, entry)
+        {
+            if (ref_type->index == (*ppTypeInfoImpl)->index)
+            {
+                (*ppTypeInfoImpl)->hreftype = ref_type->reference;
+            }
+        }
+    }
 	break;
 
       case TKIND_ALIAS:
