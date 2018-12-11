@@ -96,7 +96,7 @@ SEGPTR iface32_16(REFIID riid, void *iface32)
                 TRACE("32-bit interface %p is not %04x:%04x(%.*s)\n", iface32, SELECTOROF(s), OFFSETOF(s), strstr(result->vtbl16[0].name, "::") - result->vtbl16[0].name, result->vtbl16[0].name);
             }
         }
-        if (interface16_instances[i] && interface16_instances[i]->lpVtbl == iface32)
+        if (interface16_instances[i] && interface16_instances[i]->iface32 == iface32)
         {
             s = MapLS(&interface16_instances[i]->lpVtbl);
             if (is_iunk || !memcmp(interface16_instances[i]->riid, riid, sizeof(IID)))
