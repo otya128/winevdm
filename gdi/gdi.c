@@ -71,6 +71,15 @@ struct dib_driver
     DWORD       padding;
 };
 static struct list dib_drivers = LIST_INIT(dib_drivers);
+
+static COLORREF check_colorref(COLORREF color)
+{
+    int type = color >> 16;
+    if ((type != 0x10ff) && ((type & 0xf00) != 0x100) && ((type & 0xf00) != 0x200))
+        color &= 0xffffff;
+    return color;
+}
+
 /*
  * ############################################################################
  */
@@ -677,7 +686,7 @@ static struct window_surface *create_surface( const BITMAPINFO *info )
  */
 COLORREF WINAPI SetBkColor16( HDC16 hdc, COLORREF color )
 {
-    return SetBkColor( HDC_32(hdc), color );
+    return SetBkColor( HDC_32(hdc), check_colorref(color) );
 }
 
 
@@ -752,7 +761,7 @@ INT16 WINAPI SetTextCharacterExtra16( HDC16 hdc, INT16 extra )
  */
 COLORREF WINAPI SetTextColor16( HDC16 hdc, COLORREF color )
 {
-    return SetTextColor( HDC_32(hdc), color );
+    return SetTextColor( HDC_32(hdc), check_colorref(color) );
 }
 
 
@@ -924,7 +933,7 @@ BOOL16 WINAPI Ellipse16( HDC16 hdc, INT16 left, INT16 top,
  */
 BOOL16 WINAPI FloodFill16( HDC16 hdc, INT16 x, INT16 y, COLORREF color )
 {
-    return ExtFloodFill( HDC_32(hdc), x, y, color, FLOODFILLBORDER );
+    return ExtFloodFill( HDC_32(hdc), x, y, check_colorref(color), FLOODFILLBORDER );
 }
 
 
@@ -983,10 +992,7 @@ INT16 WINAPI SaveDC16( HDC16 hdc )
  */
 COLORREF WINAPI SetPixel16( HDC16 hdc, INT16 x, INT16 y, COLORREF color )
 {
-    int type = color >> 16;
-    if ((type != 0x10ff) && (type != 0x100) && ((type & 0xf00) != 0x200))
-        color &= 0xffffff;
-    return SetPixel( HDC_32(hdc), x, y, color);
+    return SetPixel( HDC_32(hdc), x, y, check_colorref(color) );
 }
 
 
@@ -1711,7 +1717,7 @@ HRGN16 WINAPI CreateRectRgnIndirect16( const RECT16* rect )
  */
 HBRUSH16 WINAPI CreateSolidBrush16( COLORREF color )
 {
-    return HBRUSH_16( CreateSolidBrush( color ) );
+    return HBRUSH_16( CreateSolidBrush( check_colorref(color) ) );
 }
 
 
