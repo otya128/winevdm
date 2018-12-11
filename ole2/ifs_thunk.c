@@ -569,14 +569,19 @@ void map_tlibattr32_16(TLIBATTR16 *a16, const TLIBATTR *a32)
     a16->wMinorVerNum = a32->wMinorVerNum;
 }
 
+static int dynamic_SysStringLen16(SEGPTR bstr);
 void map_bstr16_32(BSTR *a32, const SEGPTR *a16)
 {
+    int len16, len32;
     if (!*a16)
     {
         *a32 = NULL;
         return;
     }
-    FIXME("\n");
+    len16 = dynamic_SysStringLen16(*a16);
+    len32 = MultiByteToWideChar(CP_ACP, 0, MapSL(*a16), len16, NULL, 0);
+    *a32 = SysAllocStringLen(NULL, len32);
+    MultiByteToWideChar(CP_ACP, 0, MapSL(*a16), len16 + 1, *a32, len32 + 1);
 }
 
 #include <pshpack1.h>
@@ -1227,6 +1232,74 @@ void map_variant32_16(VARIANT16 *dst, const VARIANT *src)
     }
     else
     {
+        if (e & VT_ARRAY)
+        {
+            FIXME("VT_ARRAY\n");
+        }
+        if (e & VT_VECTOR)
+        {
+            FIXME("VT_VECTOR\n");
+        }
+        if (e & VT_BYREF)
+        {
+            switch (t)
+            {
+            case VT_EMPTY:
+            case VT_NULL:
+            case VT_VOID:
+                break;
+            case VT_I2:
+            case VT_I4:
+            case VT_R4:
+            case VT_R8:
+            case VT_CY:
+            case VT_DATE:
+            case VT_ERROR:
+            case VT_BOOL:
+            case VT_I1:
+            case VT_UI1:
+            case VT_UI2:
+            case VT_UI4:
+            case VT_I8:
+            case VT_UI8:
+            case VT_INT:
+            case VT_UINT:
+            case VT_HRESULT:
+                dst->plVal = MapLS(src->plVal);
+                return;
+            case VT_DECIMAL:
+                return;
+            case VT_DISPATCH:
+            case VT_BSTR:
+            case VT_UNKNOWN:
+            case VT_VARIANT:
+            case VT_PTR:
+            case VT_SAFEARRAY:
+            case VT_CARRAY:
+            case VT_USERDEFINED:
+            case VT_LPSTR:
+            case VT_LPWSTR:
+            case VT_RECORD:
+            case VT_INT_PTR:
+            case VT_UINT_PTR:
+            case VT_FILETIME:
+            case VT_BLOB:
+            case VT_STREAM:
+            case VT_STORAGE:
+            case VT_STREAMED_OBJECT:
+            case VT_STORED_OBJECT:
+            case VT_BLOB_OBJECT:
+            case VT_CF:
+            case VT_CLSID:
+            case VT_VERSIONED_STREAM:
+            case VT_BSTR_BLOB:
+                FIXME("unsupported %s\n", debugstr_vt(src->vt));
+                break;
+            default:
+                FIXME("unknown %s\n", debugstr_vt(src->vt));
+                return;
+            }
+        }
         switch (t)
         {
         case VT_EMPTY:
@@ -1254,10 +1327,16 @@ void map_variant32_16(VARIANT16 *dst, const VARIANT *src)
             break;
         case VT_DECIMAL:
             break;
-        case VT_BSTR:
         case VT_DISPATCH:
-        case VT_VARIANT:
+            dst->pdispVal = iface32_16(&IID_IDispatch, src->pdispVal);
+            break;
+        case VT_BSTR:
+            map_bstr32_16(&dst->bstrVal, &src->bstrVal);
+            break;
         case VT_UNKNOWN:
+            dst->punkVal = iface32_16(&IID_IUnknown, src->punkVal);
+            break;
+        case VT_VARIANT:
         case VT_PTR:
         case VT_SAFEARRAY:
         case VT_CARRAY:
@@ -1278,10 +1357,10 @@ void map_variant32_16(VARIANT16 *dst, const VARIANT *src)
         case VT_CLSID:
         case VT_VERSIONED_STREAM:
         case VT_BSTR_BLOB:
-            FIXME("unsupported \n", debugstr_vt(src->vt));
+            FIXME("unsupported %s\n", debugstr_vt(src->vt));
             break;
         default:
-            FIXME("unknown \n", debugstr_vt(src->vt));
+            FIXME("unknown %s\n", debugstr_vt(src->vt));
             return;
         }
     }
@@ -1315,6 +1394,74 @@ void map_variant16_32(VARIANT *dst, const VARIANT16 *src)
     }
     else
     {
+        if (e & VT_ARRAY)
+        {
+            FIXME("VT_ARRAY\n");
+        }
+        if (e & VT_VECTOR)
+        {
+            FIXME("VT_VECTOR\n");
+        }
+        if (e & VT_BYREF)
+        {
+            switch (t)
+            {
+            case VT_EMPTY:
+            case VT_NULL:
+            case VT_VOID:
+                break;
+            case VT_I2:
+            case VT_I4:
+            case VT_R4:
+            case VT_R8:
+            case VT_CY:
+            case VT_DATE:
+            case VT_ERROR:
+            case VT_BOOL:
+            case VT_I1:
+            case VT_UI1:
+            case VT_UI2:
+            case VT_UI4:
+            case VT_I8:
+            case VT_UI8:
+            case VT_INT:
+            case VT_UINT:
+            case VT_HRESULT:
+                dst->plVal = MapSL(src->plVal);
+                return;
+            case VT_DECIMAL:
+                return;
+            case VT_DISPATCH:
+            case VT_BSTR:
+            case VT_UNKNOWN:
+            case VT_VARIANT:
+            case VT_PTR:
+            case VT_SAFEARRAY:
+            case VT_CARRAY:
+            case VT_USERDEFINED:
+            case VT_LPSTR:
+            case VT_LPWSTR:
+            case VT_RECORD:
+            case VT_INT_PTR:
+            case VT_UINT_PTR:
+            case VT_FILETIME:
+            case VT_BLOB:
+            case VT_STREAM:
+            case VT_STORAGE:
+            case VT_STREAMED_OBJECT:
+            case VT_STORED_OBJECT:
+            case VT_BLOB_OBJECT:
+            case VT_CF:
+            case VT_CLSID:
+            case VT_VERSIONED_STREAM:
+            case VT_BSTR_BLOB:
+                FIXME("unsupported %s\n", debugstr_vt(src->vt));
+                break;
+            default:
+                FIXME("unknown %s\n", debugstr_vt(src->vt));
+                return;
+            }
+        }
         switch (t)
         {
         case VT_EMPTY:
@@ -1342,10 +1489,16 @@ void map_variant16_32(VARIANT *dst, const VARIANT16 *src)
             break;
         case VT_DECIMAL:
             break;
-        case VT_BSTR:
         case VT_DISPATCH:
-        case VT_VARIANT:
+            dst->pdispVal = (IDispatch*)iface16_32(&IID_IDispatch, src->pdispVal);
+            break;
+        case VT_BSTR:
+            map_bstr16_32(&dst->bstrVal, &src->bstrVal);
+            break;
         case VT_UNKNOWN:
+            dst->punkVal = (IUnknown*)iface16_32(&IID_IUnknown, src->punkVal);
+            break;
+        case VT_VARIANT:
         case VT_PTR:
         case VT_SAFEARRAY:
         case VT_CARRAY:
@@ -1366,10 +1519,10 @@ void map_variant16_32(VARIANT *dst, const VARIANT16 *src)
         case VT_CLSID:
         case VT_VERSIONED_STREAM:
         case VT_BSTR_BLOB:
-            FIXME("unsupported \n", debugstr_vt(src->vt));
+            FIXME("unsupported %s\n", debugstr_vt(src->vt));
             break;
         default:
-            FIXME("unknown \n", debugstr_vt(src->vt));
+            FIXME("unknown %s\n", debugstr_vt(src->vt));
             return;
         }
     }
@@ -1462,6 +1615,19 @@ static void dynamic_SysFreeString16(SEGPTR bstr)
         return;
     pSysFreeString16(bstr);
 }
+
+static int dynamic_SysStringLen16(SEGPTR bstr)
+{
+    static int (WINAPI*pSysStringLen16)(SEGPTR);
+    if (!pSysStringLen16)
+    {
+        pSysStringLen16 = GetProcAddress(get_hmodule_helper("OLE2DISP.DLL16"), "SysStringLen16");
+    }
+    if (!pSysStringLen16)
+        return 0;
+    return pSysStringLen16(bstr);
+}
+
 
 void free_excepinfo16(const EXCEPINFO16 *a16)
 {
