@@ -1028,18 +1028,23 @@ void map_bindptr16_32(BINDPTR *a32, const BINDPTR16 *a16, const DESCKIND kind)
     switch (kind)
     {
     case DESCKIND_NONE:
+        TRACE("DESCKIND_NONE\n");
         break;
     case DESCKIND_VARDESC:
+        TRACE("DESCKIND_VARDESC\n");
         a32->lpvardesc = map_vardesc32((VARDESC16*)MapSL(a16->lpvardesc));
         break;
     case DESCKIND_FUNCDESC:
+        TRACE("DESCKIND_FUNCDESC\n");
         a32->lpfuncdesc = map_funcdesc32((FUNCDESC16*)MapSL(a16->lpfuncdesc));
         break;
     case DESCKIND_TYPECOMP:
+        TRACE("DESCKIND_TYPECOMP\n");
         a32->lptcomp = (ITypeComp*)iface16_32(&IID_ITypeComp, a16->lptcomp);
         break;
     case DESCKIND_IMPLICITAPPOBJ:
-        FIXME("DESCKIND_IMPLICITAPPOBJ\n");
+        TRACE("DESCKIND_IMPLICITAPPOBJ\n");
+        a32->lpvardesc = map_vardesc32((VARDESC16*)MapSL(a16->lpvardesc));
         break;
     default:
         FIXME("unknown DESCKIND %d\n", kind);
@@ -1052,18 +1057,23 @@ void map_bindptr32_16(BINDPTR16 *a16, const BINDPTR *a32, TYP16_DESCKIND kind)
     switch (kind)
     {
     case DESCKIND_NONE:
+        TRACE("DESCKIND_NONE\n");
         break;
     case DESCKIND_VARDESC:
+        TRACE("DESCKIND_VARDESC\n");
         a16->lpvardesc = MapLS(map_vardesc16(a32->lpvardesc));
         break;
     case DESCKIND_FUNCDESC:
+        TRACE("DESCKIND_FUNCDESC\n");
         a16->lpfuncdesc = MapLS(map_funcdesc16(a32->lpfuncdesc));
         break;
     case DESCKIND_TYPECOMP:
+        TRACE("DESCKIND_TYPECOMP\n");
         a16->lptcomp = iface32_16(&IID_ITypeComp, a32->lptcomp);
         break;
     case DESCKIND_IMPLICITAPPOBJ:
-        FIXME("DESCKIND_IMPLICITAPPOBJ\n");
+        TRACE("DESCKIND_IMPLICITAPPOBJ\n");
+        a16->lpvardesc = MapLS(map_vardesc16(a32->lpvardesc));
         break;
     default:
         FIXME("unknown DESCKIND %d\n", kind);
