@@ -642,12 +642,13 @@ HRESULT CDECL ITypeLib_16_32_IsName(SEGPTR This, SEGPTR args16_szNameBuf, DWORD 
     args32_szNameBuf = HeapAlloc(GetProcessHeap(), 0, widelen * sizeof(OLECHAR));
     MultiByteToWideChar(CP_ACP, 0, (const char*)MapSL(args16_szNameBuf), szNameBufLen + 1, args32_szNameBuf, widelen);
     MAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
-    TRACE("(%04x:%04x(%p),%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_szNameBuf, args16_lHashVal, args16_pfName);
+    TRACE("(%04x:%04x(%p),%s,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, MapSL(args16_szNameBuf), args16_lHashVal, args16_pfName);
     result__ = (HRESULT)iface32->lpVtbl->IsName(iface32, args32_szNameBuf, args32_lHashVal, &args32_pfName);
     MAP_HRESULT32_16(result16__, result__);
     UNMAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
     WideCharToMultiByte(CP_ACP, 0, args32_szNameBuf, widelen, (const char*)MapSL(args16_szNameBuf), szNameBufLen, NULL, NULL);
     HeapFree(GetProcessHeap(), 0, args32_szNameBuf);
+    TRACE("(%s,%s)\n", MapSL(args16_szNameBuf), args32_pfName ? "TRUE" : "FALSE");
     if (args16_pfName)
     {
         MAP_BOOL32_16((*(TYP16_BOOL*)MapSL(args16_pfName)), args32_pfName);
@@ -759,6 +760,7 @@ void map_idldesc32_16(IDLDESC16 *a16, const IDLDESC *a32)
 {
     map_bstr32_16(&a16->bstrIDLInfo, a32);
     a16->wIDLFlags = a32->wIDLFlags;
+    TRACE("(%04x)\n", a16->wIDLFlags);
 }
 void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32)
 {
@@ -770,6 +772,7 @@ void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32)
         TYPEDESC16 *typ = (TYPEDESC16*)HeapAlloc(GetProcessHeap(), 0, sizeof(TYPEDESC16));
         map_typedesc32_16(typ, a32->lptdesc);
         a16->lptdesc = MapLS(typ);
+        TRACE("VT_PTR\n");
         break;
     }
     case VT_CARRAY:
@@ -777,13 +780,16 @@ void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32)
         ARRAYDESC16 *ary = (ARRAYDESC16*)HeapAlloc(GetProcessHeap(), 0, sizeof(ARRAYDESC16) - sizeof(SAFEARRAYBOUND16) * (a32->lpadesc->cDims - 1));
         map_arraydesc32_16(ary, a32->lpadesc);
         a16->lpadesc = MapLS(ary);
+        TRACE("VT_CARRAY\n");
         break;
     }
     case VT_USERDEFINED:
         a16->hreftype = a32->hreftype;
+        TRACE("VT_USERDEFINED hreftype:%08x\n", a16->hreftype);
         break;
     default:
         a16->hreftype = 0xdeadbeef;
+        TRACE("%s\n", debugstr_vt(a16->vt));
         break;
     }
 }
@@ -791,6 +797,7 @@ void map_elemdesc32_16(ELEMDESC16 *a16, const ELEMDESC *a32)
 {
     map_typedesc32_16(&a16->tdesc, &a32->tdesc);
     map_idldesc32_16(&a16->idldesc, &a32->idldesc);
+    TRACE("\n");
 }
 FUNCDESC16 *map_funcdesc16(const FUNCDESC *a32)
 {
@@ -938,6 +945,11 @@ TYPEATTR16 *map_typeattr32_16(const TYPEATTR *a32)
     a16->wTypeFlags = a32->wTypeFlags;
     a16->wMajorVerNum = a32->wMajorVerNum;
     a16->wMinorVerNum = a32->wMinorVerNum;
+    TRACE("{guid:%s,lcid:0x%04x,dwReserved:%d,memidConstructor:0x%08x,memidDestructor:0x%08x,lpstrSchema:%08x"
+        ",typekind:%d,cFuncs:%d,cVars:%d,cImplTypes:%d,cbSizeVft:%d,cbAlignment:%d,wTypeFlags:0x%04x,wMajorVerNum:%d,wMinorVerNum:%d}\n",
+        debugstr_guid(&a16->guid), a16->lcid, a16->dwReserved, a16->memidConstructor,
+        a16->memidDestructor, a16->lpstrSchema, a16->typekind, a16->cFuncs, a16->cVars, 
+        a16->cImplTypes, a16->cbSizeVft, a16->cbAlignment, a16->wTypeFlags, a16->wMajorVerNum, a16->wMinorVerNum);
     map_typedesc32_16(&a16->tdescAlias, &a32->tdescAlias);
     map_idldesc32_16(&a16->idldescType, &a32->idldescType);
     return a16;
@@ -1016,6 +1028,7 @@ VARDESC16 *map_vardesc16(const VARDESC *a32)
     {
         a16->oInst = a32->oInst;
     }
+    TRACE("{memid:0x%08x,lpstrSchema:%d,wVarFlags:0x%04x,varkind:%d,lpvarValue:0x%08x}\n", a16->memid, a16->lpstrSchema, a16->wVarFlags, a16->varkind, a16->lpvarValue);
     return a16;
 }
 
@@ -1100,7 +1113,7 @@ HRESULT CDECL ITypeComp_16_32_Bind(SEGPTR This, SEGPTR args16_szName, DWORD args
     MAP_LPOLESTR16_32(args32_szName, args16_szName);
     MAP_ULONG16_32(args32_lHashVal, args16_lHashVal);
     MAP_WORD16_32(args32_wFlags, args16_wFlags);
-    TRACE("(%04x:%04x(%p),%08x,%08x,%08x,%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_szName, args16_lHashVal, args16_wFlags, args16_ppTInfo, args16_pDescKind, args16_pBindPtr);
+    TRACE("(%04x:%04x(%p),%s,%08x,%08x,%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, MapSL(args16_szName), args16_lHashVal, args16_wFlags, args16_ppTInfo, args16_pDescKind, args16_pBindPtr);
     result__ = (HRESULT)iface32->lpVtbl->Bind(iface32, args32_szName, args32_lHashVal, args32_wFlags, &args32_ppTInfo, &args32_pDescKind, &args32_pBindPtr);
     MAP_HRESULT32_16(result16__, result__);
     UNMAP_LPOLESTR16_32(args32_szName, args16_szName);
