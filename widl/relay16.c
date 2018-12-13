@@ -215,7 +215,8 @@ static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, con
 {
     enum type_type typtyp1 = type_get_type(t);
     enum type_conv_map type_conv_map = (enum type_conv_map)unmap;
-    if (typtyp1 == TYPE_BASIC && !t->is_alias)
+    int is_out = type_conv_map == TYPE_CONV_OUTMAP || type_conv_map == TYPE_CONV_OUTMAP_MAPSL;
+    if (!is_out && typtyp1 == TYPE_BASIC && !t->is_alias)
     {
         switch (type_basic_get_type(t))
         {
@@ -246,7 +247,7 @@ static void write_type_conv3216(FILE *h, type_t *t, const char *expr_prefix, con
     }
     type_t *typ2 = typtyp1 == TYPE_POINTER ? type_pointer_get_ref(t) : NULL;
     enum type_type typtyp2 = typ2 ? type_get_type(typ2) : -1;
-    if (typtyp2 == TYPE_INTERFACE)
+    if (!is_out && typtyp2 == TYPE_INTERFACE)
     {
         if (type_conv_map == TYPE_CONV_UNMAP)
             return;
