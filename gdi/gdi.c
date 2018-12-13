@@ -74,21 +74,23 @@ static struct list dib_drivers = LIST_INIT(dib_drivers);
 
 // on windows 3.1 in 8bit color mode:
 // RGB() is matched to the 20 system colors
-// PALETTEINDEX() is a direct index to the hdc palette, 0 if out of range
-// PALETTERGB() is matched to the hdc palette
-// DIBINDEX() doesn't exist
-// color is treated as RGB() unless high byte is exactly 1 or 2
+// PALETTEINDEX() is a direct index to the dc palette, 0 if out of range
+// PALETTERGB() is matched to the dc palette
+// DIBINDEX() only applies to dib.drv dcs
+// color is treated as RGB() unless high byte is exactly 1, 2 or high word 0x10ff for DIBINDEX()
 //
 // on windows 10 in 24bit color mode:
 // RGB() is the direct color
-// PALETTEINDEX() is a direct index to the hdc palette, 0 if out of range
+// PALETTEINDEX() is a direct index to the dc palette, 0 if out of range
 // PALETTERGB() is the direct color
-// DIBINDEX() is 0 for non-dib hdcs
-// color is treated as PALETTEINDEX() if low bit of high byte is set
+// DIBINDEX() is 0 for non-dib dcs
+// color is treated as PALETTEINDEX() if bit 16 is set else DIBINDEX() if bit 24 is set and byte 3 is 0xff
+//
+// ntvdm in 8bit color mode behaves like win3.1 with DIBINDEX()
 static COLORREF check_colorref(COLORREF color)
 {
-    int type = (color >> 24);
-    if ((type != 1) && (type != 2))
+    int type = color >> 16;
+    if ((type != 0x10ff) && ((type & 0xff00) != 0x100) && ((type & 0xff00) != 0x200))
         color &= 0xffffff;
     return color;
 }
