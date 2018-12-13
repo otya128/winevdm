@@ -490,7 +490,8 @@ void map_oleverb32_16(OLEVERB16* a16, const OLEVERB *a32);
 
 #define INMAP_PTR_BIND_OPTS16_32(a32, a16) FIXME("\n")
 #define INMAP_PTR_BIND_OPTS32_16(a16, a32) FIXME("\n")
-#define INMAP_PTR_PTR_IFACE_IMoniker16_32(a32, a16) FIXME("\n")
+#define INMAP_PTR_PTR_IFACE_IMoniker16_32(a32, a16) a32 = (IMoniker*)iface16_32(&IID_IMoniker, *(SEGPTR*)MapSL(a16))
+#define OUTMAP_PTR_IFACE_IMoniker32_16(a16, a32) a16 = iface32_16(&IID_IMoniker, a32)
 #define INMAP_PTR_PTR_IFACE_IMoniker32_16(a16, a32) FIXME("\n")
 #define INMAP_PTR_STGMEDIUM16_32(a32, a16) map_stgmedium16_32(&a32, a16)
 #define INMAP_PTR_STGMEDIUM32_16(a16, a32) map_stgmedium32_16(&a16, a32)
