@@ -1032,6 +1032,9 @@ typedef struct tagSIZEL
 #define MAP_STRUCT_tagSIZEL16_32(a32, a16) *(SIZEL*)&a32 = *(SIZEL*)&a16
 #define MAP_STRUCT_tagSIZEL32_16(a16, a32) *(SIZEL*)&a16 = *(SIZEL*)&a32
 
+#define IFS1632_OVERWRITE_ITypeInfo_AddressOfMember
+HRESULT CDECL ITypeInfo_16_32_AddressOfMember(SEGPTR This, DWORD args16_memid, WORD args16_invKind, SEGPTR args16_ppv);
+
 #define IFS1632_OVERWRITE_ITypeInfo_Invoke
 HRESULT CDECL ITypeInfo_16_32_Invoke(SEGPTR This, SEGPTR args16_pvInstance, DWORD args16_memid, WORD args16_wFlags, SEGPTR args16_pDispParams, SEGPTR args16_pVarResult, SEGPTR args16_pExcepInfo, SEGPTR args16_puArgErr);
 

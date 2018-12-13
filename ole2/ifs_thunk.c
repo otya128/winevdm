@@ -1701,3 +1701,28 @@ HRESULT CDECL ITypeInfo_16_32_Invoke(SEGPTR This, SEGPTR args16_pvInstance, DWOR
     return result16__;
 }
 #endif
+
+#ifdef IFS1632_OVERWRITE_ITypeInfo_AddressOfMember
+HRESULT CDECL ITypeInfo_16_32_AddressOfMember(SEGPTR This, DWORD args16_memid, WORD args16_invKind, SEGPTR args16_ppv)
+{
+    ITypeInfo *iface32 = (ITypeInfo*)get_interface32(This);
+    HRESULT result__ = { 0 };
+    TYP16_HRESULT result16__ = { 0 };
+    MEMBERID args32_memid;
+    INVOKEKIND args32_invKind;
+    PVOID args32_ppv = { 0 };
+    MAP_MEMBERID16_32(args32_memid, args16_memid);
+    MAP_INVOKEKIND16_32(args32_invKind, args16_invKind);
+    TRACE("(%04x:%04x(%p),%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_memid, args16_invKind, args16_ppv);
+    result__ = (HRESULT)iface32->lpVtbl->AddressOfMember(iface32, args32_memid, args32_invKind, &args32_ppv);
+    MAP_HRESULT32_16(result16__, result__);
+    UNMAP_MEMBERID16_32(args32_memid, args16_memid);
+    UNMAP_INVOKEKIND16_32(args32_invKind, args16_invKind);
+    if (args16_ppv)
+    {
+        (*(TYP16_PVOID*)MapSL(args16_ppv)) = args32_ppv;
+        /*MAP_PVOID32_16((*(TYP16_PVOID*)MapSL(args16_ppv)), args32_ppv);*/
+    }
+    return result16__;
+}
+#endif
