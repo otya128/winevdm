@@ -124,7 +124,7 @@ static THHOOK *get_thhook(void)
 
 static GLOBALARENA *get_global_arena(void)
 {
-    return *(GLOBALARENA **)get_thhook();
+    return MapSL(MAKESEGPTR(get_thhook()->hGlobalHeap, 0));
 }
 
 static LOCALHEAPINFO *get_local_heap( HANDLE16 ds )
