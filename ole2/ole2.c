@@ -406,10 +406,10 @@ HRESULT WINAPI WriteClassStm16(SEGPTR pStm, REFCLSID rclsid)
 /***********************************************************************
  *              GetConvertStg (OLE2.82)
  */
-HRESULT WINAPI GetConvertStg16(LPSTORAGE stg)
+HRESULT WINAPI GetConvertStg16(SEGPTR stg)
 {
-    FIXME("unimplemented stub!\n");
-    return E_FAIL;
+    TRACE("(%08x)\n", stg);
+    return hresult32_16(GetConvertStg((IStorage*)iface16_32(&IID_IStorage, stg)));
 }
 
 /***********************************************************************

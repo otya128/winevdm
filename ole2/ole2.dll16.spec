@@ -77,7 +77,7 @@
 79 pascal OleDoAutoConvert(ptr ptr) OleDoAutoConvert16
 80 pascal OleGetAutoConvert(ptr ptr) OleGetAutoConvert16
 81 stub OLESETAUTOCONVERT
-82 pascal GetConvertStg(ptr) GetConvertStg16
+82 pascal GetConvertStg(segptr) GetConvertStg16
 83 stub SETCONVERTSTG
 84 pascal CreateStreamOnHGlobal(word word ptr) CreateStreamOnHGlobal16
 85 pascal GetHGlobalFromStream(ptr ptr) GetHGlobalFromStream16
