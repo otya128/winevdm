@@ -2417,6 +2417,70 @@ static LRESULT send_message_timeout_callback( HWND hwnd, UINT msg, WPARAM wp, LP
     }
     return *result;
 }
+typedef struct
+{
+    UINT msg;
+    WPARAM wp;
+    LPARAM lp;
+} send_message_to_same_process_args;
+BOOL CALLBACK send_message_to_same_process(HWND hwnd, LPARAM lp)
+{
+    DWORD pid;
+    DWORD_PTR result;
+    send_message_to_same_process_args *args = (send_message_to_same_process_args*)lp;
+    if (GetWindowThreadProcessId(hwnd, &pid) && pid == GetCurrentProcessId())
+    {
+        SendMessageTimeoutA(hwnd, args->msg, args->wp, args->lp, SMTO_NORMAL, 1000, &result);
+    }
+    return TRUE;
+}
+
+static LRESULT send_message_to_same_process_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
+    LRESULT *result, void *arg)
+{
+    DWORD count;
+    send_message_to_same_process_args args;
+    args.msg = msg;
+    args.wp = wp;
+    args.lp = lp;
+    ReleaseThunkLock(&count);
+    *result = 0;
+    EnumWindows(send_message_to_same_process, &args);
+    RestoreThunkLock(count);
+    return *result;
+}
+/* InstallShield uses SendMessage(HWND_BROADCAST) for IPC */
+LRESULT WINAPI fix_installshield(HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM lparam, BOOL *fixed)
+{
+    char name[256];
+    LRESULT result;
+    static const char *table[] = 
+    {
+        "LZW_IS_CLIENT_ALIVE_SE",
+        "ISDEL_MSG_DELENABLE",
+        "ISDEL_MSG_DELEXISTS",
+        "ISDEL_MSG_DELDONE",
+        "ISMSG16_TERMINATE",
+        "ISMSG32_TERMINATE",
+        "LOGO_MSG_LOGOCLOSE_30",
+        "LOGO_MSG_LOGOSTATUS_30",
+    };
+    *fixed = FALSE;
+    if (!GetClipboardFormatNameA(msg, name, ARRAYSIZE(name)))
+    {
+        return 0;
+    }
+    for (SIZE_T i = 0; i < ARRAYSIZE(table); i++)
+    {
+        if (!strcmp(name, table[i]))
+        {
+            *fixed = TRUE;
+            WINPROC_CallProc16To32A(send_message_to_same_process_callback, hwnd16, msg, wparam, lparam, &result, NULL);
+            return result;
+        }
+    }
+    return 0;
+}
 /***********************************************************************
  *		SendMessage  (USER.111)
  */
@@ -2459,6 +2523,14 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
     }
     else  /* map to 32-bit unicode for inter-thread/process message */
     {
+        if (hwnd == HWND_BROADCAST && msg >= 0xC000)
+        {
+            BOOL fixed = FALSE;
+            LRESULT result;
+            result = fix_installshield(hwnd16, msg, wparam, lparam, &fixed);
+            if (fixed)
+                return result;
+        }
         TRACE_(message)("(0x%04x) to 32-bit [%04x] wp=%04x lp=%08lx\n", hwnd16, msg, wparam, lparam);
         WINPROC_CallProc16To32A( send_message_timeout_callback, hwnd16, msg, wparam, lparam, &result, NULL );
         TRACE_(message)("(0x%04x) to 32-bit [%04x] wp=%04x lp=%08lx returned %08lx\n",
