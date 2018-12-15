@@ -12,7 +12,7 @@
 12 pascal VariantChangeType(ptr ptr word word) VariantChangeType16
 13 stub VARIANTTIMETODOSDATETIME
 14 stub DOSDATETIMETOVARIANTTIME
-15 stub SAFEARRAYCREATE
+15 pascal SafeArrayCreate(word word ptr) SafeArrayCreate16
 16 pascal SafeArrayDestroy(segptr) SafeArrayDestroy16
 17 pascal -ret16 SafeArrayGetDim(ptr) SafeArrayGetDim16
 18 pascal -ret16 SafeArrayGetElemsize(ptr) SafeArrayGetElemsize16

@@ -521,6 +521,8 @@ typedef struct tagDISPPARAMS16
     UINT16 cArgs;
     UINT16 cNamedArgs;
 } 	DISPPARAMS16;
+SEGPTR WINAPI SafeArrayCreate16(VARTYPE vt, UINT16 cDims, SAFEARRAYBOUND16 *rgsabound);
+
 #ifdef AVAIL_32BIT_VAR
 #endif
 #endif /* !defined(__WINE_OLEAUT32_OLE2DISP_H) */

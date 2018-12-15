@@ -425,7 +425,7 @@ HRESULT WINAPI SafeArrayAllocDescriptorEx16(VARTYPE vt, UINT cDims, SEGPTR *ppsa
 
   if (SUCCEEDED(hRet))
   {
-    SAFEARRAY_SetFeatures(vt, *ppsaOut);
+    SAFEARRAY_SetFeatures(vt, ((SAFEARRAY16*)MapSL(*ppsaOut)));
     ((SAFEARRAY16*)MapSL(*ppsaOut))->cbElements = cbElements;
   }
   return hRet;
@@ -463,6 +463,17 @@ static SEGPTR SAFEARRAY_Create(VARTYPE vt, UINT cDims, const SAFEARRAYBOUND16 *r
   }
   return psa;
 }
+
+SEGPTR WINAPI SafeArrayCreate16(VARTYPE vt, UINT16 cDims, SAFEARRAYBOUND16 *rgsabound)
+{
+    TRACE("(%d->%s,%d,%p)\n", vt, debugstr_vt(vt), cDims, rgsabound);
+
+    if (vt == VT_RECORD)
+        return 0;
+
+    return SAFEARRAY_Create(vt, cDims, rgsabound, 0);
+}
+
 /************************************************************************
  *		VectorFromBstr (OLEAUT32.@)
  *
