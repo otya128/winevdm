@@ -7651,7 +7651,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
                         SEGPTR userdefined_iface;
                         GUID guid;
 
-                        hres = hreuslt32_16(get_iface_guid((ITypeInfo*)iface, tdesc->vt == VT_PTR ? tdesc->u.lptdesc : tdesc, &guid));
+                        hres = hresult32_16(get_iface_guid((ITypeInfo*)iface, tdesc->vt == VT_PTR ? tdesc->u.lptdesc : tdesc, &guid));
                         if(FAILED(hres))
                             break;
 
@@ -7807,7 +7807,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
                 {
                     IErrorInfo *pErrorInfo;
                     pExcepInfo->scode = V_ERROR(&varresult);
-                    if (GetErrorInfo16(0, &pErrorInfo) == S_OK)
+                    if (GetErrorInfo(0, &pErrorInfo) == S_OK)
                     {
                         EXCEPINFO excepinfo32 = { 0 };
                         IErrorInfo_GetDescription(pErrorInfo, &excepinfo32.bstrDescription);
