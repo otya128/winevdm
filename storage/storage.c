@@ -153,6 +153,17 @@ HRESULT WINAPI StgOpenStorageOnILockBytes16(
     return result;
 }
 
+HRESULT WINAPI StgSetTimes16(char const *lpszName, FILETIME const *pctime, FILETIME const *patime, FILETIME const *pmtime)
+{
+    HRESULT result;
+    const WCHAR *lpwszName;
+    TRACE("(%s,%p,%p,%p)\n", debugstr_a(lpszName), pctime, patime, pmtime);
+    lpwszName = strdupAtoW(lpszName);
+    result = StgSetTimes(lpwszName, pctime, patime, pmtime);
+    HeapFree(GetProcessHeap(), 0, lpwszName);
+    return hresult32_16(result);
+}
+
 #if 0
 #include "ifs.h"
 WINE_DEFAULT_DEBUG_CHANNEL(ole);

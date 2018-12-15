@@ -8,7 +8,7 @@
 4 pascal StgOpenStorageOnILockBytes(segptr segptr long ptr long ptr) StgOpenStorageOnILockBytes16
 5 pascal StgIsStorageFile(str) StgIsStorageFile16
 6 pascal StgIsStorageILockBytes(segptr) StgIsStorageILockBytes16
-7 stub StgSetTimes
+7 pascal StgSetTimes(str ptr ptr ptr) StgSetTimes16
 #8 WEP
 #9 ___EXPORTEDSTUB
 103 stub DllGetClassObject
