@@ -6810,7 +6810,7 @@ DispCallFunc16(
     if (cc != /*CC_STDCALL*/CC_MSCPASCAL && cc != CC_CDECL)
     {
         FIXME("unsupported calling convention %d\n",cc);
-        return E_INVALIDARG;
+        return E_INVALIDARG16;
     }
 
     /* maximum size for an argument is sizeof(VARIANT) */
@@ -6890,7 +6890,7 @@ DispCallFunc16(
     case VT_HRESULT:
         WARN("invalid return type %u\n", vtReturn);
         heap_free( args );
-        return E_INVALIDARG;
+        return E_INVALIDARG16;
     default:
         V_UI4(pvargResult) = call_method( func, argspos - 2, args + 2, &stack_offset );
         break;
@@ -7389,7 +7389,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
     if (!pDispParams)
     {
         ERR("NULL pDispParams not allowed\n");
-        return E_INVALIDARG;
+        return E_INVALIDARG16;
     }
 
     dump_DispParms16(pDispParams);
@@ -7398,7 +7398,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
     {
         ERR("named argument array cannot be bigger than argument array (%d/%d)\n",
             pDispParams->cNamedArgs, pDispParams->cArgs);
-        return E_INVALIDARG;
+        return E_INVALIDARG16;
     }
 
     /* we do this instead of using GetFuncDesc since it will return a fake
@@ -7455,7 +7455,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
             for (i = 0; i < func_desc->cParams; i++)
             {
                 TYPEDESC *tdesc = &func_desc->lprgelemdescParam[i].tdesc;
-                hres = typedescvt_to_variantvt((ITypeInfo *)iface, tdesc, &rgvt[i]);
+                hres = hresult32_16(typedescvt_to_variantvt((ITypeInfo *)iface, tdesc, &rgvt[i]));
                 if (FAILED(hres))
                     goto func_fail;
             }
@@ -7525,7 +7525,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
                     else
                     {
                         ERR("[retval] parameter must be the last parameter of the method (%d/%d)\n", i, func_desc->cParams);
-                        hres = E_UNEXPECTED;
+                        hres = E_UNEXPECTED16;
                         break;
                     }
                 }
@@ -7631,7 +7631,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
                         SEGPTR userdefined_iface;
                         GUID guid;
 
-                        hres = get_iface_guid((ITypeInfo*)iface, tdesc->vt == VT_PTR ? tdesc->u.lptdesc : tdesc, &guid);
+                        hres = hreuslt32_16(get_iface_guid((ITypeInfo*)iface, tdesc->vt == VT_PTR ? tdesc->u.lptdesc : tdesc, &guid));
                         if(FAILED(hres))
                             break;
 
@@ -7651,7 +7651,8 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
                     arg = prgpvarg[i] = &rgvarg[i];
                     if (wParamFlags & PARAMFLAG_FHASDEFAULT)
                     {
-                        hres = VariantCopy(arg, &func_desc->lprgelemdescParam[i].u.paramdesc.pparamdescex->varDefaultValue);
+                        FIXME("wParamFlags & PARAMFLAG_FHASDEFAULT\n");
+                        /* hres = VariantCopy(arg, &func_desc->lprgelemdescParam[i].u.paramdesc.pparamdescex->varDefaultValue); */
                         if (FAILED(hres))
                             break;
                     }
@@ -7688,7 +7689,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
             else
             {
                 V_VT(&varresult) = 0;
-                hres = typedescvt_to_variantvt((ITypeInfo *)iface, &func_desc->elemdescFunc.tdesc, &V_VT(&varresult));
+                hres = hresult32_16(typedescvt_to_variantvt((ITypeInfo *)iface, &func_desc->elemdescFunc.tdesc, &V_VT(&varresult)));
                 if (FAILED(hres)) goto func_fail; /* FIXME: we don't free changed types here */
             }
 
@@ -7860,7 +7861,7 @@ func_fail:
 	}
 	default:
             FIXME("Unknown function invocation type %d\n", func_desc->funckind);
-            hres = E_FAIL;
+            hres = E_FAIL16;
             break;
         }
 
@@ -7871,12 +7872,12 @@ func_fail:
         VARDESC *var_desc;
 
         hres = ITypeInfo2_GetVarDesc(iface, var_index, &var_desc);
-        if(FAILED(hres)) return hres;
+        if(FAILED(hres)) return hresult32_16(hres);
         
         FIXME("varseek: Found memid, but variable-based invoking not supported\n");
         dump_VARDESC(var_desc);
         ITypeInfo2_ReleaseVarDesc(iface, var_desc);
-        return E_NOTIMPL;
+        return E_NOTIMPL16;
     }
 
     /* not found, look for it in inherited interfaces */
