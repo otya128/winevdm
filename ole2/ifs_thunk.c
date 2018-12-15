@@ -127,8 +127,27 @@ SEGPTR iface32_16(REFIID riid, void *iface32)
     i16->iface32 = iface32;
     i16->lpVtbl = result->spVtbl16;
     i16->riid = &result->iid;
+    i16->vtable_copy = NULL;
     register_instance16(i16);
     return s;
+}
+void *copy_iface16_vtbl(SEGPTR iface16)
+{
+    interface_16 *i16 = get_interface32_ptr(iface16);
+    interface_entry *result;
+    vtbl_entry *cur_entry;
+    SEGPTR *vtbl;
+    int len_vtbl = 0;
+    result = (interface_entry*)bsearch(i16->riid, interfaces, interfaces_count, sizeof(interfaces[0]), iid_cmp);
+    if (!result)
+        return NULL;
+    cur_entry = result->vtbl16;
+    while (cur_entry++->func16)
+        len_vtbl++;
+    vtbl = (SEGPTR*)HeapAlloc(GetProcessHeap(), 0, len_vtbl * sizeof(SEGPTR));
+    memcpy(vtbl, result->lpVtbl16, len_vtbl * sizeof(SEGPTR));
+    i16->lpVtbl = MapLS(vtbl);
+    return vtbl;
 }
 void *iface16_32(REFIID riid, SEGPTR iface16)
 {

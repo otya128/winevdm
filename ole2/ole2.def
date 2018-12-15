@@ -8,3 +8,4 @@ EXPORTS
   iface16_32
   hresult32_16
   hresult16_32
+  copy_iface16_vtbl

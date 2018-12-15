@@ -26,8 +26,10 @@
 #include "ifs.h"
 #include "../ole2disp/ole2disp.h"
 
+#ifndef IFS_THUNK_NDEF_DBG_CHANNEL
 #include "wine/debug.h"
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
+#endif
 #include <pshpack1.h>
 typedef struct
 {
@@ -42,6 +44,7 @@ typedef struct
     void *iface32;
     IID *riid;
     void *ptr;
+    void *vtable_copy;
 } interface_16;
 static void *get_interface32(SEGPTR iface16)
 {
@@ -75,6 +78,7 @@ typedef struct
 } interface_entry;
 SEGPTR iface32_16(REFIID riid, void *iface32);
 void *iface16_32(REFIID riid, SEGPTR iface16);
+void *copy_iface16_vtbl(SEGPTR iface16);
 #define IFACE_ALLOC_ARRAY(type, size) ((type*)HeapAlloc(GetProcessHeap(), 0, (size) * sizeof(type)))
 #define IFACE_FREE_ARRAY(ptr)
 
