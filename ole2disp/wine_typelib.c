@@ -84,6 +84,9 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
 WINE_DECLARE_DEBUG_CHANNEL(typelib);
+#define IFS_THUNK_NDEF_DBG_CHANNEL
+#include "ole2disp.h"
+#include "../ole2/ifs_thunk.h"
 typedef struct _FILE_NAME_INFORMATION {
     ULONG FileNameLength;
     WCHAR FileName[1];
@@ -5646,6 +5649,9 @@ static const ITypeCompVtbl tlbtcvt =
 static ITypeInfoImpl* ITypeInfoImpl_Constructor(void)
 {
     ITypeInfoImpl *pTypeInfoImpl;
+    SEGPTR typeinfo16;
+    ITypeInfo16Vtbl *vtbl16;
+    static SEGPTR sITypeInfo_fnInvoke16;
 
     pTypeInfoImpl = heap_alloc_zero(sizeof(ITypeInfoImpl));
     if (pTypeInfoImpl)
@@ -5659,6 +5665,23 @@ static ITypeInfoImpl* ITypeInfoImpl_Constructor(void)
       pTypeInfoImpl->typeattr.memidDestructor = MEMBERID_NIL;
       pTypeInfoImpl->pcustdata_list = &pTypeInfoImpl->custdata_list;
       list_init(pTypeInfoImpl->pcustdata_list);
+      typeinfo16 = iface32_16(&IID_ITypeInfo, &pTypeInfoImpl->ITypeInfo2_iface);
+      vtbl16 = (ITypeInfo16Vtbl*)copy_iface16_vtbl(typeinfo16);
+      SEGPTR make_thunk_32(void *funcptr, const char *arguments, const char *name, BOOL ret_32bit, BOOL reg_func, BOOL is_cdecl);
+      static HRESULT CDECL ITypeInfo_fnInvoke16(
+          /* ITypeInfo2 * */SEGPTR spiface,
+          /* VOID  * */SEGPTR pIUnk,
+          MEMBERID memid,
+          UINT16 wFlags,
+          /* DISPPARAMS  * */ SEGPTR spDispParams,
+          /* VARIANT  * */ SEGPTR spVarResult,
+          /* EXCEPINFO  * */ SEGPTR spExcepInfo,
+          /* UINT  * */SEGPTR spArgErr);
+      if (!sITypeInfo_fnInvoke16)
+      {
+          sITypeInfo_fnInvoke16 = make_thunk_32(ITypeInfo_fnInvoke16, "sslwssss", "ITypeInfo2_fnInvoke16", TRUE, FALSE, TRUE);
+      }
+      vtbl16->Invoke = sITypeInfo_fnInvoke16;
     }
     TRACE("(%p)\n", pTypeInfoImpl);
     return pTypeInfoImpl;
@@ -6769,6 +6792,120 @@ static HRESULT get_iface_guid(ITypeInfo *tinfo, const TYPEDESC *tdesc, GUID *gui
     return hres;
 }
 
+HRESULT WINAPI
+DispCallFunc16(
+    SEGPTR pvInstance, ULONG_PTR oVft, CALLCONV cc, VARTYPE vtReturn, UINT cActuals,
+    VARTYPE* prgvt, VARIANTARG16** prgpvarg, VARIANT16* pvargResult)
+{
+    int argspos, stack_offset;
+    void *func;
+    UINT i;
+    WORD *args;
+#define WRITE_DWORD(v) args[argspos++] = LOWORD(v);args[argspos++] = HIWORD(v)
+
+    TRACE("(%p, %ld, %d, %d, %d, %p, %p, %p (vt=%d))\n",
+        pvInstance, oVft, cc, vtReturn, cActuals, prgvt, prgpvarg,
+        pvargResult, V_VT(pvargResult));
+
+    if (cc != /*CC_STDCALL*/CC_MSCPASCAL && cc != CC_CDECL)
+    {
+        FIXME("unsupported calling convention %d\n",cc);
+        return E_INVALIDARG;
+    }
+
+    /* maximum size for an argument is sizeof(VARIANT) */
+    args = heap_alloc(sizeof(VARIANT) * cActuals + sizeof(DWORD) * 2 );
+
+    /* start at 1 in case we need to pass a pointer to the return value as arg 0 */
+    argspos = 2;
+    if (pvInstance)
+    {
+        const FARPROC *vtable = *(FARPROC **)MapSL(pvInstance); /* We expect pvInstance to be segmented pointer.!? */
+        func = ((SEGPTR*)MapSL(vtable))[oVft/sizeof(void *)];
+        WRITE_DWORD((DWORD)pvInstance); /* the This pointer is always the first parameter */
+    }
+    else func = (void *)oVft;
+
+    for (i = 0; i < cActuals; i++)
+    {
+        VARIANT16 *arg = prgpvarg[i];
+
+        switch (prgvt[i])
+        {
+        case VT_EMPTY:
+            break;
+        case VT_I8:
+        case VT_UI8:
+        case VT_R8:
+        case VT_DATE:
+        case VT_CY:
+            memcpy( &args[argspos], &V_I8(arg), sizeof(V_I8(arg)) );
+            argspos += sizeof(V_I8(arg)) / sizeof(WORD);
+            break;
+        case VT_DECIMAL:
+        case VT_VARIANT:
+            memcpy( &args[argspos], arg, sizeof(*arg) );
+            argspos += sizeof(*arg) / sizeof(WORD);
+            break;
+        case VT_BOOL:  /* VT_BOOL is 16-bit but BOOL is 32-bit, needs to be extended */
+            args[argspos++] = V_BOOL(arg);
+            break;
+        case VT_UI4:
+        case VT_I4:
+            WRITE_DWORD(V_UI4(arg));
+            break;
+        case VT_UI2:
+        case VT_I2:
+            args[argspos++] = V_UI2(arg);
+            break;
+        default:
+            WRITE_DWORD(V_UI4(arg));
+            break;
+        }
+        TRACE("arg %u: type %s %s\n", i, debugstr_vt(prgvt[i]), debugstr_variant16(arg));
+    }
+
+    switch (vtReturn)
+    {
+    case VT_EMPTY:
+        call_method( func, argspos - 2, args + 2, &stack_offset );
+        break;
+    case VT_R4:
+        V_R4(pvargResult) = call_double_method( func, argspos - 2, args + 2, &stack_offset );
+        break;
+    case VT_R8:
+    case VT_DATE:
+        V_R8(pvargResult) = call_double_method( func, argspos - 2, args + 2, &stack_offset );
+        break;
+    case VT_DECIMAL:
+    case VT_VARIANT:
+        args[0] = (DWORD)pvargResult;  /* arg 0 is a pointer to the result */
+        call_method( func, argspos, args, &stack_offset );
+        break;
+    case VT_I8:
+    case VT_UI8:
+    case VT_CY:
+        V_UI8(pvargResult) = call_method( func, argspos - 2, args + 2, &stack_offset );
+        break;
+    case VT_HRESULT:
+        WARN("invalid return type %u\n", vtReturn);
+        heap_free( args );
+        return E_INVALIDARG;
+    default:
+        V_UI4(pvargResult) = call_method( func, argspos - 2, args + 2, &stack_offset );
+        break;
+    }
+    heap_free( args );
+    if (stack_offset && cc == CC_STDCALL)
+    {
+        WARN( "stack pointer off by %d\n", stack_offset );
+        return DISP_E_BADCALLEE;
+    }
+    if (vtReturn != VT_VARIANT) V_VT(pvargResult) = vtReturn;
+    TRACE("retval: %s\n", debugstr_variant16(pvargResult));
+    return S_OK;
+}
+
 /***********************************************************************
  *		DispCallFunc (OLEAUT32.@)
  *
@@ -7193,6 +7330,573 @@ static inline BOOL func_restricted( const FUNCDESC *desc )
     ((VARIANTARG **)((char *)(buffer) + (sizeof(VARIANTARG) + sizeof(VARIANTARG)) * (params)))
 #define INVBUF_GET_ARG_TYPE_ARRAY(buffer, params) \
     ((VARTYPE *)((char *)(buffer) + (sizeof(VARIANTARG) + sizeof(VARIANTARG) + sizeof(VARIANTARG *)) * (params)))
+
+#define INVBUF_ELEMENT_SIZE16 \
+    (sizeof(VARIANTARG16) + sizeof(VARIANTARG16) + sizeof(SEGPTR) + sizeof(VARTYPE))
+#define INVBUF_GET_ARG_ARRAY16(buffer, params) (buffer)
+#define INVBUF_GET_MISSING_ARG_ARRAY16(buffer, params) \
+    ((VARIANTARG16 *)((char *)(buffer) + sizeof(VARIANTARG16) * (params)))
+#define INVBUF_GET_ARG_PTR_ARRAY16(buffer, params) \
+    ((/*VARIANTARG16 * */SEGPTR *)((char *)(buffer) + (sizeof(VARIANTARG16) + sizeof(VARIANTARG16)) * (params)))
+#define INVBUF_GET_ARG_TYPE_ARRAY16(buffer, params) \
+    ((VARTYPE *)((char *)(buffer) + (sizeof(VARIANTARG16) + sizeof(VARIANTARG16) + sizeof(VARIANTARG16 *)) * (params)))
+
+void map_bstr32_16(SEGPTR *a16, const BSTR *a32)
+{
+    UINT len;
+    int len16;
+    if (*a32 == NULL)
+    {
+        *a16 = 0;
+        return;
+    }
+    len = SysStringLen(*a32);
+    len16 = WideCharToMultiByte(CP_ACP, 0, *a32, len, NULL, 0, NULL, NULL);
+    *a16 = SysAllocStringLen16(NULL, len16);
+    WideCharToMultiByte(CP_ACP, 0, *a32, len, MapSL(*a16), len16, NULL, NULL);
+    ((char*)MapSL(*a16))[len16] = 0;
+}
+static HRESULT CDECL ITypeInfo_fnInvoke16(
+    /* ITypeInfo2 * */SEGPTR spiface,
+    /* VOID  * */SEGPTR pIUnk,
+    MEMBERID memid,
+    UINT16 wFlags,
+    /* DISPPARAMS  * */ SEGPTR spDispParams,
+    /* VARIANT  * */ SEGPTR spVarResult,
+    /* EXCEPINFO  * */ SEGPTR spExcepInfo,
+    /* UINT  * */SEGPTR spArgErr)
+{
+    ITypeInfo2 *iface = (ITypeInfo2*)get_interface32(spiface);
+    DISPPARAMS16 *pDispParams = (DISPPARAMS16*)MapSL(spDispParams);
+    ITypeInfoImpl *This = impl_from_ITypeInfo2(iface);
+    VARIANT16 *pVarResult = (VARIANT16*)MapSL(spVarResult);
+    EXCEPINFO16 *pExcepInfo = (EXCEPINFO16*)MapSL(spExcepInfo);
+    UINT16 *pArgErr = (UINT16*)MapSL(spArgErr);
+    int i;
+    unsigned int var_index;
+    TYPEKIND type_kind;
+    HRESULT hres;
+    const TLBFuncDesc *pFuncInfo;
+    UINT fdc;
+
+    TRACE("(%p)(%p,id=%d,flags=0x%08x,%p,%p,%p,%p)\n",
+      This,pIUnk,memid,wFlags,pDispParams,pVarResult,pExcepInfo,pArgErr
+    );
+
+    if( This->typeattr.wTypeFlags & TYPEFLAG_FRESTRICTED )
+        return DISP_E_MEMBERNOTFOUND;
+
+    if (!pDispParams)
+    {
+        ERR("NULL pDispParams not allowed\n");
+        return E_INVALIDARG;
+    }
+
+    dump_DispParms16(pDispParams);
+
+    if (pDispParams->cNamedArgs > pDispParams->cArgs)
+    {
+        ERR("named argument array cannot be bigger than argument array (%d/%d)\n",
+            pDispParams->cNamedArgs, pDispParams->cArgs);
+        return E_INVALIDARG;
+    }
+
+    /* we do this instead of using GetFuncDesc since it will return a fake
+     * FUNCDESC for dispinterfaces and we want the real function description */
+    for (fdc = 0; fdc < This->typeattr.cFuncs; ++fdc){
+        pFuncInfo = &This->funcdescs[fdc];
+        if ((memid == pFuncInfo->funcdesc.memid) &&
+            (wFlags & pFuncInfo->funcdesc.invkind) &&
+            !func_restricted( &pFuncInfo->funcdesc ))
+            break;
+    }
+
+    if (fdc < This->typeattr.cFuncs) {
+        const FUNCDESC *func_desc = &pFuncInfo->funcdesc;
+
+        if (TRACE_ON(ole))
+        {
+            TRACE("invoking:\n");
+            dump_TLBFuncDescOne(pFuncInfo);
+        }
+        
+	switch (func_desc->funckind) {
+	case FUNC_PUREVIRTUAL:
+	case FUNC_VIRTUAL: {
+            void *buffer = heap_alloc_zero(INVBUF_ELEMENT_SIZE16 * func_desc->cParams);
+            VARIANT16 varresult;
+            VARIANT16 retval; /* pointer for storing byref retvals in */
+            VARIANTARG16 **prgpvarg = INVBUF_GET_ARG_PTR_ARRAY16(buffer, func_desc->cParams);
+            VARIANTARG16 *rgvarg = INVBUF_GET_ARG_ARRAY16(buffer, func_desc->cParams);
+            VARTYPE *rgvt = INVBUF_GET_ARG_TYPE_ARRAY16(buffer, func_desc->cParams);
+            UINT16 cNamedArgs = pDispParams->cNamedArgs;
+            DISPID *rgdispidNamedArgs = pDispParams->rgdispidNamedArgs;
+            UINT16 vargs_converted=0;
+
+            hres = S_OK;
+
+            if (func_desc->invkind & (INVOKE_PROPERTYPUT|INVOKE_PROPERTYPUTREF))
+            {
+                if (!cNamedArgs || (rgdispidNamedArgs[0] != DISPID_PROPERTYPUT))
+                {
+                    ERR("first named arg for property put invocation must be DISPID_PROPERTYPUT\n");
+                    hres = DISP_E_PARAMNOTFOUND;
+                    goto func_fail;
+                }
+            }
+
+            if (func_desc->cParamsOpt < 0 && cNamedArgs)
+            {
+                ERR("functions with the vararg attribute do not support named arguments\n");
+                hres = DISP_E_NONAMEDARGS;
+                goto func_fail;
+            }
+
+            for (i = 0; i < func_desc->cParams; i++)
+            {
+                TYPEDESC *tdesc = &func_desc->lprgelemdescParam[i].tdesc;
+                hres = typedescvt_to_variantvt((ITypeInfo *)iface, tdesc, &rgvt[i]);
+                if (FAILED(hres))
+                    goto func_fail;
+            }
+
+            TRACE("changing args\n");
+            for (i = 0; i < func_desc->cParams; i++)
+            {
+                USHORT wParamFlags = func_desc->lprgelemdescParam[i].u.paramdesc.wParamFlags;
+                TYPEDESC *tdesc = &func_desc->lprgelemdescParam[i].tdesc;
+                VARIANTARG16 *src_arg;
+
+                if (wParamFlags & PARAMFLAG_FLCID)
+                {
+                    VARIANTARG16 *arg;
+                    arg = prgpvarg[i] = &rgvarg[i];
+                    V_VT(arg) = VT_I4;
+                    V_I4(arg) = This->pTypeLib->lcid;
+                    continue;
+                }
+
+                src_arg = NULL;
+
+                if (cNamedArgs)
+                {
+                    USHORT j;
+                    for (j = 0; j < cNamedArgs; j++)
+                        if (rgdispidNamedArgs[j] == i || (i == func_desc->cParams-1 && rgdispidNamedArgs[j] == DISPID_PROPERTYPUT))
+                        {
+                            src_arg = &((VARIANTARG16*)MapSL(pDispParams->rgvarg))[j];
+                            break;
+                        }
+                }
+
+                if (!src_arg && vargs_converted + cNamedArgs < pDispParams->cArgs)
+                {
+                    src_arg = &((VARIANTARG16*)MapSL(pDispParams->rgvarg))[pDispParams->cArgs - 1 - vargs_converted];
+                    vargs_converted++;
+                }
+
+                if (wParamFlags & PARAMFLAG_FRETVAL)
+                {
+                    /* under most conditions the caller is not allowed to
+                     * pass in a dispparam arg in the index of what would be
+                     * the retval parameter. however, there is an exception
+                     * where the extra parameter is used in an extra
+                     * IDispatch::Invoke below */
+                    if ((i < pDispParams->cArgs) &&
+                        ((func_desc->cParams != 1) || !pVarResult ||
+                         !(func_desc->invkind & INVOKE_PROPERTYGET)))
+                    {
+                        hres = DISP_E_BADPARAMCOUNT;
+                        break;
+                    }
+
+                    /* note: this check is placed so that if the caller passes
+                     * in a VARIANTARG for the retval we just ignore it, like
+                     * native does */
+                    if (i == func_desc->cParams - 1)
+                    {
+                        VARIANTARG16 *arg;
+                        arg = prgpvarg[i] = &rgvarg[i];
+                        memset(arg, 0, sizeof(*arg));
+                        V_VT(arg) = rgvt[i];
+                        memset(&retval, 0, sizeof(retval));
+                        V_BYREF(arg) = MapLS(&retval);
+                    }
+                    else
+                    {
+                        ERR("[retval] parameter must be the last parameter of the method (%d/%d)\n", i, func_desc->cParams);
+                        hres = E_UNEXPECTED;
+                        break;
+                    }
+                }
+                else if (src_arg)
+                {
+                    TRACE("%s\n", debugstr_variant16(src_arg));
+
+                    if(rgvt[i]!=V_VT(src_arg))
+                    {
+                        if (rgvt[i] == VT_VARIANT)
+                            hres = VariantCopy16(&rgvarg[i], src_arg);
+                        else if (rgvt[i] == (VT_VARIANT | VT_BYREF))
+                        {
+                            if (rgvt[i] == V_VT(src_arg))
+                                V_VARIANTREF(&rgvarg[i]) = V_VARIANTREF(src_arg);
+                            else
+                            {
+                                VARIANTARG *missing_arg = INVBUF_GET_MISSING_ARG_ARRAY(buffer, func_desc->cParams);
+                                if (wParamFlags & PARAMFLAG_FIN)
+                                    hres = VariantCopy16(&missing_arg[i], src_arg);
+                                V_VARIANTREF(&rgvarg[i]) = &missing_arg[i];
+                            }
+                            V_VT(&rgvarg[i]) = rgvt[i];
+                        }
+                        else if ((rgvt[i] == (VT_VARIANT | VT_ARRAY) || rgvt[i] == (VT_VARIANT | VT_ARRAY | VT_BYREF)) && func_desc->cParamsOpt < 0)
+                        {
+                            SAFEARRAY16 *a;
+                            SEGPTR sega;
+                            SAFEARRAYBOUND16 bound;
+                            SEGPTR sv = 0;
+                            VARIANT16 *v;
+                            LONG j;
+                            bound.lLbound = 0;
+                            bound.cElements = pDispParams->cArgs-i;
+                            if (!(a = (SAFEARRAY16*)MapSL(sega = SafeArrayCreate16(VT_VARIANT, 1, &bound))))
+                            {
+                                ERR("SafeArrayCreate failed\n");
+                                break;
+                            }
+                            hres = SafeArrayAccessData16(a, (LPVOID)&sv);
+                            v = (VARIANT16*)MapSL(sv);
+                            if (hres != S_OK)
+                            {
+                                ERR("SafeArrayAccessData failed with %x\n", hres);
+                                SafeArrayDestroy16(a);
+                                break;
+                            }
+                            for (j = 0; j < bound.cElements; j++)
+                                VariantCopy16(&v[j], &((VARIANTARG16*)MapSL(pDispParams->rgvarg))[pDispParams->cArgs - 1 - i - j]);
+                            hres = SafeArrayUnaccessData16(a);
+                            if (hres != S_OK)
+                            {
+                                ERR("SafeArrayUnaccessData failed with %x\n", hres);
+                                SafeArrayDestroy16(a);
+                                break;
+                            }
+                            if (rgvt[i] & VT_BYREF)
+                                V_BYREF(&rgvarg[i]) = MapLS(&sega);
+                            else
+                                V_ARRAY(&rgvarg[i]) = sega;
+                            V_VT(&rgvarg[i]) = rgvt[i];
+                        }
+                        else if ((rgvt[i] & VT_BYREF) && !V_ISBYREF(src_arg))
+                        {
+                            VARIANTARG16 *missing_arg = INVBUF_GET_MISSING_ARG_ARRAY16(buffer, func_desc->cParams);
+                            if (wParamFlags & PARAMFLAG_FIN)
+                                hres = VariantChangeType16(&missing_arg[i], src_arg, 0, rgvt[i] & ~VT_BYREF);
+                            else
+                                V_VT(&missing_arg[i]) = rgvt[i] & ~VT_BYREF;
+                            V_BYREF(&rgvarg[i]) = &V_NONE(&missing_arg[i]);
+                            V_VT(&rgvarg[i]) = rgvt[i];
+                        }
+                        else if ((rgvt[i] & VT_BYREF) && (rgvt[i] == V_VT(src_arg)))
+                        {
+                            V_BYREF(&rgvarg[i]) = V_BYREF(src_arg);
+                            V_VT(&rgvarg[i]) = rgvt[i];
+                        }
+                        else
+                        {
+                            /* FIXME: this doesn't work for VT_BYREF arguments if
+                             * they are not the same type as in the paramdesc */
+                            V_VT(&rgvarg[i]) = V_VT(src_arg);
+                            hres = VariantChangeType16(&rgvarg[i], src_arg, 0, rgvt[i]);
+                            V_VT(&rgvarg[i]) = rgvt[i];
+                        }
+
+                        if (FAILED(hres))
+                        {
+                            ERR("failed to convert param %d to %s from %s\n", i,
+                                debugstr_vt(rgvt[i]), debugstr_variant(src_arg));
+                            break;
+                        }
+                        prgpvarg[i] = &rgvarg[i];
+                    }
+                    else
+                    {
+                        prgpvarg[i] = src_arg;
+                    }
+
+                    if((tdesc->vt == VT_USERDEFINED || (tdesc->vt == VT_PTR && ((TYPEDESC16*)MapSL(tdesc->u.lptdesc))->vt == VT_USERDEFINED))
+                       && (V_VT(prgpvarg[i]) == VT_DISPATCH || V_VT(prgpvarg[i]) == VT_UNKNOWN)
+                       && V_UNKNOWN(prgpvarg[i])) {
+                        SEGPTR userdefined_iface;
+                        GUID guid;
+
+                        hres = get_iface_guid((ITypeInfo*)iface, tdesc->vt == VT_PTR ? tdesc->u.lptdesc : tdesc, &guid);
+                        if(FAILED(hres))
+                            break;
+
+                        hres = IUnknown16_QueryInterface(V_UNKNOWN(prgpvarg[i]), MapLS(&guid), MapLS((void**)&userdefined_iface));
+                        if(FAILED(hres)) {
+                            ERR("argument does not support %s interface\n", debugstr_guid(&guid));
+                            break;
+                        }
+
+                        IUnknown16_Release(V_UNKNOWN(prgpvarg[i]));
+                        V_UNKNOWN(prgpvarg[i]) = userdefined_iface;
+                    }
+                }
+                else if (wParamFlags & PARAMFLAG_FOPT)
+                {
+                    VARIANTARG16 *arg;
+                    arg = prgpvarg[i] = &rgvarg[i];
+                    if (wParamFlags & PARAMFLAG_FHASDEFAULT)
+                    {
+                        hres = VariantCopy(arg, &func_desc->lprgelemdescParam[i].u.paramdesc.pparamdescex->varDefaultValue);
+                        if (FAILED(hres))
+                            break;
+                    }
+                    else
+                    {
+                        VARIANTARG16 *missing_arg;
+                        /* if the function wants a pointer to a variant then
+                         * set that up, otherwise just pass the VT_ERROR in
+                         * the argument by value */
+                        if (rgvt[i] & VT_BYREF)
+                        {
+                            missing_arg = INVBUF_GET_MISSING_ARG_ARRAY16(buffer, func_desc->cParams) + i;
+                            V_VT(arg) = VT_VARIANT | VT_BYREF;
+                            V_VARIANTREF(arg) = MapLS(missing_arg);
+                        }
+                        else
+                            missing_arg = arg;
+                        V_VT(missing_arg) = VT_ERROR;
+                        V_ERROR(missing_arg) = DISP_E_PARAMNOTFOUND;
+                    }
+                }
+                else
+                {
+                    hres = DISP_E_BADPARAMCOUNT;
+                    break;
+                }
+            }
+            if (FAILED(hres)) goto func_fail; /* FIXME: we don't free changed types here */
+
+            /* VT_VOID is a special case for return types, so it is not
+             * handled in the general function */
+            if (func_desc->elemdescFunc.tdesc.vt == VT_VOID)
+                V_VT(&varresult) = VT_EMPTY;
+            else
+            {
+                V_VT(&varresult) = 0;
+                hres = typedescvt_to_variantvt((ITypeInfo *)iface, &func_desc->elemdescFunc.tdesc, &V_VT(&varresult));
+                if (FAILED(hres)) goto func_fail; /* FIXME: we don't free changed types here */
+            }
+
+            hres = DispCallFunc16(pIUnk, func_desc->oVft & 0xFFFC, func_desc->callconv,
+                                V_VT(&varresult), func_desc->cParams, rgvt,
+                                prgpvarg, &varresult);
+
+            vargs_converted = 0;
+
+            for (i = 0; i < func_desc->cParams; i++)
+            {
+                USHORT wParamFlags = func_desc->lprgelemdescParam[i].u.paramdesc.wParamFlags;
+                VARIANTARG16 *missing_arg = INVBUF_GET_MISSING_ARG_ARRAY16(buffer, func_desc->cParams);
+
+                if (wParamFlags & PARAMFLAG_FLCID)
+                    continue;
+                else if (wParamFlags & PARAMFLAG_FRETVAL)
+                {
+                    TRACE("[retval] value: %s\n", debugstr_variant16(prgpvarg[i]));
+
+                    if (pVarResult)
+                    {
+                        VariantInit16(pVarResult);
+                        /* deref return value */
+                        hres = VariantCopyInd16(pVarResult, prgpvarg[i]);
+                    }
+
+                    HRESULT VARIANT_ClearInd(VARIANTARG16 *pVarg);
+                    VARIANT_ClearInd(prgpvarg[i]);
+                }
+                else if (vargs_converted < pDispParams->cArgs)
+                {
+                    VARIANTARG16 *arg = &((VARIANTARG16*)MapSL(pDispParams->rgvarg))[pDispParams->cArgs - 1 - vargs_converted];
+                    if (wParamFlags & PARAMFLAG_FOUT)
+                    {
+                        if ((rgvt[i] & VT_BYREF) && !(V_VT(arg) & VT_BYREF))
+                        {
+                            hres = VariantChangeType16(arg, &rgvarg[i], 0, V_VT(arg));
+
+                            if (FAILED(hres))
+                            {
+                                ERR("failed to convert param %d to vt %d\n", i,
+                                    V_VT(&((VARIANTARG16*)MapSL(pDispParams->rgvarg))[pDispParams->cArgs - 1 - vargs_converted]));
+                                break;
+                            }
+                        }
+                    }
+                    else if (V_VT(prgpvarg[i]) == (VT_VARIANT | VT_ARRAY) &&
+                             func_desc->cParamsOpt < 0 &&
+                             i == func_desc->cParams-1)
+                    {
+                        SAFEARRAY16 *a = (SAFEARRAY16*)MapSL(V_ARRAY(prgpvarg[i]));
+                        LONG j, ubound;
+                        SEGPTR sv = 0;
+                        VARIANT16 *v;
+                        hres = SafeArrayGetUBound16(a, 1, &ubound);
+                        if (hres != S_OK)
+                        {
+                            ERR("SafeArrayGetUBound failed with %x\n", hres);
+                            break;
+                        }
+                        hres = SafeArrayAccessData16(a, (LPVOID)&sv);
+                        if (hres != S_OK)
+                        {
+                            ERR("SafeArrayAccessData failed with %x\n", hres);
+                            break;
+                        }
+                        v = (VARIANT16*)MapSL(sv);
+                        for (j = 0; j <= ubound; j++)
+                            VariantClear16(&v[j]);
+                        hres = SafeArrayUnaccessData16(a);
+                        if (hres != S_OK)
+                        {
+                            ERR("SafeArrayUnaccessData failed with %x\n", hres);
+                            break;
+                        }
+                    }
+                    VariantClear16(&rgvarg[i]);
+                    vargs_converted++;
+                }
+                else if (wParamFlags & PARAMFLAG_FOPT)
+                {
+                    if (wParamFlags & PARAMFLAG_FHASDEFAULT)
+                        VariantClear16(&rgvarg[i]);
+                }
+
+                VariantClear16(&missing_arg[i]);
+            }
+
+            if ((V_VT(&varresult) == VT_ERROR) && FAILED(V_ERROR(&varresult)))
+            {
+                WARN("invoked function failed with error 0x%08x\n", V_ERROR(&varresult));
+                hres = DISP_E_EXCEPTION;
+                if (pExcepInfo)
+                {
+                    IErrorInfo *pErrorInfo;
+                    pExcepInfo->scode = V_ERROR(&varresult);
+                    if (GetErrorInfo16(0, &pErrorInfo) == S_OK)
+                    {
+                        EXCEPINFO excepinfo32 = { 0 };
+                        IErrorInfo_GetDescription(pErrorInfo, &excepinfo32.bstrDescription);
+                        IErrorInfo_GetHelpFile(pErrorInfo, &excepinfo32.bstrHelpFile);
+                        IErrorInfo_GetSource(pErrorInfo, &excepinfo32.bstrSource);
+                        IErrorInfo_GetHelpContext(pErrorInfo, &pExcepInfo->dwHelpContext);
+                        map_bstr32_16(&pExcepInfo->bstrDescription, &excepinfo32.bstrDescription);
+                        map_bstr32_16(&pExcepInfo->bstrHelpFile, &excepinfo32.bstrHelpFile);
+                        map_bstr32_16(&pExcepInfo->bstrSource, &excepinfo32.bstrSource);
+
+                        IErrorInfo_Release(pErrorInfo);
+                    }
+                }
+            }
+            if (V_VT(&varresult) != VT_ERROR)
+            {
+                TRACE("varresult value: %s\n", debugstr_variant16(&varresult));
+
+                if (pVarResult)
+                {
+                    VariantClear16(pVarResult);
+                    *pVarResult = varresult;
+                }
+                else
+                    VariantClear16(&varresult);
+            }
+
+            if (SUCCEEDED(hres) && pVarResult && (func_desc->cParams == 1) &&
+                (func_desc->invkind & INVOKE_PROPERTYGET) &&
+                (func_desc->lprgelemdescParam[0].u.paramdesc.wParamFlags & PARAMFLAG_FRETVAL) &&
+                (pDispParams->cArgs != 0))
+            {
+                if (V_VT(pVarResult) == VT_DISPATCH)
+                {
+                    SEGPTR pDispatch = V_DISPATCH(pVarResult);
+                    /* Note: not VariantClear; we still need the dispatch
+                     * pointer to be valid */
+                    VariantInit(pVarResult);
+                    hres = IDispatch16_Invoke(pDispatch, DISPID_VALUE, MapLS(&IID_NULL),
+                        GetSystemDefaultLCID(), wFlags,
+                        spDispParams, spVarResult, spExcepInfo, spArgErr);
+                    IDispatch16_Release(pDispatch);
+                }
+                else
+                {
+                    VariantClear16(pVarResult);
+                    hres = DISP_E_NOTACOLLECTION;
+                }
+            }
+
+func_fail:
+            heap_free(buffer);
+            break;
+        }
+	case FUNC_DISPATCH:  {
+	   SEGPTR disp;
+
+	   hres = IUnknown16_QueryInterface(pIUnk,MapLS(&IID_IDispatch),MapLS((LPVOID)&disp));
+	   if (SUCCEEDED(hres)) {
+               FIXME("Calling Invoke in IDispatch iface. untested!\n");
+               hres = IDispatch16_Invoke(
+                                     disp,memid,MapLS(&IID_NULL),LOCALE_USER_DEFAULT,wFlags,spDispParams,
+                                     spVarResult,spExcepInfo,spArgErr
+                                     );
+               if (FAILED(hres))
+                   FIXME("IDispatch::Invoke failed with %08x. (Could be not a real error?)\n", hres);
+               IDispatch16_Release(disp);
+           } else
+	       FIXME("FUNC_DISPATCH used on object without IDispatch iface?\n");
+           break;
+	}
+	default:
+            FIXME("Unknown function invocation type %d\n", func_desc->funckind);
+            hres = E_FAIL;
+            break;
+        }
+
+        TRACE("-- 0x%08x\n", hres);
+        return hres;
+
+    } else if(SUCCEEDED(hres = ITypeInfo2_GetVarIndexOfMemId(iface, memid, &var_index))) {
+        VARDESC *var_desc;
+
+        hres = ITypeInfo2_GetVarDesc(iface, var_index, &var_desc);
+        if(FAILED(hres)) return hres;
+        
+        FIXME("varseek: Found memid, but variable-based invoking not supported\n");
+        dump_VARDESC(var_desc);
+        ITypeInfo2_ReleaseVarDesc(iface, var_desc);
+        return E_NOTIMPL;
+    }
+
+    /* not found, look for it in inherited interfaces */
+    ITypeInfo2_GetTypeKind(iface, &type_kind);
+    if(type_kind == TKIND_INTERFACE || type_kind == TKIND_DISPATCH) {
+        if(This->impltypes) {
+            /* recursive search */
+            ITypeInfo *pTInfo;
+            hres = ITypeInfo2_GetRefTypeInfo(iface, This->impltypes[0].hRef, &pTInfo);
+            if(SUCCEEDED(hres)){
+                hres = ITypeInfo16_Invoke(iface32_16(&IID_ITypeInfo, pTInfo),pIUnk,memid,wFlags,spDispParams,spVarResult,spExcepInfo,spArgErr);
+                ITypeInfo_Release(pTInfo);
+                return hres;
+            }
+            WARN("Could not search inherited interface!\n");
+        }
+    }
+    WARN("did not find member id %d, flags 0x%x!\n", memid, wFlags);
+    return DISP_E_MEMBERNOTFOUND;
+}
 
 static HRESULT WINAPI ITypeInfo_fnInvoke(
     ITypeInfo2 *iface,
