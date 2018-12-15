@@ -1581,6 +1581,26 @@ static void dump_DispParms(const DISPPARAMS * pdp)
     }
 }
 
+static void dump_DispParms16(const DISPPARAMS16 * pdp)
+{
+    unsigned int index;
+
+    TRACE("args=%u named args=%u\n", pdp->cArgs, pdp->cNamedArgs);
+
+    if (pdp->cNamedArgs && pdp->rgdispidNamedArgs)
+    {
+        TRACE("named args:\n");
+        for (index = 0; index < pdp->cNamedArgs; index++)
+            TRACE("\t0x%x\n", ((DISPID*)MapSL(pdp->rgdispidNamedArgs))[index]);
+    }
+
+    if (pdp->cArgs && pdp->rgvarg)
+    {
+        TRACE("args:\n");
+        for (index = 0; index < pdp->cArgs; index++)
+            TRACE("  [%d] %s\n", index, debugstr_variant16((VARIANT16*)MapSL(pdp->rgvarg) + index));
+    }
+}
 static void dump_TypeInfo(const ITypeInfoImpl * pty)
 {
     TRACE("%p ref=%u\n", pty, pty->ref);
