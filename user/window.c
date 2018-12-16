@@ -2818,7 +2818,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         }
     }
 
-    /* load the menu */
+    cs.lpszClass = win32classname(cs.hInstance, cs.lpszClass);
     if (!IS_INTRESOURCE(className))
     {
     }
@@ -2827,7 +2827,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         if (!GlobalGetAtomNameA(LOWORD(className), buffer, sizeof(buffer))) return 0;
         cs.lpszClass = buffer;
     }
-    cs.lpszClass = win32classname(cs.hInstance, cs.lpszClass);
+    /* load the menu */
     if (!menu && !is_win_menu_disallowed(style))
     {
         WNDCLASSA class;
@@ -2858,7 +2858,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     }
     if (hwnd == NULL)
     {
-        ERR("Could not create window(%08x,\"%s\"(\"%s\"),\"%s\",%08x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%08x)\n", exStyle, className, cs.lpszClass, windowName, style, x, y, width, height, parent, menu, instance, data);
+        ERR("Could not create window(%08x,\"%s\"(\"%s\"),\"%s\",%08x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%08x)\n", exStyle, IS_INTRESOURCE(className) ? "(ATOM)" : className, cs.lpszClass, windowName, style, x, y, width, height, parent, menu, instance, data);
         return NULL;
     }
     HWND16 hWnd16 = HWND_16(hwnd);
