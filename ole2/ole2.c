@@ -53,8 +53,12 @@ static HICON convert_icon_to_32( HICON16 icon16 )
 {
     CURSORICONINFO *info = GlobalLock16( icon16 );
     void *and_bits = info + 1;
-    void *xor_bits = (BYTE *)and_bits + info->nHeight * 2 * ((info->nWidth + 15) / 16);
-    HICON ret = CreateIcon( 0, info->nWidth, info->nHeight, info->bPlanes, info->bBitsPerPixel,
+    void *xor_bits;
+    HICON ret;
+    if (!info)
+        return NULL;
+    xor_bits = (BYTE *)and_bits + info->nHeight * 2 * ((info->nWidth + 15) / 16);
+    ret = CreateIcon(0, info->nWidth, info->nHeight, info->bPlanes, info->bBitsPerPixel,
                             and_bits, xor_bits );
     GlobalUnlock16( icon16 );
     return ret;
