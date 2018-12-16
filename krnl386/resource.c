@@ -1129,7 +1129,11 @@ BOOL16 WINAPI FreeResource16( HGLOBAL16 handle )
             {
                 if (pNameInfo->handle == handle)
                 {
-                    if (pNameInfo->usage > 0) pNameInfo->usage--;
+                    if (pNameInfo->usage > 0)
+                    {
+                        pNameInfo->usage--;
+                        return handle;
+                    }
                     if (pNameInfo->usage == 0)
                     {
                         GlobalFree16( pNameInfo->handle );
