@@ -2819,7 +2819,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     }
 
     cs.lpszClass = win32classname(cs.hInstance, cs.lpszClass);
-    if (!IS_INTRESOURCE(className))
+    if (!IS_INTRESOURCE(cs.lpszClass))
     {
     }
     else
