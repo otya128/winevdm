@@ -71,7 +71,7 @@
 71 pascal CoCreateStandardMalloc(long ptr) CoCreateStandardMalloc16
 72 variable _IID_IExternalConnection(0x00000019 0x00000000 0x000000c0 0x46000000)
 73 pascal CoCreateGuid(ptr) CoCreateGuid16
-75 stub FNASSERT
+75 pascal FnAssert(str str str word) FnAssert16
 76 pascal -ret16 StringFromGUID2(ptr ptr word) StringFromGUID216
 77 stub COGETCLASSEXT
 78 stub OLE1CLASSFROMCLSID2

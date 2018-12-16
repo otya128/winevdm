@@ -833,3 +833,9 @@ HRESULT WINAPI CoIsOle1Class16(REFCLSID rclsid)
     TRACE("(%p)\n", rclsid);
     return hresult32_16(CoIsOle1Class(rclsid));
 }
+
+HRESULT WINAPI FnAssert16(LPCSTR expr, LPCSTR msg, LPCSTR file, WORD line)
+{
+    TRACE("(%s,%s,%s,%d)\n", debugstr_a(expr), debugstr_a(msg), debugstr_a(msg), line);
+    return S_OK;
+}
