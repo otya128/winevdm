@@ -47,6 +47,7 @@
 #include "../ole2/ifs.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ole);
+WINE_DECLARE_DEBUG_CHANNEL(olemalloc);
 
 #define CHARS_IN_GUID 39
 
@@ -76,7 +77,7 @@ static inline IMalloc16Impl *impl_from_IMalloc16(IMalloc16 *iface)
 HRESULT CDECL IMalloc16_fnQueryInterface(IMalloc16* iface,REFIID refiid,LPVOID *obj) {
         IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
-	TRACE("(%p)->QueryInterface(%s,%p)\n",This,debugstr_guid(refiid),obj);
+	TRACE_(olemalloc)("(%p)->QueryInterface(%s,%p)\n",This,debugstr_guid(refiid),obj);
 	if (	!memcmp(&IID_IUnknown,refiid,sizeof(IID_IUnknown)) ||
 		!memcmp(&IID_IMalloc,refiid,sizeof(IID_IMalloc))
 	) {
@@ -92,7 +93,7 @@ HRESULT CDECL IMalloc16_fnQueryInterface(IMalloc16* iface,REFIID refiid,LPVOID *
 ULONG CDECL IMalloc16_fnAddRef(IMalloc16* iface) {
         IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
-	TRACE("(%p)->AddRef()\n",This);
+	TRACE_(olemalloc)("(%p)->AddRef()\n",This);
 	return 1; /* cannot be freed */
 }
 
@@ -102,7 +103,7 @@ ULONG CDECL IMalloc16_fnAddRef(IMalloc16* iface) {
 ULONG CDECL IMalloc16_fnRelease(IMalloc16* iface) {
         IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
-	TRACE("(%p)->Release()\n",This);
+	TRACE_(olemalloc)("(%p)->Release()\n",This);
 	return 1; /* cannot be freed */
 }
 
@@ -112,8 +113,10 @@ ULONG CDECL IMalloc16_fnRelease(IMalloc16* iface) {
 SEGPTR CDECL IMalloc16_fnAlloc(IMalloc16* iface,DWORD cb) {
         IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
-	TRACE("(%p)->Alloc(%d)\n",This,cb);
-        return MapLS( HeapAlloc( GetProcessHeap(), 0, cb ) );
+        LPVOID a = HeapAlloc( GetProcessHeap(), 0, cb );
+        SEGPTR s = MapLS(a);
+	TRACE_(olemalloc)("(%p)->Alloc(%d)=>%p(%04x:%04x)\n",This,cb,a,SELECTOROF(s),OFFSETOF(s));
+        return s;
 }
 
 /******************************************************************************
@@ -123,7 +126,7 @@ VOID CDECL IMalloc16_fnFree(IMalloc16* iface,SEGPTR pv)
 {
     void *ptr = MapSL(pv);
     IMalloc16Impl *This = impl_from_IMalloc16(iface);
-    TRACE("(%p)->Free(%08x)\n",This,pv);
+    TRACE_(olemalloc)("(%p)->Free(%p(%04x:%04x))\n",This,ptr,SELECTOROF(pv),OFFSETOF(pv));
     UnMapLS(pv);
     HeapFree( GetProcessHeap(), 0, ptr );
 }
@@ -136,7 +139,7 @@ SEGPTR CDECL IMalloc16_fnRealloc(IMalloc16* iface,SEGPTR pv,DWORD cb)
     SEGPTR ret;
     IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
-    TRACE("(%p)->Realloc(%08x,%d)\n",This,pv,cb);
+    TRACE_(olemalloc)("(%p)->Realloc(%08x,%d)\n",This,pv,cb);
     if (!pv)
 	ret = IMalloc16_fnAlloc(iface, cb);
     else if (cb) {
@@ -156,7 +159,7 @@ DWORD CDECL IMalloc16_fnGetSize(IMalloc16* iface,SEGPTR pv)
 {
         IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
-        TRACE("(%p)->GetSize(%08x)\n",This,pv);
+        TRACE_(olemalloc)("(%p)->GetSize(%08x)\n",This,pv);
         return HeapSize( GetProcessHeap(), 0, MapSL(pv) );
 }
 
@@ -166,7 +169,7 @@ DWORD CDECL IMalloc16_fnGetSize(IMalloc16* iface,SEGPTR pv)
 INT16 CDECL IMalloc16_fnDidAlloc(IMalloc16* iface,LPVOID pv) {
         IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
-	TRACE("(%p)->DidAlloc(%p)\n",This,pv);
+	TRACE_(olemalloc)("(%p)->DidAlloc(%p)\n",This,pv);
 	return (INT16)-1;
 }
 
@@ -176,7 +179,7 @@ INT16 CDECL IMalloc16_fnDidAlloc(IMalloc16* iface,LPVOID pv) {
 LPVOID CDECL IMalloc16_fnHeapMinimize(IMalloc16* iface) {
         IMalloc16Impl *This = impl_from_IMalloc16(iface);
 
-	TRACE("(%p)->HeapMinimize()\n",This);
+	TRACE_(olemalloc)("(%p)->HeapMinimize()\n",This);
 	return NULL;
 }
 
