@@ -75,33 +75,57 @@ static LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
     return ret;
 }
 
-static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp );
-static LRESULT CALLBACK call_WH_SHELL( INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK task_call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK task_call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK task_call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK task_call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK task_call_WH_CBT( INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK task_call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK task_call_WH_SHELL( INT code, WPARAM wp, LPARAM lp );
+
+static LRESULT CALLBACK global_call_WH_MSGFILTER(INT code, WPARAM wp, LPARAM lp);
+static LRESULT CALLBACK global_call_WH_KEYBOARD(INT code, WPARAM wp, LPARAM lp);
+static LRESULT CALLBACK global_call_WH_GETMESSAGE(INT code, WPARAM wp, LPARAM lp);
+static LRESULT CALLBACK global_call_WH_CALLWNDPROC(INT code, WPARAM wp, LPARAM lp);
+static LRESULT CALLBACK global_call_WH_CBT(INT code, WPARAM wp, LPARAM lp);
+static LRESULT CALLBACK global_call_WH_MOUSE(INT code, WPARAM wp, LPARAM lp);
+static LRESULT CALLBACK global_call_WH_SHELL(INT code, WPARAM wp, LPARAM lp);
 
 #define WH_MAXHOOK16 WH_SHELL  /* Win16 only supports up to WH_SHELL */
 #define NB_HOOKS16 (WH_MAXHOOK16 - WH_MINHOOK + 1)
 
 static const HOOKPROC hook_procs[NB_HOOKS16] =
 {
-    call_WH_MSGFILTER,   /* WH_MSGFILTER	*/
+    task_call_WH_MSGFILTER,   /* WH_MSGFILTER	*/
     NULL,                /* WH_JOURNALRECORD */
     (HOOKPROC)-1,        /* WH_JOURNALPLAYBACK */
-    call_WH_KEYBOARD,    /* WH_KEYBOARD */
-    call_WH_GETMESSAGE,  /* WH_GETMESSAGE */
-    call_WH_CALLWNDPROC, /* WH_CALLWNDPROC */
-    call_WH_CBT,         /* WH_CBT */
+    task_call_WH_KEYBOARD,    /* WH_KEYBOARD */
+    task_call_WH_GETMESSAGE,  /* WH_GETMESSAGE */
+    task_call_WH_CALLWNDPROC, /* WH_CALLWNDPROC */
+    task_call_WH_CBT,         /* WH_CBT */
     NULL,                /* WH_SYSMSGFILTER */
-    call_WH_MOUSE,       /* WH_MOUSE */
+    task_call_WH_MOUSE,       /* WH_MOUSE */
     NULL,                /* WH_HARDWARE */
     NULL,                /* WH_DEBUG */
-    call_WH_SHELL        /* WH_SHELL */
+    task_call_WH_SHELL        /* WH_SHELL */
 };
 
+
+static const HOOKPROC global_hook_procs[NB_HOOKS16] =
+{
+    global_call_WH_MSGFILTER,   /* WH_MSGFILTER	*/
+    NULL,                /* WH_JOURNALRECORD */
+    (HOOKPROC) - 1,        /* WH_JOURNALPLAYBACK */
+    global_call_WH_KEYBOARD,    /* WH_KEYBOARD */
+    global_call_WH_GETMESSAGE,  /* WH_GETMESSAGE */
+    global_call_WH_CALLWNDPROC, /* WH_CALLWNDPROC */
+    global_call_WH_CBT,         /* WH_CBT */
+    NULL,                /* WH_SYSMSGFILTER */
+    global_call_WH_MOUSE,       /* WH_MOUSE */
+    NULL,                /* WH_HARDWARE */
+    NULL,                /* WH_DEBUG */
+    global_call_WH_SHELL        /* WH_SHELL */
+};
 
 struct hook_entry
 {
@@ -113,10 +137,13 @@ struct hook_entry
     BOOL deleted;
 };
 
+extern HQUEUE16 hqFirst;
 struct hook16_queue_info
 {
     HHOOK       hhook[NB_HOOKS16];
     struct list hook_entry[NB_HOOKS16];
+    HHOOK       global_hhook[NB_HOOKS16];
+    struct list global_hook_entry[NB_HOOKS16];
 };
 
 static struct hook16_queue_info *get_hook_info( BOOL create, HTASK16 hTask )
@@ -251,10 +278,10 @@ static LRESULT call_hook_entry_16(struct hook16_queue_info *info, struct hook_en
 /***********************************************************************
  *           call_hook_16
  */
-static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp )
+static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
     struct hook16_queue_info *info = get_hook_info(FALSE, 0);
-    struct list *head = list_head(&info->hook_entry[id - WH_MIN]);
+    struct list *head = list_head(&(global ? info->global_hook_entry : info->hook_entry)[id - WH_MIN]);
     if (!head)
         return 0;
     struct hook_entry *hook_entry = LIST_ENTRY(head, struct hook_entry, entry);
@@ -299,6 +326,7 @@ struct wndproc_hook_params
     HHOOK  hhook;
     INT    code;
     WPARAM wparam;
+    BOOL global;
 };
 
 /* callback for WINPROC_Call16To32A */
@@ -330,7 +358,7 @@ static LRESULT wndproc_hook_callback16( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LP
     cwp.lParam  = lp;
 
     lp = MapLS( &cwp );
-    ret = call_hook_16( WH_CALLWNDPROC, params->code, params->wparam, lp );
+    ret = call_hook_16( WH_CALLWNDPROC, params->code, params->wparam, lp, params->global );
     UnMapLS( lp );
 
     *result = 0;
@@ -344,7 +372,7 @@ void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 *msg, WPARAM16 *wp, LPARAM *l
     SEGPTR lpcwp = 0;
     struct hook16_queue_info *info = get_hook_info( FALSE, 0 );
 
-    if (!info || !info->hhook[WH_CALLWNDPROC - WH_MINHOOK]) return;
+    if (!info || (!info->hhook[WH_CALLWNDPROC - WH_MINHOOK] && !info->global_hhook[WH_CALLWNDPROC - WH_MINHOOK])) return;
 
     cwp.hwnd    = hwnd;
     cwp.message = *msg;
@@ -353,55 +381,87 @@ void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 *msg, WPARAM16 *wp, LPARAM *l
 
     lpcwp = MapLS( &cwp );
 
-    call_hook_16(WH_CALLWNDPROC, HC_ACTION, 1, lpcwp);
+    if (info->global_hhook[WH_CALLWNDPROC - WH_MINHOOK])
+        call_hook_16(WH_CALLWNDPROC, HC_ACTION, 1, lpcwp, TRUE);
+    if (info->hhook[WH_CALLWNDPROC - WH_MINHOOK])
+        call_hook_16(WH_CALLWNDPROC, HC_ACTION, 1, lpcwp, FALSE);
     UnMapLS( lpcwp );
     *msg = cwp.message;
     *wp = cwp.wParam;
     *lp = cwp.lParam;
 }
 
+HHOOK get_hhook(INT code, BOOL global)
+{
+    if (global)
+    {
+        return get_hook_info(FALSE, 0)->global_hhook[code - WH_MIN];
+    }
+    return get_hook_info(FALSE, 0)->hhook[code - WH_MIN];
+}
+
 /***********************************************************************
  *		call_WH_MSGFILTER
  */
-static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
     MSG *msg32 = (MSG *)lp;
     MSG16 msg16;
     LRESULT ret;
-    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_MSGFILTER - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hhook(WH_MSGFILTER, global), code, wp, lp);
 
     map_msg_32_to_16( msg32, &msg16 );
     lp = MapLS( &msg16 );
-    ret = call_hook_16( WH_MSGFILTER, code, wp, lp );
+    ret = call_hook_16( WH_MSGFILTER, code, wp, lp, global);
     UnMapLS( lp );
     return ret;
+}
+
+static LRESULT CALLBACK task_call_WH_MSGFILTER(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_MSGFILTER(code, wp, lp, FALSE);
+}
+
+static LRESULT CALLBACK global_call_WH_MSGFILTER(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_MSGFILTER(code, wp, lp, TRUE);
 }
 
 
 /***********************************************************************
  *		call_WH_KEYBOARD
  */
-static LRESULT CALLBACK call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
-    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_KEYBOARD - WH_MIN], code, wp, lp);
-    return call_hook_16( WH_KEYBOARD, code, wp, lp );
+    CallNextHookEx(get_hhook(WH_KEYBOARD, global), code, wp, lp);
+    return call_hook_16( WH_KEYBOARD, code, wp, lp, global );
 }
 
+
+static LRESULT CALLBACK task_call_WH_KEYBOARD(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_KEYBOARD(code, wp, lp, FALSE);
+}
+
+static LRESULT CALLBACK global_call_WH_KEYBOARD(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_KEYBOARD(code, wp, lp, TRUE);
+}
 
 /***********************************************************************
  *		call_WH_GETMESSAGE
  */
-static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
     MSG *msg32 = (MSG *)lp;
     MSG16 msg16;
     LRESULT ret;
-    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_GETMESSAGE - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hhook(WH_GETMESSAGE, global), code, wp, lp);
 
     map_msg_32_to_16( msg32, &msg16 );
 
     lp = MapLS( &msg16 );
-    ret = call_hook_16( WH_GETMESSAGE, code, wp, lp );
+    ret = call_hook_16( WH_GETMESSAGE, code, wp, lp, global );
     UnMapLS( lp );
 
     map_msg_16_to_32( &msg16, msg32 );
@@ -409,30 +469,51 @@ static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp )
 }
 
 
+static LRESULT CALLBACK task_call_WH_GETMESSAGE(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_GETMESSAGE(code, wp, lp, FALSE);
+}
+
+static LRESULT CALLBACK global_call_WH_GETMESSAGE(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_GETMESSAGE(code, wp, lp, TRUE);
+}
+
 /***********************************************************************
  *		call_WH_CALLWNDPROC
  */
-static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
     struct wndproc_hook_params params;
     CWPSTRUCT *cwp32 = (CWPSTRUCT *)lp;
     LRESULT result;
-    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_CALLWNDPROC - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hhook(WH_CALLWNDPROC, global), code, wp, lp);
 
     params.code   = code;
     params.wparam = wp;
+    params.global = global;
     return WINPROC_CallProc32ATo16( wndproc_hook_callback16, cwp32->hwnd, cwp32->message,
                                     cwp32->wParam, cwp32->lParam, &result, &params );
 }
 
 
+static LRESULT CALLBACK task_call_WH_CALLWNDPROC(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_CALLWNDPROC(code, wp, lp, FALSE);
+}
+
+static LRESULT CALLBACK global_call_WH_CALLWNDPROC(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_CALLWNDPROC(code, wp, lp, TRUE);
+}
+
 /***********************************************************************
  *		call_WH_CBT
  */
-static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
     LRESULT ret = 0;
-    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_CBT - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hhook(WH_CBT, global), code, wp, lp);
 
     switch (code)
     {
@@ -459,7 +540,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             cbtcw16.hwndInsertAfter = HWND_16( cbtcw32->hwndInsertAfter );
 
             lp = MapLS( &cbtcw16 );
-            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
+            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp, global );
             UnMapLS( cs16.lpszName );
             UnMapLS( cs16.lpszClass );
 
@@ -478,7 +559,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             cas16.hWndActive = HWND_16( cas32->hWndActive );
 
             lp = MapLS( &cas16 );
-            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
+            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp, global );
             UnMapLS( lp );
             break;
         }
@@ -494,7 +575,7 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             ms16.dwExtraInfo  = ms32->dwExtraInfo;
 
             lp = MapLS( &ms16 );
-            ret = call_hook_16( WH_CBT, code, wp, lp );
+            ret = call_hook_16( WH_CBT, code, wp, lp, global );
             UnMapLS( lp );
             break;
         }
@@ -508,38 +589,38 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
             rect16.right  = rect32->right;
             rect16.bottom = rect32->bottom;
             lp = MapLS( &rect16 );
-            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp );
+            ret = call_hook_16( WH_CBT, code, HWND_16(wp), lp, global );
             UnMapLS( lp );
             break;
     }
     case HCBT_MINMAX:
     {
-        ret = call_hook_16(WH_CBT, code, HWND_16(wp), lp);
+        ret = call_hook_16(WH_CBT, code, HWND_16(wp), lp, global);
         break;
     }
     case HCBT_QS:
     {
-        ret = call_hook_16(WH_CBT, code, wp, lp);
+        ret = call_hook_16(WH_CBT, code, wp, lp, global);
         break;
     }
     case HCBT_DESTROYWND:
     {
-        ret = call_hook_16(WH_CBT, code, HWND_16(wp), lp);
+        ret = call_hook_16(WH_CBT, code, HWND_16(wp), lp, global);
         break;
     }
     case HCBT_KEYSKIPPED:
     {
-        ret = call_hook_16(WH_CBT, code, wp, lp);
+        ret = call_hook_16(WH_CBT, code, wp, lp, global);
         break;
     }
     case HCBT_SYSCOMMAND:
     {
-        ret = call_hook_16(WH_CBT, code, wp, lp);
+        ret = call_hook_16(WH_CBT, code, wp, lp, global);
         break;
     }
     case HCBT_SETFOCUS:
     {
-        ret = call_hook_16(WH_CBT, code, HWND_16(wp), HWND_16(lp));
+        ret = call_hook_16(WH_CBT, code, HWND_16(wp), HWND_16(lp), global);
         break;
     }
     default:
@@ -549,15 +630,25 @@ static LRESULT CALLBACK call_WH_CBT( INT code, WPARAM wp, LPARAM lp )
 }
 
 
+static LRESULT CALLBACK task_call_WH_CBT(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_CBT(code, wp, lp, FALSE);
+}
+
+static LRESULT CALLBACK global_call_WH_CBT(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_CBT(code, wp, lp, TRUE);
+}
+
 /***********************************************************************
  *		call_WH_MOUSE
  */
-static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
     MOUSEHOOKSTRUCT *ms32 = (MOUSEHOOKSTRUCT *)lp;
     MOUSEHOOKSTRUCT16 ms16;
     LRESULT ret;
-    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_MOUSE - WH_MIN], code, wp, lp);
+    CallNextHookEx(get_hhook(WH_MOUSE, global), code, wp, lp);
 
     ms16.pt.x         = ms32->pt.x;
     ms16.pt.y         = ms32->pt.y;
@@ -566,19 +657,39 @@ static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp )
     ms16.dwExtraInfo  = ms32->dwExtraInfo;
 
     lp = MapLS( &ms16 );
-    ret = call_hook_16( WH_MOUSE, code, wp, lp );
+    ret = call_hook_16( WH_MOUSE, code, wp, lp, global );
     UnMapLS( lp );
     return ret;
 }
 
 
+static LRESULT CALLBACK task_call_WH_MOUSE(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_MOUSE(code, wp, lp, FALSE);
+}
+
+static LRESULT CALLBACK global_call_WH_MOUSE(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_MOUSE(code, wp, lp, TRUE);
+}
+
 /***********************************************************************
  *		call_WH_SHELL
  */
-static LRESULT CALLBACK call_WH_SHELL( INT code, WPARAM wp, LPARAM lp )
+static LRESULT CALLBACK call_WH_SHELL( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
-    CallNextHookEx(get_hook_info(FALSE, 0)->hhook[WH_MOUSE - WH_SHELL], code, wp, lp);
-    return call_hook_16( WH_SHELL, code, wp, lp );
+    CallNextHookEx(get_hhook(WH_SHELL, global), code, wp, lp);
+    return call_hook_16( WH_SHELL, code, wp, lp, global );
+}
+
+static LRESULT CALLBACK task_call_WH_SHELL(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_SHELL(code, wp, lp, FALSE);
+}
+
+static LRESULT CALLBACK global_call_WH_SHELL(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_SHELL(code, wp, lp, TRUE);
 }
 
 
@@ -589,8 +700,8 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
     LPARAM lp;
     INPUT input;
     lp = MapLS( &emsg );
-    call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp );
-    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0 );
+    call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp, FALSE );
+    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0, FALSE );
     UnMapLS( lp );
     TRACE("WH_JOURNALPLAYBACK message: %x paramL: %x paramH: %x\n", emsg.message, emsg.paramL, emsg.paramH);
     switch( emsg.message )
@@ -833,7 +944,6 @@ LRESULT WINAPI DefHookProc16( INT16 code, WPARAM16 wparam, LPARAM lparam, HHOOK 
     return CallNextHookEx16( *hhook, code, wparam, lparam );
 }
 
-extern HQUEUE16 hqFirst;
 
 void free_module_hooks(HINSTANCE16 hinst)
 {
