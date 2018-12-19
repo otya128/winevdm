@@ -647,6 +647,11 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
         FIXME("hook type %d broken in Win16\n", id);
         return 0;
     }
+    if (!hTask)
+    {
+        FIXME("System-global hooks (%d) broken in Win16\n", id);
+        hTask = GetCurrentTask();
+    }
     if (!hTask) FIXME("System-global hooks (%d) broken in Win16\n", id);
     else if (hTask != GetCurrentTask())
     {
