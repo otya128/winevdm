@@ -740,18 +740,18 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
                 result = TRUE;
             }
         }
-    }
-    if (list_empty(&info->hook_entry[index]))
-    {
-        if (type == WH_JOURNALPLAYBACK)
+        if (list_empty(&info->hook_entry[index]))
         {
-            KillTimer(NULL, (UINT_PTR)info->hhook[index]);
+            if (type == WH_JOURNALPLAYBACK)
+            {
+                KillTimer(NULL, (UINT_PTR)info->hhook[index]);
+            }
+            else
+            {
+                UnhookWindowsHookEx(info->hhook[index]);
+            }
+            info->hhook[index] = NULL;
         }
-        else
-        {
-            UnhookWindowsHookEx(info->hhook[index]);
-        }
-        info->hhook[index] = NULL;
     }
     return result;
 }
