@@ -134,16 +134,39 @@ struct hook_entry
     HTASK16 htask16;
     HINSTANCE16 hinst16;
     INT type;
+    BOOL global;
     BOOL deleted;
 };
 
 extern HQUEUE16 hqFirst;
+static CRITICAL_SECTION global_hook_section;
+static CRITICAL_SECTION_DEBUG global_hook_section_debug =
+{
+    0, 0, &global_hook_section,
+    { &global_hook_section_debug.ProcessLocksList, &global_hook_section_debug.ProcessLocksList },
+      0, 0, { (DWORD_PTR)(__FILE__ ": global hook") }
+};
+static CRITICAL_SECTION global_hook_section = { &global_hook_section_debug, -1, 0, 0, 0, 0 };
+struct list global_hook_entry[NB_HOOKS16] =
+{
+    LIST_INIT(global_hook_entry[0]),
+    LIST_INIT(global_hook_entry[1]),
+    LIST_INIT(global_hook_entry[2]),
+    LIST_INIT(global_hook_entry[3]),
+    LIST_INIT(global_hook_entry[4]),
+    LIST_INIT(global_hook_entry[5]),
+    LIST_INIT(global_hook_entry[6]),
+    LIST_INIT(global_hook_entry[7]),
+    LIST_INIT(global_hook_entry[8]),
+    LIST_INIT(global_hook_entry[9]),
+    LIST_INIT(global_hook_entry[10]),
+    LIST_INIT(global_hook_entry[11]),
+};
 struct hook16_queue_info
 {
     HHOOK       hhook[NB_HOOKS16];
     struct list hook_entry[NB_HOOKS16];
     HHOOK       global_hhook[NB_HOOKS16];
-    struct list global_hook_entry[NB_HOOKS16];
 };
 
 static struct hook16_queue_info *get_hook_info( BOOL create, HTASK16 hTask )
@@ -281,7 +304,7 @@ static LRESULT call_hook_entry_16(struct hook16_queue_info *info, struct hook_en
 static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
     struct hook16_queue_info *info = get_hook_info(FALSE, 0);
-    struct list *head = list_head(&(global ? info->global_hook_entry : info->hook_entry)[id - WH_MIN]);
+    struct list *head = list_head(&(global ? global_hook_entry : info->hook_entry)[id - WH_MIN]);
     if (!head)
         return 0;
     struct hook_entry *hook_entry = LIST_ENTRY(head, struct hook_entry, entry);
@@ -742,6 +765,33 @@ FARPROC16 WINAPI SetWindowsHook16( INT16 id, HOOKPROC16 proc )
 }
 
 
+void install_global_hook()
+{
+    QUEUE16 *q = (QUEUE16*)MapSL(MAKESEGPTR(hqFirst, 0));
+    while (q)
+    {
+        if (IsTask16(q->hTask))
+        {
+            struct hook16_queue_info *info = get_hook_info(TRUE, q->hTask);
+            TDB *tdb;
+            int id;
+            tdb = GlobalLock16(q->hTask);
+            for (id = WH_MINHOOK; id < WH_MAXHOOK16; id++)
+            {
+                int index = id - WH_MINHOOK;
+                if (!list_empty(&global_hook_entry[index]))
+                {
+                    if (!info->global_hhook[index])
+                    {
+                        info->global_hhook[index] = SetWindowsHookExA(id, global_hook_procs[index], 0, *(LPDWORD)((LPBYTE)tdb->teb + 0x24));
+                    }
+                }
+            }
+        }
+        q = (QUEUE16*)MapSL(MAKESEGPTR(q->next, 0));
+    }
+}
+
 /***********************************************************************
  *		SetWindowsHookEx (USER.291)
  */
@@ -759,11 +809,7 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
         return 0;
     }
     if (!hTask)
-    {
         FIXME("System-global hooks (%d) broken in Win16\n", id);
-        hTask = GetCurrentTask();
-    }
-    if (!hTask) FIXME("System-global hooks (%d) broken in Win16\n", id);
     else if (hTask != GetCurrentTask())
     {
         thread = (DWORD)HTASK_32(hTask);
@@ -773,34 +819,49 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
             return 0;
         }
     }
-    info = get_hook_info(TRUE, hTask);
-
-    if (!info->hhook[index])
+    if (hTask)
     {
-        if (id == WH_JOURNALPLAYBACK)
+        info = get_hook_info(TRUE, hTask);
+
+        if (!info->hhook[index])
         {
-            info->hhook[index] = SetTimer(NULL, 0, 100, journal_playback_cb);
+            if (id == WH_JOURNALPLAYBACK)
+            {
+                info->hhook[index] = SetTimer(NULL, 0, 100, journal_playback_cb);
+            }
+            else
+            {
+                info->hhook[index] = SetWindowsHookExA(id, hook_procs[index], 0, thread);
+            }
         }
-        else
+        if (!info->hhook[index])
+            return 0;
+        if (info)
         {
-            info->hhook[index] = SetWindowsHookExA(id, hook_procs[index], 0, thread);
+            struct list *head = &info->hook_entry[index];
+            entry = (struct hook_entry*)allocate_hook();
+            if (!head->next)
+            {
+                list_init(head);
+            }
+            list_add_head(head, &entry->entry);
+            entry->proc16 = proc;
+            entry->hinst16 = GetExePtr(hInst);
+            entry->htask16 = hTask;
+            entry->type = id;
+            entry->global = FALSE;
         }
     }
-    if (!info->hhook[index])
-        return 0;
-    if (info)
+    else
     {
-        struct list *head = &info->hook_entry[index];
         entry = (struct hook_entry*)allocate_hook();
-        if (!head->next)
-        {
-            list_init(head);
-        }
-        list_add_head(head, &entry->entry);
         entry->proc16 = proc;
         entry->hinst16 = GetExePtr(hInst);
         entry->htask16 = hTask;
         entry->type = id;
+        entry->global = TRUE;
+        list_add_head(&global_hook_entry[index], &entry->entry);
+        install_global_hook();
     }
 
     return entry_to_hhook(entry);
@@ -838,16 +899,25 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
     struct hook16_queue_info *info;
     struct hook_entry *unhook = hhook_to_entry(hhook);
     INT type;
+    struct list *entry;
     if (!unhook)
         return FALSE;
     info = get_hook_info(FALSE, unhook->htask16);
     type = unhook->type;
     int index = type - WH_MINHOOK;
+    if (unhook->global)
+    {
+        entry = &global_hook_entry[index];
+    }
+    else
+    {
+        entry = &info->hook_entry[index];
+    }
     if (info)
     {
         struct hook_entry *hook_entry, *next;
 
-        LIST_FOR_EACH_ENTRY_SAFE(hook_entry, next, &info->hook_entry[index], struct hook_entry, entry)
+        LIST_FOR_EACH_ENTRY_SAFE(hook_entry, next, entry, struct hook_entry, entry)
         {
             if (hook_entry == unhook)
             {
@@ -856,7 +926,7 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
                 result = TRUE;
             }
         }
-        if (list_empty(&info->hook_entry[index]))
+        if (list_empty(entry))
         {
             if (type == WH_JOURNALPLAYBACK)
             {
@@ -926,7 +996,7 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
     struct hook_entry *next_hook;
     if (!entry)
         return 0;
-    next = list_next(&info->hook_entry[entry->type - WH_MIN], &entry->entry);
+    next = list_next(&(entry->global ? global_hook_entry : info->hook_entry)[entry->type - WH_MIN], &entry->entry);
     if (!next)
         return 0;
     next_hook = LIST_ENTRY(next, struct hook_entry, entry);
