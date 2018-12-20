@@ -264,6 +264,7 @@ BOOL WINAPI KERNEL_DllEntryPoint( DWORD reasion, HINSTANCE16 inst, WORD ds,
     /* Force loading of some dlls */
     LoadLibrary16( "system.drv" );
     LoadLibrary16( "comm.drv" );
+    LoadLibrary16( "timer.drv" );
 
     char dllname[MAX_PATH];
     krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));

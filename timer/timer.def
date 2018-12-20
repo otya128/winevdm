@@ -1,0 +1,6 @@
+; File generated automatically from timer\timer.drv16.spec; do not edit!
+
+LIBRARY timer.drv16
+
+EXPORTS
+  _wine_spec_dos_header @1 DATA
