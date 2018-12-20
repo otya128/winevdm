@@ -1315,6 +1315,8 @@ void WINAPI SwitchStackBack16( CONTEXT *context )
     newFrame->module_cs   = oldFrame->module_cs;
     newFrame->callfrom_ip = oldFrame->callfrom_ip;
     newFrame->entry_ip    = oldFrame->entry_ip;
+    newFrame->cs          = oldFrame->cs;
+    newFrame->ip          = oldFrame->ip;
 }
 
 
