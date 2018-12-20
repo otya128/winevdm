@@ -1506,9 +1506,11 @@ extern "C"
 						save_context(&context);
                         STACK16FRAME *oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
 						DWORD ooo = (WORD)context.Esp;
+                        int off = 0;
                         if (reg)
                         {
                             context.Esp = osp + (SIZE_T)stack - (SIZE_T)stack1 - 4;
+                            off = ooo - context.Esp;
                             context.Ebp = bp;
                             context.Eip = ip19;
                             context.SegCs = cs16;
@@ -1565,11 +1567,18 @@ extern "C"
                         }
 					    //fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
 						//int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
+
 						if (!reg)
 						{
 							REG32(EAX) = fret;
+                            context.SegSs = ((size_t)dynamic_getWOW32Reserved() >> 16) & 0xFFFF;
+                            context.Esp = ((size_t)dynamic_getWOW32Reserved()) & 0xFFFF;
+                            oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
 						}
-                        oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
+                        else
+                        {
+                            oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp + off);
+                        }
 						if (reg) REG32(EAX) = (DWORD)context.Eax;
 						REG32(ECX) = reg ? (DWORD)context.Ecx : (DWORD)oa->ecx;
 						if (reg) REG32(EDX) = (DWORD)context.Edx;
@@ -1593,8 +1602,8 @@ extern "C"
                         {
                             if (!(ip19 != context.Eip || cs16 != context.SegCs))
                             {
-                                context.Eip = ip;
-                                context.SegCs = cs;
+                                context.Eip = oa->callfrom_ip;
+                                context.SegCs = oa->module_cs;
                             }
                             else
                             {
@@ -1608,6 +1617,8 @@ extern "C"
                         {
                             REG16(SP) = osp + 18 + 2;
                             REG16(SP) -= (ooo - context.Esp);
+                            WORD bpp = REG16(SP);
+                            REG16(SP) = context.Esp + 0x2c;
                             REG16(BP) = bp;
                         }
                         SREG(CS) = (WORD)context.SegCs;

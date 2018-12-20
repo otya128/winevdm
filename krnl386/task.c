@@ -1291,7 +1291,8 @@ void WINAPI SwitchStackBack16( CONTEXT *context )
         WARN("No previous SwitchStackTo\n" );
         return;
     }
-    TRACE("restoring stack %04x:%04x\n",
+    TRACE("restoring stack %04x:%04x -> %04x:%04x\n",
+          SELECTOROF(getWOW32Reserved()), OFFSETOF(getWOW32Reserved()),
           SELECTOROF(pData->old_ss_sp), OFFSETOF(pData->old_ss_sp) );
 
     oldFrame = CURRENT_STACK16;
@@ -1303,9 +1304,9 @@ void WINAPI SwitchStackBack16( CONTEXT *context )
 
     /* Switch back to the old stack */
 
-	setWOW32Reserved((void *)(pData->old_ss_sp - sizeof(STACK16FRAME)));
+	setWOW32Reserved((void *)(pData->old_ss_sp - sizeof(STACK16FRAME) - 6));
     context->SegSs = SELECTOROF(pData->old_ss_sp);
-    context->Esp   = OFFSETOF(pData->old_ss_sp) - sizeof(DWORD); /*ret addr*/
+    context->Esp   = OFFSETOF(pData->old_ss_sp) - sizeof(DWORD) + 4 - sizeof(STACK16FRAME) + 44 - 6; /*ret addr*/
     pData->old_ss_sp = 0;
 
     /* Build a stack frame for the return */
