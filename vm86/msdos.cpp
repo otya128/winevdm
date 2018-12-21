@@ -1329,6 +1329,7 @@ extern "C"
         DWORD dasm_nest_sp_table[8] = { 0 };
 		bool dasm_buffering = false;
         int dasm_nest = 0;
+        DWORD old_frame16 = PtrToUlong(dynamic_getWOW32Reserved());
 		if (dasm == 2)
 		{
 			dasm_buffering = true;
@@ -1533,17 +1534,19 @@ extern "C"
                             sprintf(dbuf, "call built-in func %p %s.%d: %s\n", entry, module, ordinal, func);
                         }
                         LPVOID old;
+                        PCONTEXT pctx = NULL;
+#if 1
                         __asm
                         {
                             mov old, esp
                             push cbArgs
-                            push 0 /* target */
-                            push 0 /* retaddr */
+                            push old /* target(esp) */
+                            push retaddr /* retaddr */
                             push ebp
                             push ebx
                             push esi
                             push edi
-                            push 0 /* frame16 */
+                            push old_frame16 /* frame16 */
                             /* set up exception handler */
                             push handler
                             mov  eax, fs:[0]
@@ -1563,11 +1566,23 @@ extern "C"
                             mov fret, eax
                             pop dword ptr fs:[0]
                             pop eax
-                            mov esp,old
+                            jmp skip
+                            retaddr:
+                            mov pctx, ecx
+                            skip:
+                            mov esp, old
                         }
-					    //fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
+#else
+					    fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
+#endif
 						//int fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
 
+                        if (pctx)
+                        {
+                            /* Throw16 */
+                            context = *pctx;
+                            reg = TRUE;
+                        }
 						if (!reg)
 						{
 							REG32(EAX) = fret;

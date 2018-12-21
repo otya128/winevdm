@@ -2272,7 +2272,7 @@ INT WINAPIV k32wsprintfA(LPSTR buffer, LPCSTR spec, ...)
  * Real prototype is:
  *   INT16 WINAPI Catch( LPCATCHBUF lpbuf );
  */
-void WINAPI Catch16( LPCATCHBUF lpbuf, CONTEXT *context )
+void WINAPI Catch16( SEGPTR lpbuf16, CONTEXT *context )
 {
     /* Note: we don't save the current ss, as the catch buffer is */
     /* only 9 words long. Hopefully no one will have the silly    */
@@ -2290,6 +2290,7 @@ void WINAPI Catch16( LPCATCHBUF lpbuf, CONTEXT *context )
      * lpbuf[8] = ss
      */
 
+    LPCATCHBUF lpbuf = MapSL(lpbuf16);
     lpbuf[0] = LOWORD(context->Eip);
     lpbuf[1] = context->SegCs;
     /* Windows pushes 4 more words before saving sp */
@@ -2301,6 +2302,24 @@ void WINAPI Catch16( LPCATCHBUF lpbuf, CONTEXT *context )
     lpbuf[7] = 0;
     lpbuf[8] = context->SegSs;
     context->Eax &= ~0xffff;  /* Return 0 */
+    context->Ebx = OFFSETOF(lpbuf16);
+    context->SegEs = SELECTOROF(lpbuf16);
+}
+
+#include "wine/exception.h"
+#include <ntstatus.h>
+LONG WINAPI Throw16VectoredExceptionHandler(struct _EXCEPTION_POINTERS *ExceptionInfo)
+{
+    if (ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_INVALID_DISPOSITION)
+        return EXCEPTION_CONTINUE_EXECUTION;
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+LONG WINAPI Throw16ExceptionFilter(struct _EXCEPTION_POINTERS *ExceptionInfo)
+{
+    /* KiUserCallbackExceptionHandler throws STATUS_FATAL_USER_CALLBACK_EXCEPTION*/
+    if (ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_UNWIND)
+        return EXCEPTION_CONTINUE_EXECUTION;
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 
 /**********************************************************************
@@ -2312,7 +2331,10 @@ void WINAPI Catch16( LPCATCHBUF lpbuf, CONTEXT *context )
 void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
 {
     STACK16FRAME *pFrame;
+    STACK16FRAME *pFramePrev = NULL;
     STACK32FRAME *frame32;
+    LPVOID v;
+    LPTOP_LEVEL_EXCEPTION_FILTER old_filter;
 
     context->Eax = (context->Eax & ~0xffff) | (WORD)retval;
 
@@ -2329,8 +2351,22 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
             pFrame->frame32 = frame32;
             break;
         }
-        frame32 = ((STACK16FRAME *)MapSL(frame32->frame16))->frame32;
+        frame32 = (pFramePrev = (STACK16FRAME *)MapSL(frame32->frame16))->frame32;
     }
+    if (pFramePrev)
+        memmove(pFramePrev, pFrame, sizeof(STACK16FRAME));
+    context->Eip    = lpbuf[0];
+    context->SegCs  = lpbuf[1];
+    context->Esp    = lpbuf[2] + 4 * sizeof(WORD) - sizeof(WORD) - sizeof(WORD) /*extra arg*/;
+    context->Ebp    = lpbuf[3];
+    context->Esi    = lpbuf[4];
+    context->Edi    = lpbuf[5];
+    context->SegDs  = lpbuf[6];
+    context->Esp += 0x0c;
+    if (lpbuf[8] != context->SegSs)
+        ERR("Switching stack segment with Throw() not supported; expect crash now\n" );
+    old_filter = SetUnhandledExceptionFilter(Throw16ExceptionFilter);
+    v = AddVectoredExceptionHandler(0, Throw16VectoredExceptionHandler);
 #if defined(_MSC_VER)
     __asm
     {
@@ -2350,18 +2386,24 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
         pop edi
     }
 #else
-    RtlUnwind( &pFrame->frame32->frame, NULL, NULL, 0 );
+    RtlUnwind(&pFrame->frame32->frame, NULL, NULL, 0);
 #endif
-    context->Eip = lpbuf[0];
-    context->SegCs  = lpbuf[1];
-    context->Esp = lpbuf[2] + 4 * sizeof(WORD) - sizeof(WORD) - sizeof(WORD) /*extra arg*/;
-    context->Ebp = lpbuf[3];
-    context->Esi = lpbuf[4];
-    context->Edi = lpbuf[5];
-    context->SegDs  = lpbuf[6];
-    context->Esp += 0x0c;
-    if (lpbuf[8] != context->SegSs)
-        ERR("Switching stack segment with Throw() not supported; expect crash now\n" );
+    RemoveVectoredExceptionHandler(v);
+    SetUnhandledExceptionFilter(old_filter);
+    /* long jump to (relay_call_from_16) */
+#if defined(_MSC_VER)
+    __asm
+    {
+        mov ecx, dword ptr context
+        mov eax, frame32
+        mov edi, dword ptr [eax + 0x14]
+        mov ebp, dword ptr [eax + 0x20]
+        mov esi, dword ptr [eax +  0x18]
+        mov ebx, dword ptr [eax + 0x24]
+        mov esp, dword ptr [eax + 0x28]
+        jmp ebx
+    }
+#endif
 }
 
 

@@ -55,7 +55,7 @@
 52  pascal -ret16 FreeProcInstance(segptr) FreeProcInstance16
 53  stub CallProcInstance
 54  pascal -ret16 GetInstanceData(word word word) GetInstanceData16
-55  pascal -register Catch(ptr) Catch16
+55  pascal -register Catch(segptr) Catch16
 56  pascal -register Throw(ptr word) Throw16
 57  pascal -ret16 GetProfileInt(str str s_word) GetProfileInt16
 58  pascal -ret16 GetProfileString(str str str ptr word) GetProfileString16
