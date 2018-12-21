@@ -112,7 +112,14 @@ static struct notify
     WORD     wFlags;
 } *notifys = NULL;
 
+static struct intcb 
+{
+    HTASK16   htask;
+    FARPROC16 lpfnIntCallback;
+} *intcbs = NULL;
+
 static int nrofnotifys = 0;
+static int nrofintcbs = 0;
 
 static THHOOK *get_thhook(void)
 {
@@ -534,21 +541,101 @@ BOOL16 WINAPI StackTraceNext16(STACKTRACEENTRY *ste)
     return TRUE;
 }
 
+static int lastcb = 0;
+static SEGPTR lastaddr = 0;
+
+void WINAPI next_intcb(CONTEXT *context)
+{
+    WORD *stkptr = (WORD *)MapSL(MAKESEGPTR(context->SegSs, LOWORD(context->Esp)));
+    if (lastcb == nrofintcbs)
+    {
+        lastcb = 0;
+        context->Esp += 12;
+        context->Eip = stkptr[3];
+        context->SegCs = stkptr[4];
+        context->ContextFlags = stkptr[5];
+        lastaddr = MAKESEGPTR(context->SegCs, context->Eip);
+        return;
+    }
+    stkptr -= 2;
+    FARPROC16 next_intcb16 = GetProcAddress16(GetModuleHandle16("TOOLHELP"), "next_intcb");
+    stkptr[0] = OFFSETOF(next_intcb16);
+    stkptr[1] = SELECTOROF(next_intcb16);
+    context->Esp -= 4;
+    lastcb++;
+    context->Eip = OFFSETOF(intcbs[lastcb].lpfnIntCallback);
+    context->SegCs = SELECTOROF(intcbs[lastcb].lpfnIntCallback);
+}
+
+FARPROC16 WINAPI get_intcb(SEGPTR *stack, SEGPTR addr, WORD flags, WORD err, WORD ax)
+{
+    if(!nrofintcbs)
+        return FALSE;
+    if(addr == lastaddr) // failed to handle once
+        return FALSE;
+    lastaddr = 0;
+
+    WORD *stkptr = (WORD *)MapSL(*stack);
+    FARPROC16 next_intcb16 = GetProcAddress16(GetModuleHandle16("TOOLHELP"), "next_intcb");
+    stkptr -= 8;
+    stkptr[0] = OFFSETOF(next_intcb16);
+    stkptr[1] = SELECTOROF(next_intcb16);
+    stkptr[2] = ax;
+    stkptr[3] = err;
+    stkptr[4] = 0;
+    stkptr[5] = OFFSETOF(addr);
+    stkptr[6] = SELECTOROF(addr);
+    stkptr[7] = flags;
+    *stack -= 16;
+    lastcb = 1;
+    return intcbs[0].lpfnIntCallback;
+}        
+
 /***********************************************************************
  *		InterruptRegister (TOOLHELP.75)
  */
-BOOL16 WINAPI InterruptRegister16( HTASK16 task, FARPROC callback )
+BOOL16 WINAPI InterruptRegister16( HTASK16 htask, FARPROC16 callback )
 {
-    FIXME("(%04x, %p), stub.\n", task, callback);
+    int	i;
+
+    TRACE("(%x,%x,%x).\n", htask, (DWORD)callback);
+    if (!htask) htask = GetCurrentTask();
+    for (i=0;i<nrofintcbs;i++)
+        if (intcbs[i].htask==htask)
+            break;
+    if (i==nrofintcbs) {
+        if (intcbs==NULL)
+            intcbs=HeapAlloc( GetProcessHeap(), 0,
+                                               sizeof(struct intcb) );
+        else
+            intcbs=HeapReAlloc( GetProcessHeap(), 0, intcbs,
+                                        sizeof(struct intcb)*(nrofintcbs+1));
+        if (!intcbs) return FALSE;
+        nrofintcbs++;
+    }
+    intcbs[i].htask=htask;
+    intcbs[i].lpfnIntCallback=callback;
     return TRUE;
 }
 
 /***********************************************************************
  *		InterruptUnRegister (TOOLHELP.76)
  */
-BOOL16 WINAPI InterruptUnRegister16( HTASK16 task )
+BOOL16 WINAPI InterruptUnRegister16( HTASK16 htask )
 {
-    FIXME("(%04x), stub.\n", task);
+    int	i;
+
+    FIXME("(%x), semi-stub.\n", htask );
+    if (!htask) htask = GetCurrentTask();
+    for (i=nrofintcbs;i--;)
+        if (intcbs[i].htask==htask)
+            break;
+    if (i==-1)
+        return FALSE;
+    memcpy(intcbs+i,intcbs+(i+1),sizeof(struct intcb)*(nrofintcbs-i-1));
+    intcbs=HeapReAlloc( GetProcessHeap(), 0, intcbs,
+                                        (nrofintcbs-1)*sizeof(struct intcb));
+    nrofintcbs--;
     return TRUE;
 }
 

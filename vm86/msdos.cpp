@@ -1151,7 +1151,9 @@ extern "C"
         i386_load_segment_descriptor(CS);
         if (num == FAULT_GP)
         {
-            if(!err && !m_sreg[ES].selector)
+            char buffer[256];
+            int len = disassemble(buffer);
+            if(!err && !m_sreg[ES].selector && strstr(buffer, "es:"))
             {
                 // Some Windows 1.0 C startups try to access the IVT directly
                 static WORD dosmem_0000H = 0;
@@ -1193,14 +1195,25 @@ extern "C"
                     dosmem_0040H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)193);
                     (void(*)(void))GetProcAddress(krnl386, "DOSVM_start_bios_timer")();
                 }
-                char buffer[256];
-                int len = disassemble(buffer);
                 if (strstr(buffer, "es,")) // TODO: LES?
                 {
                     set_flags(flags);
                     m_sreg[ES].selector = dosmem_0040H;
                     i386_load_segment_descriptor(ES);
                     i386_jmp_far(cs, ip + len);
+                    return;
+                }
+            }
+            HMODULE toolhelp = GetModuleHandleA("toolhelp.dll16");
+            if (toolhelp)
+            {
+                SEGPTR stack = MAKESEGPTR(SREG(SS), REG16(SP));
+                FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(cs, ip), flags, num, REG16(AX));
+                if (intcb)
+                {
+                    SREG(SS) = SELECTOROF(stack);
+                    REG16(SP) = OFFSETOF(stack);
+                    i386_jmp_far(SELECTOROF(intcb), OFFSETOF(intcb));
                     return;
                 }
             }
