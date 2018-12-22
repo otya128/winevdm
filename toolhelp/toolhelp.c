@@ -598,7 +598,7 @@ BOOL16 WINAPI InterruptRegister16( HTASK16 htask, FARPROC16 callback )
 {
     int	i;
 
-    TRACE("(%x,%x,%x).\n", htask, (DWORD)callback);
+    FIXME("(%04x, %04x:%04x), semi-stub.\n", task, SELECTOROF(callback), OFFSETOF(callback));
     if (!htask) htask = GetCurrentTask();
     for (i=0;i<nrofintcbs;i++)
         if (intcbs[i].htask==htask)
