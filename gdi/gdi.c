@@ -1650,7 +1650,7 @@ HFONT16 WINAPI CreateFont16(INT16 height, INT16 width, INT16 esc, INT16 orient,
  */
 HBRUSH16 WINAPI CreateHatchBrush16( INT16 style, COLORREF color )
 {
-    return HBRUSH_16( CreateHatchBrush( style, color ) );
+    return HBRUSH_16( CreateHatchBrush( style, check_colorref(color) ) );
 }
 
 
@@ -1673,7 +1673,7 @@ HPEN16 WINAPI CreatePen16( INT16 style, INT16 width, COLORREF color )
     logpen.lopnStyle = style;
     logpen.lopnWidth.x = width;
     logpen.lopnWidth.y = 0;
-    logpen.lopnColor = color;
+    logpen.lopnColor = check_colorref(color);
     return HPEN_16( CreatePenIndirect( &logpen ) );
 }
 
@@ -2543,7 +2543,7 @@ HDC16 WINAPI CreateIC16( LPCSTR driver, LPCSTR device, LPCSTR output,
  */
 COLORREF WINAPI GetNearestColor16( HDC16 hdc, COLORREF color )
 {
-    return GetNearestColor( HDC_32(hdc), color );
+    return GetNearestColor( HDC_32(hdc), check_colorref(color) );
 }
 
 
@@ -3208,7 +3208,7 @@ BOOL16 WINAPI ResizePalette16( HPALETTE16 hpalette, UINT16 cEntries )
  */
 UINT16 WINAPI GetNearestPaletteIndex16( HPALETTE16 hpalette, COLORREF color )
 {
-    return GetNearestPaletteIndex( HPALETTE_32(hpalette), color );
+    return GetNearestPaletteIndex( HPALETTE_32(hpalette), check_colorref(color) );
 }
 
 
@@ -3218,7 +3218,7 @@ UINT16 WINAPI GetNearestPaletteIndex16( HPALETTE16 hpalette, COLORREF color )
 BOOL16 WINAPI ExtFloodFill16( HDC16 hdc, INT16 x, INT16 y, COLORREF color,
                               UINT16 fillType )
 {
-    return ExtFloodFill( HDC_32(hdc), x, y, color, fillType );
+    return ExtFloodFill( HDC_32(hdc), x, y, check_colorref(color), fillType );
 }
 
 
