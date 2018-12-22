@@ -802,6 +802,7 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
     DWORD thread = GetCurrentThreadId();
     struct hook_entry *entry;
 
+    TRACE("(%d,%04x:%04x,%04x,%04x)\n", id, SELECTOROF(proc), OFFSETOF(proc), hInst, hTask);
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return 0;
     if (!hook_procs[index])
     {
@@ -868,6 +869,21 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
 }
 
 
+static BOOL16 unhook_global_hook(INT16 id, HOOKPROC16 proc)
+{
+    int index = id - WH_MINHOOK;
+    EnterCriticalSection(&global_hook_section);
+    struct hook_entry *hook_entry, *next;
+    LIST_FOR_EACH_ENTRY_SAFE(hook_entry, next, &global_hook_entry[index], struct hook_entry, entry)
+    {
+        if (hook_entry->proc16 == proc)
+        {
+            LeaveCriticalSection(&global_hook_section);
+            return UnhookWindowsHookEx16(entry_to_hhook(hook_entry));
+        }
+    }
+    LeaveCriticalSection(&global_hook_section);
+}
 /***********************************************************************
  *		UnhookWindowsHook (USER.234)
  */
@@ -877,8 +893,13 @@ BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
     struct hook16_queue_info *info;
     struct hook_entry *hook_entry, *next;
 
+    TRACE("(%d,%04x:%04x)\n", id, SELECTOROF(proc), OFFSETOF(proc));
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return FALSE;
     info = get_hook_info(FALSE, 0);
+    if (!info || info->hook_entry[index].next == NULL)
+    {
+        return unhook_global_hook(id, proc);
+    }
     LIST_FOR_EACH_ENTRY_SAFE(hook_entry, next, &info->hook_entry[index], struct hook_entry, entry)
     {
         if (hook_entry->proc16 == proc)
@@ -886,7 +907,7 @@ BOOL16 WINAPI UnhookWindowsHook16( INT16 id, HOOKPROC16 proc )
             return UnhookWindowsHookEx16(entry_to_hhook(hook_entry));
         }
     }
-    return FALSE;
+    return unhook_global_hook(id, proc);
 }
 
 
@@ -900,6 +921,7 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
     struct hook_entry *unhook = hhook_to_entry(hhook);
     INT type;
     struct list *entry;
+    TRACE("(%08x)\n", hhook);
     if (!unhook)
         return FALSE;
     info = get_hook_info(FALSE, unhook->htask16);
