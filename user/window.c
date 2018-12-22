@@ -1280,13 +1280,19 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
             return LoadLibrary16("COMMDLG");
 
         if (h == 0xFFFF0000)
-            return LoadLibrary16("USER");
+        {
+            HINSTANCE16 user = LoadLibrary16("USER");
+            FreeLibrary16(user);
+            return user;
+        }
         if (HIWORD(h))
         {
             HTASK16 task = GetWindowTask16(hwnd);
             if (!task)
             {
-                return LoadLibrary16("USER");
+                HINSTANCE16 user = LoadLibrary16("USER");
+                FreeLibrary16(user);
+                return user;
             }
             TDB *tdb = GlobalLock16(task);
             h16 = tdb->hInstance;
