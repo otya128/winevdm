@@ -1678,9 +1678,9 @@ static void I386OP(pop_rm16)()          // Opcode 0x8f
 		if( modrm >= 0xc0 ) {
 			STORE_RM16(modrm, value);
 		} else {
-			ea = GetEA(modrm,1);
 			try
 			{
+				ea = GetEA(modrm,1);
 				WRITE16(ea, value);
 			}
 			catch(UINT64 e)
