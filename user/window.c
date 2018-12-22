@@ -801,24 +801,24 @@ INT16 WINAPI GetClassName16( HWND16 hwnd, LPSTR buffer, INT16 count )
         }
         break;
     }
-    if (clen >= 32767)
+    if (clen > 32767)
     {
-        clen = 32766;
+        clen = 32767;
     }
     if (clen != 0)
     {
         struct class_entry *entry = find_win32_class(className);
         if (!entry)
         {
-            clen = min(clen + 1, (SIZE_T)count);
+            clen = min(clen, (SIZE_T)(count - 1));
             memcpy(buffer, className, clen);
-            buffer[clen - 1] = 0;
+            buffer[clen] = 0;
         }
         else
         {
-            clen = min(strlen(entry->classInfo.lpszClassName) + 1, (SIZE_T)count);
+            clen = min(strlen(entry->classInfo.lpszClassName), (SIZE_T)(count - 1));
             memcpy(buffer, entry->classInfo.lpszClassName, clen);
-            buffer[clen - 1] = 0;
+            buffer[clen] = 0;
         }
     }
     if (className != sclassName)
