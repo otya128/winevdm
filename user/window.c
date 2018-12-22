@@ -1274,10 +1274,15 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
         HINSTANCE h = GetWindowLongPtrW(WIN_Handle32(hwnd), offset);
         /* 32-bit dll -> 16-bit hinst mapping? */
         /* LoadLibrary16 returns hinst GetModuleHandle16 returns hmodule */
-        if (h && h == GetModuleHandleW(L"COMDLG32.DLL"))
-            return LoadLibrary16("COMMDLG");
-        if (h && h == GetModuleHandleW(L"COMMDLG.DLL16"))
-            return LoadLibrary16("COMMDLG");
+        if (h && (h == GetModuleHandleW(L"COMDLG32.DLL") || h == GetModuleHandleW(L"COMMDLG.DLL16")))
+        {
+            if (GetModuleHandle16("COMMDLG"))
+            {
+                HINSTANCE16 commdlg = LoadLibrary16("COMMDLG");
+                FreeLibrary16(commdlg);
+                return commdlg;
+            }
+        }
 
         if (h == 0xFFFF0000)
         {
