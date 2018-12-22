@@ -35,3 +35,5 @@
 84 pascal -ret16 Local32Info(ptr word) Local32Info16
 85 pascal -ret16 Local32First(ptr word) Local32First16
 86 pascal -ret16 Local32Next(ptr) Local32Next16
+
+100 pascal -register next_intcb() next_intcb
