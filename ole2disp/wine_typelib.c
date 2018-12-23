@@ -4674,7 +4674,8 @@ static ITypeLib2* ITypeLib2_Constructor_SLTG(LPVOID pLib, DWORD dwTLBLength)
       (*ppTypeInfoImpl)->typeattr.wTypeFlags =
 	(pTIHeader->typeflags1 >> 3) | (pTIHeader->typeflags2 << 5);
 
-      if((*ppTypeInfoImpl)->typeattr.wTypeFlags & TYPEFLAG_FDUAL)
+      /* FIXME */
+      if(pTIHeader->typekind != TKIND_MODULE && (*ppTypeInfoImpl)->typeattr.wTypeFlags & TYPEFLAG_FDUAL)
 	(*ppTypeInfoImpl)->typeattr.typekind = TKIND_DISPATCH;
 
       if((pTIHeader->typeflags1 & 7) != 2)
