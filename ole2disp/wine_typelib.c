@@ -4403,7 +4403,7 @@ static void SLTG_DoModuleEntry(char *pNameTable, ITypeInfoImpl *pTI, int count, 
     int i = 0;
     for (i = count - 1; i >= 0; i--)
     {
-        TLBString *name = SLTG_ReadName(pNameTable, pEntry->module - 1, pTI->pTypeLib);
+        TLBString *name = SLTG_ReadName(pNameTable, (pEntry->module) & -2 /* ? */, pTI->pTypeLib);
         if (!dllname)
         {
             dllname = name;
