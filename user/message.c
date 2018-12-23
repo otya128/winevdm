@@ -32,6 +32,12 @@
 #include "user_private.h"
 #include "wine/debug.h"
 #include "message_table.h"
+/*
+unknwon combobox message
+When EDIT received WM_KILLFOCUS, EDIT sent this message to COMBOBOX.
+*/
+#define CB_UNKNOWN_167 0x167
+#define CB_UNKNOWN_167_16 (WM_USER + 27)
 /* undocumented messages */
 //reactos sdk/include/reactos/undocuser.h
 #define WM_QUERYPARKICON    0x00000036
@@ -2250,6 +2256,10 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case CB_GETDROPPEDSTATE:
         ret = callback( HWND_16(hwnd), msg + CB_GETEDITSEL16 - CB_GETEDITSEL, wParam, lParam, result, arg );
         break;
+    /* unknown message */
+    case CB_UNKNOWN_167:
+        ret = callback(HWND_16(hwnd), CB_UNKNOWN_167_16, wParam, lParam, result, arg);
+        break;
     case CB_GETEDITSEL:
         ret = callback( HWND_16(hwnd), CB_GETEDITSEL16, wParam, lParam, result, arg );
         if (wParam) *((PUINT)(wParam)) = LOWORD(*result);
@@ -3313,6 +3323,9 @@ static LRESULT combo_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd
     case CB_SETEXTENDEDUI16:
     case CB_GETEXTENDEDUI16:
         msg -= msg16_offset;
+        break;
+    case CB_UNKNOWN_167_16:
+        msg = CB_UNKNOWN_167;
         break;
     default:
         *f = FALSE;
