@@ -279,7 +279,42 @@ HWND16 WINAPI SetCapture16( HWND16 hwnd )
  */
 BOOL16 WINAPI ReleaseCapture16(void)
 {
-    return ReleaseCapture();
+    BOOL result = ReleaseCapture();
+    static BOOL checked_is_windows_10;
+    static BOOL is_windows_10_or_later;
+    if (!checked_is_windows_10)
+    {
+        checked_is_windows_10 = TRUE;
+        is_windows_10_or_later = GetProcAddress(GetModuleHandleA("KERNEL32"), "InitializeEnclave") != NULL;
+    }
+    if (is_windows_10_or_later)
+    {
+        /* Windows 10 doesn't send WM_MOUSEMOVE */
+#if 0
+        POINT point;
+        if (GetCursorPos(&point))
+        {
+            HWND hwnd = GetCapture();
+            if (!hwnd)
+                hwnd = WindowFromPoint(point);
+            if (hwnd)
+                PostMessageA(hwnd, WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
+        }
+#endif
+        INPUT input;
+        input.type = INPUT_MOUSE;
+        input.mi.mouseData = 0;
+        input.mi.dwFlags = MOUSEEVENTF_MOVE;
+        input.mi.time = 0;
+        input.mi.dwExtraInfo = 0;
+        input.mi.dx = 1;
+        input.mi.dy = 0;
+        SendInput(1, &input, sizeof(input));
+        input.mi.dx = -1;
+        input.mi.dy = 0;
+        SendInput(1, &input, sizeof(input));
+    }
+    return result;
 }
 
 
