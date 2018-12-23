@@ -560,7 +560,7 @@ SEGPTR WINAPI K32WOWGlobalLock16( HGLOBAL16 handle )
 	}
 	else if (!GET_ARENA_PTR(handle)->base)
             sel = 0;
-        else if (GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE)
+        else if ((GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE) || IsOldWindowsTask(GetCurrentTask()))
             GET_ARENA_PTR(handle)->lockCount++;
     }
 
@@ -771,7 +771,8 @@ LPVOID WINAPI GlobalLock16(
 ) {
     if (!handle) return 0;
     if (!VALID_HANDLE(handle))
-	return 0;
+        return 0;
+    // don't use IsOldWindowsTask here as it'll cause an infinite loop
     if (GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE)
         GET_ARENA_PTR(handle)->lockCount++;
     return GET_ARENA_PTR(handle)->base;
@@ -919,7 +920,7 @@ HGLOBAL16 WINAPI LockSegment16( HGLOBAL16 handle )
 	WARN("Invalid handle 0x%04x passed to LockSegment16!\n",handle);
 	return 0;
     }
-    if (GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE)
+    if ((GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE) || IsOldWindowsTask(GetCurrentTask()))
         GET_ARENA_PTR(handle)->lockCount++;
     return handle;
 }
@@ -1127,7 +1128,7 @@ WORD WINAPI GlobalFix16( HGLOBAL16 handle )
 	WARN("Invalid handle 0x%04x passed to GlobalFix16!\n",handle);
 	return 0;
     }
-    if (GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE)
+    if ((GET_ARENA_PTR(handle)->flags & GA_DISCARDABLE) || IsOldWindowsTask(GetCurrentTask()))
         GET_ARENA_PTR(handle)->lockCount++;
 
     return GlobalHandleToSel16(handle);
