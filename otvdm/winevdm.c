@@ -433,7 +433,7 @@ static char *build_command_line( char **argv )
         return NULL;
 
     p = cmd_line;
-    *p++ = (len < 256) ? len : 255;
+    *p++ = (len - 1 < 256) ? len - 1 /* remove last space */ : 255;
     for (arg = argv; *arg; arg++)
     {
         BOOL has_space,has_quote;
