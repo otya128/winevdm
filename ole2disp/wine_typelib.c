@@ -4212,6 +4212,10 @@ static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
 
 	if(pFunc->magic & SLTG_FUNCTION_FLAGS_PRESENT)
 	    pFuncDesc->funcdesc.wFuncFlags = pFunc->funcflags;
+    if (pFunc->inv & 0x08)
+    {
+        pFuncDesc->funcdesc.wFuncFlags |= FUNCFLAG_FRESTRICTED;
+    }
 
 	if(pFunc->retnextopt & 0x80)
 	    pType = &pFunc->rettype;
