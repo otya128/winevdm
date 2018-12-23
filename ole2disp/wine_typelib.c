@@ -8553,8 +8553,11 @@ static HRESULT WINAPI ITypeInfo_fnGetDllEntry( ITypeInfo2 *iface, MEMBERID memid
             if (!IS_INTRESOURCE(pFDesc->Entry) && (pFDesc->Entry != (void*)-1)) {
 		if (pBstrName)
 		    *pBstrName = SysAllocString(TLB_get_bstr(pFDesc->Entry));
-		if (pwOrdinal)
-		    *pwOrdinal = -1;
+		if (0)
+		{
+		    if (pwOrdinal)
+		        *pwOrdinal = -1;
+		}
 		return S_OK;
 	    }
 	    if (pBstrName)
