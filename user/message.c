@@ -1323,6 +1323,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
         *result = 0;
         break;
+    case WM_MDINEXT:
+        ret = callback(hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg);
+        break;
     case WM_GETMINMAXINFO:
         {
             MINMAXINFO16 *mmi16 = MapSL(lParam);
@@ -1795,6 +1798,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback( HWND_16(hwnd), msg, (lParam == 0),
                         MAKELPARAM( LOWORD(wParam), LOWORD(lParam) ), result, arg );
         *result = (LRESULT)HMENU_32((HMENU16)*result);
+        break;
+    case WM_MDINEXT:
+        ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
         break;
     case WM_GETMINMAXINFO:
         {
