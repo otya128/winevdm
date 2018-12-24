@@ -1876,6 +1876,11 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
     {
         RECT rect;
         GetWindowRect(hwnd32, &rect);
+        /* top-level window */
+        if (GetAncestor(hwnd32, GA_PARENT) == GetDesktopWindow())
+        {
+            flags &= ~SWP_NOREDRAW;
+        }
         if (rect.left == rect.right || rect.bottom == rect.top)
         {
             flags &= ~SWP_NOREDRAW;
