@@ -2044,14 +2044,14 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback(HWND_16(hwnd), msg, HFONT_16((HFONT)wParam), lParam, result, arg);
         break;
     case WM_DDE_INITIATE:
-        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), MAKELONG(LOWORD(service32_16(lParam)), HIWORD(topic32_16(lParam))), result, arg );
+        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), MAKELONG(service32_16(LOWORD(lParam)), topic32_16(HIWORD(lParam))), result, arg );
         break;
     case WM_DDE_TERMINATE:
         ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), lParam, result, arg );
         break;
     case WM_DDE_UNADVISE:
     case WM_DDE_REQUEST:
-        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), MAKELONG(LOWORD(lParam), HIWORD(topic32_16(lParam))), result, arg );
+        ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam), MAKELONG(LOWORD(lParam), topic32_16(HIWORD(lParam))), result, arg );
         break;
     case WM_DDE_ADVISE:
     case WM_DDE_DATA:
