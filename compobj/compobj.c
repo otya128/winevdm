@@ -387,18 +387,24 @@ HRESULT WINAPI progid_to_clsid(LPCOLESTR16 idstr, CLSID *id)
   HKEY hkey = NULL;
   CHAR clsid[50];
   DWORD cbclsid = sizeof(clsid);
+  LPOLESTR w;
+  HRESULT r;
   if (RegOpenKey16(HKEY_CLASSES_ROOT, idstr, &hkey))
   {
       goto error;
   }
   if (RegQueryValue16(hkey, "CLSID", clsid, &cbclsid))
   {
+      RegCloseKey16(hkey);
       goto error;
   }
   RegCloseKey16(hkey);
   return guid_str_to_clsid(clsid, id);
-  error:
-  return CO_E_CLASSSTRING;
+error:
+  w = strdupAtoW(idstr);
+  r = CLSIDFromString(w, id);
+  HeapFree(GetProcessHeap(), 0, w);
+  return hresult32_16(r);
 }
 
 /******************************************************************************
