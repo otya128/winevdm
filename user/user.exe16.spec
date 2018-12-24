@@ -141,7 +141,7 @@
 142 pascal -ret16 GetClipboardData(word) GetClipboardData16
 143 pascal -ret16 CountClipboardFormats() CountClipboardFormats16
 144 pascal -ret16 EnumClipboardFormats(word) EnumClipboardFormats16
-145 pascal -ret16 RegisterClipboardFormat(ptr) RegisterClipboardFormat16
+145 pascal -ret16 RegisterClipboardFormat(str) RegisterClipboardFormat16
 146 pascal -ret16 GetClipboardFormatName(word ptr s_word) GetClipboardFormatName16
 147 pascal -ret16 SetClipboardViewer(word) SetClipboardViewer16
 148 pascal -ret16 GetClipboardViewer() GetClipboardViewer16

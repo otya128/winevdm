@@ -608,11 +608,16 @@ DWORD WINAPI CoGetCurrentProcess16(void)
  *		CoRegisterMessageFilter	[COMPOBJ.27]
  */
 HRESULT WINAPI CoRegisterMessageFilter16(
-	LPMESSAGEFILTER lpMessageFilter,
-	LPMESSAGEFILTER *lplpMessageFilter
+	SEGPTR lpMessageFilter,
+	SEGPTR *lplpMessageFilter
 ) {
-	FIXME("(%p,%p),stub!\n",lpMessageFilter,lplpMessageFilter);
-	return 0;
+    HRESULT result;
+    LPMESSAGEFILTER lpmsgf = NULL;
+	TRACE("(%p,%p)\n",lpMessageFilter,lplpMessageFilter);
+    result = hresult32_16(CoRegisterMessageFilter((IMessageFilter*)iface16_32(&IID_IMessageFilter, lpMessageFilter), lplpMessageFilter ? &lpmsgf : NULL));
+    if (lplpMessageFilter)
+        *lplpMessageFilter = iface32_16(&IID_IMessageFilter, lpmsgf);
+	return result;
 }
 
 /******************************************************************************
