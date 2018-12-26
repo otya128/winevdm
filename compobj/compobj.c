@@ -259,18 +259,6 @@ HRESULT WINAPI CoGetMalloc16(
     MEMCTX dwMemContext,	/* [in] memory context */
     SEGPTR * lpMalloc	/* [out] current win16 malloc interface */
 ) {
-    if (dwMemContext == MEMCTX_TASK)
-    {
-        ole16_task_data *d = get_current_task_data();
-        if (!d->malloc16)
-        {
-            *lpMalloc = 0;
-            ERR("CO_E_NOTINITIALIZED\n");
-            return CO_E_NOTINITIALIZED;
-        }
-        *lpMalloc = d->malloc16;
-        return S_OK;
-    }
     if (dwMemContext == MEMCTX_SHARED)
     {
         if (!shared_malloc16)
@@ -280,8 +268,20 @@ HRESULT WINAPI CoGetMalloc16(
         *lpMalloc = shared_malloc16;
         return S_OK;
     }
+    ole16_task_data *d = get_current_task_data();
+    if (!d->malloc16)
+    {
+        *lpMalloc = 0;
+        ERR("CO_E_NOTINITIALIZED\n");
+        return CO_E_NOTINITIALIZED;
+    }
+    if (dwMemContext == MEMCTX_TASK)
+    {
+        *lpMalloc = d->malloc16;
+        return S_OK;
+    }
     *lpMalloc = 0;
-    FIXME("unknown dwMemContext %d\n", dwMemContext);
+    ERR("unknown dwMemContext %d\n", dwMemContext);
     return E_INVALIDARG16;
 }
 
