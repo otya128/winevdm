@@ -4543,7 +4543,7 @@ LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 static LRESULT LPMSG16_32_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
     LRESULT *result, void *arg)
 {
-    MSG *msg32 = (MSG*)result;
+    MSG *msg32 = (MSG*)arg;
     msg32->hwnd = hwnd;
     msg32->message = msg;
     msg32->lParam = lp;
@@ -4554,7 +4554,7 @@ static LRESULT LPMSG16_32_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
 static LRESULT LPMSG32_16_callback(HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp ,
     LRESULT *result, void *arg)
 {
-    MSG16 *msg16 = (MSG16*)result;
+    MSG16 *msg16 = (MSG16*)arg;
     msg16->hwnd = hwnd;
     msg16->message = msg;
     msg16->lParam = lp;
@@ -4576,5 +4576,5 @@ void WINAPI window_message16_32(const MSG16 *msg16, MSG *msg32)
     msg32->pt.x = msg16->pt.x;
     msg32->pt.y = msg16->pt.y;
     msg32->time = msg16->time;
-    WINPROC_CallProc32ATo16(LPMSG16_32_callback, msg32->hwnd, msg32->message, msg32->wParam, msg32->lParam, &ret, msg32);
+    WINPROC_CallProc16To32A(LPMSG16_32_callback, msg16->hwnd, msg16->message, msg16->wParam, msg16->lParam, &ret, msg32);
 }
