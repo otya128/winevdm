@@ -737,10 +737,15 @@ HRESULT WINAPI CoGetClassObject16(
     SEGPTR riid, SEGPTR ppv)
 {
     LPVOID *ppvl = MapSL(ppv);
+    char idstr[CHARS_IN_GUID];
+    char buf_key[CHARS_IN_GUID+190], dllpath[MAX_PATH+1];
+    LONG dllpath_len = sizeof(dllpath);
+    HRESULT err_last = E_NOTIMPL16;
 
     TRACE("CLSID: %s, IID: %s\n", debugstr_guid(MapSL(rclsid)), debugstr_guid(MapSL(riid)));
 
     *ppvl = NULL;
+    StringFromGUID216(MapSL(rclsid), idstr, CHARS_IN_GUID);
 
     if (pServerInfo) {
         FIXME("pServerInfo->name=%s pAuthInfo=%p\n",
@@ -749,9 +754,6 @@ HRESULT WINAPI CoGetClassObject16(
 
     if (CLSCTX_INPROC_SERVER & dwClsContext)
     {
-        char idstr[CHARS_IN_GUID];
-        char buf_key[CHARS_IN_GUID+19], dllpath[MAX_PATH+1];
-        LONG dllpath_len = sizeof(dllpath);
 
         HMODULE16 dll;
         FARPROC16 DllGetClassObject;
@@ -759,19 +761,31 @@ HRESULT WINAPI CoGetClassObject16(
         WORD args[6];
         DWORD dwRet;
 
-        StringFromGUID216(MapSL(rclsid), idstr, CHARS_IN_GUID);
         sprintf(buf_key, "CLSID\\%s\\InprocServer", idstr);
         if (RegQueryValue16(HKEY_CLASSES_ROOT, buf_key, dllpath, &dllpath_len))
         {
+            /* 64-bit COM...? */
+            sprintf(buf_key, "CLSID\\%s\\InprocServer32", idstr);
+            dllpath_len = sizeof(dllpath);
+            if (!RegQueryValue16(HKEY_CLASSES_ROOT, buf_key, dllpath, &dllpath_len))
+            {
+                PVOID pv = NULL;
+                HRESULT result;
+                result = CoGetClassObject((REFCLSID)MapSL(rclsid), CLSCTX_INPROC_SERVER, pServerInfo, (REFIID)MapSL(riid), &pv);
+                *(SEGPTR*)MapSL(ppv) = iface32_16((REFIID)MapSL(riid), pv);
+                return hresult32_16(result);
+            }
             ERR("class %s not registered\n", debugstr_guid(MapSL(rclsid)));
-            return REGDB_E_CLASSNOTREG;
+            err_last = REGDB_E_CLASSNOTREG;
+            goto fail_inproc;
         }
 
         dll = LoadLibrary16(dllpath);
         if (!dll)
         {
             ERR("couldn't load in-process dll %s\n", debugstr_a(dllpath));
-            return E_ACCESSDENIED; /* FIXME: or should this be CO_E_DLLNOTFOUND? */
+            err_last = E_ACCESSDENIED16; /* FIXME: or should this be CO_E_DLLNOTFOUND? */
+            goto fail_inproc;
         }
 
         DllGetClassObject = GetProcAddress16(dll, "DllGetClassObject");
@@ -779,7 +793,8 @@ HRESULT WINAPI CoGetClassObject16(
         {
             ERR("couldn't find function DllGetClassObject in %s\n", debugstr_a(dllpath));
             FreeLibrary16(dll);
-            return CO_E_DLLNOTFOUND;
+            err_last = CO_E_DLLNOTFOUND;
+            goto fail_inproc;
         }
 
         TRACE("calling DllGetClassObject %p\n", DllGetClassObject);
@@ -800,8 +815,18 @@ HRESULT WINAPI CoGetClassObject16(
         return S_OK;
     }
 
+    fail_inproc:
+    if (CLSCTX_LOCAL_SERVER & dwClsContext)
+    {
+        HRESULT result;
+        PVOID pv = NULL;
+        result = CoGetClassObject((REFCLSID)MapSL(rclsid), dwClsContext, pServerInfo, (REFIID)MapSL(riid), &pv);
+        *(SEGPTR*)MapSL(ppv) = iface32_16((REFCLSID)MapSL(riid), pv);
+        return hresult32_16(result);
+    }
+    fail_svr:
     FIXME("semi-stub\n");
-    return E_NOTIMPL;
+    return err_last;
 }
 
 /******************************************************************************
