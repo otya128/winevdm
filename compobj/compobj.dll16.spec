@@ -24,7 +24,7 @@
 24 stub ISVALIDIID
 25 stub RESULTFROMSCODE
 26 stub GETSCODE
-27 pascal CoRegisterMessageFilter(ptr ptr) CoRegisterMessageFilter16
+27 pascal CoRegisterMessageFilter(segptr ptr) CoRegisterMessageFilter16
 28 stub COISHANDLERCONNECTED
 29 stub SHRADDREF
 30 pascal -ret16 CoFileTimeToDosDateTime(ptr ptr ptr) CoFileTimeToDosDateTime16
