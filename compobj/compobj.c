@@ -259,7 +259,7 @@ HRESULT WINAPI CoCreateStandardMalloc16(MEMCTX dwMemContext,
  * Set the win16 IMalloc used for memory management
  */
 HRESULT WINAPI CoInitialize16(
-	LPVOID lpReserved	/* [in] pointer to win16 malloc interface */
+	SEGPTR lpReserved	/* [in] pointer to win16 malloc interface */
 ) {
     currentMalloc16 = (LPMALLOC16)lpReserved;
     return S_OK;

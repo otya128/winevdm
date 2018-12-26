@@ -218,3 +218,4 @@
 508 cdecl IMalloc16_HeapMinimize(ptr) IMalloc16_fnHeapMinimize
 
 @ stdcall -arch=win32 CoGetMalloc16(long ptr)
+@ stdcall -arch=win32 CoInitialize16(long)
