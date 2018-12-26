@@ -77,16 +77,12 @@ DWORD WINAPI OleBuildVersion16(void)
  */
 HRESULT WINAPI OleInitialize16(SEGPTR pMalloc)
 {
-    if (pMalloc)
+    HMODULE comp = GetModuleHandleA("compobj.dll16");
+    if (!comp)
     {
-        FIXME("OleInitialize(pMalloc) is not supported.\n");
-        HMODULE comp = GetModuleHandleA("compobj.dll16");
-        if (!comp)
-        {
-            comp = LoadLibraryA("compobj.dll16");
-        }
-        ((HRESULT(WINAPI*)(SEGPTR))GetProcAddress(comp, "CoInitialize16"))(pMalloc);
+        comp = LoadLibraryA("compobj.dll16");
     }
+    ((HRESULT(WINAPI*)(SEGPTR))GetProcAddress(comp, "CoInitialize16"))(pMalloc);
     return OleInitialize( NULL );
 }
 

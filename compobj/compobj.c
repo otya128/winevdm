@@ -224,6 +224,28 @@ DWORD WINAPI CoBuildVersion16(void)
     return CoBuildVersion();
 }
 
+typedef struct
+{
+    SEGPTR malloc16;
+} ole16_task_data;
+static BOOL init_current_task_tls;
+static DWORD current_task_tls;
+static ole16_task_data *get_current_task_data()
+{
+    ole16_task_data *d;
+    if (!init_current_task_tls)
+    {
+        current_task_tls = TlsAlloc();
+    }
+    d = (ole16_task_data*)TlsGetValue(current_task_tls);
+    if (!d)
+    {
+        d = (ole16_task_data*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ole16_task_data));
+        TlsSetValue(current_task_tls, d);
+    }
+    return d;
+}
+SEGPTR shared_malloc16;
 /***********************************************************************
  *           CoGetMalloc    [COMPOBJ.4]
  *
@@ -233,20 +255,40 @@ DWORD WINAPI CoBuildVersion16(void)
  *	The current win16 IMalloc
  */
 HRESULT WINAPI CoGetMalloc16(
-	MEMCTX dwMemContext,	/* [in] memory context */
-	LPMALLOC16 * lpMalloc	/* [out] current win16 malloc interface */
+    MEMCTX dwMemContext,	/* [in] memory context */
+    SEGPTR * lpMalloc	/* [out] current win16 malloc interface */
 ) {
-    if(!currentMalloc16)
-	currentMalloc16 = IMalloc16_Constructor();
-    *lpMalloc = currentMalloc16;
-    return S_OK;
+    if (dwMemContext == MEMCTX_TASK)
+    {
+        ole16_task_data *d = get_current_task_data();
+        if (!d->malloc16)
+        {
+            *lpMalloc = 0;
+            ERR("CO_E_NOTINITIALIZED\n");
+            return CO_E_NOTINITIALIZED;
+        }
+        *lpMalloc = d->malloc16;
+        return S_OK;
+    }
+    if (dwMemContext == MEMCTX_SHARED)
+    {
+        if (!shared_malloc16)
+        {
+            shared_malloc16 = IMalloc16_Constructor();
+        }
+        *lpMalloc = shared_malloc16;
+        return S_OK;
+    }
+    *lpMalloc = 0;
+    FIXME("unknown dwMemContext %d\n", dwMemContext);
+    return E_INVALIDARG16;
 }
 
 /***********************************************************************
  *           CoCreateStandardMalloc [COMPOBJ.71]
  */
 HRESULT WINAPI CoCreateStandardMalloc16(MEMCTX dwMemContext,
-					  LPMALLOC16 *lpMalloc)
+					  SEGPTR *lpMalloc)
 {
     /* FIXME: docu says we shouldn't return the same allocator as in
      * CoGetMalloc16 */
@@ -261,7 +303,12 @@ HRESULT WINAPI CoCreateStandardMalloc16(MEMCTX dwMemContext,
 HRESULT WINAPI CoInitialize16(
 	SEGPTR lpReserved	/* [in] pointer to win16 malloc interface */
 ) {
-    currentMalloc16 = (LPMALLOC16)lpReserved;
+    ole16_task_data *d = get_current_task_data();
+    if (!lpReserved)
+    {
+        lpReserved = IMalloc16_Constructor();
+    }
+    d->malloc16 = (LPMALLOC16)lpReserved;
     return S_OK;
 }
 
