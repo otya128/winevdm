@@ -381,6 +381,13 @@ void map_formatetc16_32(FORMATETC *a32, const FORMATETC16 *a16)
     a32->dwAspect = a16->dwAspect;
     a32->lindex = a16->lindex;
     a32->tymed = a16->tymed;
+    if (TRACE_ON(ole))
+    {
+        char buf[100];
+        buf[0] = 0;
+        GetClipboardFormatNameA(a16->cfFormat, buf, 100);
+        TRACE("%s(%04x),%04x:%04x,%d,%d,%d\n", buf, a32->cfFormat, SELECTOROF(a16->ptd), OFFSETOF(a16->ptd), a32->dwAspect, a32->lindex, a32->tymed);
+    }
 }
 void map_formatetc32_16(FORMATETC16 *a16, const FORMATETC *a32)
 {
@@ -389,6 +396,13 @@ void map_formatetc32_16(FORMATETC16 *a16, const FORMATETC *a32)
     a16->dwAspect = a32->dwAspect;
     a16->lindex = a32->lindex;
     a16->tymed = a32->tymed;
+    if (TRACE_ON(ole))
+    {
+        char buf[100];
+        buf[0] = 0;
+        GetClipboardFormatNameA(a32->cfFormat, buf, 100);
+        TRACE("%s(%04x),%p,%d,%d,%d\n", buf, a32->cfFormat, a32->ptd, a32->dwAspect, a32->lindex, a32->tymed);
+    }
 }
 
 void map_stgmedium32_16(STGMEDIUM16 *a16, const STGMEDIUM *a32)
