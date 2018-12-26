@@ -236,6 +236,7 @@ static ole16_task_data *get_current_task_data()
     if (!init_current_task_tls)
     {
         current_task_tls = TlsAlloc();
+        init_current_task_tls = TRUE;
     }
     d = (ole16_task_data*)TlsGetValue(current_task_tls);
     if (!d)
