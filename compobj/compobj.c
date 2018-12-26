@@ -467,7 +467,7 @@ _xmalloc16(DWORD size, SEGPTR *ptr) {
   LPMALLOC16 mllc;
   DWORD args[2];
 
-  if (CoGetMalloc16(0,&mllc))
+  if (CoGetMalloc16(MEMCTX_TASK,&mllc))
     return E_OUTOFMEMORY;
 
   args[0] = (DWORD)mllc;
