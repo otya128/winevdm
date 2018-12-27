@@ -1,8 +1,9 @@
 1 pascal OleBuildVersion() OleBuildVersion16
-2 pascal OleInitialize(ptr) OleInitialize16
+2 pascal OleInitialize(segptr) OleInitialize16
 3 pascal OleUninitialize() OleUninitialize16
 4 pascal DllGetClassObject(ptr ptr ptr) DllGetClassObject16
-#5 WEP
+5 pascal WEP(word word word ptr) Ole2_WEP
+524 pascal  DllEntryPoint(long word word word long word) Ole2_LibMain
 6 pascal OleQueryLinkFromData(segptr) OleQueryLinkFromData16
 7 pascal OleQueryCreateFromData(segptr) OleQueryCreateFromData16
 8 pascal OleCreateFromData(segptr ptr long ptr segptr segptr ptr) OleCreateFromData16

@@ -64,6 +64,28 @@ static HICON convert_icon_to_32( HICON16 icon16 )
     return ret;
 }
 
+/* OLE2DISP -> OLE2 -> STORAGE -> COMPOBJ */
+/* OLE2 depends on KERNEL GDI USER KEYBOARD SHELL COMPOBJ STORAGE */
+/* COMPOBJ depends on KERNEL USER KEYBOARD SHELL */
+/* STORAGE depends on KERNEL USER KEYBOARD COMPOBJ */
+/* OLE2DISP depends on KERNEL USER WIN87EM SHELL COMPOBJ OLE2 OLE2NLS */
+/* OLE2NLS denends on KERNEL USER */
+/* OLE2PROX depends on KERNEL COMPOBJ OLE2 */
+/* OLE2CONV depends on KERNEL GDI USER */
+
+BOOL WINAPI Ole2_LibMain(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
+    WORD wHeapSize, DWORD dwReserved1, WORD wReserved2)
+{
+    LoadLibrary16("STORAGE.DLL");
+    LoadLibrary16("COMPOBJ.DLL");
+    return TRUE;
+}
+int WINAPI Ole2_WEP(HINSTANCE16 hInstance, WORD wDataSeg, WORD cbHeapSize, LPSTR lpCmdLine)
+{
+    FreeLibrary16("STORAGE.DLL");
+    FreeLibrary16("COMPOBJ.DLL");
+    return TRUE;
+}
 /******************************************************************************
  *		OleBuildVersion	(OLE2.1)
  */
