@@ -78,11 +78,14 @@ DWORD WINAPI OleBuildVersion16(void)
 HRESULT WINAPI OleInitialize16(SEGPTR pMalloc)
 {
     HMODULE comp = GetModuleHandleA("compobj.dll16");
+    HRESULT ret;
     if (!comp)
     {
         comp = LoadLibraryA("compobj.dll16");
     }
-    ((HRESULT(WINAPI*)(SEGPTR))GetProcAddress(comp, "CoInitialize16"))(pMalloc);
+    ret = ((HRESULT(WINAPI*)(SEGPTR))GetProcAddress(comp, "CoInitialize16"))(pMalloc);
+    if (ret != S_OK /* S_FALSE: already initialized */)
+        return ret;
     return OleInitialize( NULL );
 }
 

@@ -306,6 +306,8 @@ HRESULT WINAPI CoInitialize16(
 	SEGPTR lpReserved	/* [in] pointer to win16 malloc interface */
 ) {
     ole16_task_data *d = get_current_task_data();
+    if (d->malloc16)
+        return S_FALSE;
     if (!lpReserved)
     {
         lpReserved = IMalloc16_Constructor();
