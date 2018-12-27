@@ -635,16 +635,8 @@ SEGPTR get_bstr16_from_blob16(SEGPTR blob)
 {
     return blob + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16);
 }
-/******************************************************************************
- *		BSTR_AllocBytes	[Internal]
- */
-static SEGPTR BSTR_AllocBytes(int n)
-{
-    BYTE_BLOB16 *ptr = (BYTE_BLOB16*)HeapAlloc(GetProcessHeap(), 0, n + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16));
-    ptr->clSize = n - 1;
-    return get_bstr16_from_blob16((SEGPTR)MapLS((LPCVOID)ptr));
-}
 
+static int dynamic_SysAllocStringLen16(const char *oleStr, int len);
 void map_bstr32_16(SEGPTR *a16, const BSTR *a32)
 {
     UINT len;
@@ -656,9 +648,8 @@ void map_bstr32_16(SEGPTR *a16, const BSTR *a32)
     }
     len = SysStringLen(*a32);
     len16 = WideCharToMultiByte(CP_ACP, 0, *a32, len, NULL, 0, NULL, NULL);
-    *a16 = BSTR_AllocBytes(len16 + 1);
+    *a16 = dynamic_SysAllocStringLen16(NULL, len16);
     WideCharToMultiByte(CP_ACP, 0, *a32, len, MapSL(*a16), len16, NULL, NULL);
-    ((char*)MapSL(*a16))[len16] = 0;
 }
 
 #ifdef IFS1632_OVERWRITE_ITypeLib_IsName
@@ -1674,6 +1665,17 @@ static int dynamic_SysStringLen16(SEGPTR bstr)
     return pSysStringLen16(bstr);
 }
 
+static int dynamic_SysAllocStringLen16(const char *oleStr, int len)
+{
+    static int (WINAPI*pSysAllocStringLen16)(const char *oleStr, int len);
+    if (!pSysAllocStringLen16)
+    {
+        pSysAllocStringLen16 = GetProcAddress(get_hmodule_helper("OLE2DISP.DLL16"), "SysAllocStringLen16");
+    }
+    if (!pSysAllocStringLen16)
+        return 0;
+    return pSysAllocStringLen16(oleStr, len);
+}
 
 void free_excepinfo16(const EXCEPINFO16 *a16)
 {

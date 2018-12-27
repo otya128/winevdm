@@ -138,3 +138,4 @@
 @ stdcall -arch=win32 SysFreeString16(long)
 @ stdcall -arch=win32 LoadTypeLib16Impl(wstr ptr)
 @ stdcall -arch=win32 SysStringLen16(long)
+@ stdcall -arch=win32 SysAllocStringLen16(str long)
