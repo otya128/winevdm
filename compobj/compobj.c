@@ -313,6 +313,16 @@ HRESULT WINAPI CoInitialize16(
         lpReserved = IMalloc16_Constructor();
     }
     d->malloc16 = (LPMALLOC16)lpReserved;
+    TRACE("IMalloc->QueryInterface: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, QueryInterface));
+    TRACE("IMalloc->AddRef: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, AddRef));
+    TRACE("IMalloc->Release: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, Release));
+    TRACE("IMalloc->Alloc: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, Alloc));
+    TRACE("IMalloc->Realloc: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, Realloc));
+    TRACE("IMalloc->Free: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, Free));
+    TRACE("IMalloc->GetSize: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, GetSize));
+    TRACE("IMalloc->DidAlloc: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, DidAlloc));
+    TRACE("IMalloc->HeapMinimize: %08x\n", GET_SEGPTR_METHOD_ADDR(IMalloc16, lpReserved, HeapMinimize));
+    IMalloc16_AddRef(d->malloc16);
     return S_OK;
 }
 
