@@ -217,5 +217,5 @@
 507 cdecl IMalloc16_DidAlloc(ptr segptr) IMalloc16_fnDidAlloc
 508 cdecl IMalloc16_HeapMinimize(ptr) IMalloc16_fnHeapMinimize
 
-@ stdcall -arch=win32 CoGetMalloc16(long ptr)
+@ stdcall -arch=win32 get_task_imalloc16(ptr)
 @ stdcall -arch=win32 CoInitialize16(long)

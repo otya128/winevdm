@@ -4,5 +4,5 @@ LIBRARY compobj.dll16
 
 EXPORTS
   _wine_spec_dos_header @1 DATA
-  CoGetMalloc16 @2
+  get_task_imalloc16 @2
   CoInitialize16 @3

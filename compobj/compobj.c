@@ -247,6 +247,18 @@ static ole16_task_data *get_current_task_data()
     return d;
 }
 SEGPTR shared_malloc16;
+HRESULT WINAPI get_task_imalloc16(SEGPTR *lpMalloc)
+{
+    ole16_task_data *d = get_current_task_data();
+    if (!d->malloc16)
+    {
+        *lpMalloc = 0;
+        ERR("CO_E_NOTINITIALIZED\n");
+        return CO_E_NOTINITIALIZED;
+    }
+    *lpMalloc = d->malloc16;
+    return S_OK;
+}
 /***********************************************************************
  *           CoGetMalloc    [COMPOBJ.4]
  *
@@ -480,7 +492,7 @@ _xmalloc16(DWORD size, SEGPTR *ptr) {
   LPMALLOC16 mllc;
   DWORD args[2];
 
-  if (CoGetMalloc16(MEMCTX_TASK,&mllc))
+  if (get_task_imalloc16(&mllc))
     return E_OUTOFMEMORY;
 
   args[0] = (DWORD)mllc;
