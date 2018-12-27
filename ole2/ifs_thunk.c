@@ -603,6 +603,7 @@ void map_tlibattr32_16(TLIBATTR16 *a16, const TLIBATTR *a32)
 }
 
 static int dynamic_SysStringLen16(SEGPTR bstr);
+static void dynamic_SysFreeString16(SEGPTR bstr);
 void map_bstr16_32(BSTR *a32, const SEGPTR *a16)
 {
     int len16, len32;
@@ -615,25 +616,6 @@ void map_bstr16_32(BSTR *a32, const SEGPTR *a16)
     len32 = MultiByteToWideChar(CP_ACP, 0, MapSL(*a16), len16, NULL, 0);
     *a32 = SysAllocStringLen(NULL, len32);
     MultiByteToWideChar(CP_ACP, 0, MapSL(*a16), len16 + 1, *a32, len32 + 1);
-}
-
-#include <pshpack1.h>
-/* BSTR structure */
-typedef struct
-{
-    ULONG clSize;
-    byte abData[1];
-} BYTE_BLOB16;
-#include <poppack.h>
-
-
-SEGPTR get_blob16_from_bstr16(SEGPTR bstr)
-{
-    return bstr - sizeof(BYTE_BLOB16) + sizeof(OLECHAR16);
-}
-SEGPTR get_bstr16_from_blob16(SEGPTR blob)
-{
-    return blob + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16);
 }
 
 static int dynamic_SysAllocStringLen16(const char *oleStr, int len);
@@ -876,21 +858,10 @@ void free_typedesc16(TYPEDESC16 *a16)
     }
     }
 }
-/******************************************************************************
- * BSTR_Free [INTERNAL]
- */
-static void BSTR_Free(SEGPTR in)
-{
-    if (!in)
-        return;
-    void *ptr = MapSL(get_blob16_from_bstr16(in));
-    UnMapLS(get_blob16_from_bstr16(in));
-    HeapFree(GetProcessHeap(), 0, ptr);
-}
 
 void free_idldesc16(IDLDESC16 *a16)
 {
-    BSTR_Free(a16->bstrIDLInfo);
+    dynamic_SysFreeString16(a16->bstrIDLInfo);
 }
 void free_elemdesc16(ELEMDESC16 *a16)
 {
