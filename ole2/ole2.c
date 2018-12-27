@@ -116,6 +116,13 @@ HRESULT WINAPI OleInitialize16(SEGPTR pMalloc)
  */
 void WINAPI OleUninitialize16(void)
 {
+    HMODULE comp = GetModuleHandleA("compobj.dll16");
+    HRESULT ret;
+    if (!comp)
+    {
+        comp = LoadLibraryA("compobj.dll16");
+    }
+    ((void(WINAPI*)())GetProcAddress(comp, "CoUninitialize16"))();
     OleUninitialize();
 }
 

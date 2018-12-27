@@ -346,7 +346,12 @@ HRESULT WINAPI CoInitialize16(
  */
 void WINAPI CoUninitialize16(void)
 {
+  ole16_task_data *d = get_current_task_data();
   TRACE("()\n");
+  if (d->malloc16)
+  {
+    IMalloc16_Release(d->malloc16);
+  }
   CoFreeAllLibraries();
 }
 
