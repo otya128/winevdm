@@ -1289,6 +1289,14 @@ static void write_type_left3216(FILE *h, type_t *t, enum name_type name_type, in
     }
   }
 }
+
+static int is_pascal(const char *cconv)
+{
+    if (!cconv)
+        return FALSE;
+    return !strcmp(cconv, "__stdcall");
+}
+
 static void write_type_decl_left3216(FILE *f, type_t *t)
 {
   write_type_left3216(f, t, NAME_DEFAULT, TRUE, "TYP16_");
@@ -1361,7 +1369,11 @@ static void write_16_32_func(FILE *header, const statement_t *stmt, const type_t
     fprintf(header, "#ifndef IFS1632_OVERWRITE_%s_%s\n", name, get_name(func));
     if (!callconv) callconv = "STDMETHODCALLTYPE";
     write_type_decl_left(header, type_function_get_rettype(func->type));
-    fprintf(header, " %s %s_16_32_%s(SEGPTR This", callconv = "CDECL", name, get_name(func));
+    if (!is_pascal(callconv))
+    {
+        callconv = "CDECL";
+    }
+    fprintf(header, " %s %s_16_32_%s(SEGPTR This", callconv, name, get_name(func));
     if (type_get_function_args(func->type)) {
         fprintf(header, ", ");
         write_args1632(header, type_get_function_args(func->type), name, 0);
@@ -1516,10 +1528,14 @@ static void do_write_vtable16(FILE *header, const type_t *iface, const char *nam
             first_iface = 0;
         }
         if (!is_callas(func->attrs)) {
+            const char *callconv = get_attrp(func->type->attrs, ATTR_CALLCONV);
             fprintf(header, "    {");
             fprintf(header, "%s_16_32_%s,\"%s::%s\",\"", name, get_name(func), name, get_name(func));
             write_args16_str(header, type_get_function_args(func->type));
-            fprintf(header, "\"},\n");
+            fprintf(header, "\"");
+            if (is_pascal(callconv))
+                fprintf(header, ",1");
+            fprintf(header, "},\n");
         }
     }
 }

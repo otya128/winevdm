@@ -63,7 +63,7 @@ static void init_interface_entry(interface_entry *e)
     SEGPTR *vtbl16 = e->lpVtbl16;
     while (e->vtbl16[i].func16)
     {
-        vtbl16[i] = make_thunk_32(e->vtbl16[i].func16, e->vtbl16[i].args, e->vtbl16[i].name, TRUE, FALSE, TRUE);
+        vtbl16[i] = make_thunk_32(e->vtbl16[i].func16, e->vtbl16[i].args, e->vtbl16[i].name, TRUE, FALSE, !e->vtbl16[i].is_stdcall);
         i++;
     }
     e->spVtbl16 = MapLS(e->lpVtbl16);

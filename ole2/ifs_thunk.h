@@ -67,6 +67,7 @@ typedef struct
     void *func16;
     void *name;
     const char *args;
+    BOOL is_stdcall;
 } vtbl_entry;
 typedef struct
 {
