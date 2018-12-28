@@ -7,7 +7,7 @@
 6 pascal OleQueryLinkFromData(segptr) OleQueryLinkFromData16
 7 pascal OleQueryCreateFromData(segptr) OleQueryCreateFromData16
 8 pascal OleCreateFromData(segptr ptr long ptr segptr segptr ptr) OleCreateFromData16
-9 stub OLECREATELINKFROMDATA
+9 pascal OleCreateLinkFromData(segptr ptr long ptr segptr segptr ptr) OleCreateLinkFromData16
 10 pascal OleCreate(ptr ptr long ptr segptr segptr ptr) OleCreate16
 11 stub OLECREATELINK
 12 pascal OleLoad(segptr ptr segptr ptr) OleLoad16
