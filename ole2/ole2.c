@@ -970,6 +970,14 @@ HRESULT WINAPI OleDraw16(SEGPTR pUnk, DWORD dwAspect, HDC16 hdcDraw, const RECT1
     return hresult32_16(result);
 }
 
+HRESULT WINAPI OleSaveToStream16(SEGPTR pPStm, SEGPTR pStm)
+{
+    CLSID clsid = { 0 };
+    HRESULT result;
+    TRACE("(%08x,%08x)\n", pPStm, pStm);
+    return hresult32_16(OleSaveToStream((IPersistStream*)iface16_32(&IID_IPersistStream, pPStm), (IStream*)iface16_32(&IID_IStream, pStm)));
+}
+
 HRESULT WINAPI OleLoadFromStream16(SEGPTR pStm, REFIID riid, SEGPTR *ppvObj)
 {
     IStream *pStm32;
@@ -1007,4 +1015,35 @@ HRESULT WINAPI BindMoniker16(SEGPTR pmk, DWORD grfOpt, REFIID riid, SEGPTR *ppvO
     result = BindMoniker(pmk32, grfOpt, riid, &pvObj);
     *ppvObj = iface32_16(riid, pvObj);
     return hresult32_16(result);
+}
+
+HGLOBAL16 WINAPI OleGetIconOfClass16(REFCLSID rclsid, LPSTR lpszLabel, BOOL fUseTypeAsLabel)
+{
+    LPOLESTR lpwszLabel;
+    HGLOBAL hMetaPict;
+    METAFILEPICT *pict;
+    HGLOBAL16 hmf16;
+    DWORD len;
+    TRACE("(%s,%s,%d)\n", debugstr_guid(rclsid), debugstr_a(lpszLabel), fUseTypeAsLabel);
+    lpwszLabel = strdupAtoW(lpszLabel);
+    hMetaPict = OleGetIconOfClass(rclsid, lpwszLabel, fUseTypeAsLabel);
+    HeapFree(GetProcessHeap(), 0, lpwszLabel);
+    pict = GlobalLock(hMetaPict);
+    hmf16 = GlobalAlloc16(0, sizeof(METAFILEPICT16));
+    if (hmf16)
+    {
+        METAFILEPICT16 *pict16 = GlobalLock16(hmf16);
+        pict16->mm = pict->mm;
+        pict16->xExt = pict->xExt;
+        pict16->yExt = pict->yExt;
+        len = GetMetaFileBitsEx(pict->hMF, 0, 0);
+        pict16->hMF = GlobalAlloc16(GMEM_MOVEABLE, len);
+        GetMetaFileBitsEx(pict->hMF, len, GlobalLock16(pict16->hMF));
+        GlobalUnlock16(pict16->hMF);
+        GlobalUnlock16(hmf16);
+    }
+    DeleteMetaFile(pict->hMF);
+    GlobalUnlock(hMetaPict);
+    GlobalFree(hMetaPict);
+    return hmf16;
 }

@@ -22,7 +22,7 @@
 21 pascal WriteClassStm(segptr ptr) WriteClassStm16
 22 pascal BindMoniker(segptr long ptr ptr) BindMoniker16
 23 pascal MkParseDisplayName(segptr str ptr ptr) MkParseDisplayName16
-24 stub OLESAVETOSTREAM
+24 pascal OleSaveToStream(segptr segptr) OleSaveToStream16
 25 pascal OleLoadFromStream(segptr ptr ptr) OleLoadFromStream16
 26 pascal CreateBindCtx(long ptr) CreateBindCtx16
 27 pascal CreateItemMoniker(str str ptr) CreateItemMoniker16
@@ -51,7 +51,7 @@
 50 pascal OleGetClipboard(ptr) OleGetClipboard16
 51 pascal -ret16 OleDuplicateData(word word word) OleDuplicateData16
 52 stub OLEGETICONOFFILE
-53 stub OLEGETICONOFCLASS
+53 pascal -ret16 OleGetIconOfClass(ptr str word) OleGetIconOfClass16
 54 pascal CreateILockBytesOnHGlobal(word word ptr) CreateILockBytesOnHGlobal16
 55 pascal GetHGlobalFromILockBytes(segptr ptr) GetHGlobalFromILockBytes16
 56 pascal -ret16 OleMetafilePictFromIconAndLabel(word str str word) OleMetafilePictFromIconAndLabel16
