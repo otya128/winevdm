@@ -2020,6 +2020,8 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
         if (!is_callas(func->attrs)) {
             const var_t *arg;
             int args_size = 2;
+            const char *callconv = get_attrp(func->type->attrs, ATTR_CALLCONV);
+            int reverse = is_pascal(callconv);
 
             fprintf(header, "static ");
             write_type_decl_left(header, type_function_get_rettype(func->type));
@@ -2081,31 +2083,46 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                 fprintf(header, "%s_%s_define_WIDL_C_INLINE_WRAPPERS_for_aggregate_return_support\n", name, get_name(func));
                 continue;
             }
-            fprintf(header, "{LOWORD(%s)","This");
-            fprintf(header, ", HIWORD(%s)", "This");
+            if (reverse)
+            {
+                fprintf(header, "{");
+            }
+            else
+            {
+                fprintf(header, "{LOWORD(%s)", "This");
+                fprintf(header, ", HIWORD(%s)", "This");
+            }
             if (type_get_function_args(func->type))
             {
-                LIST_FOR_EACH_ENTRY(arg, type_get_function_args(func->type), const var_t, entry)
+#define LIST_FOR_EACH_ENTRY_REV2(reverse, elem, list, type, field) \
+    for ((elem) = (reverse) ? LIST_ENTRY((list)->prev, type, field) : LIST_ENTRY((list)->next, type, field); \
+         &(elem)->field != (list); \
+         (elem) = (reverse) ? LIST_ENTRY((elem)->field.prev, type, field) : LIST_ENTRY((elem)->field.next, type, field))
+                LIST_FOR_EACH_ENTRY_REV2(reverse, arg, type_get_function_args(func->type), const var_t, entry)
                 {
                     int size, is_ptr;
                     get_type_size16(arg->type, &size, &is_ptr);
+                    if (!reverse)
+                    {
+                        fprintf(header, ", ");
+                    }
                     if (size == 4)
                     {
                         const char *n = type_get_name(arg->type, NAME_DEFAULT);
                         /* hard-coded */
                         if (n && !strcmp(n, "SIZE"))
                         {
-                            fprintf(header, ", %s.cx", arg->name);
+                            fprintf(header, "%s.cx", arg->name);
                             fprintf(header, ", %s.cy", arg->name);
                         }
                         else if (n && !strcmp(n, "POINT"))
                         {
-                            fprintf(header, ", %s.x", arg->name);
+                            fprintf(header, "%s.x", arg->name);
                             fprintf(header, ", %s.y", arg->name);
                         }
                         else
                         {
-                            fprintf(header, ", LOWORD(%s)", arg->name);
+                            fprintf(header, "LOWORD(%s)", arg->name);
                             fprintf(header, ", HIWORD(%s)", arg->name);
                         }
                     }
@@ -2115,7 +2132,7 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                         /* hard-coded */
                         if (n && !strcmp(n, "POINTL"))
                         {
-                            fprintf(header, ", LOWORD(%s.x)", arg->name);
+                            fprintf(header, "LOWORD(%s.x)", arg->name);
                             fprintf(header, ", HIWORD(%s.x)", arg->name);
                             fprintf(header, ", LOWORD(%s.y)", arg->name);
                             fprintf(header, ", HIWORD(%s.y)", arg->name);
@@ -2123,12 +2140,12 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                         else if (n && !strcmp(n, "CY"))
                         {
                             fprintf(header, "\n#if defined(NONAMELESSUNION) || defined(NONAMELESSSTRUCT)\n", arg->name);
-                            fprintf(header, ", LOWORD(%s.DUMMYSTRUCTNAME.Lo)", arg->name);
+                            fprintf(header, "LOWORD(%s.DUMMYSTRUCTNAME.Lo)", arg->name);
                             fprintf(header, ", HIWORD(%s.DUMMYSTRUCTNAME.Lo)", arg->name);
                             fprintf(header, ", LOWORD(%s.DUMMYSTRUCTNAME.Hi)", arg->name);
                             fprintf(header, ", HIWORD(%s.DUMMYSTRUCTNAME.Hi)", arg->name);
                             fprintf(header, "\n#else\n", arg->name);
-                            fprintf(header, ", LOWORD(%s.Lo)", arg->name);
+                            fprintf(header, "LOWORD(%s.Lo)", arg->name);
                             fprintf(header, ", HIWORD(%s.Lo)", arg->name);
                             fprintf(header, ", LOWORD(%s.Hi)", arg->name);
                             fprintf(header, ", HIWORD(%s.Hi)", arg->name);
@@ -2136,7 +2153,7 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                         }
                         else
                         {
-                            fprintf(header, ", LOWORD(%s.u.LowPart)", arg->name);
+                            fprintf(header, "LOWORD(%s.u.LowPart)", arg->name);
                             fprintf(header, ", HIWORD(%s.u.LowPart)", arg->name);
                             fprintf(header, ", LOWORD(%s.u.HighPart)", arg->name);
                             fprintf(header, ", HIWORD(%s.u.HighPart)", arg->name);
@@ -2144,9 +2161,18 @@ static void write_method_macro16(FILE *header, const type_t *iface, const type_t
                     }
                     else
                     {
-                        fprintf(header, ", %s", arg->name);
+                        fprintf(header, "%s", arg->name);
+                    }
+                    if (reverse)
+                    {
+                        fprintf(header, ", ");
                     }
                 }
+            }
+            if (reverse)
+            {
+                fprintf(header, "LOWORD(%s)", "This");
+                fprintf(header, ", HIWORD(%s)", "This");
             }
             fprintf(header, "};\n");
 
