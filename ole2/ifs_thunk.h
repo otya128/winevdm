@@ -80,7 +80,6 @@ typedef struct
 SEGPTR iface32_16(REFIID riid, void *iface32);
 void *iface16_32(REFIID riid, SEGPTR iface16);
 void *copy_iface16_vtbl(SEGPTR iface16);
-void free_iface32(void *iface);
 #define IFACE_ALLOC_ARRAY(type, size) ((type*)HeapAlloc(GetProcessHeap(), 0, (size) * sizeof(type)))
 #define IFACE_FREE_ARRAY(ptr)
 

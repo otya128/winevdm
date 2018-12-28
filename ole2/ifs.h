@@ -55,6 +55,7 @@ void *iface16_32(REFIID riid, SEGPTR iface16);
 #define E_ACCESSDENIED16    MAKE_SCODE( SEVERITY_ERROR, FACILITY_NULL, 9 )
 HRESULT hresult32_16(HRESULT hresult);
 HRESULT hresult16_32(HRESULT hresult);
+void free_iface32(void *iface);
 #undef STGMEDIUM16
 #undef tagBINDPTR
 

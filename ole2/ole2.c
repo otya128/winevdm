@@ -1047,3 +1047,34 @@ HGLOBAL16 WINAPI OleGetIconOfClass16(REFCLSID rclsid, LPSTR lpszLabel, BOOL fUse
     GlobalFree(hMetaPict);
     return hmf16;
 }
+
+/* {0975C22A-6BA7-420E-9CD3-4763999EFB68} (dummy) */
+static const IID IID_OLESTREAM32 = { 0x975c22a, 0x6ba7, 0x420e, { 0x9c, 0xd3, 0x47, 0x63, 0x99, 0x9e, 0xfb, 0x68 } };
+
+HRESULT WINAPI OleConvertIStorageToOLESTREAMEx16(SEGPTR pStg, CLIPFORMAT cfFormat, LONG lWidth, LONG lHeight, DWORD dwSize, STGMEDIUM16 *pmedium, SEGPTR pOleStm)
+{
+    HRESULT result;
+    IStorage *pStg32;
+    STGMEDIUM med32 = { 0 };
+    LPOLESTREAM stm32 = NULL;
+    TRACE("(%08x,%04x,%d,%d,%08x,%p,%08x)\n", pStg, cfFormat, lWidth, lHeight, dwSize, pmedium, pOleStm);
+    pStg32 = (IStorage*)iface16_32(&IID_IStorage, pStg);
+    if (pmedium)
+        map_stgmedium16_32(&med32, pmedium);
+
+    stm32 = iface16_32(&IID_OLESTREAM32, pOleStm);
+    result = OleConvertIStorageToOLESTREAMEx(pStg32, cfFormat, lWidth, lHeight, dwSize, pmedium ? &med32 : NULL, stm32);
+    if (pmedium)
+    {
+        if (med32.tymed == TYMED_HGLOBAL)
+        {
+            GlobalFree(med32.u.hGlobal);
+        }
+        else if (med32.tymed == TYMED_ISTREAM)
+        {
+            free_iface32(med32.u.pstm);
+        }
+    }
+    free_iface32(stm32);
+    return result;
+}
