@@ -1038,6 +1038,26 @@ typedef struct tagSIZEL
 #define MAP_STRUCT_tagSIZEL16_32(a32, a16) *(SIZEL*)&a32 = *(SIZEL*)&a16
 #define MAP_STRUCT_tagSIZEL32_16(a16, a32) *(SIZEL*)&a16 = *(SIZEL*)&a32
 
+typedef struct
+{
+    DWORD(CALLBACK* Get)(LPOLESTREAM, void FAR*, DWORD);
+    DWORD(CALLBACK* Put)(LPOLESTREAM, const void FAR*, DWORD);
+} OLESTREAM32Vtbl;
+
+typedef struct
+{
+    OLESTREAM32Vtbl *lpVtbl;
+} OLESTREAM32;
+
+#define IFS1632_OVERWRITE_OLESTREAM32_Get
+DWORD __stdcall OLESTREAM32_16_32_Get(SEGPTR This, SEGPTR args16_lpszBuf, DWORD args16_cbbuf);
+#define IFS3216_OVERWRITE_OLESTREAM32_Get
+DWORD __stdcall OLESTREAM32_32_16_Get(OLESTREAM32 *This, void *lpszBuf, DWORD cbbuf);
+#define IFS1632_OVERWRITE_OLESTREAM32_Put
+DWORD __stdcall OLESTREAM32_16_32_Put(SEGPTR This, SEGPTR args16_lpszBuf, DWORD args16_cbbuf);
+#define IFS3216_OVERWRITE_OLESTREAM32_Put
+DWORD __stdcall OLESTREAM32_32_16_Put(OLESTREAM32 *This, const void *lpszBuf, DWORD cbbuf);
+
 #define IFS1632_OVERWRITE_ITypeInfo_AddressOfMember
 HRESULT CDECL ITypeInfo_16_32_AddressOfMember(SEGPTR This, DWORD args16_memid, WORD args16_invKind, SEGPTR args16_ppv);
 

@@ -1732,3 +1732,76 @@ HRESULT CDECL ITypeInfo_16_32_AddressOfMember(SEGPTR This, DWORD args16_memid, W
     return result16__;
 }
 #endif
+/***********************************************************************
+ *           SELECTOR_SetEntries
+ *
+ * Set the LDT entries for an array of selectors.
+ */
+static BOOL SELECTOR_SetEntries(WORD sel, const void *base, DWORD size, unsigned char flags)
+{
+    LDT_ENTRY entry;
+    WORD i, count;
+
+    wine_ldt_set_base(&entry, base);
+    wine_ldt_set_limit(&entry, size - 1);
+    wine_ldt_set_flags(&entry, flags);
+    count = (size + 0xffff) / 0x10000;
+    for (i = 0; i < count; i++)
+    {
+        if (wine_ldt_set_entry(sel + (i << __AHSHIFT), &entry) < 0) return FALSE;
+        wine_ldt_set_base(&entry, (char*)wine_ldt_get_base(&entry) + 0x10000);
+        /* yep, Windows sets limit like that, not 64K sel units */
+        wine_ldt_set_limit(&entry, wine_ldt_get_limit(&entry) - 0x10000);
+    }
+    return TRUE;
+}
+#ifdef IFS3216_OVERWRITE_OLESTREAM32_Get
+DWORD __stdcall OLESTREAM32_32_16_Get(OLESTREAM32 *This, void *lpszBuf, DWORD cbbuf)
+{
+    SEGPTR iface16 = get_interface16(This);
+    WORD seg = AllocSelectorArray16(cbbuf / 0x10000 + 1);
+    DWORD ret;
+    if (!seg)
+        return 0;
+    SELECTOR_SetEntries(seg, lpszBuf, cbbuf, WINE_LDT_FLAGS_DATA);
+    TRACE("(%p(%04x:%04x),%p,%08x)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), MAKESEGPTR(seg, 0), cbbuf);
+    ret = OLESTREAM3216_Get(iface16, MAKESEGPTR(seg, 0), cbbuf);
+    for (WORD i = 0; i <= cbbuf / 0x10000; i++)
+        FreeSelector16(seg + i);
+    return ret;
+}
+#endif
+#ifdef IFS1632_OVERWRITE_OLESTREAM32_Put
+DWORD __stdcall OLESTREAM32_16_32_Put(SEGPTR This, SEGPTR args16_lpszBuf, DWORD args16_cbbuf)
+{
+    OLESTREAM32 *iface32 = (OLESTREAM32*)get_interface32(This);
+    DWORD result__ = { 0 };
+    TYP16_DWORD result16__ = { 0 };
+    int i__;
+    void *dst__;
+    const void *args32_lpszBuf = MapSL(args16_lpszBuf);
+    DWORD args32_cbbuf;
+    MAP_DWORD16_32(args32_cbbuf, args16_cbbuf);
+    TRACE("(%04x:%04x(%p),%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_lpszBuf, args16_cbbuf);
+    result__ = (DWORD)iface32->lpVtbl->Put(iface32, args32_lpszBuf, args32_cbbuf);
+    MAP_DWORD32_16(result16__, result__);
+    UNMAP_DWORD16_32(args32_cbbuf, args16_cbbuf);
+    return result16__;
+}
+#endif
+#ifdef IFS3216_OVERWRITE_OLESTREAM32_Put
+DWORD __stdcall OLESTREAM32_32_16_Put(OLESTREAM32 *This, const void *lpszBuf, DWORD cbbuf)
+{
+    SEGPTR iface16 = get_interface16(This);
+    DWORD ret;
+    WORD seg = AllocSelectorArray16(cbbuf / 0x10000 + 1);
+    if (!seg)
+        return 0;
+    SELECTOR_SetEntries(seg, lpszBuf, cbbuf, WINE_LDT_FLAGS_DATA);
+    TRACE("(%p(%04x:%04x),%p,%08x)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), MAKESEGPTR(seg, 0), cbbuf);
+    ret = OLESTREAM3216_Put(iface16, MAKESEGPTR(seg, 0), cbbuf);
+    for (WORD i = 0; i <= cbbuf / 0x10000; i++)
+        FreeSelector16(seg + i);
+    return ret;
+}
+#endif
