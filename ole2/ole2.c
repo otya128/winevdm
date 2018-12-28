@@ -1070,10 +1070,6 @@ HRESULT WINAPI OleConvertIStorageToOLESTREAMEx16(SEGPTR pStg, CLIPFORMAT cfForma
         {
             GlobalFree(med32.u.hGlobal);
         }
-        else if (med32.tymed == TYMED_ISTREAM)
-        {
-            free_iface32(med32.u.pstm);
-        }
     }
     free_iface32(stm32);
     return result;
