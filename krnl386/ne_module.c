@@ -1259,10 +1259,10 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
         return GetLastError();
 
     len = (BYTE)params->lpCmdLine[0];
-    if (!(cmdline = HeapAlloc(GetProcessHeap(), 0, strlen(filename) + len + 2)))
+    if (!(cmdline = HeapAlloc(GetProcessHeap(), 0, strlen(filename) + len + 4)))
         return ERROR_NOT_ENOUGH_MEMORY;
 
-    strcpy(cmdline, filename);
+    sprintf(cmdline, "\"%s\"", filename);
     p = cmdline + strlen(cmdline);
     *p++ = ' ';
     memcpy(p, params->lpCmdLine + 1, len);
@@ -1921,7 +1921,7 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
     HeapFree( GetProcessHeap(), 0, cmdline );
     if (name != lpCmdLine) HeapFree( GetProcessHeap(), 0, name );
 
-    if (ret == 21)  /* 32-bit module or unknown executable*/
+    if (ret == 21 || ret == ERROR_BAD_FORMAT)  /* 32-bit module or unknown executable*/
     {
         LOADPARAMS16 params;
         WORD showCmd[2];
