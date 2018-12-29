@@ -59,8 +59,8 @@
 58 pascal OleDraw(segptr long word ptr) OleDraw16
 59 pascal OleCreateDefaultHandler(ptr segptr ptr ptr) OleCreateDefaultHandler16
 60 pascal OleCreateEmbeddingHelper(ptr segptr long segptr ptr ptr) OleCreateEmbeddingHelper16
-61 stub OLECONVERTISTORAGETOOLESTREAMEX
-62 stub OLECONVERTOLESTREAMTOISTORAGEEX
+61 pascal OleConvertIStorageToOLESTREAMEx(segptr word long long long ptr segptr) OleConvertIStorageToOLESTREAMEx16
+62 pascal OleConvertOLESTREAMToIStorageEx(segptr segptr ptr ptr ptr ptr ptr) OleConvertOLESTREAMToIStorageEx16
 63 stub SETDOCUMENTBITSTG
 64 stub GETDOCUMENTBITSTG
 65 stub WRITEOLESTG
@@ -69,7 +69,7 @@
 68 stub OLECREATELINKTOFILE
 69 stub CREATEDATACACHE
 70 stub OLECONVERTISTORAGETOOLESTREAM
-71 stub OLECONVERTOLESTREAMTOISTORAGE
+71 pascal OleConvertOLESTREAMToIStorage(segptr segptr ptr) OleConvertOLESTREAMToIStorage16
 74 pascal ReadFmtUserTypeStg(segptr ptr ptr) ReadFmtUserTypeStg16
 75 pascal WriteFmtUserTypeStg(segptr word str) WriteFmtUserTypeStg16
 76 pascal -ret16 OleFlushClipboard() OleFlushClipboard16

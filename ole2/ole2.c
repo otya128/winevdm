@@ -1062,7 +1062,7 @@ HRESULT WINAPI OleConvertIStorageToOLESTREAMEx16(SEGPTR pStg, CLIPFORMAT cfForma
     if (pmedium)
         map_stgmedium16_32(&med32, pmedium);
 
-    stm32 = iface16_32(&IID_OLESTREAM32, pOleStm);
+    stm32 = (LPOLESTREAM)iface16_32(&IID_OLESTREAM32, pOleStm);
     result = OleConvertIStorageToOLESTREAMEx(pStg32, cfFormat, lWidth, lHeight, dwSize, pmedium ? &med32 : NULL, stm32);
     if (pmedium)
     {
@@ -1072,5 +1072,40 @@ HRESULT WINAPI OleConvertIStorageToOLESTREAMEx16(SEGPTR pStg, CLIPFORMAT cfForma
         }
     }
     free_iface32(stm32);
-    return result;
+    return hresult32_16(result);
+}
+
+HRESULT WINAPI OleConvertOLESTREAMToIStorageEx16(SEGPTR pOleStm, SEGPTR pStg, CLIPFORMAT *pcfFormat, LONG *plWidth, LONG *plHeight, DWORD *pdwSize, STGMEDIUM16 *pmedium)
+{
+    HRESULT result;
+    LPOLESTREAM pOleStm32;
+    IStorage *pStg32;
+    STGMEDIUM med32 = { 0 };
+    TRACE("(%08x,%08x,%p,%p,%p,%p,%p)\n", pOleStm, pStg, pcfFormat, plWidth, plHeight, pdwSize, pmedium);
+    pOleStm32 = (LPOLESTREAM)iface16_32(&IID_OLESTREAM32, pOleStm);
+    pStg32 = (IStorage*)iface16_32(&IID_IStorage, pStg);
+    result = OleConvertOLESTREAMToIStorageEx(pOleStm32, pStg32, pcfFormat, plWidth, plHeight, pdwSize, pmedium ? &med32 : NULL);
+    if (pmedium && SUCCEEDED(result))
+    {
+        map_stgmedium32_16(pmedium, &med32);
+        if (med32.tymed == TYMED_HGLOBAL)
+        {
+            GlobalFree(med32.u.hGlobal);
+        }
+    }
+    free_iface32(pOleStm32);
+    return hresult32_16(result);
+}
+
+HRESULT WINAPI OleConvertOLESTREAMToIStorage16(SEGPTR pOleStm, SEGPTR pStg, const DVTARGETDEVICE *ptd)
+{
+    HRESULT result;
+    LPOLESTREAM pOleStm32;
+    IStorage *pStg32;
+    TRACE("(%08x,%08x,%p)\n", pOleStm, pStg, ptd);
+    pOleStm32 = (LPOLESTREAM)iface16_32(&IID_OLESTREAM32, pOleStm);
+    pStg32 = (IStorage*)iface16_32(&IID_IStorage, pStg);
+    result = OleConvertOLESTREAMToIStorage(pOleStm32, pStg32, ptd);
+    free_iface32(pOleStm32);
+    return hresult32_16(result);
 }
