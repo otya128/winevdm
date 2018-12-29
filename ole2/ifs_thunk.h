@@ -1049,12 +1049,8 @@ typedef struct
     OLESTREAM32Vtbl *lpVtbl;
 } OLESTREAM32;
 
-#define IFS1632_OVERWRITE_OLESTREAM32_Get
-DWORD __stdcall OLESTREAM32_16_32_Get(SEGPTR This, SEGPTR args16_lpszBuf, DWORD args16_cbbuf);
 #define IFS3216_OVERWRITE_OLESTREAM32_Get
 DWORD __stdcall OLESTREAM32_32_16_Get(OLESTREAM32 *This, void *lpszBuf, DWORD cbbuf);
-#define IFS1632_OVERWRITE_OLESTREAM32_Put
-DWORD __stdcall OLESTREAM32_16_32_Put(SEGPTR This, SEGPTR args16_lpszBuf, DWORD args16_cbbuf);
 #define IFS3216_OVERWRITE_OLESTREAM32_Put
 DWORD __stdcall OLESTREAM32_32_16_Put(OLESTREAM32 *This, const void *lpszBuf, DWORD cbbuf);
 

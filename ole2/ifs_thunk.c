@@ -1738,24 +1738,6 @@ HRESULT CDECL ITypeInfo_16_32_AddressOfMember(SEGPTR This, DWORD args16_memid, W
 #endif
 /*** OLESTREAM32 methods ***/
 
-#ifdef IFS1632_OVERWRITE_OLESTREAM32_Get
-DWORD __stdcall OLESTREAM32_16_32_Get(SEGPTR This, SEGPTR args16_lpszBuf, DWORD args16_cbbuf)
-{
-    OLESTREAM32 *iface32 = (OLESTREAM32*)get_interface32(This);
-    DWORD result__ = { 0 };
-    TYP16_DWORD result16__ = { 0 };
-    int i__;
-    void *dst__;
-    void *args32_lpszBuf = MapSL(args16_lpszBuf);
-    DWORD args32_cbbuf;
-    MAP_DWORD16_32(args32_cbbuf, args16_cbbuf);
-    TRACE("(%04x:%04x(%p),%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_lpszBuf, args16_cbbuf);
-    result__ = (DWORD)iface32->lpVtbl->Get(iface32, args32_lpszBuf, args32_cbbuf);
-    MAP_DWORD32_16(result16__, result__);
-    UNMAP_DWORD16_32(args32_cbbuf, args16_cbbuf);
-    return result16__;
-}
-#endif
 /***********************************************************************
  *           SELECTOR_SetEntries
  *
@@ -1793,24 +1775,6 @@ DWORD __stdcall OLESTREAM32_32_16_Get(OLESTREAM32 *This, void *lpszBuf, DWORD cb
     for (WORD i = 0; i <= cbbuf / 0x10000; i++)
         FreeSelector16(seg + i);
     return ret;
-}
-#endif
-#ifdef IFS1632_OVERWRITE_OLESTREAM32_Put
-DWORD __stdcall OLESTREAM32_16_32_Put(SEGPTR This, SEGPTR args16_lpszBuf, DWORD args16_cbbuf)
-{
-    OLESTREAM32 *iface32 = (OLESTREAM32*)get_interface32(This);
-    DWORD result__ = { 0 };
-    TYP16_DWORD result16__ = { 0 };
-    int i__;
-    void *dst__;
-    const void *args32_lpszBuf = MapSL(args16_lpszBuf);
-    DWORD args32_cbbuf;
-    MAP_DWORD16_32(args32_cbbuf, args16_cbbuf);
-    TRACE("(%04x:%04x(%p),%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_lpszBuf, args16_cbbuf);
-    result__ = (DWORD)iface32->lpVtbl->Put(iface32, args32_lpszBuf, args32_cbbuf);
-    MAP_DWORD32_16(result16__, result__);
-    UNMAP_DWORD16_32(args32_cbbuf, args16_cbbuf);
-    return result16__;
 }
 #endif
 #ifdef IFS3216_OVERWRITE_OLESTREAM32_Put
