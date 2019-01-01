@@ -96,7 +96,6 @@ HGLOBALLockBytesImpl16_Construct(HGLOBAL16 hGlobal,
   HGLOBALLockBytesImpl16* newLockBytes;
 
   static ILockBytes16Vtbl vt16;
-  HMODULE16 hcomp = GetModuleHandle16("OLE2");
 
 
   TRACE("(%x,%d)\n",hGlobal,fDeleteOnRelease);
@@ -109,6 +108,7 @@ HGLOBALLockBytesImpl16_Construct(HGLOBAL16 hGlobal,
    */
   if (!msegvt16)
   {
+      HMODULE16 hcomp = GetModuleHandle16("OLE2");
 #define VTENT(x) vt16.x = (void*)GetProcAddress16(hcomp,"HGLOBALLockBytesImpl16_"#x);assert(vt16.x)
       VTENT(QueryInterface);
       VTENT(AddRef);
