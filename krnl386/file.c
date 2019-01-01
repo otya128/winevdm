@@ -884,66 +884,111 @@ UINT WINAPI GetTempDrive( BYTE ignored )
 }
 
 
+#define MAX_TEMP_PATH 144
 /***********************************************************************
  *           GetTempFileName   (KERNEL.97)
  */
 UINT16 WINAPI GetTempFileName16( BYTE drive, LPCSTR prefix, UINT16 unique,
                                  LPSTR buffer )
 {
-    char temppath[MAX_PATH];
-    char *prefix16 = NULL;
-    UINT16 ret;
+    char temppath[MAX_TEMP_PATH];
+    char *unique_buf;
 
     if (!(drive & ~TF_FORCEDRIVE)) /* drive 0 means current default drive */
     {
-        GetCurrentDirectoryA(sizeof(temppath), temppath); 
-        drive |= temppath[0];
+        WCHAR curdir[MAX_PATH];
+        DWORD r = GetCurrentDirectoryW(MAX_PATH, curdir);
+        if (r >= MAX_PATH || r == 0 || curdir[1] != ':')
+        {
+            ERR("could not get current drive\n");
+            return 0;
+        }
+        drive |= curdir[0];
     }
 
     if (drive & TF_FORCEDRIVE)
     {
-        char    d[3];
-
-        d[0] = drive & ~TF_FORCEDRIVE;
-        d[1] = ':';
-        d[2] = '\0';
-        if (GetDriveTypeA(d) == DRIVE_NO_ROOT_DIR)
-        {
-            drive &= ~TF_FORCEDRIVE;
-            WARN("invalid drive %d specified\n", drive );
-        }
+        /* C:~preuuuu.TMP */
+        sprintf(temppath, "%c:", drive & ~TF_FORCEDRIVE);
     }
-
-    if (drive & TF_FORCEDRIVE)
-        sprintf(temppath,"%c:", drive & ~TF_FORCEDRIVE );
     else
     {
-        GetTempPathA(MAX_PATH, temppath);
-        if (temppath[0] != drive)
-            sprintf(temppath, "%c:", drive);
-    }
-
-    if (prefix)
-    {
-        prefix16 = HeapAlloc(GetProcessHeap(), 0, strlen(prefix) + 2);
-        *prefix16 = '~';
-        strcpy(prefix16 + 1, prefix);
-    }
-
-    ret = GetTempFileNameA( temppath, prefix16, unique, buffer );
-
-    if (!ret)
-    {
-        //C:\ => ERROR_ACCESS_DENIED
-        if (GetLastError() == ERROR_ACCESS_DENIED)
+        DWORD r = GetTempPathA(MAX_TEMP_PATH, temppath);
+        if (r >= MAX_TEMP_PATH)
         {
-            char buf[MAX_PATH];
-            char *temppath2 = RedirectDriveRoot(temppath, buf, MAX_PATH, TRUE);
-            ret = GetTempFileNameA(temppath2, prefix16, unique, buffer);
+            ERR("temp path is too long\n");
+            return 0;
+        }
+        if (r < 3)
+        {
+            return 0;
         }
     }
-    HeapFree(GetProcessHeap(), 0, prefix16);
-    return ret;
+    GetShortPathNameA(temppath, temppath, MAX_TEMP_PATH);
+    if (strlen(temppath) + 12 /* ~preuuuu.TMP */ >= MAX_TEMP_PATH - 1)
+    {
+        ERR("temp path is too long\n");
+        return 0;
+    }
+    unique_buf = temppath + strlen(temppath);
+    *unique_buf++ = '~';
+    if (prefix[0])
+    {
+        *unique_buf++ = prefix[0];
+        if (prefix[1])
+        {
+            *unique_buf++ = prefix[1];
+            if (prefix[2])
+            {
+                *unique_buf++ = prefix[2];
+            }
+        }
+    }
+
+    if (!unique)
+    {
+        int num = GetTickCount() & 0xffff;
+        if (num == 0)
+        {
+            num = 1;
+        }
+        unique = num;
+        do
+        {
+            HANDLE handle;
+            sprintf(unique_buf, "%04X.TMP", unique);
+
+            handle = CreateFileA(temppath, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                CloseHandle(handle);
+                break;
+            }
+            if (GetLastError() == ERROR_ACCESS_DENIED)
+            {
+                ERR("%s ERROR_ACCESS_DENIED\n", temppath);
+            }
+            if (GetLastError() != ERROR_FILE_EXISTS &&
+                GetLastError() != ERROR_SHARING_VIOLATION)
+                break;
+            if (!(++unique & 0xffff)) unique = 1;
+        } while (unique != num);
+    }
+    else
+    {
+        sprintf(unique_buf, "%04X.TMP", unique);
+    }
+    if (strlen(temppath) + 1 > MAX_TEMP_PATH)
+    {
+        ERR("temp path is too long\n");
+        return 0;
+    }
+    else
+    {
+        strcpy(buffer, temppath);
+    }
+
+    return unique;
 }
 
 
