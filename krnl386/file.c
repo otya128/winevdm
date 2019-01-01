@@ -241,6 +241,45 @@ __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max
 	return to;
 }
 
+NTSYSAPI NTSTATUS NTAPI RtlUpcaseUnicodeStringToOemString(
+    POEM_STRING      DestinationString,
+    PCUNICODE_STRING SourceString,
+    BOOLEAN          AllocateDestinationString
+);
+static LPWSTR strdupAtoW(LPCSTR str)
+{
+    LPWSTR ret;
+    INT len;
+
+    if (!str) return NULL;
+    len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
+    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    if (ret) MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
+    return ret;
+}
+static LPWSTR strdupOEMtoW(LPCSTR str)
+{
+    LPWSTR ret;
+    INT len;
+
+    if (!str) return NULL;
+    len = MultiByteToWideChar(CP_OEMCP, 0, str, -1, NULL, 0);
+    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    if (ret) MultiByteToWideChar(CP_OEMCP, 0, str, -1, ret, len);
+    return ret;
+}
+static LPCSTR strdupWtoOEM(LPCWSTR str)
+{
+    LPSTR ret;
+    INT len;
+
+    if (!str) return NULL;
+    len = WideCharToMultiByte(CP_OEMCP, 0, str, -1, NULL, 0, NULL, NULL);
+    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(CHAR));
+    if (ret) WideCharToMultiByte(CP_OEMCP, 0, str, -1, ret, len, NULL, NULL);
+    return ret;
+}
+
 #define DOS_TABLE_SIZE 256
 
 static HANDLE dos_handles[DOS_TABLE_SIZE];
@@ -426,7 +465,10 @@ BOOL16 WINAPI WriteProfileString16( LPCSTR section, LPCSTR entry,
         p += strlen( p );
         *p++ = ';';
     }
-    GetEnvironmentVariableA( "PATH16", p, ret + len - p );
+    if (!GetEnvironmentVariableA("PATH16", p, ret + len - p))
+    {
+        *(p - 1) = '\0';
+    }
     return ret;
 }
 char *krnl386_get_search_path(void)
@@ -464,16 +506,62 @@ LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOO
 }
 
 /***********************************************************************
+ *              create_file_OF
+ *
+ * Wrapper for CreateFile that takes OF_* mode flags.
+ */
+static HANDLE create_file_OF( LPCWSTR path, INT mode )
+{
+    DWORD access, sharing, creation;
+
+    if (mode & OF_CREATE)
+    {
+        creation = CREATE_ALWAYS;
+        access = GENERIC_READ | GENERIC_WRITE;
+    }
+    else
+    {
+        creation = OPEN_EXISTING;
+        switch(mode & 0x03)
+        {
+        case OF_READ:      access = GENERIC_READ; break;
+        case OF_WRITE:     access = GENERIC_WRITE; break;
+        case OF_READWRITE: access = GENERIC_READ | GENERIC_WRITE; break;
+        default:           access = 0; break;
+        }
+    }
+
+    switch(mode & 0x70)
+    {
+    case OF_SHARE_EXCLUSIVE:  sharing = 0; break;
+    case OF_SHARE_DENY_WRITE: sharing = FILE_SHARE_READ; break;
+    case OF_SHARE_DENY_READ:  sharing = FILE_SHARE_WRITE; break;
+    case OF_SHARE_DENY_NONE:
+    case OF_SHARE_COMPAT:
+    default:                  sharing = FILE_SHARE_READ | FILE_SHARE_WRITE; break;
+    }
+    return CreateFileW( path, access, sharing | FILE_SHARE_DELETE, NULL, creation, FILE_ATTRIBUTE_NORMAL, 0 );
+}
+/***********************************************************************
  *           OpenFile   (KERNEL.74)
  *           OpenFileEx (KERNEL.360)
  */
 HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
 {
     HFILE hFileRet;
-    HANDLE handle;
+    HANDLE handle = INVALID_HANDLE_VALUE;
     FILETIME filetime;
     WORD filedatetime[2];
-    const char *p, *filename;
+    OEM_STRING oem;
+    UNICODE_STRING uni;
+    FILETIME lfiletime;
+    WCHAR pathname[sizeof(ofs->szPathName)];
+    LPWSTR namew;
+    const WCHAR *p, *filename;
+    CHAR buf[OFS_MAXPATHNAME];
+    oem.Buffer = ofs->szPathName;
+    oem.Length = 0;
+    oem.MaximumLength = sizeof(ofs->szPathName);
 
     if (!ofs) return HFILE_ERROR;
 
@@ -497,52 +585,59 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
           ((mode & OF_REOPEN )==OF_REOPEN)?"OF_REOPEN ":""
         );
 
-    if (mode & OF_PARSE)
+    if ((mode & (OF_CREATE | OF_SHARE_EXCLUSIVE)) == (OF_CREATE | OF_SHARE_EXCLUSIVE))
     {
-        OpenFile( name, ofs, mode );
-		CHAR buf[OFS_MAXPATHNAME];
-		RedirectSystemDir(ofs->szPathName, ofs->szPathName, OFS_MAXPATHNAME);
-        return 0;
+        mode &= ~OF_SHARE_EXCLUSIVE;
     }
 
-    CHAR buf[OFS_MAXPATHNAME];
-    name = RedirectSystemDir(name, buf, OFS_MAXPATHNAME);
-    if (mode & OF_CREATE)
-    {
-        CHAR root_buf[OFS_MAXPATHNAME];
-        name = RedirectDriveRoot(name, root_buf, ARRAY_SIZE(root_buf), FALSE);
-        handle = (HANDLE)OpenFile( name, ofs, mode );
-        UnredirectDriveRoot(ofs->szPathName, ARRAY_SIZE(ofs->szPathName));
-        if (handle == (HANDLE)HFILE_ERROR) goto error;
-    }
-    else
     {
         ofs->cBytes = sizeof(OFSTRUCT);
         ofs->nErrCode = 0;
         if (mode & OF_REOPEN) name = ofs->szPathName;
+        name = RedirectDriveRoot(name, buf, ARRAY_SIZE(buf), FALSE);
+        namew = strdupOEMtoW(name);
 
-        if (!name) return HFILE_ERROR;
+        if (!name)
+        {
+            HeapFree(GetProcessHeap(), 0, namew);
+            return HFILE_ERROR;
+        }
 
         /* the watcom 10.6 IDE relies on a valid path returned in ofs->szPathName
            Are there any cases where getting the path here is wrong?
            Uwe Bonnes 1997 Apr 2 */
-        if (!GetFullPathNameA( name, sizeof(ofs->szPathName), ofs->szPathName, NULL )) goto error;
+        if (!GetFullPathNameW(namew, sizeof(ofs->szPathName), pathname, NULL))
+        {
+            RtlInitUnicodeString(&uni, pathname);
+            if (!NT_SUCCESS(RtlUpcaseUnicodeStringToOemString(&oem, &uni, FALSE)))
+            {
+                ERR("RtlUpcaseUnicodeStringToOemString failed\n");
+                ofs->szPathName[0] = '\0';
+            }
+            goto error;
+        }
 
         /* If OF_SEARCH is set, ignore the given path */
 
-        filename = name;
+        filename = namew;
         if ((mode & OF_SEARCH) && !(mode & OF_REOPEN))
         {
             /* First try the file name as is */
-            if (GetFileAttributesA( filename ) != INVALID_FILE_ATTRIBUTES) filename = NULL;
+            if (GetFileAttributesW( filename ) != INVALID_FILE_ATTRIBUTES) filename = NULL;
             else
             {
                 /* Now remove the path */
                 if (filename[0] && (filename[1] == ':')) filename += 2;
-                if ((p = strrchr( filename, '\\' ))) filename = p + 1;
-                if ((p = strrchr( filename, '/' ))) filename = p + 1;
+                if ((p = wcsrchr( filename, '\\' ))) filename = p + 1;
+                if ((p = wcsrchr( filename, '/' ))) filename = p + 1;
                 if (!filename[0])
                 {
+                    RtlInitUnicodeString(&uni, filename);
+                    if (!NT_SUCCESS(RtlUpcaseUnicodeStringToOemString(&oem, &uni, FALSE)))
+                    {
+                        ERR("RtlUpcaseUnicodeStringToOemString failed\n");
+                        ofs->szPathName[0] = '\0';
+                    }
                     SetLastError( ERROR_FILE_NOT_FOUND );
                     goto error;
                 }
@@ -551,32 +646,84 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
 
         /* Now look for the file */
 
-        if (filename)
+        if (!(mode & OF_PARSE) && !(mode & OF_CREATE) && filename)
         {
             BOOL found;
             char *path = get_search_path();
+            WCHAR *pathw;
 
-            if (!path) goto error;
-            found = SearchPathA( path, filename, NULL, sizeof(ofs->szPathName),
-                                 ofs->szPathName, NULL );
+            if (!path)
+            {
+                RtlInitUnicodeString(&uni, filename);
+                if (!NT_SUCCESS(RtlUpcaseUnicodeStringToOemString(&oem, &uni, FALSE)))
+                {
+                    ERR("RtlUpcaseUnicodeStringToOemString failed\n");
+                    ofs->szPathName[0] = '\0';
+                }
+                goto error;
+            }
+            pathw = strdupAtoW(path);
+            found = SearchPathW( pathw, filename, NULL, sizeof(ofs->szPathName),
+                                 pathname, NULL );
             HeapFree( GetProcessHeap(), 0, path );
-            if (!found) goto error;
+            HeapFree( GetProcessHeap(), 0, pathw );
+            if (!found)
+            {
+                RtlInitUnicodeString(&uni, pathname);
+                if (!NT_SUCCESS(RtlUpcaseUnicodeStringToOemString(&oem, &uni, FALSE)))
+                {
+                    ERR("RtlUpcaseUnicodeStringToOemString failed\n");
+                    ofs->szPathName[0] = '\0';
+                }
+                goto error;
+            }
         }
 
-        TRACE("found %s\n", debugstr_a(ofs->szPathName) );
+        TRACE("found %s\n", debugstr_w(pathname) );
 
         if (mode & OF_DELETE)
         {
-            if (!DeleteFileA( ofs->szPathName )) goto error;
+            RtlInitUnicodeString(&uni, pathname);
+            if (!NT_SUCCESS(RtlUpcaseUnicodeStringToOemString(&oem, &uni, FALSE)))
+            {
+                ERR("RtlUpcaseUnicodeStringToOemString failed\n");
+                ofs->szPathName[0] = '\0';
+            }
+            if (!DeleteFileW(pathname)) goto error;
             TRACE("(%s): OF_DELETE return = OK\n", name);
+            HeapFree(GetProcessHeap(), 0, namew);
             return 1;
         }
 
-        handle = (HANDLE)_lopen( ofs->szPathName, mode );
-        if (handle == INVALID_HANDLE_VALUE) goto error;
+        GetShortPathNameW(pathname, pathname, ARRAY_SIZE(pathname));
+        if (!(mode & OF_PARSE))
+        {
+            handle = create_file_OF(pathname, mode);
+        }
+        RtlInitUnicodeString(&uni, pathname);
+        if (!NT_SUCCESS(RtlUpcaseUnicodeStringToOemString(&oem, &uni, FALSE)))
+        {
+            ERR("RtlUpcaseUnicodeStringToOemString failed\n");
+            ofs->szPathName[0] = '\0';
+        }
+        UnredirectDriveRoot(ofs->szPathName, ARRAY_SIZE(ofs->szPathName));
+        if (!(mode & OF_PARSE))
+        {
+            if (handle == INVALID_HANDLE_VALUE) goto error;
+        }
 
-        GetFileTime( handle, NULL, NULL, &filetime );
-        FileTimeToDosDateTime( &filetime, &filedatetime[0], &filedatetime[1] );
+        if (mode & OF_PARSE)
+        {
+            SYSTEMTIME systime;
+            GetSystemTime(&systime);
+            SystemTimeToFileTime(&systime, &filetime);
+        }
+        else
+        {
+            GetFileTime( handle, NULL, NULL, &filetime );
+        }
+        FileTimeToLocalFileTime(&filetime, &lfiletime);
+        FileTimeToDosDateTime( &lfiletime, &filedatetime[0], &filedatetime[1] );
         if ((mode & OF_VERIFY) && (mode & OF_REOPEN))
         {
             if (ofs->Reserved1 != filedatetime[0] || ofs->Reserved2 != filedatetime[1] )
@@ -592,15 +739,24 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
         ofs->Reserved2 = filedatetime[1];
     }
 
-    TRACE("(%s): OK, return = %p\n", name, handle );
-    hFileRet = Win32HandleToDosFileHandle( handle );
+    if (!(mode & OF_PARSE))
+    {
+        hFileRet = Win32HandleToDosFileHandle(handle);
+        TRACE("(%s): OK, return = %p\n", name, handle);
+    }
+    else
+    {
+        hFileRet = 0;
+    }
     if (hFileRet == HFILE_ERROR16) goto error;
-    if (mode & OF_EXIST) _lclose16( hFileRet ); /* Return the handle, but close it first */
+    HeapFree(GetProcessHeap(), 0, namew);
+    if (!(mode & OF_PARSE) && mode & OF_EXIST) _lclose16( hFileRet ); /* Return the handle, but close it first */
     return hFileRet;
 
 error:  /* We get here if there was an error opening the file */
     ofs->nErrCode = GetLastError();
     WARN("(%s): return = HFILE_ERROR error= %d\n", name,ofs->nErrCode );
+    HeapFree(GetProcessHeap(), 0, namew);
     return HFILE_ERROR16;
 }
 
