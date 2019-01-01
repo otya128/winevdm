@@ -212,6 +212,8 @@ void *iface16_32(REFIID riid, SEGPTR iface16)
 void free_iface32(void *iface)
 {
     char *i32 = (char*)iface - IFS_GUARD_SIZE;
+    if (!iface)
+        return;
     HeapFree(GetProcessHeap(), 0, i32);
 }
 HRESULT CDECL IOleInPlaceSiteWindowless_16_32_OnDefWindowMessage(SEGPTR This, DWORD args16_msg, DWORD args16_wParam, DWORD args16_lParam, SEGPTR args16_plResult)
