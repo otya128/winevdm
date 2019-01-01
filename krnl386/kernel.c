@@ -152,6 +152,22 @@ void init__wine_spec_dos_header()
 #endif
 const char *GetRedirectWindowsDir();
 void init_wow_handle();
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
+
+static void redirect_current_dir()
+{
+    char curdir[MAX_PATH];
+    char curdir16[MAX_PATH];
+    LPCSTR redirected;
+    GetCurrentDirectoryA(MAX_PATH, curdir);
+    redirected = RedirectSystemDir(curdir, curdir16, MAX_PATH);
+    if (redirected == curdir16)
+    {
+        ERR("current directory: %s -> %s\n", curdir, curdir16);
+        SetCurrentDirectoryA(redirected);
+    }
+}
+
 /**************************************************************************
  *		DllMain
  */
@@ -189,11 +205,12 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
         if (!allocated)
         {
             WOW32ReservedTls = TlsAlloc();
-            ERR("could not allocate WOW32RESERVED_TLS_INDEX!!\n");
+            WARN("could not allocate WOW32RESERVED_TLS_INDEX!!\n");
         }
         /* init redirect dir */
         GetRedirectWindowsDir();
         init_wow_handle();
+        redirect_current_dir();
     }
         if (LoadLibrary16( "krnl386.exe" ) < 32) return FALSE;
         /* fall through */
