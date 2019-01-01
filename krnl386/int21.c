@@ -714,9 +714,10 @@ static BOOL INT21_GetCurrentDirectory( CONTEXT *context, BOOL islong )
         env_var[3] = 0;
         if (!GetEnvironmentVariableW( env_var, pathW, MAX_PATH ))
         {
-            /* return empty path */
-            buffer[0] = 0;
-            return TRUE;
+            pathW[0] = 'A' + drive;
+            pathW[1] = ':';
+            pathW[2] = '\\';
+            pathW[3] = '\0';
         }
     }
 
