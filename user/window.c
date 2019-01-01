@@ -693,8 +693,14 @@ BOOL16 WINAPI IsWindow16( HWND16 hwnd )
 {
     STACK16FRAME *frame = MapSL( (SEGPTR)getWOW32Reserved() );
     frame->es = USER_HeapSel;
+    HWND hwnd32 = HWND_32(hwnd);
+    if (!HIWORD(hwnd32))
+    {
+        /* invalid handle */
+        return FALSE;
+    }
     /* don't use WIN_Handle32 here, we don't care about the full handle */
-    return IsWindow( HWND_32(hwnd) );
+    return IsWindow( hwnd32 );
 }
 
 

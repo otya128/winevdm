@@ -38,6 +38,7 @@ typedef struct
     HANDLE_DATA *handles;
     LPCSTR name;
     int align;
+    int align2;
     clean_up_t clean_up;
 } HANDLE_STORAGE;
 #define HANDLE_TYPE_HANDLE 0
@@ -56,6 +57,8 @@ void init_wow_handle()
     handle_init_flag = TRUE;
     handle_list[HANDLE_TYPE_HANDLE].handles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536 * sizeof(HANDLE_DATA));
     handle_list[HANDLE_TYPE_HANDLE].align = 1;
+    /* IsWindow(hdc) should return FALSE */
+    handle_list[HANDLE_TYPE_HANDLE].align2 = 4;
     handle_list[HANDLE_TYPE_HANDLE].name = "HANDLE";
     /*
     hdc1 = CreateCompatibleDC(0);
@@ -68,6 +71,7 @@ void init_wow_handle()
     */
     handle_list[HANDLE_TYPE_HGDI].align = 4;
     handle_list[HANDLE_TYPE_HGDI].name = "HGDI";
+    handle_list[HANDLE_TYPE_HGDI].align2 = 0;
     handle_list[HANDLE_TYPE_HGDI].handles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536 * sizeof(HANDLE_DATA));
     handle_list[HANDLE_TYPE_HGDI].clean_up = hgdi_clean_up;
 }
@@ -120,6 +124,8 @@ retry:
 	{
         if (i >= (WORD)(-HANDLE_RESERVED))
             break;
+        if (hs->align2 && (i & -hs->align2) == i)
+            continue;
 		if (!hs->handles[i].handle32 && !fhandle)
 		{
 			fhandle = i;
