@@ -6804,6 +6804,7 @@ BOOL get_date_format(LCID lcid, DWORD flags, const SYSTEMTIME *st,
     return TRUE;
 }
 
+void map_bstr32_16(SEGPTR *a16, const BSTR *a32);
 /******************************************************************************
  *    VarBstrFromDate    [OLEAUT32.114]
  *
@@ -6822,6 +6823,21 @@ BOOL get_date_format(LCID lcid, DWORD flags, const SYSTEMTIME *st,
  */
 HRESULT WINAPI VarBstrFromDate16(DATE dateIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
 {
+    BSTR bstr32;
+    HRESULT res;
+    fix_double(&dateIn);
+    TRACE("(%g,0x%08x,0x%08x,%p)\n", dateIn, lcid, dwFlags, pbstrOut);
+    res = VarBstrFromDate(dateIn, lcid, dwFlags, &bstr32);
+    if (FAILED(res))
+    {
+        *pbstrOut = 0;
+        return hresult32_16(res);
+    }
+    map_bstr32_16(pbstrOut, &bstr32);
+    SysFreeString(bstr32);
+    return hresult32_16(res);
+
+#if 0
   SYSTEMTIME st;
   DWORD dwFormatFlags = dwFlags & LOCALE_NOUSEROVERRIDE;
   OLECHAR16 date[128], fmt_buff[80], *time;
@@ -6871,6 +6887,7 @@ HRESULT WINAPI VarBstrFromDate16(DATE dateIn, LCID lcid, ULONG dwFlags, SEGBSTR1
   if (*pbstrOut)
     TRACE("returning %s\n", debugstr_a(*pbstrOut));
   return *pbstrOut ? S_OK : E_OUTOFMEMORY;
+#endif
 }
 
 /******************************************************************************
