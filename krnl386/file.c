@@ -559,6 +559,7 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
     LPWSTR namew;
     const WCHAR *p, *filename;
     CHAR buf[OFS_MAXPATHNAME];
+    BOOL result;
     oem.Buffer = ofs->szPathName;
     oem.Length = 0;
     oem.MaximumLength = sizeof(ofs->szPathName);
@@ -594,21 +595,40 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
         ofs->cBytes = sizeof(OFSTRUCT);
         ofs->nErrCode = 0;
         if (mode & OF_REOPEN) name = ofs->szPathName;
-        name = RedirectDriveRoot(name, buf, ARRAY_SIZE(buf), FALSE);
-        namew = strdupOEMtoW(name);
 
         if (!name)
         {
-            HeapFree(GetProcessHeap(), 0, namew);
             return HFILE_ERROR;
         }
+        name = RedirectDriveRoot(name, buf, ARRAY_SIZE(buf), FALSE);
+        namew = strdupOEMtoW(name);
 
         /* the watcom 10.6 IDE relies on a valid path returned in ofs->szPathName
            Are there any cases where getting the path here is wrong?
            Uwe Bonnes 1997 Apr 2 */
-        if (!GetFullPathNameW(namew, sizeof(ofs->szPathName), pathname, NULL))
+        if (!*namew)
         {
-            RtlInitUnicodeString(&uni, pathname);
+            /* empty path => cwd */
+            result = GetCurrentDirectoryW(sizeof(ofs->szPathName), pathname);
+            if (result && !(mode & OF_PARSE))
+            {
+                SetLastError(ERROR_FILE_NOT_FOUND);
+                RtlInitUnicodeString(&uni, pathname);
+                if (!NT_SUCCESS(RtlUpcaseUnicodeStringToOemString(&oem, &uni, FALSE)))
+                {
+                    ERR("RtlUpcaseUnicodeStringToOemString failed\n");
+                    ofs->szPathName[0] = '\0';
+                }
+                goto error;
+            }
+        }
+        else
+        {
+            result = GetFullPathNameW(namew, sizeof(ofs->szPathName), pathname, NULL);
+        }
+        if (!result)
+        {
+            RtlInitUnicodeString(&uni, namew);
             if (!NT_SUCCESS(RtlUpcaseUnicodeStringToOemString(&oem, &uni, FALSE)))
             {
                 ERR("RtlUpcaseUnicodeStringToOemString failed\n");
