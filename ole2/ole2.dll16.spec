@@ -68,7 +68,7 @@
 67 stub OLECREATEFROMFILE
 68 stub OLECREATELINKTOFILE
 69 stub CREATEDATACACHE
-70 stub OLECONVERTISTORAGETOOLESTREAM
+70 pascal OleConvertIStorageToOLESTREAM(segptr segptr) OleConvertIStorageToOLESTREAM16
 71 pascal OleConvertOLESTREAMToIStorage(segptr segptr ptr) OleConvertOLESTREAMToIStorage16
 74 pascal ReadFmtUserTypeStg(segptr ptr ptr) ReadFmtUserTypeStg16
 75 pascal WriteFmtUserTypeStg(segptr word str) WriteFmtUserTypeStg16

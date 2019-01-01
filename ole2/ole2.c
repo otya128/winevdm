@@ -1075,6 +1075,19 @@ HRESULT WINAPI OleConvertIStorageToOLESTREAMEx16(SEGPTR pStg, CLIPFORMAT cfForma
     return hresult32_16(result);
 }
 
+HRESULT WINAPI OleConvertIStorageToOLESTREAM16(SEGPTR pStg, SEGPTR pOleStm)
+{
+    HRESULT result;
+    LPOLESTREAM pOleStm32;
+    IStorage *pStg32;
+    TRACE("(%08x,%08x)\n", pOleStm, pStg);
+    pOleStm32 = (LPOLESTREAM)iface16_32(&IID_OLESTREAM32, pOleStm);
+    pStg32 = (IStorage*)iface16_32(&IID_IStorage, pStg);
+    result = OleConvertIStorageToOLESTREAM(pStg32, pOleStm32);
+    free_iface32(pOleStm32);
+    return hresult32_16(result);
+}
+
 HRESULT WINAPI OleConvertOLESTREAMToIStorageEx16(SEGPTR pOleStm, SEGPTR pStg, CLIPFORMAT *pcfFormat, LONG *plWidth, LONG *plHeight, DWORD *pdwSize, STGMEDIUM16 *pmedium)
 {
     HRESULT result;
