@@ -2662,7 +2662,7 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
             atom_UserAdapterWindowClass = GetClassInfoA(hmod, "UserAdapterWindowClass", &c);
         }
     }
-    if (atom_UserAdapterWindowClass != 0 && msg.hwnd != NULL && GetClassWord(msg.hwnd, GCW_ATOM) == atom_UserAdapterWindowClass)
+    if ((flags & PM_REMOVE) && atom_UserAdapterWindowClass != 0 && msg.hwnd != NULL && GetClassWord(msg.hwnd, GCW_ATOM) == atom_UserAdapterWindowClass)
     {
         DispatchMessageA(&msg);
         return PeekMessage32_16(msg16, hwnd16, first, last, flags, wHaveParamHigh);
