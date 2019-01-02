@@ -2339,9 +2339,14 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         DROPSTRUCT16 ds16;
         LPDROPSTRUCT16 lpds16 = &ds16;
         SEGPTR sds16 = MapLS(lpds16);
+        HICON icon32;
         DROPSTRUCT32_16(lpds32, lpds16);
         ret = callback(HWND_16(hwnd), msg, wParam, sds16, result, arg);
-        *result = (LRESULT)get_icon_32((HICON16)*result);
+        icon32 = get_icon_32((HICON16)*result);
+        if (icon32)
+        {
+            *result = (LRESULT)icon32;
+        }
         DROPSTRUCT16_32(lpds32, lpds16);
         break;
     }
