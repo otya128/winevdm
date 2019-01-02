@@ -1634,10 +1634,15 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     {
         LPDROPSTRUCT16 lpds16 = (LPDROPSTRUCT16)MapSL(lParam);
         DROPSTRUCT ds32;
+        HICON16 icon16;
         DROPSTRUCT16_32(&ds32, lpds16);
         ret = callback(hwnd32, msg, wParam, (LPARAM)&ds32, result, arg);
         DROPSTRUCT32_16(&ds32, lpds16);
-        *result = get_icon_16((HICON)*result);
+        icon16 = get_icon_16((HICON)*result);
+        if (icon16)
+        {
+            *result = (LRESULT)icon16;
+        }
         break;
     }
     case WM_MOUSEWHEEL:
