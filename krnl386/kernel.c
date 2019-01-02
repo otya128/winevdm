@@ -166,6 +166,19 @@ static void redirect_current_dir()
         ERR("current directory: %s -> %s\n", curdir, curdir16);
         SetCurrentDirectoryA(redirected);
     }
+    for (int i = 'A'; i <= 'Z'; i++)
+    {
+        char env[] = { '=', i, ':', '\0' };
+        if (GetEnvironmentVariableA(env, curdir, MAX_PATH))
+        {
+            redirected = RedirectSystemDir(curdir, curdir16, MAX_PATH);
+            if (redirected == curdir16)
+            {
+                ERR("current directory(env): %s -> %s\n", curdir, curdir16);
+                SetEnvironmentVariableA(env, redirected);
+            }
+        }
+    }
 }
 
 /**************************************************************************
