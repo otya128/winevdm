@@ -60,7 +60,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;psapi.lib;$(OutDir)libwine.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;psapi.lib;$(OutDir)libwine.lib;user32.lib</AdditionalDependencies>
       <ModuleDefinitionFile>vm86.def</ModuleDefinitionFile>
       <DelayLoadDLLs>
       </DelayLoadDLLs>
@@ -83,7 +83,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>vm86.def</ModuleDefinitionFile>
-      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;psapi.lib;$(OutDir)libwine.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>odbc32.lib;odbccp32.lib;winmm.lib;psapi.lib;$(OutDir)libwine.lib;user32.lib</AdditionalDependencies>
       <DelayLoadDLLs>
       </DelayLoadDLLs>
       <ForceFileOutput>

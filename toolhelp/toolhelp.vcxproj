@@ -64,7 +64,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)user.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
-%(AdditionalDependencies)</AdditionalDependencies>
+</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
 toolhelp.def
@@ -92,7 +92,7 @@ toolhelp.def
 toolhelp.def
       </ModuleDefinitionFile>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)user.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
-%(AdditionalDependencies)</AdditionalDependencies>
+</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

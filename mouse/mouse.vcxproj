@@ -64,7 +64,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
-user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+user32.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
 mouse.def
@@ -98,7 +98,7 @@ mouse.def
 mouse.def
       </ModuleDefinitionFile>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
-user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+user32.lib</AdditionalDependencies>
     </Link>
     <CustomBuildStep>
       <Command>

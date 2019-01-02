@@ -63,7 +63,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
-$(OutDir)user.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+$(OutDir)user.lib;comctl32.lib;user32.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
 commctrl.def
@@ -91,7 +91,7 @@ commctrl.def
 commctrl.def
       </ModuleDefinitionFile>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;
-$(OutDir)user.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+$(OutDir)user.lib;comctl32.lib;user32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
