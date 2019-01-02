@@ -2637,6 +2637,7 @@ void WINAPI ReplyMessage16( LRESULT result )
 }
 
 
+static ATOM atom_UserAdapterWindowClass;
 /***********************************************************************
  *		PeekMessage32 (USER.819)
  */
@@ -2652,6 +2653,20 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
         MsgWaitForMultipleObjectsEx( 0, NULL, 0, 0, MWMO_ALERTABLE );
     if (!PeekMessageA( &msg, hwnd, first, last, flags )) return FALSE;
 
+    if (atom_UserAdapterWindowClass == 0)
+    {
+        WNDCLASSA c;
+        HMODULE hmod = GetModuleHandleW(L"CoreMessaging");
+        if (hmod)
+        {
+            atom_UserAdapterWindowClass = GetClassInfoA(hmod, "UserAdapterWindowClass", &c);
+        }
+    }
+    if (atom_UserAdapterWindowClass != 0 && msg.hwnd != NULL && GetClassWord(msg.hwnd, GCW_ATOM) == atom_UserAdapterWindowClass)
+    {
+        DispatchMessageA(&msg);
+        return PeekMessage32_16(msg16, hwnd16, first, last, flags, wHaveParamHigh);
+    }
     msg16->msg.time    = msg.time;
     msg16->msg.pt.x    = (INT16)msg.pt.x;
     msg16->msg.pt.y    = (INT16)msg.pt.y;
