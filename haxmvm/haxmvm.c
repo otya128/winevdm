@@ -252,6 +252,7 @@ WORD seg_cs;
 WORD seg_ds;
 BOOL init_vm86(BOOL vm86)
 {
+    ((void(*)())GetProcAddress(GetModuleHandleA("libwine"), "set_intel_vt_x_workaround"))();
     __asm
     {
         mov seg_cs, cs
