@@ -235,14 +235,87 @@ INT16 WINAPI MessageBox16( HWND16 hwnd, LPCSTR text, LPCSTR title, UINT16 type )
     return ret;
 }
 
-
+#include <pshpack1.h>
+typedef struct
+{
+    BYTE pop_eax; /* 58 */
+    BYTE push_imm; /* 68 */
+    LPVOID this_;
+    BYTE push_eax; /* 50 */
+    BYTE jmp; /* 0xEA */
+    LPVOID func;
+    WORD cs;
+    BOOL used;
+    LPVOID param;
+} TIMERTHUNK;
+#include <poppack.h>
+static TIMERTHUNK *timer_thunk_array;
+static int MAX_TIMER_THUNK;
+static void init_timer_thunk()
+{
+    if (timer_thunk_array)
+        return;
+    MAX_TIMER_THUNK = 4096 / sizeof(TIMERTHUNK);
+    timer_thunk_array = VirtualAlloc(NULL, MAX_TIMER_THUNK * sizeof(TIMERTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+}
+static TIMERTHUNK *init_timer_thunk_data(LPVOID param, int i, LPVOID func)
+{
+    timer_thunk_array[i].pop_eax = 0x58;
+    timer_thunk_array[i].push_imm = 0x68;
+    timer_thunk_array[i].this_ = timer_thunk_array + i;
+    timer_thunk_array[i].push_eax = 0x50;
+    timer_thunk_array[i].jmp = 0xEA;
+    timer_thunk_array[i].func = func;
+    timer_thunk_array[i].cs = wine_get_cs();
+    timer_thunk_array[i].used = TRUE;
+    timer_thunk_array[i].param = param;
+    return timer_thunk_array + i;
+}
+WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func);
+static TIMERPROC allocate_timer_thunk(LPVOID param, LPVOID func, BOOL re)
+{
+    init_timer_thunk();
+    if (re)
+    {
+        for (int i = 0; i < MAX_TIMER_THUNK; i++)
+        {
+            if (timer_thunk_array[i].used && timer_thunk_array[i].param == param)
+            {
+                return (TIMERPROC)(timer_thunk_array + i);
+            }
+        }
+    }
+    for (int i = 0; i < MAX_TIMER_THUNK; i++)
+    {
+        if (!timer_thunk_array[i].used)
+        {
+            return (TIMERPROC)init_timer_thunk_data(param, i, func);
+        }
+    }
+    ERR("could not allocate timer thunk!\n");
+    return WINPROC_AllocNativeProc(func);
+}
+VOID CALLBACK TimerProc_Thunk(TIMERTHUNK *data, HWND hWnd, UINT msg, UINT_PTR wp, DWORD lp)
+{
+    CallWindowProc16(data->param, HWND_16(hWnd), msg, wp, lp);
+    return;
+}
 /***********************************************************************
  *		SetTimer (USER.10)
  */
 UINT16 WINAPI SetTimer16( HWND16 hwnd, UINT16 id, UINT16 timeout, TIMERPROC16 proc )
 {
-    TIMERPROC proc32 = (TIMERPROC)WINPROC_AllocProc16( (WNDPROC16)proc );
-    return SetTimer( WIN_Handle32(hwnd), id, timeout, proc32 );
+    TIMERPROC proc32;
+    UINT ret;
+    if (hwnd && id == 0)
+        return 0;
+    if (proc == NULL)
+    {
+        return SetTimer(WIN_Handle32(hwnd), id, timeout, NULL);
+    }
+    proc32 = allocate_timer_thunk(proc, TimerProc_Thunk, TRUE);
+    ret = SetTimer( WIN_Handle32(hwnd), id, timeout, proc32 );
+    return ret;
 }
 
 
@@ -251,7 +324,7 @@ UINT16 WINAPI SetTimer16( HWND16 hwnd, UINT16 id, UINT16 timeout, TIMERPROC16 pr
  */
 UINT16 WINAPI SetSystemTimer16( HWND16 hwnd, UINT16 id, UINT16 timeout, TIMERPROC16 proc )
 {
-    TIMERPROC proc32 = (TIMERPROC)WINPROC_AllocProc16( (WNDPROC16)proc );
+    TIMERPROC proc32 = proc == NULL ? NULL : allocate_timer_thunk(proc, TimerProc_Thunk, TRUE);
     return SetSystemTimer( WIN_Handle32(hwnd), id, timeout, proc32 );
 }
 
