@@ -37,12 +37,12 @@
 WINE_DEFAULT_DEBUG_CHANNEL(user);
 
 /* handle to handle 16 conversions */
-#define HANDLE_16(h32)		(LOWORD(h32))
-#define HGDIOBJ_16(h32)		(LOWORD(h32))
+#define HANDLE_16(h32)		HWND_16(h32) /* (LOWORD(h32)) */
+#define HGDIOBJ_16(h32)		HDC_16(h32) /* (LOWORD(h32)) */
 
 /* handle16 to handle conversions */
-#define HANDLE_32(h16)		((HANDLE)(ULONG_PTR)(h16))
-#define HGDIOBJ_32(h16)		((HGDIOBJ)(ULONG_PTR)(h16))
+#define HANDLE_32(h16)		HWND_32(h16) /* ((HANDLE)(ULONG_PTR)(h16)) */
+#define HGDIOBJ_32(h16)		HDC_32(h16) /* ((HGDIOBJ)(ULONG_PTR)(h16)) */
 
 #define IS_MENU_STRING_ITEM(flags) \
     (((flags) & (MF_STRING | MF_BITMAP | MF_OWNERDRAW | MF_SEPARATOR)) == MF_STRING)
