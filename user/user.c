@@ -546,6 +546,8 @@ INT16 WINAPI InitApp16( HINSTANCE16 hInstance )
     queue->write = 0x6e;
     queue->cbSize = 0x11e;
     queue->expVer = tdb->version;
+    void install_global_hook();
+    install_global_hook();
     /* Create task message queue */
     return (InitThreadInput16( 0, 0 ) != 0);
 }
