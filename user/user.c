@@ -899,7 +899,11 @@ void WINAPI MessageBeep16( UINT16 i )
 BOOL16 WINAPI CloseClipboard16(void)
 {
     BOOL ret = CloseClipboard();
-    if (ret) free_clipboard_formats();
+    /* Clipboard data is still kept after calling CloseClipboard */
+    if (0)
+    {
+        if (ret) free_clipboard_formats();
+    }
     return ret;
 }
 
