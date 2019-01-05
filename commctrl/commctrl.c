@@ -316,47 +316,116 @@ static int find_sub_menu( HMENU *hmenu, HMENU16 target )
     return -1;
 }
 
-void WINAPI MenuHelp16(UINT16 uMsg, WPARAM16 wParam, LPARAM lParam, HMENU16 hMainMenu, HINSTANCE16 hInst, HWND16 hwndStatus, UINT16 *lpwIDs)
+
+#include <pshpack1.h>
+typedef struct
 {
-    LPARAM lp32 = lParam;
-    WPARAM wp32 = wParam;
-    SIZE_T len = 0;
-    UINT16 *run = lpwIDs;
-    UINT *ids32;
-    while (TRUE)
+    WORD command_id_off;
+    WORD menu_id_off;
+    struct
     {
-        run += 2;
-        if (run[0] == 0 && run[1] == 0)
-            break;
-    }
-    len = (SIZE_T)(run + 2 - lpwIDs);
-    ids32 = (UINT*)HeapAlloc(GetProcessHeap(), 0, len * sizeof(UINT));
-    for (int i = 0; i < len - 2; i += 2)
+        WORD popup_id;
+        HMENU16 hPopup;
+    } popup_ids[1];
+} MENUHELP16;
+#include <poppack.h>
+static int get_menu_off(HMENU hMainMenu, HMENU hSubMenu)
+{
+    int i = 0;
+    int count = GetMenuItemCount(hMainMenu);
+    for (i = 0; i < count; i++)
     {
-        /* FIXME: LoadString */
-        ids32[i] = lpwIDs[i + 2];
-        ids32[i + 1] = lpwIDs[i + 2 + 1];
-    }
-    if (uMsg == WM_MENUSELECT)
-    {
-        if ((LOWORD(lParam) & MF_POPUP) && (LOWORD(lParam) != 0xFFFF))
+        HMENU s = GetSubMenu(hMainMenu, i);
+        if (s == hSubMenu)
         {
-            HMENU hmenu = HMENU_32(HIWORD(lParam));
-            int pos = find_sub_menu(&hmenu, wParam);
-            if (pos == -1) pos = 0;
-            wParam = pos;
+            return i;
         }
-        wp32 = MAKEWPARAM(wParam, LOWORD(lParam));
-        lp32 = (LPARAM)HMENU_32(HIWORD(lParam));
     }
-    if (uMsg == WM_COMMAND)
-    {
-        wp32 = MAKEWPARAM(wParam, HIWORD(lParam));
-        lp32 = (LPARAM)HWND_32(LOWORD(lParam));
+    return -1;
+}
+/* based on wine */
+VOID WINAPI
+MenuHelp16 (UINT16 uMsg, WPARAM16 wParam, LPARAM lParam, HMENU16 hMainMenu, HINSTANCE16 hInst, HWND16 hwndStatus, MENUHELP16 *lpwIDs)
+{
+    UINT uMenuID = 0;
+    WORD wIDItem = wParam;
+    WORD fwMenu = LOWORD(lParam);
+    HMENU hMenu = HMENU_32(HIWORD(lParam));
+
+    if (!IsWindow (HWND_32(hwndStatus)))
+	return;
+
+    switch (uMsg) {
+	case WM_MENUSELECT:
+	    TRACE("WM_MENUSELECT wParam=0x%lX lParam=0x%lX\n",
+		   wParam, lParam);
+
+            if ((fwMenu == 0xFFFF) && (hMenu == 0)) {
+                /* menu was closed */
+		TRACE("menu was closed!\n");
+                SendMessageA (HWND_32(hwndStatus), SB_SIMPLE, FALSE, 0);
+            }
+	    else {
+		/* menu item was selected */
+		if (fwMenu & MF_POPUP)
+        {
+            if (!uMenuID)
+            {
+                int i = 0;
+                HMENU hMainMenu32 = HMENU_32(hMainMenu);
+                HMENU hSubMenu = HMENU_32(wParam);
+                int off = get_menu_off(hMainMenu32, hSubMenu);
+                if (off != -1)
+                {
+                    uMenuID = off + lpwIDs->menu_id_off;
+                }
+                else
+                {
+                    while (TRUE)
+                    {
+                        if (lpwIDs->popup_ids[i].hPopup == 0 && lpwIDs->popup_ids[i].popup_id)
+                            break;
+                        if (lpwIDs->popup_ids[i].hPopup == wIDItem)
+                        {
+                            uMenuID = lpwIDs->popup_ids[i].popup_id;
+                            break;
+                        }
+                        i++;
+                    }
+                }
+            }
+        }
+		else
+		    uMenuID = lpwIDs->command_id_off + (UINT)wIDItem;
+		TRACE("uMenuID = %u\n", uMenuID);
+
+		if (uMenuID) {
+		    CHAR szText[256];
+
+		    if (!LoadString16 (hInst, uMenuID, szText, ARRAYSIZE(szText)))
+			szText[0] = '\0';
+
+		    SendMessageA (HWND_32(hwndStatus), SB_SETTEXTA,
+				    255 | SBT_NOBORDERS, (LPARAM)szText);
+		    SendMessageA (HWND_32(hwndStatus), SB_SIMPLE, TRUE, 0);
+		}
+	    }
+	    break;
+
+        case WM_COMMAND :
+	    TRACE("WM_COMMAND wParam=0x%lX lParam=0x%lX\n",
+		   wParam, lParam);
+	    /* WM_COMMAND is not invalid since it is documented
+	     * in the windows api reference. So don't output
+             * any FIXME for WM_COMMAND
+             */
+	    WARN("We don't care about the WM_COMMAND\n");
+	    break;
+
+	default:
+	    FIXME("Invalid Message 0x%x!\n", uMsg);
+	    break;
     }
-    FIXME("(%04x, %04x, %08x, %04x, %04x, %04x, %p) stub\n", uMsg, wParam, lParam, hMainMenu, hInst, hwndStatus, lpwIDs);
-    MenuHelp(uMsg, wp32, lp32, HMENU_32(hMainMenu), hInst, HWND_32(hwndStatus), ids32);
-    HeapFree(GetProcessHeap(), 0, ids32);
 }
 
 HBITMAP16 WINAPI CreateMappedBitmap16(HINSTANCE16 hInstance, INT16 idBitmap, UINT16 wFlags, LPCOLORMAP lpColorMap, INT16 iNumMaps)
