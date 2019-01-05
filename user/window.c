@@ -307,8 +307,6 @@ UINT16 WINAPI SetTimer16( HWND16 hwnd, UINT16 id, UINT16 timeout, TIMERPROC16 pr
 {
     TIMERPROC proc32;
     UINT ret;
-    if (hwnd && id == 0)
-        return 0;
     if (proc == NULL)
     {
         return SetTimer(WIN_Handle32(hwnd), id, timeout, NULL);
