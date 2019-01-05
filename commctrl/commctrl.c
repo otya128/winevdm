@@ -345,3 +345,102 @@ void WINAPI MenuHelp16(UINT16 uMsg, WPARAM16 wParam, LPARAM lParam, HMENU16 hMai
     MenuHelp(uMsg, wp32, lp32, HMENU_32(hMainMenu), hInst, HWND_32(hwndStatus), ids32);
     HeapFree(GetProcessHeap(), 0, ids32);
 }
+
+HBITMAP16 WINAPI CreateMappedBitmap16(HINSTANCE16 hInstance, INT16 idBitmap, UINT16 wFlags, LPCOLORMAP lpColorMap, INT16 iNumMaps)
+{
+    /* wine */
+    HGLOBAL16 hglb;
+    HRSRC16 hRsrc;
+    const BITMAPINFOHEADER *lpBitmap;
+    LPBITMAPINFOHEADER lpBitmapInfo;
+    UINT nSize, nColorTableSize, iColor;
+    RGBQUAD *pColorTable;
+    INT i, iMaps, nWidth, nHeight;
+    HDC hdcScreen;
+    HBITMAP hbm;
+    LPCOLORMAP sysColorMap;
+    COLORREF cRef;
+    COLORMAP internalColorMap[4] =
+	{{0x000000, 0}, {0x808080, 0}, {0xC0C0C0, 0}, {0xFFFFFF, 0}};
+
+    /* initialize pointer to colortable and default color table */
+    if (lpColorMap) {
+	iMaps = iNumMaps;
+	sysColorMap = lpColorMap;
+    }
+    else {
+	internalColorMap[0].to = GetSysColor (COLOR_BTNTEXT);
+	internalColorMap[1].to = GetSysColor (COLOR_BTNSHADOW);
+	internalColorMap[2].to = GetSysColor (COLOR_BTNFACE);
+	internalColorMap[3].to = GetSysColor (COLOR_BTNHIGHLIGHT);
+	iMaps = 4;
+	sysColorMap = internalColorMap;
+    }
+
+    hRsrc = FindResource16 (hInstance, (LPSTR)idBitmap, (LPSTR)RT_BITMAP);
+    if (hRsrc == 0)
+	return 0;
+    hglb = LoadResource16 (hInstance, hRsrc);
+    if (hglb == 0)
+	return 0;
+    lpBitmap = LockResource16 (hglb);
+    if (lpBitmap == NULL)
+	return 0;
+
+    if (lpBitmap->biSize >= sizeof(BITMAPINFOHEADER) && lpBitmap->biClrUsed)
+        nColorTableSize = lpBitmap->biClrUsed;
+    else if (lpBitmap->biBitCount <= 8)	
+        nColorTableSize = (1 << lpBitmap->biBitCount);
+    else
+        nColorTableSize = 0;
+    nSize = lpBitmap->biSize;
+    if (nSize == sizeof(BITMAPINFOHEADER) && lpBitmap->biCompression == BI_BITFIELDS)
+        nSize += 3 * sizeof(DWORD);
+    nSize += nColorTableSize * sizeof(RGBQUAD);
+    lpBitmapInfo = GlobalAlloc (GMEM_FIXED, nSize);
+    if (lpBitmapInfo == NULL)
+	return 0;
+    RtlMoveMemory (lpBitmapInfo, lpBitmap, nSize);
+
+    pColorTable = (RGBQUAD*)(((LPBYTE)lpBitmapInfo) + lpBitmapInfo->biSize);
+
+    for (iColor = 0; iColor < nColorTableSize; iColor++) {
+	for (i = 0; i < iMaps; i++) {
+            cRef = RGB(pColorTable[iColor].rgbRed,
+                       pColorTable[iColor].rgbGreen,
+                       pColorTable[iColor].rgbBlue);
+	    if ( cRef  == sysColorMap[i].from) {
+#if 0
+		if (wFlags & CBS_MASKED) {
+		    if (sysColorMap[i].to != COLOR_BTNTEXT)
+			pColorTable[iColor] = RGB(255, 255, 255);
+		}
+		else
+#endif
+                    pColorTable[iColor].rgbBlue  = GetBValue(sysColorMap[i].to);
+                    pColorTable[iColor].rgbGreen = GetGValue(sysColorMap[i].to);
+                    pColorTable[iColor].rgbRed   = GetRValue(sysColorMap[i].to);
+		break;
+	    }
+	}
+    }
+    nWidth  = lpBitmapInfo->biWidth;
+    nHeight = lpBitmapInfo->biHeight;
+    hdcScreen = GetDC (NULL);
+    hbm = CreateCompatibleBitmap (hdcScreen, nWidth, nHeight);
+    if (hbm) {
+	HDC hdcDst = CreateCompatibleDC (hdcScreen);
+	HBITMAP hbmOld = SelectObject (hdcDst, hbm);
+	const BYTE *lpBits = (const BYTE *)lpBitmap + nSize;
+	StretchDIBits (hdcDst, 0, 0, nWidth, nHeight, 0, 0, nWidth, nHeight,
+		         lpBits, (LPBITMAPINFO)lpBitmapInfo, DIB_RGB_COLORS,
+		         SRCCOPY);
+	SelectObject (hdcDst, hbmOld);
+	DeleteDC (hdcDst);
+    }
+    ReleaseDC (NULL, hdcScreen);
+    GlobalFree (lpBitmapInfo);
+    FreeResource16 (hglb);
+
+    return HBITMAP_16(hbm);
+}
