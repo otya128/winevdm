@@ -29,7 +29,7 @@
 14 stub LBITEMFROMPT
 6 pascal -ret16 CreateStatusWindow(long str word word) CreateStatusWindow16
 159 stub PROPERTYSHEET
-7 stub CREATETOOLBAR
+7 pascal -ret16 CreateToolbar(word long word word word word ptr word) CreateToolbar16
 331 stub DPA_CLONE
 54 stub IMAGELIST_REPLACEICON
 337 stub DPA_DELETEALLPTRS

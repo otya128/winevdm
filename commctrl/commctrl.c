@@ -97,6 +97,19 @@ LRESULT WINAPI StatusWindowProc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
         }
         return result;
     }
+    case SB_GETBORDERS:
+    {
+        INT borders32[3];
+        INT16 *borders = MapSL(lParam);
+        LRESULT result;
+        int i;
+        if (!HIWORD(borders))
+            break;
+        result = CallWindowProcA(status_window_class.lpfnWndProc, hwnd, msg, wParam, (LPARAM)&borders32);
+        for (i = 0; i < 3; i++)
+            borders[i] = borders32[i];
+        return result;
+    }
     }
     return CallWindowProcA(status_window_class.lpfnWndProc, hwnd, msg, wParam, lParam);
 }
@@ -227,7 +240,7 @@ HWND16 WINAPI CreateToolbarEx16(HWND16 hwnd, DWORD style /* window style */, UIN
 	}
 	/* add buttons */
 	if(iNumButtons > 0)
-        SendMessageA (hwndTB, TB_ADDBUTTONSA, iNumButtons, (LPARAM)lpButtons);
+        SendMessageA (hwndTB, TB_ADDBUTTONSA, iNumButtons, (LPARAM)MapLS(lpButtons));
     }
     return HWND_16(hwndTB);
 }
@@ -444,3 +457,11 @@ HBITMAP16 WINAPI CreateMappedBitmap16(HINSTANCE16 hInstance, INT16 idBitmap, UIN
 
     return HBITMAP_16(hbm);
 }
+
+HWND16 WINAPI CreateToolbar16(HWND16 hwnd, DWORD style, UINT16 wID, INT16 nBitmaps, HINSTANCE16 hBMInst, UINT16 wBMID, LPTBBUTTON16 lpButtons, INT16 iNumButtons)
+{
+    return CreateToolbarEx16(hwnd, style | CCS_NODIVIDER, wID, nBitmaps,
+        hBMInst, wBMID, lpButtons,
+        iNumButtons, 0, 0, 0, 0, sizeof(TBBUTTON16));
+}
+
