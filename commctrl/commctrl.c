@@ -383,7 +383,7 @@ MenuHelp16 (UINT16 uMsg, WPARAM16 wParam, LPARAM lParam, HMENU16 hMainMenu, HINS
                 {
                     while (TRUE)
                     {
-                        if (lpwIDs->popup_ids[i].hPopup == 0 && lpwIDs->popup_ids[i].popup_id)
+                        if (lpwIDs->popup_ids[i].hPopup == 0 && lpwIDs->popup_ids[i].popup_id == 0)
                             break;
                         if (lpwIDs->popup_ids[i].hPopup == wIDItem)
                         {
