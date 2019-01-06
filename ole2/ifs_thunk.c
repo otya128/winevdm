@@ -411,40 +411,53 @@ void map_formatetc32_16(FORMATETC16 *a16, const FORMATETC *a32)
     }
 }
 
-void map_stgmedium32_16(STGMEDIUM16 *a16, const STGMEDIUM *a32)
+void map_stgmedium32_16_2(STGMEDIUM16 *a16, const STGMEDIUM *a32, BOOL fixme)
 {
     IUnknown *punk = a32->pUnkForRelease;
     interface_16 *i16;
     a16->tymed = a32->tymed;
     a16->pUnkForRelease = iface32_16(&IID_ISTGMEDIUMRelease, punk);
     i16 = get_interface32_ptr(a16->pUnkForRelease);
+    TRACE("release=%p\n", punk);
     switch ((TYMED)a32->tymed)
     {
     case TYMED_HGLOBAL:
     {
-        GlobalFree(0);
         LPVOID p = GlobalLock(a32->hGlobal);
         SIZE_T size = GlobalSize(a32->hGlobal);
         SEGPTR g16 = GlobalAlloc16(0, size);
         LPVOID p32 = GlobalLock16(g16);
+        TRACE("TYMED_HGLOBAL\n");
         memcpy(p32, p, GlobalSize(a32->hGlobal));
         WOWGlobalUnlock16(g16);
         a16->hGlobal = g16;
-        FIXME("leak %04x(%p)\n", a16->hGlobal, a32->hGlobal);
+        if (fixme)
+        {
+            FIXME("leak %04x(%p)\n", a16->hGlobal, a32->hGlobal);
+        }
+        else
+        {
+            TRACE("leak %04x(%p)\n", a16->hGlobal, a32->hGlobal);
+        }
         break;
     }
     case TYMED_FILE:
+        TRACE("TYMED_FILE\n");
         a16->lpszFileName = MapLS(strdupWtoA(a32->lpszFileName));
         break;
     case TYMED_ISTREAM:
+        TRACE("TYMED_ISTREAM\n");
         a16->pstm = iface32_16(&IID_IStream, a32->pstm);
         break;
     case TYMED_ISTORAGE:
+        TRACE("TYMED_ISTORAGE\n");
         a16->pstg = iface32_16(&IID_IStorage, a32->pstg);
         break;
     case TYMED_NULL:
+        TRACE("TYMED_NULL\n");
         break;
     case TYMED_GDI:
+        TRACE("TYMED_GDI %04x %p\n", a16->hGlobal, a32->hBitmap);
         a16->hGlobal = HBITMAP_16(a32->hBitmap);
         break;
     case TYMED_MFPICT:
@@ -471,6 +484,14 @@ void map_stgmedium32_16(STGMEDIUM16 *a16, const STGMEDIUM *a32)
             GlobalUnlock16(data16);
             a16->hGlobal = data16;
         }
+        if (fixme)
+        {
+            FIXME("TYMED_MFPICT\n");
+        }
+        else
+        {
+            TRACE("TYMED_MFPICT\n");
+        }
         break;
     }
     case TYMED_ENHMF:
@@ -479,7 +500,11 @@ void map_stgmedium32_16(STGMEDIUM16 *a16, const STGMEDIUM *a32)
         break;
     }
 }
-void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
+void map_stgmedium32_16(STGMEDIUM16 *a16, const STGMEDIUM *a32)
+{
+    map_stgmedium32_16_2(a16, a32, TRUE);
+}
+void map_stgmedium16_32_2(STGMEDIUM *a32, const STGMEDIUM16 *a16, BOOL fixme)
 {
     a32->tymed = a16->tymed;
     a32->pUnkForRelease = (IUnknown*)iface16_32(&IID_ISTGMEDIUMRelease, a16->pUnkForRelease);
@@ -494,21 +519,33 @@ void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
         p32 = GlobalLock(a32->hGlobal);
         memcpy(p32, p16, size);
         GlobalUnlock(a32->hGlobal);
-        FIXME("leak %p(%04x)\n", a32->hGlobal, a16->hGlobal);
+        if (fixme)
+        {
+            FIXME("TYMED_HGLOBAL leak %p(%04x) %04x:%04x\n", a32->hGlobal, a16->hGlobal, SELECTOROF(a16->pUnkForRelease), OFFSETOF(a16->pUnkForRelease));
+        }
+        else
+        {
+            TRACE("TYMED_HGLOBAL %p(%04x) %04x:%04x\n", a32->hGlobal, a16->hGlobal, SELECTOROF(a16->pUnkForRelease), OFFSETOF(a16->pUnkForRelease));
+        }
         break;
     }
     case TYMED_FILE:
+        TRACE("TYMED_FILE %s %04x:%04x\n", debugstr_a((const char*)MapSL(a16->lpszFileName)), SELECTOROF(a16->pUnkForRelease), OFFSETOF(a16->pUnkForRelease));
         a32->lpszFileName = strdupAtoW(MapSL(a16->lpszFileName));
         break;
     case TYMED_ISTREAM:
+        TRACE("TYMED_ISTREAM %04x:%04x %04x:%04x\n", SELECTOROF(a16->pstm), OFFSETOF(a16->pstm), SELECTOROF(a16->pUnkForRelease), OFFSETOF(a16->pUnkForRelease));
         a32->pstm = (IStream*)iface16_32(&IID_IStream, a16->pstm);
         break;
     case TYMED_ISTORAGE:
+        TRACE("TYMED_ISTORAGE %04x:%04x %04x:%04x\n", SELECTOROF(a16->pstg), OFFSETOF(a16->pstg), SELECTOROF(a16->pUnkForRelease), OFFSETOF(a16->pUnkForRelease));
         a32->pstg = (IStorage*)iface16_32(&IID_IStorage, a16->pstg);
         break;
     case TYMED_NULL:
+        TRACE("TYMED_NULL %04x:%04x\n", SELECTOROF(a16->pUnkForRelease), OFFSETOF(a16->pUnkForRelease));
         break;
     case TYMED_GDI:
+        TRACE("TYMED_GDI %04x %04x:%04x\n", a16->hGlobal, SELECTOROF(a16->pUnkForRelease), OFFSETOF(a16->pUnkForRelease));
         a32->hBitmap = HBITMAP_32(a16->hGlobal);
         break;
     case TYMED_MFPICT:
@@ -519,6 +556,7 @@ void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
         METAFILEPICT16 *pict16 = GlobalLock16(data16);
         HGLOBAL data32;
 
+        a32->hGlobal = NULL;
         if (pict16)
         {
             if (!(data32 = GlobalAlloc(GMEM_MOVEABLE, sizeof(*pict32)))) return 0;
@@ -532,6 +570,14 @@ void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
             GlobalUnlock(data32);
             a32->hGlobal = data32;
         }
+        if (fixme)
+        {
+            FIXME("TYMED_MFPICT %04x %p leak %04x:%04x\n", a16->hGlobal, a32->hGlobal, a16->pUnkForRelease, a16->pUnkForRelease);
+        }
+        else
+        {
+            TRACE("TYMED_MFPICT %04x %p leak %04x:%04x\n", a16->hGlobal, a32->hGlobal, a16->pUnkForRelease, a16->pUnkForRelease);
+        }
         break;
     }
     case TYMED_ENHMF:
@@ -539,6 +585,10 @@ void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
         ERR("unsupported tymed %d\n", a16->tymed);
         break;
     }
+}
+void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16)
+{
+    map_stgmedium16_32_2(a32, a16, TRUE);
 }
 
 void map_oleverb16_32(OLEVERB* a32, const OLEVERB16 *a16)
