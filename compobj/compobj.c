@@ -127,7 +127,7 @@ VOID CDECL IMalloc16_fnFree(IMalloc16* iface,SEGPTR pv)
     void *ptr = MapSL(pv);
     IMalloc16Impl *This = impl_from_IMalloc16(iface);
     TRACE_(olemalloc)("(%p)->Free(%p(%04x:%04x))\n",This,ptr,SELECTOROF(pv),OFFSETOF(pv));
-    UnMapLS(pv);
+//    UnMapLS(pv);
     HeapFree( GetProcessHeap(), 0, ptr );
 }
 
