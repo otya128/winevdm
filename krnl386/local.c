@@ -931,7 +931,7 @@ SEGPTR WINAPI K32WOWGlobalLock16(HGLOBAL16 handle);
  * The segment may get moved around in this function, so all callers
  * should reset their pointer variables.
  */
-static HLOCAL16 LOCAL_GetBlock( HANDLE16 ds, WORD size, WORD flags )
+static HLOCAL16 LOCAL_GetBlock( HANDLE16 ds, DWORD size, WORD flags )
 {
     char *ptr = MapSL( MAKESEGPTR( ds, 0 ) );
     LOCALHEAPINFO *pInfo;
@@ -956,6 +956,10 @@ static HLOCAL16 LOCAL_GetBlock( HANDLE16 ds, WORD size, WORD flags )
 
     size += ARENA_HEADER_SIZE;
     size = LALIGN( max( size, sizeof(LOCALARENA) ) );
+    if (size >= 0x10000)
+    {
+        return 0;
+    }
 
 #if 0
 notify_done:
