@@ -973,7 +973,8 @@ notify_done:
     }
     if (arena == 0) {
 	/* still no space: try to grow the segment */
-	if (!(LOCAL_GrowHeap( ds, 0x10000 )))
+        DWORD new_heap_size = GlobalSize16(ds) + size + pInfo->extra - ARENA_PTR(ptr, pInfo->last)->size + 0x24 /* FIXME: It is not perfect. */;
+	if (!(LOCAL_GrowHeap( ds, min(0x10000, new_heap_size) )))
 	{
 #if 0
 	    /* FIXME: doesn't work correctly yet */
