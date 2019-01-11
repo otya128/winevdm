@@ -523,14 +523,36 @@ SEGPTR get_bstr16_from_blob16(SEGPTR blob)
 {
     return blob + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16);
 }
+HRESULT WINAPI get_task_imalloc16(SEGPTR *lpMalloc);
+/*
+NOTE: win16 caches BSTR.
+typedef struct
+{
+    DWORD unk1;
+    DWORD imalloc; CoGetMalloc(MEMCTX_TASK)
+    DWORD unk2;
+    DWORD cache_len; default: 8?
+    DWORD cache; far pointer to BYTE_BLOB16
+    char unk3[10];
+} OLE2DISP_UNK_DATA;
+
+All resources are released when COM is being uninitialized.
+(Is ETASK used?)
+ */
 /******************************************************************************
  *		BSTR_AllocBytes	[Internal]
  */
 static SEGPTR BSTR_AllocBytes(int n)
 {
-    BYTE_BLOB16 *ptr = (BYTE_BLOB16*)HeapAlloc( GetProcessHeap(), 0, n + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16));
+    SEGPTR mal;
+    SEGPTR p;
+    BYTE_BLOB16 *ptr;
+    if (FAILED(get_task_imalloc16(&mal)))
+        return 0;
+    p = IMalloc16_Alloc(mal, n + sizeof(BYTE_BLOB16) - sizeof(OLECHAR16));
+    ptr = (BYTE_BLOB16*)MapSL(p);
     ptr->clSize = n - 1;
-    return get_bstr16_from_blob16((SEGPTR)MapLS((LPCVOID)ptr));
+    return get_bstr16_from_blob16(p);
 }
 
 /******************************************************************************
@@ -538,11 +560,15 @@ static SEGPTR BSTR_AllocBytes(int n)
  */
 static void BSTR_Free(SEGPTR in)
 {
+    SEGPTR mal;
+    void *ptr;
     if (!in)
         return;
-   void *ptr = MapSL( get_blob16_from_bstr16(in) );
+    if (FAILED(get_task_imalloc16(&mal)))
+        return;
+   ptr = MapSL( get_blob16_from_bstr16(in) );
    UnMapLS( get_blob16_from_bstr16(in) );
-   HeapFree( GetProcessHeap(), 0, ptr );
+   IMalloc16_Free(mal, get_blob16_from_bstr16(in));
 }
 
 /******************************************************************************
