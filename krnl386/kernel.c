@@ -174,7 +174,7 @@ static void redirect_current_dir()
             redirected = RedirectSystemDir(curdir, curdir16, MAX_PATH);
             if (redirected == curdir16)
             {
-                ERR("current directory(env): %s -> %s\n", curdir, curdir16);
+                TRACE("current directory(env): %s -> %s\n", curdir, curdir16);
                 SetEnvironmentVariableA(env, redirected);
             }
         }
