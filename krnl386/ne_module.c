@@ -1051,6 +1051,7 @@ static HMODULE16 NE_DoLoadBuiltinModule( const IMAGE_DOS_HEADER *mz_header, cons
 }
 
 
+LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin);
 /**********************************************************************
  *	    MODULE_LoadModule16
  *
@@ -1080,8 +1081,8 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
     {
         DWORD count;
         char *q;
+        char path32[MAX_PATH];
 
-        ReleaseThunkLock( &count );
 
         strcpy( dllname, basename );
         q = strrchr( dllname, '.' );
@@ -1089,7 +1090,12 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
         for (q = dllname; *q; q++) if (*q >= 'A' && *q <= 'Z') *q += 32;
 
         strcpy( q, "16" );
-        if ((mod32 = LoadLibraryAWrapper( dllname )))
+        if (krnl386_search_executable_file(dllname, path32, sizeof(path32), TRUE) != dllname)
+        {
+            ReleaseThunkLock(&count);
+            mod32 = LoadLibraryAWrapper( dllname );
+        }
+        if (mod32)
         {
 			if (!(descr = (void *)GetProcAddress(mod32, "_wine_spec_dos_header")))
             {
@@ -1123,8 +1129,8 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
                     FreeLibrary( main_owner );
                 }
             }
+            RestoreThunkLock(count);
         }
-        RestoreThunkLock( count );
 
         /* loading the 32-bit library can have the side effect of loading the module */
         /* if so, simply incr the ref count and return the module */
@@ -1349,6 +1355,7 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
 
         /* Increment refcount */
 
+        TRACE("%04x count %d\n", hModule, (INT16)pModule->count);
         pModule->count++;
     }
     else
@@ -1563,7 +1570,7 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
 
     HMODULE owner32 = pModule->owner32;
 
-    TRACE("%04x count %d\n", hModule, pModule->count );
+    TRACE("%04x count %d\n", hModule, (INT16)pModule->count );
 
     if (((INT16)(--pModule->count)) > 0 ) return TRUE;
     else pModule->count = 0;
