@@ -2478,7 +2478,7 @@ INT16 WINAPI GetRgnBox16( HRGN16 hrgn, LPRECT16 rect )
  */
 BOOL16 WINAPI RemoveFontResource16( LPCSTR str )
 {
-    return RemoveFontResourceA(str);
+    return RemoveFontResourceExA(str, FR_PRIVATE, 0);
 }
 
 
