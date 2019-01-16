@@ -2275,7 +2275,7 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
 {
     int ret = 0;
     ERR("(%s)\n", debugstr_a(filename));
-    ret = AddFontResourceA(filename);
+    ret = AddFontResourceExA(filename, FR_PRIVATE, 0);
     if (ret) return ret;
 
     // try to load 0x100 version bitmap font by converting to a 0x200 font
