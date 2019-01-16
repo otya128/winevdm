@@ -561,6 +561,10 @@ HRESULT WINAPI ProgIDFromCLSID16(
     LPOLESTR progid;
     HRESULT ret;
 
+    if (!lplpszProgID)
+    {
+        return E_INVALIDARG16;
+    }
     ret = ProgIDFromCLSID( clsid, &progid );
     if (ret == S_OK)
     {
@@ -569,6 +573,10 @@ HRESULT WINAPI ProgIDFromCLSID16(
         if (ret == S_OK)
             WideCharToMultiByte( CP_ACP, 0, progid, -1, MapSL((SEGPTR)*lplpszProgID), len, NULL, NULL );
         CoTaskMemFree( progid );
+    }
+    else
+    {
+        *lplpszProgID = 0;
     }
     return ret;
 }
