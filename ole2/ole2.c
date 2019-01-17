@@ -450,6 +450,12 @@ HRESULT WINAPI GetConvertStg16(SEGPTR stg)
     return hresult32_16(GetConvertStg((IStorage*)iface16_32(&IID_IStorage, stg)));
 }
 
+HRESULT WINAPI SetConvertStg16(SEGPTR stg, BOOL f)
+{
+    TRACE("(%08x,%d)\n", stg, f);
+    return hresult32_16(SetConvertStg((IStorage*)iface16_32(&IID_IStorage, stg), f));
+}
+
 /***********************************************************************
  *              ReleaseStgMedium (OLE2.32)
  */
