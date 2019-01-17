@@ -645,12 +645,9 @@ DLGPROC allocate_proc_thunk(LPVOID param, LPVOID func)
     }
     for (int i = 0; i < MAX_THUNK; i++)
     {
-        if (!thunk_array[i].used && thunk_array[i].hDlg)
+        if (thunk_array[i].hDlg && !IsWindow(thunk_array[i].hDlg))
         {
-            if (!IsWindow(thunk_array[i].hDlg))
-            {
-                return (DLGPROC)init_thunk_data(param, i, func);
-            }
+            return (DLGPROC)init_thunk_data(param, i, func);
         }
     }
     ERR("could not allocate dialog thunk!\n");
