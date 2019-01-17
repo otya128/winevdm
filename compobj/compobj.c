@@ -964,3 +964,11 @@ HRESULT WINAPI FnAssert16(LPCSTR expr, LPCSTR msg, LPCSTR file, WORD line)
     TRACE("(%s,%s,%s,%d)\n", debugstr_a(expr), debugstr_a(msg), debugstr_a(msg), line);
     return S_OK;
 }
+
+HRESULT WINAPI CoGetTreatAsClass16(REFCLSID clsidOld, LPCLSID pClsidNew)
+{
+    HRESULT r;
+    TRACE("(%s,%p)\n", debugstr_guid(clsidOld), pClsidNew);
+    r = CoGetTreatAsClass(clsidOld, pClsidNew);
+    return hresult32_16(r);
+}

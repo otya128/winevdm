@@ -62,7 +62,7 @@
 62 pascal ProgIDFromCLSID(ptr ptr) ProgIDFromCLSID16
 63 pascal CoLockObjectExternal(segptr word word) CoLockObjectExternal16
 64 variable _CLSID_StdMarshal(0x00000017 0x00000000 0x000000c0 0x46000000)
-65 stub COGETTREATASCLASS
+65 pascal CoGetTreatAsClass(ptr ptr) CoGetTreatAsClass16
 66 stub COTREATASCLASS
 67 stub COGETSTANDARDMARSHAL
 68 stub PROPAGATERESULT
