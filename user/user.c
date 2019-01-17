@@ -1916,7 +1916,36 @@ HBRUSH16 WINAPI GetSysColorBrush16( INT16 index )
  */
 HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBackground )
 {
-    return HPALETTE_16( SelectPalette( HDC_32(hdc), HPALETTE_32(hpal), bForceBackground ));
+    HPALETTE hpal32 = HPALETTE_32(hpal);
+    HDC hdc32 = HDC_32(hdc);
+    if ((GetObjectType(hpal32) != OBJ_PAL) || (GetObjectType(hdc32) != OBJ_DC))
+        return NULL;
+    if (krnl386_get_compat_mode("256color") && WindowFromDC(hdc32))
+    {
+        WORD *hwlist = (WORD *)GetPtr16(hpal, 1);
+        HWND16 hwnd = HWND_16(WindowFromDC(hdc32));
+        int found = -1;
+        if (!hwlist)
+        {
+            hwlist = (WORD *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 10 * sizeof(WORD));
+            SetPtr16(hpal, hwlist, 1);
+        }
+        for (int i = 0; i < 10; i++)
+        {
+            if (!hwlist[i] && (found == -1))
+                found = i;
+            if (hwlist[i] == hwnd)
+            {
+                found = -2;
+                break;
+            }
+        }
+        if (found == -1)
+            ERR("No space in pal->dc list hpal: %x\n", hpal);
+        else if (found != -2)
+            hwlist[found] = hwnd;
+    }
+    return HPALETTE_16( SelectPalette( hdc32, hpal32, bForceBackground ));
 }
 
 /***********************************************************************
