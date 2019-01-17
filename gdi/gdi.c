@@ -2281,7 +2281,7 @@ typedef struct
 INT16 WINAPI AddFontResource16( LPCSTR filename )
 {
     int ret = 0;
-    ERR("(%s)\n", debugstr_a(filename));
+    TRACE("(%s)\n", debugstr_a(filename));
     ret = AddFontResourceExA(filename, FR_PRIVATE, 0);
     if (ret) return ret;
 
