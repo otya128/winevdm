@@ -470,6 +470,7 @@ SEGPTR WINAPI MapLS( LPCVOID ptr )
 
     if (!entry)
     {
+        LDT_ENTRY ldt;
         if (!free)  /* no free entry found, create a new one */
         {
             if (!(free = HeapAlloc( GetProcessHeap(), 0, sizeof(*free) ))) goto done;
@@ -482,7 +483,9 @@ SEGPTR WINAPI MapLS( LPCVOID ptr )
             free->next = first_entry;
             first_entry = free;
         }
-        SetSelectorBase( free->sel, (DWORD)base );
+        wine_ldt_get_entry(free->sel, &ldt);
+        wine_ldt_set_base(&ldt, (DWORD)base);
+        wine_ldt_set_entry(free->sel, &ldt);
         free->addr = (void*)base;
         entry = free;
     }
