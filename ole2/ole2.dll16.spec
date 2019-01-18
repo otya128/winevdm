@@ -77,7 +77,7 @@
 78 pascal OleTranslateAccelerator(segptr ptr ptr) OleTranslateAccelerator16
 79 pascal OleDoAutoConvert(ptr ptr) OleDoAutoConvert16
 80 pascal OleGetAutoConvert(ptr ptr) OleGetAutoConvert16
-81 stub OLESETAUTOCONVERT
+81 pascal OleSetAutoConvert(ptr ptr) OleSetAutoConvert16
 82 pascal GetConvertStg(segptr) GetConvertStg16
 83 pascal SetConvertStg(segptr word) SetConvertStg16
 84 pascal CreateStreamOnHGlobal(word word ptr) CreateStreamOnHGlobal16

@@ -702,6 +702,18 @@ HRESULT WINAPI OleGetAutoConvert16(REFCLSID clsidOld, LPCLSID pclsidNew)
     return result;
 }
 
+HRESULT WINAPI OleSetAutoConvert16(REFCLSID clsidOld, REFCLSID clsidNew)
+{
+    HRESULT result;
+    TRACE("(%s,%s)\n", debugstr_a(clsidOld), debugstr_a(clsidNew));
+    result = OleSetAutoConvert(clsidOld, clsidNew);
+    if (result == REGDB_E_WRITEREGDB)
+    {
+        ERR("REGDB_E_WRITEREGDB\n");
+    }
+    return hresult32_16(result);
+}
+
 HRESULT WINAPI OleRun16(SEGPTR pUnk)
 {
     return hresult32_16(OleRun((IUnknown*)iface16_32(&IID_IUnknown, pUnk)));
