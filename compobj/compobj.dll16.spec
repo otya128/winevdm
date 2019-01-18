@@ -66,7 +66,7 @@
 66 pascal CoTreatAsClass(ptr ptr) CoTreatAsClass16
 67 stub COGETSTANDARDMARSHAL
 68 stub PROPAGATERESULT
-69 stub IIDFROMSTRING
+69 pascal IIDFromString(str ptr) IIDFromString16
 70 variable _IID_IStdMarshalInfo(0x00000018 0x00000000 0x000000c0 0x46000000)
 71 pascal CoCreateStandardMalloc(long ptr) CoCreateStandardMalloc16
 72 variable _IID_IExternalConnection(0x00000019 0x00000000 0x000000c0 0x46000000)

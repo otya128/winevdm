@@ -380,6 +380,22 @@ BOOL16 WINAPI IsEqualGUID16(
 
 HRESULT WINAPI guid_str_to_clsid(LPCOLESTR16 idstr, CLSID *id);
 HRESULT WINAPI progid_to_clsid(LPCOLESTR16 idstr, CLSID *id);
+HRESULT WINAPI IIDFromString16(LPSTR lpsz, LPIID lpiid)
+{
+    HRESULT r;
+    if (!lpiid)
+        return E_INVALIDARG16;
+    if (!lpsz)
+    {
+        memset(lpiid, 0, sizeof(CLSID));
+        return S_OK;
+    }
+    r = guid_str_to_clsid((LPCOLESTR16)lpsz, (CLSID*)lpiid);
+    if (r == CO_E_CLASSSTRING)
+        r = CO_E_IIDSTRING;
+    return r;
+}
+
 /******************************************************************************
  *		CLSIDFromString	[COMPOBJ.20]
  * Converts a unique identifier from its string representation into
@@ -404,11 +420,6 @@ HRESULT WINAPI guid_str_to_clsid(LPCOLESTR16 idstr, CLSID *id)
   const BYTE *s;
   int	i;
   BYTE table[256];
-
-  if (!idstr) {
-    memset( id, 0, sizeof (CLSID) );
-    return S_OK;
-  }
 
   /* validate the CLSID string */
   if (strlen(idstr) != 38)
