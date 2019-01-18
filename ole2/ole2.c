@@ -1152,3 +1152,14 @@ HRESULT WINAPI OleConvertOLESTREAMToIStorage16(SEGPTR pOleStm, SEGPTR pStg, cons
     free_iface32(pOleStm32);
     return hresult32_16(result);
 }
+
+HRESULT WINAPI GetClassFile16(LPCSTR lpszFileName, LPCLSID pclsid)
+{
+    HRESULT result;
+    LPCOLESTR lpwszFileName;
+    TRACE("(%s,%p)\n", debugstr_a(lpszFileName), pclsid);
+    lpwszFileName = strdupAtoW(lpszFileName);
+    result = GetClassFile(lpwszFileName, pclsid);
+    HeapFree(GetProcessHeap(), 0, lpwszFileName);
+    return hresult32_16(result);
+}

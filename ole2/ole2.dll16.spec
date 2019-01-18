@@ -55,7 +55,7 @@
 54 pascal CreateILockBytesOnHGlobal(word word ptr) CreateILockBytesOnHGlobal16
 55 pascal GetHGlobalFromILockBytes(segptr ptr) GetHGlobalFromILockBytes16
 56 pascal -ret16 OleMetafilePictFromIconAndLabel(word str str word) OleMetafilePictFromIconAndLabel16
-57 stub GETCLASSFILE
+57 pascal GetClassFile(str ptr) GetClassFile16
 58 pascal OleDraw(segptr long word ptr) OleDraw16
 59 pascal OleCreateDefaultHandler(ptr segptr ptr ptr) OleCreateDefaultHandler16
 60 pascal OleCreateEmbeddingHelper(ptr segptr long segptr ptr ptr) OleCreateEmbeddingHelper16
