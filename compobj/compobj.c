@@ -972,3 +972,15 @@ HRESULT WINAPI CoGetTreatAsClass16(REFCLSID clsidOld, LPCLSID pClsidNew)
     r = CoGetTreatAsClass(clsidOld, pClsidNew);
     return hresult32_16(r);
 }
+
+HRESULT WINAPI CoTreatAsClass16(REFCLSID clsidOld, REFCLSID clsidNew)
+{
+    HRESULT r;
+    TRACE("(%s,%p)\n", debugstr_guid(clsidOld), debugstr_guid(clsidNew));
+    r = CoTreatAsClass(clsidOld, clsidNew);
+    if (r == REGDB_E_WRITEREGDB)
+    {
+        ERR("REGDB_E_WRITEREGDB\n");
+    }
+    return hresult32_16(r);
+}
