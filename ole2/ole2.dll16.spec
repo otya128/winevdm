@@ -87,7 +87,7 @@
 88 pascal OleCreateStaticFromData(segptr ptr long ptr segptr segptr ptr) OleCreateStaticFromData16
 89 pascal OleRegGetUserType(ptr long ptr) OleRegGetUserType16
 90 pascal OleRegGetMiscStatus(ptr long ptr) OleRegGetMiscStatus16
-91 stub OLEREGENUMFORMATETC
+91 pascal OleRegEnumFormatEtc(ptr long ptr) OleRegEnumFormatEtc16
 92 pascal OleRegEnumVerbs(ptr ptr) OleRegEnumVerbs16
 93 stub OLEGETENUMFORMATETC
 100 stub MAKEDEBUGSTREAM

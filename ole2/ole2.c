@@ -963,6 +963,18 @@ HRESULT WINAPI OleRegEnumVerbs16(REFCLSID clsid, SEGPTR *ppenum)
     return hresult32_16(result);
 }
 
+HRESULT WINAPI OleRegEnumFormatEtc16(REFCLSID clsid, DWORD dwDirection, SEGPTR *ppenumFormatetc)
+{
+    IEnumFORMATETC *penum = NULL;
+    HRESULT result;
+    TRACE("(%s,%d,%p)\n", debugstr_guid(clsid), dwDirection, ppenumFormatetc);
+    if (!ppenumFormatetc)
+        return E_INVALIDARG16; /* Sometimes CO_E_NOTINITIALIZED */
+    result = OleRegEnumFormatEtc(clsid, dwDirection, &penum);
+    *ppenumFormatetc = iface32_16(&IID_IEnumFORMATETC, penum);
+    return hresult32_16(result);
+}
+
 HRESULT WINAPI OleDraw16(SEGPTR pUnk, DWORD dwAspect, HDC16 hdcDraw, const RECT16 const *lpcBounds)
 {
     HRESULT result;
