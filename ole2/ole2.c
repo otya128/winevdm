@@ -1047,18 +1047,14 @@ HRESULT WINAPI BindMoniker16(SEGPTR pmk, DWORD grfOpt, REFIID riid, SEGPTR *ppvO
     return hresult32_16(result);
 }
 
-HGLOBAL16 WINAPI OleGetIconOfClass16(REFCLSID rclsid, LPSTR lpszLabel, BOOL fUseTypeAsLabel)
+static HGLOBAL16 create_metafilepict16(HGLOBAL hMetaPict)
 {
-    LPOLESTR lpwszLabel;
-    HGLOBAL hMetaPict;
     METAFILEPICT *pict;
     HGLOBAL16 hmf16;
     DWORD len;
-    TRACE("(%s,%s,%d)\n", debugstr_guid(rclsid), debugstr_a(lpszLabel), fUseTypeAsLabel);
-    lpwszLabel = strdupAtoW(lpszLabel);
-    hMetaPict = OleGetIconOfClass(rclsid, lpwszLabel, fUseTypeAsLabel);
-    HeapFree(GetProcessHeap(), 0, lpwszLabel);
     pict = GlobalLock(hMetaPict);
+    if (!pict)
+        return 0;
     hmf16 = GlobalAlloc16(0, sizeof(METAFILEPICT16));
     if (hmf16)
     {
@@ -1076,6 +1072,30 @@ HGLOBAL16 WINAPI OleGetIconOfClass16(REFCLSID rclsid, LPSTR lpszLabel, BOOL fUse
     GlobalUnlock(hMetaPict);
     GlobalFree(hMetaPict);
     return hmf16;
+}
+HGLOBAL16 WINAPI OleGetIconOfFile16(LPSTR lpszPath, BOOL fUseTypeAsLabel)
+{
+    LPOLESTR lpwszPath;
+    HGLOBAL hMetaPict;
+    TRACE("(%s,%s,%d)\n", debugstr_a(lpszPath), fUseTypeAsLabel);
+    lpwszPath = strdupAtoW(lpszPath);
+    hMetaPict = OleGetIconOfFile(lpwszPath, fUseTypeAsLabel);
+    HeapFree(GetProcessHeap(), 0, lpwszPath);
+    return create_metafilepict16(hMetaPict);
+}
+
+HGLOBAL16 WINAPI OleGetIconOfClass16(REFCLSID rclsid, LPSTR lpszLabel, BOOL fUseTypeAsLabel)
+{
+    LPOLESTR lpwszLabel;
+    HGLOBAL hMetaPict;
+    METAFILEPICT *pict;
+    HGLOBAL16 hmf16;
+    DWORD len;
+    TRACE("(%s,%s,%d)\n", debugstr_guid(rclsid), debugstr_a(lpszLabel), fUseTypeAsLabel);
+    lpwszLabel = strdupAtoW(lpszLabel);
+    hMetaPict = OleGetIconOfClass(rclsid, lpwszLabel, fUseTypeAsLabel);
+    HeapFree(GetProcessHeap(), 0, lpwszLabel);
+    return create_metafilepict16(hMetaPict);
 }
 
 /* {0975C22A-6BA7-420E-9CD3-4763999EFB68} (dummy) */

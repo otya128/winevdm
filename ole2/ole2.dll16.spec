@@ -50,7 +50,7 @@
 49 pascal OleSetClipboard(segptr) OleSetClipboard16
 50 pascal OleGetClipboard(ptr) OleGetClipboard16
 51 pascal -ret16 OleDuplicateData(word word word) OleDuplicateData16
-52 stub OLEGETICONOFFILE
+52 pascal -ret16 OleGetIconOfFile(str word) OleGetIconOfFile16
 53 pascal -ret16 OleGetIconOfClass(ptr str word) OleGetIconOfClass16
 54 pascal CreateILockBytesOnHGlobal(word word ptr) CreateILockBytesOnHGlobal16
 55 pascal GetHGlobalFromILockBytes(segptr ptr) GetHGlobalFromILockBytes16
