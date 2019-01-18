@@ -48,6 +48,7 @@ typedef struct
     LPVOID param;
 } DLGPROCTHUNK;
 #include <poppack.h>
+void free_proc_thunk(DLGPROCTHUNK *thunk);
 
 typedef struct
 {
@@ -313,6 +314,7 @@ INT_PTR CALLBACK DlgProc_Thunk(DLGPROCTHUNK *thunk_data, HWND hDlg, UINT Msg, WP
         SetDlgProc16(hWnd16, cs->dlgProc);
         SetWindowLongPtrA(hDlg, DWLP_DLGPROC, DlgProc);
         HeapFree(GetProcessHeap(), 0, cs);
+        free_proc_thunk(thunk_data);
     }
     return DlgProc(hDlg, Msg, wParam, lParam);
 }
@@ -652,6 +654,10 @@ DLGPROC allocate_proc_thunk(LPVOID param, LPVOID func)
     }
     ERR("could not allocate dialog thunk!\n");
     return DlgProc;
+}
+void free_proc_thunk(DLGPROCTHUNK *thunk)
+{
+    thunk->used = FALSE;
 }
 /***********************************************************************
 *           DIALOG_CreateIndirect16
