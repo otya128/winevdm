@@ -2954,6 +2954,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     {
         if (!GlobalGetAtomNameA(LOWORD(className), buffer, sizeof(buffer))) return 0;
         cs.lpszClass = buffer;
+        cs.lpszClass = win32classname(cs.hInstance, cs.lpszClass);
     }
     /* load the menu */
     if (!menu && !is_win_menu_disallowed(style))
