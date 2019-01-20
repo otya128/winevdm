@@ -4452,8 +4452,14 @@ HWND get_win_handle(HWND hWnd16)
 }
 HWND create_window(CREATESTRUCTW* cs, LPCWSTR className, HINSTANCE instance, BOOL unicode)
 {
-	if (!strncasecmp((LPCSTR)className, "MDICLIENT", strlen((LPCSTR)className)))
-		cs->lpCreateParams = MapSL(cs->lpCreateParams);
+    CLIENTCREATESTRUCT c32;
+    if (!strncasecmp((LPCSTR)className, "MDICLIENT", strlen((LPCSTR)className)))
+    {
+        CLIENTCREATESTRUCT16 *c16 = MapSL(cs->lpCreateParams);
+        c32.idFirstChild = c16->idFirstChild;
+        c32.hWindowMenu = HMENU_32(c16->hWindowMenu);
+        cs->lpCreateParams = (LPVOID)&c32;
+    }
 	SetLastError(0);
 	HWND hWnd = CreateWindowExA(cs->dwExStyle, (LPCSTR)className, (LPCSTR)cs->lpszName, cs->style, cs->x, cs->y, cs->cx, cs->cy, cs->hwndParent, cs->hMenu, instance, cs->lpCreateParams);
 	if (hWnd == 0)
