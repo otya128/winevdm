@@ -1943,11 +1943,11 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
     HWND hwnd32 = WIN_Handle32(hwnd);
     if (hwnd == (WORD)HWND_TOPMOST)
     {
-        hwnd = HWND_TOPMOST;
+        hwnd32 = HWND_TOPMOST;
     }
     if (hwnd == (WORD)HWND_NOTOPMOST)
     {
-        hwnd = HWND_NOTOPMOST;
+        hwnd32 = HWND_NOTOPMOST;
     }
     if (flags & SWP_NOREDRAW)
     {
