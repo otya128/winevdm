@@ -435,17 +435,19 @@ void set_dll_path()
     LPWSTR last = wcsrchr(mod_path, L'\\');
     last[0] = 0;
     LPCWSTR dir = L"\\dll";
-    if (wcslen(last) + wcslen(dir) + 1 < MAX_PATH)
+    if (wcslen(mod_path) + wcslen(dir) + 1 < MAX_PATH)
     {
         memcpy(last, dir, (wcslen(dir) + 1) * sizeof(*dir));
         attr = GetFileAttributesW(mod_path);
         if (attr != INVALID_FILE_ATTRIBUTES && attr & FILE_ATTRIBUTE_DIRECTORY)
         {
+            WINE_TRACE("%s\n", wine_dbgstr_wn(mod_path, -1));
             SetDllDirectoryW(mod_path);
             return;
         }
     }
     last[0] = 0;
+    WINE_TRACE("%s\n", wine_dbgstr_wn(mod_path, -1));
     SetDllDirectoryW(mod_path);
 }
 
