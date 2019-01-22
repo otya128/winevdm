@@ -498,6 +498,15 @@ LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOO
                 {
                     result = buf;
                 }
+                else
+                {
+                    char dlldir[MAX_PATH];
+                    GetDllDirectoryA(MAX_PATH, dlldir);
+                    if (SearchPathA(dlldir, filewin32, NULL, size, buf, NULL))
+                    {
+                        result = buf;
+                    }
+                }
             }
         }
     }
