@@ -92,7 +92,7 @@ static HMETAFILE create_metafile32( HMETAFILE16 hmf16 )
 {
     METAHEADER *mh = MF_GetMetaHeader16( hmf16 );
     if (!mh) return 0;
-    return SetMetaFileBitsEx( mh->mtSize * 2, (BYTE *)mh );
+    return SetMetaFileBitsEx( /*mh->mtSize * 2*/GlobalSize16(hmf16), (BYTE *)mh );
 }
 
 /**********************************************************************
@@ -180,6 +180,55 @@ BOOL16 WINAPI PlayMetaFile16( HDC16 hdc, HMETAFILE16 hmf16 )
 }
 
 
+#define META_EOF 0x0000
+typedef struct
+{
+    LPARAM lpData;
+    SEGPTR spht;
+    WORD seg;
+    WORD offset;
+    SEGPTR record;
+    HMETAFILE hmf32;
+    SEGPTR lpEnumFunc;
+    WORD max;
+} enum_metafile_data;
+int CALLBACK EnumMetaFileCallback(HDC hdc, HANDLETABLE *lpht, METARECORD *lpMR, int nObj, LPARAM param)
+{
+    enum_metafile_data *d = (enum_metafile_data*)param;
+    HANDLETABLE16 *lpht16;
+    int i;
+    WORD args[8];
+    DWORD ret;
+    lpht16 = MapSL(d->spht);
+    for (i = 0; i < nObj; i++)
+    {
+        lpht16->objectHandle[i] = HDC_16(lpht->objectHandle[i]);
+    }
+    if (lpMR->rdSize > d->max)
+    {
+        ERR("\n");
+    }
+    DWORD siz = lpMR->rdSize * 2;
+    memcpy(MapSL(d->record), lpMR, siz);
+
+    args[7] = HDC_16(hdc);
+    args[6] = SELECTOROF(d->spht);
+    args[5] = OFFSETOF(d->spht);
+    args[4] = SELECTOROF(d->record);
+    args[3] = OFFSETOF(d->record);
+    args[2] = nObj;
+    args[1] = HIWORD(d->lpData);
+    args[0] = LOWORD(d->lpData);
+    WOWCallback16Ex((DWORD)d->lpEnumFunc, WCB16_PASCAL, sizeof(args), args, &ret);
+    memcpy(lpMR, MapSL(d->record), siz);
+    lpht16 = MapSL(d->spht);
+    for (i = 0; i < nObj; i++)
+    {
+        lpht->objectHandle[i] = HDC_32(lpht16->objectHandle[i]);
+    }
+    return LOWORD(ret);
+}
+
 /******************************************************************
  *            EnumMetaFile   (GDI.175)
  *
@@ -187,6 +236,31 @@ BOOL16 WINAPI PlayMetaFile16( HDC16 hdc, HMETAFILE16 hmf16 )
 BOOL16 WINAPI EnumMetaFile16( HDC16 hdc16, HMETAFILE16 hmf,
 			      MFENUMPROC16 lpEnumFunc, LPARAM lpData )
 {
+#if 1
+    METAHEADER *mh = MF_GetMetaHeader16(hmf);
+    HMETAFILE hmf32 = create_metafile32(hmf);
+    enum_metafile_data param;
+    BOOL r;
+    HGLOBAL16 hHT;
+    param.lpData = lpData;
+    hHT = GlobalAlloc16(GMEM_MOVEABLE | GMEM_ZEROINIT,
+        FIELD_OFFSET(HANDLETABLE16, objectHandle[mh->mtNoObjects]));
+    HGLOBAL16 record = GlobalAlloc16(GMEM_MOVEABLE | GMEM_ZEROINIT, mh->mtMaxRecord * 2);
+    param.max = mh->mtMaxRecord;
+    param.spht = WOWGlobalLock16(hHT);
+    param.lpEnumFunc = lpEnumFunc;
+    param.seg = hmf | 7;
+    param.hmf32 = hmf32;
+    param.record = WOWGlobalLock16(record);
+    r = EnumMetaFile(HDC_32(hdc16), hmf32, EnumMetaFileCallback, &param);
+    DeleteMetaFile(hmf32);
+    GlobalFree16(hHT);
+    GlobalFree16(record);
+    /* twice */
+    MF_ReleaseMetaHeader16(hmf);
+    MF_ReleaseMetaHeader16(hmf);
+    return r;
+#else
     METAHEADER *mh = MF_GetMetaHeader16(hmf);
     METARECORD *mr;
     HANDLETABLE16 *ht;
@@ -236,6 +310,10 @@ BOOL16 WINAPI EnumMetaFile16( HDC16 hdc16, HMETAFILE16 hmf,
 
 	mr = (METARECORD *)((char *)mh + offset);
 
+    if (mr->rdFunction == META_EOF) {
+        TRACE("Got META_EOF so stopping\n");
+        break;
+    }
         WOWCallback16Ex( (DWORD)lpEnumFunc, WCB16_PASCAL, sizeof(args), args, &ret );
         if (!LOWORD(ret))
 	{
@@ -263,6 +341,7 @@ BOOL16 WINAPI EnumMetaFile16( HDC16 hdc16, HMETAFILE16 hmf,
     GlobalFree16(hHT);
     MF_ReleaseMetaHeader16(hmf);
     return result;
+#endif
 }
 
 /******************************************************************
