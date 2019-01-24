@@ -2275,13 +2275,17 @@ typedef struct
 } WINFNT;
 #include <poppack.h>
 
+LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin);
 /***********************************************************************
  *           AddFontResource    (GDI.119)
  */
 INT16 WINAPI AddFontResource16( LPCSTR filename )
 {
     int ret = 0;
-    TRACE("(%s)\n", debugstr_a(filename));
+    LPCSTR filenameold = filename;
+    char filebuf[MAX_PATH];
+    filename = krnl386_search_executable_file(filename, filebuf, MAX_PATH, FALSE);
+    TRACE("(%s(%s))\n", debugstr_a(filenameold), debugstr_a(filename));
     ret = AddFontResourceExA(filename, FR_PRIVATE, 0);
     if (ret) return ret;
 
@@ -2483,9 +2487,11 @@ INT16 WINAPI GetRgnBox16( HRGN16 hrgn, LPRECT16 rect )
 /***********************************************************************
  *           RemoveFontResource    (GDI.136)
  */
-BOOL16 WINAPI RemoveFontResource16( LPCSTR str )
+BOOL16 WINAPI RemoveFontResource16( LPCSTR filename)
 {
-    return RemoveFontResourceExA(str, FR_PRIVATE, 0);
+    char filebuf[MAX_PATH];
+    filename = krnl386_search_executable_file(filename, filebuf, MAX_PATH, FALSE);
+    return RemoveFontResourceExA(filename, FR_PRIVATE, 0);
 }
 
 
