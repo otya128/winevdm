@@ -2460,7 +2460,7 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 		{
 			//old old bitmap
 			struct WIN1XBITMAP *win1xbitmap = ptr;
-            BITMAP winbitmap = { 0 };
+			BITMAP winbitmap = { 0 };
 			//winbitmap.bmType = win1xbitmap->unknown1;
 			winbitmap.bmWidth = win1xbitmap->width;
 			winbitmap.bmHeight = win1xbitmap->height;
@@ -2471,6 +2471,39 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 
 			HBITMAP ret = CreateBitmapIndirect(&winbitmap);
 			if(!ret)
+			{
+				if (winbitmap.bmPlanes == 3)
+				{
+					HDC scrhdc = GetDC(NULL);
+					HDC hdc = CreateCompatibleDC(scrhdc);
+					ret = CreateCompatibleBitmap(scrhdc, winbitmap.bmWidth, winbitmap.bmHeight);
+					HGDIOBJ oldobj = SelectObject(hdc, ret);
+					int plsize = winbitmap.bmWidthBytes * winbitmap.bmHeight;
+					for (int y = 0; y < winbitmap.bmHeight; y++)
+					{
+						for (int x = 0; x < winbitmap.bmWidth; x++)
+						{
+							UINT8 *addr = (UINT8 *)winbitmap.bmBits + (x / 8) + y * winbitmap.bmWidthBytes;
+							int mask = 0x80 >> (x % 8);
+							UINT8 red = (addr[0] & mask) ? 0xff : 0;
+							UINT8 green = (addr[plsize] & mask) ? 0xff : 0;
+							UINT8 blue = (addr[plsize * 2] & mask) ? 0xff : 0;
+							if (SetPixel(hdc, x, y, RGB(red, green, blue)) == -1)
+							{
+								SelectObject(hdc, oldobj);
+								DeleteDC(hdc);
+								ReleaseDC(NULL, scrhdc);
+								return HBITMAP_16(ret);
+							}
+						}
+					}
+					SelectObject(hdc, oldobj);
+					DeleteDC(hdc);
+					ReleaseDC(NULL, scrhdc);
+					return HBITMAP_16(ret);
+				}
+			}
+			else
 				ret = CreateBitmap(win1xbitmap->width, win1xbitmap->height, win1xbitmap->Planes, win1xbitmap->BitsPerPixel, &win1xbitmap->bits);
 			return HBITMAP_16(ret);
 		}
