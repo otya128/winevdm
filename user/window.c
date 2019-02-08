@@ -27,6 +27,7 @@
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
 void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
+BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
 /* size of buffer needed to store an atom string */
 #define ATOM_BUFFER_SIZE 256
 
@@ -2381,7 +2382,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     }
 
     wc32.cbSize        = sizeof(wc32);
-    wc32.style         = wc->style;
+    wc32.style         = wc->style | (IsOldWindowsTask(GetCurrentTask()) ? CS_GLOBALCLASS : 0);
     wc32.lpfnWndProc   = WindowProc16;//WINPROC_AllocProc16( wc->lpfnWndProc );
     wc32.cbClsExtra    = wc->cbClsExtra;
     wc32.cbWndExtra    = 100;
@@ -2915,7 +2916,6 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     cs.cy = (height == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)height;
 
     // make windows 1.0 programs appear in a usable window
-    BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
     if (IsOldWindowsTask(GetCurrentTask()) && !(style & WS_CHILD) && (!cs.cx || !cs.cy))
     {
         cs.x = CW_USEDEFAULT;
