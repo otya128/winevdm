@@ -1775,6 +1775,8 @@ BOOL16 WINAPI DeleteDC16( HDC16 hdc )
         K32WOWHandle16DestroyHint(hdc32, WOW_TYPE_HDC /* GDIOBJ */);
         return TRUE;
     }
+    else if (!GetObjectType(hdc32))
+        return TRUE; // Assume object was already released
     return FALSE;
 }
 
