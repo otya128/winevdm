@@ -4383,6 +4383,10 @@ BOOL WINAPI DllMain(
     {
         window_type_table = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536);
         aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", TRUE);
+        if (!IsThemeActive())
+        {
+            aero_diasble = FALSE;
+        }
         separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE);
         ShellDDEInit(TRUE);
     }
