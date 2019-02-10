@@ -349,6 +349,15 @@ static BOOL WINHELP_HasWorkingWindow(void)
     return Globals.active_win->page != NULL && Globals.active_win->page->file != NULL;
 }
 
+static void cb_KWBTreeKey(void *p, void **next, void *cookie)
+{
+    char **key = (char **)cookie;
+    if(!stricmp(*key, (char *)p))
+        *key = (char *)p;
+    *next = (char*)p + strlen((char*)p) + 7;
+}
+
+
 /******************************************************************
  *		WINHELP_HandleCommand
  *
@@ -419,9 +428,28 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
                 MACRO_JumpHash(ptr, "main", 0);
             }
             break;
+        case HELP_KEY:
+        {
+            HLPFILE *hlpfile = WINHELP_LookupHelpFile(ptr);
+            if (!hlpfile)
+            {
+                MACRO_Exit();
+                break;
+            }
+            char *key = ((char *)wh + wh->ofsData);
+            HLPFILE_BPTreeEnum(hlpfile->kwbtree, cb_KWBTreeKey, &key);
+            if (key == ((char *)wh + wh->ofsData))
+            {
+                MACRO_Exit();
+                break;
+            }
+            int offset = *(ULONG*)(key + strlen(key) + 3);
+            offset = *(long*)(hlpfile->kwdata + offset + 9);
+            WINHELP_OpenHelpWindow(HLPFILE_PageByOffset, hlpfile, offset, WINHELP_GetWindowInfo(hlpfile, "main"), SW_NORMAL);
+            break;
+        }
         /* case HELP_WM_HELP: */
         /* case HELP_SETPOPUP_POS: */
-        /* case HELP_KEY: */
         /* case HELP_COMMAND: */
         /* case HELP_PARTIALKEY: */
         /* case HELP_MULTIKEY: */
