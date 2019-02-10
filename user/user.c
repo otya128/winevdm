@@ -2502,9 +2502,9 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
 					ReleaseDC(NULL, scrhdc);
 					return HBITMAP_16(ret);
 				}
+				else
+					ret = CreateBitmap(win1xbitmap->width, win1xbitmap->height, win1xbitmap->Planes, win1xbitmap->BitsPerPixel, &win1xbitmap->bits);
 			}
-			else
-				ret = CreateBitmap(win1xbitmap->width, win1xbitmap->height, win1xbitmap->Planes, win1xbitmap->BitsPerPixel, &win1xbitmap->bits);
 			return HBITMAP_16(ret);
 		}
 
