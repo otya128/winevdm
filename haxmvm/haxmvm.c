@@ -922,6 +922,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                 HAXMVM_ERRF("SET_REGS");
         }
         save_context(context);
+    }
 }
 
 __declspec(dllexport) DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_HANDLER handler,
