@@ -115,6 +115,15 @@ HANDLE hSystem;
 HANDLE hVM;
 HANDLE hVCPU;
 struct hax_tunnel *tunnel;
+ // 2MB is enough for 0x00000000-0x7fffffff plus 1 page for the pagedir 
+#ifdef _MSC_VER
+__declspec(align(4096))
+#endif
+DWORD guestpt[0x80400] = {0}
+#ifdef __GNUC__
+__attribute__ ((aligned(4096)))
+#endif
+;
 
 void load_seg(segment_desc_t *segment, WORD sel)
 {
@@ -126,8 +135,10 @@ void load_seg(segment_desc_t *segment, WORD sel)
     segment->operand_size = wine_ldt[sel >> 3].HighWord.Bits.Default_Big;
     segment->dpl = wine_ldt[sel >> 3].HighWord.Bits.Dpl;
     segment->granularity = wine_ldt[sel >> 3].HighWord.Bits.Granularity;
+    if (!sel || !segment->type || !segment->present)
+        segment->ar = 0;
 }
-
+ 
 void set_eflags(struct vcpu_state_t *state, DWORD eflags)
 {
     state->_eflags = eflags | 2 | 0x3000 | (is_single_step ? 0x100 : 0);
@@ -247,9 +258,41 @@ _STATIC_ASSERT(sizeof(interrupt_gate) == 8);
 #define HAXMVM_ERR fprintf(stderr, __FUNCTION__ "("  HAXMVM_STR(__LINE__)  ") HAXM err.\n");
 #define HAXMVM_ERRF(fmt, ...) fprintf(stderr, __FUNCTION__ "("  HAXMVM_STR(__LINE__)  ") " fmt "\n", __VA_ARGS__);
 LPVOID trap_int;
+
+#ifdef _MSC_VER
+__declspec(align(4096))
+#endif
 interrupt_gate idt[256];
+#ifdef __GNUC__
+__attribute__ ((aligned(4096)))
+#endif
+;
+#ifdef _MSC_VER
+__declspec(align(4096))
+#endif
+LDT_ENTRY gdt[512] = { 0 };
+#ifdef __GNUC__
+__attribute__ ((aligned(4096)))
+#endif
+;
 WORD seg_cs;
 WORD seg_ds;
+
+static BOOL set_ram(struct hax_set_ram_info *ram)
+{
+    DWORD bytes;
+    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, ram, sizeof(struct hax_set_ram_info), NULL, 0, &bytes, NULL))
+        return FALSE;
+    DWORD physaddr = ram->pa_start / 4096;
+    for (DWORD i = 0; i < (ram->size / 4096); i++)
+    {
+        DWORD pte = physaddr + i;
+        guestpt[pte] = (pte << 12) | 7;
+    }
+    return TRUE;
+}
+
+
 BOOL init_vm86(BOOL vm86)
 {
     ((void(*)())GetProcAddress(GetModuleHandleA("libwine"), "set_intel_vt_x_workaround"))();
@@ -311,15 +354,25 @@ BOOL init_vm86(BOOL vm86)
     struct hax_alloc_ram_info alloc_ram = { 0 };
     struct hax_set_ram_info ram = { 0 };
     MEMORY_BASIC_INFORMATION mbi = { 0 };
-    LPVOID mem = VirtualAlloc(NULL, 0x20000, MEM_COMMIT, PAGE_READWRITE);
     trap_int = VirtualAlloc(NULL, 0x10000, MEM_COMMIT, PAGE_READWRITE);
-    alloc_ram.size = 0x10000 * 1;// 0xFFFF0000;// (uint64_t)mem2 + 4096 - 0x10000;
-    alloc_ram.va = (uint64_t)mem;
+    alloc_ram.size = 0x201000;
+    alloc_ram.va = (uint64_t)guestpt;
     if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
     {
         HAXMVM_ERRF("ALLOC_RAM");
         return FALSE;
     }
+    ram.pa_start = (uint64_t)guestpt;
+    ram.size = 0x201000;
+    ram.va = (uint64_t)guestpt;
+    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
+    {
+        HAXMVM_ERRF("SET_RAM");
+        return FALSE;
+    }
+    // fill in the pagedir
+    for (int i = 0; i < 512; i++)
+        guestpt[0x80000 + i] = ((DWORD)guestpt + 4096 * i) | 7;
     while (!TRUE)
     {
         alloc_ram.size = mbi.RegionSize;
@@ -380,14 +433,6 @@ BOOL init_vm86(BOOL vm86)
             return FALSE;
         }
     }
-    ram.pa_start = 0;
-    ram.size = 0x10000;
-    ram.va = (uint64_t)mem;
-    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
-    {
-        HAXMVM_ERRF("SET_RAM");
-        return FALSE;
-    }
     tunnel = (struct hax_tunnel*)tunnel_info.va;
     struct vcpu_state_t state;
     if (!DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL))
@@ -396,102 +441,114 @@ BOOL init_vm86(BOOL vm86)
         return FALSE;
     }
     /* setup initial states */
-    /* FIXME: remove loader */
-    char loader[] =
-        "\x90\x90\x90\xB8\x00\x00\x8E\xD0\x66\xBC\x00\x10\x00\x00\x66\xB8"
-        "\x92\x11\x00\x00\x66\xBB\x29\x11\x00\x00\xFA\x60\x0F\x01\x16\x80"
-        "\x02\xFB\x61\x0F\x20\xC0\x66\x83\xC8\x01\x0F\x22\xC0\xEA\x3B\x00"
-        "\x08\x00\x90\x90\x90\x90\x90\x90\x90\x90\x90\xB8\x10\x00\x00\x00"
-        "\x8E\xD0\x8E\xD8\xBC\x00\x10\x00\x00\xBF\x00\x00\x00\x00\xA1\x00"
-        "\x00\x00\x00\x8B\x06\xFA\x66\xB8\x1B\x00\x8E\xD8\x6A\x1F\x68\x00"
-        "\x10\x00\x00\x9C\x6A\x27\x68\x74\x00\x00\x00\xF4\xCF\x90\x90\x90"
-        "\xF4\x90\x90\xF4\xB8\x1F\x00\x00\x00\x8E\xD8\xC7\x06\x78\x56\x34"
-        "\x12\x90\x90\x0F\xA2\x90\x0F\xA2\x90\x90\xF4\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x9A\x82\x11\x00\x00\x23\x00\x66\xB8\x23\x00\x8E\xC0"
-        "\x26\xA1\x00\x00\x00\x00\xF4\xCD\x21\xF4\xCD\x03\xF4\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\xD9\x28\x0F\xA2\x0F\x01\xC1\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x9B\x90\x0F\xA2\x0F\x01\xC1\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\xDB\xE3\x90\x0F\xA2\x0F\x01\xC1\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x9B\xD9\x38\x0F\xA2\x0F\x01\xC1\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\xD9\xFC\x0F\xA2\x0F\x01\xC1\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x9B\xDB\xE2\x0F\xA2\x0F\x01\xC1\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x9B\xDD\x30\x0F\xA2\x0F\x01\xC1\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\xDD\x20\x0F\xA2\x0F\x01\xC1\x90\x90\x90\x90\x90\x90\x90\x90\x90"
-        "\x30\x00\x86\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF"
-        "\x00\x00\x00\x9A\xCF\x00\xFF\xFF\x00\x00\x00\x92\xCF\x00\xFF\xFF"
-        "\x00\x00\x00\xF2\xCF\x00\xFF\xFF\x00\x00\x00\xFA\xCF\x00\xFF\xFF"
-        "\x00\x00\x00\xF2\xCF\x00";
-    SIZE_T ls = sizeof(loader) - 1;
-    memcpy(mem, loader, ls);
-    state._rip = (SIZE_T)0;
-    state._ss.selector = 0;
-    state._ss.base = 0;
-    state._rsp = 0x1000;// (DWORD)mem;
-    state._rip = 0;// (DWORD)mem;
-    state._cs.selector = 0;
-    state._cs.base = 0;
-    state._cs.limit = 0x10000;
-    state._ebp = 0x100f;
-    int kani;
-    state._rsi = 0x1000;// &kani;
-    if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL))
-    {
-        HAXMVM_ERRF("SET_REGS");
-        return FALSE;
-    }
-    DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_RUN, NULL, 0, NULL, 0, &bytes, NULL);
-    DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
-    state._eflags = 0x2;
-    state._ldt.base = state._gdt.base;
-    (DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL));
-    tunnel->request_interrupt_window = TRUE;
-    (DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_RUN, 0, 0, NULL, 0, &bytes, NULL));
-    DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
-    //state._cr0 |= 1;/* PE */
-    size_t kanai = sizeof(LDT_ENTRY);
-    size_t kanaai = sizeof(wine_ldt);
-    //state._gdt.base = (uint64)&wine_ldt[0];
-    //state._gdt.limit = 65536;
-    state._ldt.selector = 0x10;
+    state._gdt.base = (uint64)gdt;
+    state._gdt.limit = 0x7ff;
+    DWORD trap_addr = (DWORD)trap_int;
+    gdt[1].BaseLow = trap_addr & 0xffff;
+    gdt[1].HighWord.Bytes.BaseMid = (trap_addr >> 16) & 0xff;
+    gdt[1].HighWord.Bytes.BaseHi = (trap_addr >> 24) & 0xff;
+    gdt[1].LimitLow = 0xffff;
+    gdt[1].HighWord.Bytes.Flags1 = 0x9b;
+    gdt[1].HighWord.Bytes.Flags2 = 0x40;
+    gdt[2].BaseLow = trap_addr & 0xffff;
+    gdt[2].HighWord.Bytes.BaseMid = (trap_addr >> 16) & 0xff;
+    gdt[2].HighWord.Bytes.BaseHi = (trap_addr >> 24) & 0xff;
+    gdt[2].LimitLow = 0xffff;
+    gdt[2].HighWord.Bytes.Flags1 = 0x93;
+    gdt[2].HighWord.Bytes.Flags2 = 0x40;
+    gdt[4].BaseLow = 0;
+    gdt[4].HighWord.Bytes.BaseMid = 0;
+    gdt[4].HighWord.Bytes.BaseHi = 0;
+    gdt[4].LimitLow = 0xffff;
+    gdt[4].HighWord.Bytes.Flags1 = 0xfb;
+    gdt[4].HighWord.Bytes.Flags2 = 0xcf;
+
+    state._ldt.selector = 0x18;
     state._ldt.base = (uint64)&wine_ldt[0];
-    state._ldt.limit = 65536;
+    state._ldt.limit = 65535;
+    
+    UINT32 *tss = (UINT32 *)gdt + 0x200;
+    state._tr.selector = 0x18;
+    state._tr.base = (uint64)tss;
+    state._tr.limit = 0x64;
+    state._tr.ar = 0x8b;
+    tss[1] = 0x10000; // SP0
+    tss[2] = 0x10; // SS0
 
     state._idt.limit = 0x8 * 256 - 1;
     state._idt.base = (SIZE_T)&idt[0];
+    state._cr3 = guestpt + 0x80000;
+    state._cr0 |= 0x80000001;
+    state._eflags |= 0x200;
     for (int i = 0; i < 256; i++)
     {
         idt[i].DPL = 3;
         idt[i].type = INT_GATE_INT32;
-        idt[i].selector = seg_cs;
+        idt[i].selector = 0x0b;
         idt[i].P = 1;
-        idt[i].offset_low = (WORD)trap_int + i;
-        idt[i].offset_high = (DWORD)trap_int >> 16;
+        idt[i].offset_low = i;
+        idt[i].offset_high = 0;
     }
-    tunnel->request_interrupt_window = TRUE;
-    if (tunnel->_exit_reason != 0x0a)
+    memset(trap_int, 0xF4, 256); /* hlt */
+    ((char *)trap_int)[256] = 0xcf; /* iret */
+    alloc_ram.size = 4096;
+    alloc_ram.va = (uint64_t)&idt;
+    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
     {
-        HAXMVM_ERRF("tunnel->_exit_reason != 0x0a");
+        HAXMVM_ERRF("ALLOC_RAM");
+        return FALSE;
+    }
+    ram.pa_start =  (uint64_t)&idt;
+    ram.size = 4096;
+    ram.va =  (uint64_t)&idt;
+    if (!set_ram(&ram))
+    {
+        HAXMVM_ERRF("SET_RAM\n");
+        return FALSE;
+    }
+    alloc_ram.size = 65536 + 4096;
+    alloc_ram.va = (uint64_t)&wine_ldt & ~0xfff;
+    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
+    {
+        HAXMVM_ERRF("ALLOC_RAM");
+        return FALSE;
+    }
+    ram.pa_start =  (uint64_t)&wine_ldt & ~0xfff;
+    ram.size = 65536 + 4096;
+    ram.va =  (uint64_t)&wine_ldt & ~0xfff;
+    if (!set_ram(&ram))
+    {
+        HAXMVM_ERRF("SET_RAM\n");
+        return FALSE;
+    }
+    alloc_ram.size = 0x10000;
+    alloc_ram.va = (uint64_t)trap_int;
+    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
+    {
+        HAXMVM_ERRF("ALLOC_RAM");
+        return FALSE;
+    }
+    ram.pa_start = (uint64_t)trap_int;
+    ram.size = 0x10000;
+    ram.va = (uint64_t)trap_int;
+    if (!set_ram(&ram))
+    {
+        HAXMVM_ERRF("SET_RAM");
+        return FALSE;
+    }
+    alloc_ram.size = 0x1000;
+    alloc_ram.va = (uint64_t)&gdt;
+    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
+    {
+        HAXMVM_ERRF("ALLOC_RAM");
+        return FALSE;
+    }
+    ram.pa_start = (uint64_t)&gdt;
+    ram.size = 0x1000;
+    ram.va = (uint64_t)&gdt;
+    if (!set_ram(&ram))
+    {
+        HAXMVM_ERRF("SET_RAM");
         return FALSE;
     }
     if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL))
@@ -686,14 +743,12 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     {
         haxmvm_panic("hypervisor is panicked!!!");
     }
-    /* call cs:relay_call_from_16 => HAX_EXIT_MMIO => switch to win32 */
-    /* call cs:relay_call_from_16 => STI instr => Interrupt window VMExit(7) => switch to win32 (faster than above)*/
     if (!syscall_init)
     {
         SIZE_T page1 = (SIZE_T)from16_reg / 4096 * 4096;
         SIZE_T page2 = (SIZE_T)__wine_call_from_16 / 4096 * 4096;
         LPBYTE trap = syscall_trap = (LPBYTE)VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_READWRITE);
-        memset(trap, 0xFB, 4096); /* STI */
+        memset(trap, 0xEE, 4095); /* out forces a vmexit from user mode without modifing any registers */
         struct hax_alloc_ram_info alloc_ram = { 0 };
         struct hax_set_ram_info ram = { 0 };
         alloc_ram.size = 4096;
@@ -703,23 +758,15 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         {
             HAXMVM_ERRF("ALLOC_RAM");
         }
-        if (page1 != page2)
-        {
-            ram.pa_start = (SIZE_T)page2;
-            ram.size = (SIZE_T)4096;
-            ram.va = (SIZE_T)trap;
-            if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
-            {
-                HAXMVM_ERRF("SET_RAM\n");
-            }
-        }
-        ram.pa_start = (SIZE_T)page1;
+        ram.pa_start = (SIZE_T)trap;
         ram.size = (SIZE_T)4096;
         ram.va = (SIZE_T)trap;
         if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
         {
             HAXMVM_ERRF("SET_RAM\n");
         }
+        guestpt[page1 >> 12] = (DWORD)trap | 7;
+        guestpt[page2 >> 12] = (DWORD)trap | 7;
         syscall_init = TRUE;
     }
     //is_single_step = TRUE;
@@ -754,7 +801,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL))
             HAXMVM_ERRF("SET_REGS");
         unsigned char *stack = (unsigned char*)state._ss.base + state._esp;
-        ret_addr = *(LPDWORD)stack;
+        ret_addr = (*(LPDWORD)stack) + 1;
     }
 
     struct hax_alloc_ram_info alloc_ram = { 0 };
@@ -767,7 +814,6 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         dprintf("%04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
         if (state2._cs.selector == (ret_addr >> 16) && state2._eip == (ret_addr & 0xFFFF))
         {
-            state2._eflags &= ~0x10000;
             if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
             {
                 HAXMVM_ERRF("SET_REGS");
@@ -786,194 +832,96 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         dprintf("%04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
         if (state2._cs.selector == (ret_addr >> 16) && state2._eip == (ret_addr & 0xFFFF))
         {
-            state2._eflags &= ~0x10000;
             if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
             {
                 HAXMVM_ERRF("SET_REGS");
             }
             break;
         }
-        if (tunnel->_exit_status == HAX_EXIT_INTERRUPT)
+        LPVOID ptr = (LPBYTE)state2._cs.base + state2._eip;
+        switch(tunnel->_exit_status)
         {
-            LPVOID ptr = (LPBYTE)state2._cs.base + state2._eip;
-            LPVOID stack = (LPBYTE)state2._ss.base + state2._esp;
-            LPBYTE bstack = (LPBYTE)stack;
-            if (tunnel->_exit_reason == EXIT_INTERRUPT_WIN)
-            {
-                LPBYTE ptr2 = (LPBYTE)ptr - 2;
-                BOOL is_reg = ptr2 == from16_reg;
-                if (is_reg || ptr2 == __wine_call_from_16)
+            case HAX_EXIT_IO:
+                if (tunnel->io._direction == HAX_IO_OUT)
                 {
-                    state2._eflags &= ~0x10200;
-                    tunnel->_exit_reason = 0;
-                    relay(relay_call_from_16, is_reg, &state2);
-                    state2._eflags &= ~0x10200;
-                    if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
+                    LPBYTE ptr2 = (LPBYTE)ptr - 1;
+                    BOOL is_reg = ptr2 == from16_reg;
+                    if (is_reg || ptr2 == __wine_call_from_16)
                     {
-                        HAXMVM_ERRF("SET_REGS");
+                        relay(relay_call_from_16, is_reg, &state2);
+                        if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
+                        {
+                            HAXMVM_ERRF("SET_REGS");
+                        }
+                        break;
                     }
-                    continue;
-                }
-                HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X F:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
-                HAXMVM_ERRF("tunnel->_exit_reason == EXIT_INTERRUPT_WIN");
-                haxmvm_panic("tunnel->_exit_reason == EXIT_INTERRUPT_WIN %04X:%04X(base:%04llX) ESP:%08X F:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
-            }
-            state2._eflags &= ~0x10000;
-            LPBYTE byte = (LPBYTE)ptr;
-            if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
-            {
-                HAXMVM_ERRF("SET_REGS");
-            }
-            continue;
-        }
-        if (tunnel->_exit_status == HAX_EXIT_STATECHANGE)
-        {
-            HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp);
-            HAXMVM_ERRF("hypervisor is panicked!!!");
-            haxmvm_panic("hypervisor is panicked!!!");
-        }
-        cont:
-        //MmProbeAndLockPages(xx, xx , IoReadAccess|IoWriteAccess) fails => HAX_EXIT_STATECHANGE
-        if (state2._cs.selector == seg_cs && tunnel->_exit_status == HAX_EXIT_MMIO)
-        {
-            LPVOID ptr = (LPBYTE)state2._cs.base + state2._eip;
-            state2._eflags &= ~0x10000;
-            BOOL is_reg = ptr == from16_reg;
-            if (is_reg || ptr == __wine_call_from_16)
-            {
-                relay(relay_call_from_16, is_reg, &state2);
-                if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
+	            }
+                break;
+            case HAX_EXIT_HLT:
+                if (((DWORD)ptr >= (DWORD)trap_int) && ((DWORD)ptr <= ((DWORD)trap_int + 256)))
                 {
-                    HAXMVM_ERRF("SET_REGS");
-                }
-                continue;
-            }
-            else if (ptr >= trap_int && (SIZE_T)ptr <= (SIZE_T)trap_int + 255)
-            {
-                //DWORD errorcode = POP32(&state2);
-                DWORD eip = POP32(&state2);
-                DWORD cs = POP32(&state2);
-                DWORD eflags = POP32(&state2);
-                load_seg(&state2._cs, (WORD)cs);
-                state2._eip = eip;
-                state2._eflags = eflags & ~0x10000;
-                BYTE num = (SIZE_T)ptr - (SIZE_T)trap_int;
-                if (is_single_step && num == 1)
-                {
-                    /* Debug exception */
-                    if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
+                    int intvec = ((DWORD)ptr & 0xff) - 1;
+                    state2._eip = 256;
+                    if (intvec == 0x0e)
                     {
-                        HAXMVM_ERRF("SET_REGS");
+                        alloc_ram.size = 4096;
+                        alloc_ram.va = state2._cr2 & ~0xfff;
+                        if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
+                        {
+                            HAXMVM_ERRF("ALLOC_RAM");
+                        }
+                        ram.pa_start = state2._cr2 & ~0xfff;
+                        ram.size = 4096;
+                        ram.va = state2._cr2 & ~0xfff;
+                        if (!set_ram(&ram))
+                        {
+                            HAXMVM_ERRF("SET_RAM");
+                        }
+                        state2._esp += 4;
                     }
-                    if (state2._cs.selector == seg_cs)
+                    else if(intvec < 0x10)
+                        pih(intvec, MAKESEGPTR(state2._cs.selector, state2._eip & 0xffff));
+                    else
                     {
-                        goto cont;
-                    }
-                    continue;
-                }
-                PUSH16(&state2, (WORD)eflags);
-                PUSH16(&state2, (WORD)cs);
-                PUSH16(&state2, (WORD)eip);
-                CONTEXT ctx;
-                save_context_from_state(&ctx, &state2);
-                if (num != 0x10 &&  num < 32)
-                {
-                    /* fixme */
-                    HAXMVM_ERRF("int %02Xh handler is not implemented yet.", num);
-                    haxmvm_panic("int %02Xh handler is not implemented yet.", num);
-                }
-                if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
-                {
-                    HAXMVM_ERRF("SET_REGS");
-                }
-                dynamic__wine_call_int_handler(&ctx, num);
-                load_context_to_state(&ctx, &state2);
-                eip = POP16(&state2);
-                cs = POP16(&state2);
-                eflags = POP16(&state2);
-                //load_seg(&state2._cs, (WORD)cs);
-                //state2._eip = eip;
-                //state2._eflags = eflags & ~0x10000;
-                if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
-                {
-                    HAXMVM_ERRF("SET_REGS");
-                }
-                dprintf("int\n");
-                continue;
-            }
-            else
-            {
-                HAXMVM_ERRF("??? %04x:%04x", state2._cs, state2._eip);
-            }
-        }
-
-        if (FALSE && state2._cs.selector != seg_cs && tunnel->_exit_status == HAX_EXIT_MMIO)
-        {
-            SIZE_T addr = tunnel->mmio.gla / 4096 * 4096;
-            alloc_ram.va = addr;
-            alloc_ram.size = 4096;
-            if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-            {
-                HAXMVM_ERRF("ALLOC_RAM");
-            }
-            ram.pa_start = (SIZE_T)addr;
-            ram.size = (SIZE_T)4096;
-            ram.va = (SIZE_T)addr;
-            if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
-            {
-                HAXMVM_ERRF("SET_RAM\n");
-            }
-            state2._eflags &= ~0x10000;
-            if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
-            {
-                HAXMVM_ERRF("SET_REGS");
-            }
-            continue;
-        }
-        if (TRUE && state2._cs.selector != seg_cs && tunnel->_exit_status == HAX_EXIT_MMIO)
-        {
-            // printf("HAXMMMIO %04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
-            VirtualQuery(tunnel->mmio.gla, &mbi, sizeof(mbi));
-            while (mbi.RegionSize)
-            {
-                alloc_ram.va = (SIZE_T)mbi.BaseAddress;
-                alloc_ram.size = (SIZE_T)mbi.RegionSize;
-                if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-                {
-                    mbi.RegionSize -= 4096;
-                    continue;
+                            DWORD eip = POP32(&state2);
+                            DWORD cs = POP32(&state2);
+                            DWORD eflags = POP32(&state2);
+                            DWORD esp = POP32(&state2);
+                            DWORD ss = POP32(&state2);
+                            load_seg(&state2._cs, (WORD)cs);
+                            state2._eip = eip;
+                            load_seg(&state2._ss, (WORD)ss);
+                            state2._esp = esp;
+                            PUSH16(&state2, (WORD)eflags);
+                            PUSH16(&state2, (WORD)cs);
+                            PUSH16(&state2, (WORD)eip);
+                            CONTEXT ctx;
+                            save_context_from_state(&ctx, &state2);
+                            if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
+                            {
+                                    HAXMVM_ERRF("SET_REGS");
+                            }
+                            dynamic__wine_call_int_handler(&ctx, intvec);
+                            load_context_to_state(&ctx, &state2);
+                            POP16(&state2);
+                            POP16(&state2);
+                            POP16(&state2);
+                     }
                 }
                 break;
-            }
-            dprintf("HAXM MMIO %llx %p - %p size=%p ab:%p\n", tunnel->mmio.gla, mbi.BaseAddress, (SIZE_T)mbi.BaseAddress + mbi.RegionSize, mbi.RegionSize, mbi.AllocationBase);
-
-            if (tunnel->mmio.gla > alloc_ram.va + alloc_ram.size)
-            {
-                HAXMVM_ERRF("(tunnel->mmio.gla > alloc_ram.va + alloc_ram.size).");
-            }
-            if (!mbi.RegionSize)
-            {
-                HAXMVM_ERRF("!mbi.RegionSize");
-            }
-            ram.pa_start = (SIZE_T)mbi.BaseAddress;
-            ram.size = (SIZE_T)mbi.RegionSize;
-            ram.va = (SIZE_T)mbi.BaseAddress;
-            if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
-            {
-                HAXMVM_ERRF("SET_RAM");
-            }
-            state2._eflags &= ~0x10000;
-            if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
-            {
-                HAXMVM_ERRF("SET_REGS");
-            }
-            continue;
+            case HAX_EXIT_INTERRUPT: //TODO: vm_inject
+                break;
+            case HAX_EXIT_STATECHANGE:
+            default:
+                HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp);
+                HAXMVM_ERRF("hypervisor is panicked!!!");
+                haxmvm_panic("hypervisor is panicked!!!");
         }
-        HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp);
-        HAXMVM_ERRF("unknown status %d (reason: %d)!!!", tunnel->_exit_status, tunnel->_exit_reason);
-        haxmvm_panic("hypervisor is panicked!!!");
-    }
-    save_context(context);
+        if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
+        {
+                HAXMVM_ERRF("SET_REGS");
+        }
+        save_context(context);
 }
 
 __declspec(dllexport) DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_HANDLER handler,
