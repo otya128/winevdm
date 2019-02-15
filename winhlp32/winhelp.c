@@ -433,14 +433,15 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
             HLPFILE *hlpfile = WINHELP_LookupHelpFile(ptr);
             if (!hlpfile)
             {
-                MACRO_Exit();
+                if (!WINHELP_HasWorkingWindow()) MACRO_Exit();
                 break;
             }
             char *key = ((char *)wh + wh->ofsData);
             HLPFILE_BPTreeEnum(hlpfile->kwbtree, cb_KWBTreeKey, &key);
             if (key == ((char *)wh + wh->ofsData))
             {
-                MACRO_Exit();
+                HLPFILE_FreeHlpFile(hlpfile);
+                if (!WINHELP_HasWorkingWindow()) MACRO_Exit();
                 break;
             }
             int offset = *(ULONG*)(key + strlen(key) + 3);
