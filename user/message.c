@@ -1271,15 +1271,18 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             CREATESTRUCT16 *cs16 = MapSL(lParam);
             CREATESTRUCTA cs;
             MDICREATESTRUCTA mdi_cs;
+            BOOL mdiclient = GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD || is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg));
 
             CREATESTRUCT16to32A( hwnd32, cs16, &cs );
-            if (GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD || is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg)))
+            if (mdiclient)
             {
                 MDICREATESTRUCT16 *mdi_cs16 = MapSL(cs16->lpCreateParams);
                 MDICREATESTRUCT16to32A(mdi_cs16, &mdi_cs);
                 cs.lpCreateParams = &mdi_cs;
             }
             ret = callback( hwnd32, msg, wParam, (LPARAM)&cs, result, arg );
+            if (mdiclient)
+                cs.lpCreateParams = cs16->lpCreateParams;
             CREATESTRUCT32Ato16( hwnd32, &cs, cs16 );
         }
         break;
