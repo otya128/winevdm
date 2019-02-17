@@ -33,6 +33,7 @@
 #include "user_private.h"
 #include "wine/list.h"
 #include "wine/debug.h"
+#include "winver.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(user);
 
@@ -1188,6 +1189,38 @@ INT16 WINAPI GetMenuString16( HMENU16 hMenu, UINT16 wItemID,
 }
 
 
+static BOOL is_builtin_winhlp32_stub()
+{
+    WCHAR windir[MAX_PATH];
+    WCHAR winhlp32[MAX_PATH];
+    BOOL is_stub = FALSE;
+    static BOOL detected;
+    DWORD ret;
+    if (detected)
+        return is_stub;
+    detected = TRUE;
+    GetSystemWindowsDirectoryW(windir, MAX_PATH);
+    ret = SearchPathW(windir, L"winhlp32.exe", NULL, MAX_PATH, winhlp32, NULL);
+    if (ret && ret < MAX_PATH)
+    {
+        DWORD size = GetFileVersionInfoSizeW(winhlp32, NULL);
+        LPVOID vd = HeapAlloc(GetProcessHeap(), 0, size);
+        if (GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, winhlp32, 0, size, vd))
+        {
+            WCHAR *internalname = NULL;
+            UINT ulen;
+            if (VerQueryValueW(vd, L"\\StringFileInfo\\040904B0\\InternalName", &internalname, &ulen))
+            {
+                if (!memcmp(internalname, L"WINHSTB", sizeof(L"WINHSTB")))
+                {
+                    is_stub = TRUE;
+                }
+            }
+        }
+        HeapFree(GetProcessHeap(), 0, vd);
+    }
+    return is_stub;
+}
 //winhelp.c
 BOOL WINAPI wine_WinHelp16A(HWND16 hWnd, LPCSTR lpHelpFile, UINT wCommand, DWORD_PTR dwData, BOOL *success_exec);
 BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_PTR dwData, BOOL *success_exec);
@@ -1208,10 +1241,17 @@ BOOL16 WINAPI WinHelp16( HWND16 hWnd, LPCSTR lpHelpFile, UINT16 wCommand,
     ret = wine_WinHelp16A(hWnd, lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
     if (!success_exec)
     {
-        ret = wine_WinHelp32A(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
-        if (!success_exec)
+        if (!is_builtin_winhlp32_stub())
         {
             ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData));
+        }
+        else
+        {
+            ret = wine_WinHelp32A(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
+            if (!success_exec)
+            {
+                ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData));
+            }
         }
     }
 
