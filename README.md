@@ -4,7 +4,7 @@
 
 [Download stable version](https://github.com/otya128/winevdm/releases)
 
-[Download latest version (unstable, slower than stable version)](https://ci.appveyor.com/project/otya128/winevdm/build/artifacts)
+[Download latest version (unstable)](https://ci.appveyor.com/project/otya128/winevdm/build/artifacts)
 
 16-bit Windows (Windows 1.x, 2.x, 3.0, 3.1, etc.) on 64-bit Windows
 
@@ -19,6 +19,7 @@ An altered version of winevdm (a 16-bit Windows emulator), ported to 64-bit Wind
 
 # How to run
 
++ If you get an error that VCRUNTIME140.dll is missing, install [Microsoft Visual C++ Redistributable for Visual Studio 2017 (32-bit)](https://aka.ms/vs/15/release/vc_redist.x86.exe)
 + Drag and drop Win16 executable file to otvdm.exe or execute otvdmw.exe.
 
 # How to install
