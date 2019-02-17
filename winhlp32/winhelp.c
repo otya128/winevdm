@@ -618,7 +618,7 @@ static void WINHELP_DeleteWindow(WINHELP_WINDOW* win)
 
 static char* WINHELP_GetCaption(WINHELP_WNDPAGE* wpage)
 {
-    if (wpage->wininfo->caption[0]) return wpage->wininfo->caption;
+    if (!wpage->page) return wpage->wininfo->caption;
     return wpage->page->file->lpszTitle;
 }
 
@@ -876,7 +876,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
                 win->page = wpage->page;
                 win->info = wpage->wininfo;
                 hTextWnd = GetDlgItem(win->hMainWnd, CTL_ID_TEXT);
-                WINHELP_SetupText(hTextWnd, win, wpage->relative);
+                DestroyWindow(hTextWnd);
 
                 InvalidateRect(win->hMainWnd, NULL, TRUE);
                 if (win->hHistoryWnd) InvalidateRect(win->hHistoryWnd, NULL, TRUE);
@@ -941,17 +941,17 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
             /* Create button box and text Window */
             CreateWindowA(BUTTON_BOX_WIN_CLASS_NAME, "", WS_CHILD | WS_VISIBLE,
                          0, 0, 0, 0, win->hMainWnd, (HMENU)CTL_ID_BUTTON, Globals.hInstance, NULL);
-
-        hTextWnd = CreateWindowA(RICHEDIT_CLASS20A, NULL,
-                                ES_MULTILINE | ES_READONLY | WS_CHILD | WS_HSCROLL | WS_VSCROLL | WS_VISIBLE,
-                                0, 0, 0, 0, win->hMainWnd, (HMENU)CTL_ID_TEXT, Globals.hInstance, NULL);
-        /* set ole callback for showing bitmaps */
-        SendMessageW(hTextWnd, EM_SETOLECALLBACK, NULL, &callback);
-        SendMessageW(hTextWnd, EM_SETEVENTMASK, 0,
-                    SendMessageW(hTextWnd, EM_GETEVENTMASK, 0, 0) | ENM_MOUSEEVENTS);
-        win->origRicheditWndProc = (WNDPROC)SetWindowLongPtrA(hTextWnd, GWLP_WNDPROC,
-                                                             (LONG_PTR)WINHELP_RicheditWndProc);
     }
+
+    hTextWnd = CreateWindowA(RICHEDIT_CLASS20A, NULL,
+                    ES_MULTILINE | ES_READONLY | WS_CHILD | WS_HSCROLL | WS_VSCROLL | WS_VISIBLE,
+                    0, 0, 0, 0, win->hMainWnd, (HMENU)CTL_ID_TEXT, Globals.hInstance, NULL);
+    /* set ole callback for showing bitmaps */
+    SendMessageW(hTextWnd, EM_SETOLECALLBACK, NULL, &callback);
+    SendMessageW(hTextWnd, EM_SETEVENTMASK, 0,
+                    SendMessageW(hTextWnd, EM_GETEVENTMASK, 0, 0) | ENM_MOUSEEVENTS);
+    win->origRicheditWndProc = (WNDPROC)SetWindowLongPtrA(hTextWnd, GWLP_WNDPROC,
+                    (LONG_PTR)WINHELP_RicheditWndProc);
 
     hIcon = (wpage->page) ? wpage->page->file->hIcon : NULL;
     if (!hIcon) hIcon = LoadImageW(Globals.hInstance, MAKEINTRESOURCEW(IDI_WINHELP), IMAGE_ICON,
