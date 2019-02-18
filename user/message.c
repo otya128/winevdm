@@ -2974,6 +2974,8 @@ static LRESULT is_dialog_message_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 {
     MSG16 *msg16 = (MSG16*)arg;
     MSG mesg;
+    if (msg == WM_DWMNCRENDERINGCHANGED)
+        return;
     mesg.hwnd = HWND_32(msg16->hwnd);
     mesg.message = msg;
     mesg.wParam = wp;
