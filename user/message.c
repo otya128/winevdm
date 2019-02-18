@@ -1990,8 +1990,13 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_CHARTOITEM:
     case WM_COMMAND:
     case WM_VKEYTOITEM:
-        ret = callback( HWND_16(hwnd), msg, wParam, MAKELPARAM( HWND_16((HWND)lParam), HIWORD(wParam) ),
-                        result, arg );
+        {
+            if (HIWORD(lParam) == 0)
+                lParam = MAKELPARAM(LOWORD(lParam), HIWORD(wParam));
+            else
+                lParam = MAKELPARAM(HWND_16((HWND)lParam), HIWORD(wParam));
+            ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
+        }
         break;
     case WM_HSCROLL:
     case WM_VSCROLL:
