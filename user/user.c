@@ -1193,7 +1193,7 @@ static BOOL is_builtin_winhlp32_stub()
 {
     WCHAR windir[MAX_PATH];
     WCHAR winhlp32[MAX_PATH];
-    BOOL is_stub = FALSE;
+    static BOOL is_stub = FALSE;
     static BOOL detected;
     DWORD ret;
     if (detected)

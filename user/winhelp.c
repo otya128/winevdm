@@ -178,8 +178,17 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, B
     return result;
 }
 
-
-
+/* WinHelp internal structure */
+typedef struct
+{
+    WORD size;
+    WORD command;
+    LONG data;
+    LONG reserved;
+    WORD ofsFilename;
+    WORD ofsData;
+    WORD ofsPath;
+} WINEHELP, *LPWINEHELP;
 
 /* magic number for this message:
 *  aide means help is French ;-)
@@ -194,8 +203,9 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
 {
     COPYDATASTRUCT      cds;
     HWND                hDest;
-    int                 size, dsize, nlen;
-    WINHELP*            lpwh;
+    int                 size, dsize, nlen, plen;
+    char                path[MAX_PATH];
+    WINEHELP*           lpwh;
     LRESULT             ret;
 
     hDest = FindWindowA("MS_WINHELP", NULL);
@@ -279,10 +289,17 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
         return FALSE;
     }
     if (lpHelpFile)
+    {
+        GetCurrentDirectoryA(MAX_PATH, path);
+        plen = strlen(path) + 1;
         nlen = strlen(lpHelpFile) + 1;
+    }
     else
+    {
+        plen = 0;
         nlen = 0;
-    size = sizeof(WINHELP) + nlen + dsize;
+    }
+    size = sizeof(WINEHELP) + nlen + dsize + plen;
 
     lpwh = HeapAlloc(GetProcessHeap(), 0, size);
     if (!lpwh) return FALSE;
@@ -296,18 +313,25 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
     lpwh->data = dwData;
     if (nlen)
     {
-        strcpy(((char*)lpwh) + sizeof(WINHELP), lpHelpFile);
-        lpwh->ofsFilename = sizeof(WINHELP);
+        strcpy(((char*)lpwh) + sizeof(WINEHELP), lpHelpFile);
+        lpwh->ofsFilename = sizeof(WINEHELP);
     }
     else
         lpwh->ofsFilename = 0;
     if (dsize)
     {
-        memcpy(((char*)lpwh) + sizeof(WINHELP) + nlen, (LPSTR)dwData, dsize);
-        lpwh->ofsData = sizeof(WINHELP) + nlen;
+        memcpy(((char*)lpwh) + sizeof(WINEHELP) + nlen, (LPSTR)dwData, dsize);
+        lpwh->ofsData = sizeof(WINEHELP) + nlen;
     }
     else
         lpwh->ofsData = 0;
+    if (plen)
+    {
+        strcpy(((char*)lpwh) + sizeof(WINEHELP) + nlen + dsize, path);
+        lpwh->ofsPath = sizeof(WINEHELP) + nlen + dsize;
+    }
+    else
+        lpwh->ofsPath = 0;
     TRACE("Sending[%u]: cmd=%u data=%08x fn=%s\n",
         lpwh->size, lpwh->command, lpwh->data,
         lpwh->ofsFilename ? (LPSTR)lpwh + lpwh->ofsFilename : "");

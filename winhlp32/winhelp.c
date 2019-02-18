@@ -340,7 +340,8 @@ typedef struct
     LONG reserved;
     WORD ofsFilename;
     WORD ofsData;
-} WINHELP,*LPWINHELP;
+    WORD ofsPath;
+} WINEHELP,*LPWINEHELP;
 
 static BOOL WINHELP_HasWorkingWindow(void)
 {
@@ -366,7 +367,7 @@ static void cb_KWBTreeKey(void *p, void **next, void *cookie)
 static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
 {
     COPYDATASTRUCT*     cds = (COPYDATASTRUCT*)lParam;
-    WINHELP*            wh;
+    WINEHELP*            wh;
 
     if (cds->dwData != 0xA1DE505)
     {
@@ -379,6 +380,8 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
     if (wh)
     {
         char*   ptr = (wh->ofsFilename) ? (LPSTR)wh + wh->ofsFilename : NULL;
+        if (wh->ofsPath)
+            SetCurrentDirectoryA((LPSTR)wh + wh->ofsPath);
 
         WINE_TRACE("Got[%u]: cmd=%u data=%08x fn=%s\n",
                    wh->size, wh->command, wh->data, debugstr_a(ptr));
