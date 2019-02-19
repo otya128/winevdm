@@ -450,6 +450,7 @@ DWORD call_native_wndproc_context(CONTEXT *context)
     context.Eax = !hwnd ? 0 : GetWindowWord16(hwnd, GWLP_HINSTANCE) | 1; /* Handle To Sel */
     if (!context.Eax) context.Eax = context.SegDs;
     context.Ebx = 6;
+    context.Esi = hwnd;
     context.SegCs = SELECTOROF(func);
     context.Eip   = OFFSETOF(func);
     context.Ebp   = OFFSETOF(getWOW32Reserved()) + FIELD_OFFSET(STACK16FRAME, bp);
