@@ -2150,6 +2150,7 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
                 wi->win_style = WS_OVERLAPPEDWINDOW;
                 wi->sr_color = (flags & 0x0100) ? GET_UINT(ptr, 86) : 0xFFFFFF;
                 wi->nsr_color = (flags & 0x0200) ? GET_UINT(ptr, 90) : 0xFFFFFF;
+                wi->flags = flags;
                 WINE_TRACE("System-Window: flags=%c%c%c%c%c%c%c%c type=%s name=%s caption=%s (%d,%d)x(%d,%d)\n",
                            flags & 0x0001 ? 'T' : 't',
                            flags & 0x0002 ? 'N' : 'n',
