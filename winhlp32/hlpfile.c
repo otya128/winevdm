@@ -2060,6 +2060,12 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
     if (hlpfile->version <= 16)
     {
         char *str = (char*)buf + 0x15;
+        if (*str == 0)
+        {
+            str = strrchr(hlpfile->lpszPath, '\\') + 1;
+            if (str == 1)
+                str = hlpfile->lpszPath;
+        }
 
         hlpfile->lpszTitle = HeapAlloc(GetProcessHeap(), 0, strlen(str) + 1);
         if (!hlpfile->lpszTitle) return FALSE;

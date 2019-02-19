@@ -205,6 +205,7 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
     HWND                hDest;
     int                 size, dsize, nlen, plen;
     char                path[MAX_PATH];
+    char*               pathend;
     WINEHELP*           lpwh;
     LRESULT             ret;
 
@@ -290,8 +291,15 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
     }
     if (lpHelpFile)
     {
-        GetCurrentDirectoryA(MAX_PATH, path);
-        plen = strlen(path) + 1;
+        GetModuleFileName16(NULL, path, MAX_PATH);
+        pathend = strrchr(path, '\\');
+        if (pathend)
+        {
+            *pathend = '\0';
+            plen = strlen(path) + 1;
+        }
+        else
+            plen = 0;
         nlen = strlen(lpHelpFile) + 1;
     }
     else
