@@ -1163,15 +1163,25 @@ void DROPSTRUCT32_16(LPDROPSTRUCT lpds32, LPDROPSTRUCT16 lpds16)
 
 ATOM atom_progman;
 ATOM atom_progman16;
+ATOM gatom_progman;
+ATOM gatom_progman16;
 static void init_atom()
 {
     if (!atom_progman)
     {
         atom_progman = AddAtomA("Progman");
     }
+    if (!gatom_progman)
+    {
+        gatom_progman = GlobalAddAtomA("Progman");
+    }
     if (!atom_progman16)
     {
         atom_progman16 = AddAtomA("Progman16");
+    }
+    if (!gatom_progman16)
+    {
+        gatom_progman16 = GlobalAddAtomA("Progman16");
     }
 }
 static ATOM service16_32(ATOM atom)
@@ -1179,6 +1189,8 @@ static ATOM service16_32(ATOM atom)
     init_atom();
     if (atom_progman == atom)
         return atom_progman16;
+    if (gatom_progman == atom)
+	return gatom_progman16;
     return atom;
 }
 
@@ -1187,6 +1199,8 @@ static ATOM service32_16(ATOM atom)
     init_atom();
     if (atom_progman16 == atom)
         return atom_progman;
+    if (gatom_progman16 == atom)
+        return gatom_progman;
     return atom;
 }
 
@@ -1195,6 +1209,8 @@ static ATOM topic16_32(ATOM atom)
     init_atom();
     if (atom_progman == atom)
         return atom_progman16;
+    if (gatom_progman == atom)
+        return gatom_progman16;
     return atom;
 }
 
@@ -1203,6 +1219,8 @@ static ATOM topic32_16(ATOM atom)
     init_atom();
     if (atom_progman16 == atom)
         return atom_progman;
+    if (gatom_progman16 == atom)
+        return gatom_progman;
     return atom;
 }
 /**********************************************************************

@@ -92,10 +92,29 @@ static inline void Dde_OnConnectConfirm(HCONV hconv, HSZ hszTopic, HSZ hszServic
     TRACE( "%p %s %s\n", hconv, debugstr_hsz(hszTopic), debugstr_hsz(hszService) );
 }
 
-static inline BOOL Dde_OnWildConnect(HSZ hszTopic, HSZ hszService)
+static HSZPAIR wildarr[5];
+static HDDEDATA hddewild = 0;
+
+static inline HDDEDATA Dde_OnWildConnect(HSZ hszTopic, HSZ hszService)
 {
-    FIXME("stub\n");
-    return FALSE;
+    if (!hddewild)
+    {
+        wildarr[0].hszSvc = hszProgmanService;
+        wildarr[0].hszTopic = hszProgmanTopic;
+        wildarr[1].hszSvc = hszAppProperties;
+        wildarr[1].hszTopic = hszProgmanTopic;
+        wildarr[2].hszSvc = hszFolders;
+        wildarr[2].hszTopic = hszShell;
+        wildarr[3].hszSvc = hszAppProperties;
+        wildarr[3].hszTopic = hszShell;
+        wildarr[5].hszSvc = 0;
+        wildarr[5].hszTopic = 0;
+        hddewild = DdeCreateDataHandle(dwDDEInst, &wildarr, sizeof(wildarr), 0, 0, 0, 0);
+    }
+    if (hszTopic || hszService)
+        return (HDDEDATA)FALSE;
+
+    return hddewild;
 }
 
 /* Returned string must be freed by caller */
@@ -103,15 +122,18 @@ static WCHAR *get_programs_path(const WCHAR *name)
 {
     static const WCHAR slashW[] = {'/',0};
     WCHAR *programs, *path;
+    WCHAR clnname[MAX_PATH];
     int len;
 
+    wcsncpy(clnname, name, MAX_PATH);
+    PathCleanupSpec(NULL, clnname);
     SHGetKnownFolderPath(&FOLDERID_Programs, 0, NULL, &programs);
 
     len = lstrlenW(programs) + 1 + lstrlenW(name);
     path = heap_alloc((len + 1) * sizeof(*path));
     lstrcpyW(path, programs);
     lstrcatW(path, slashW);
-    lstrcatW(path, name);
+    lstrcatW(path, clnname);
 
     CoTaskMemFree(programs);
 
@@ -174,6 +196,88 @@ static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
     }
     FIXME( "%u %p %s %s: stub\n", uFmt, hconv, debugstr_hsz(hszTopic), debugstr_hsz(hszItem) );
     return NULL;
+}
+
+__declspec(dllimport) HICON NE_ExtractIcon(LPCSTR lpszExeFileName, HICON * RetPtr, INT nIconIndex,
+                UINT nIcons, UINT cxDesired, UINT cyDesired, UINT *pIconId, UINT flags);
+
+static void seticon(IShellLinkW *link, WCHAR *path, int iconidx)
+{
+    HICON icon = 0;
+    UINT id;
+    ICONINFO iinfo;
+    BITMAP mbmap, cbmap;
+    int fd, i, count;
+    int cx = GetSystemMetrics(SM_CXICON);
+    int cy = GetSystemMetrics(SM_CYICON);
+    char *mbits, *cbits;
+    WCHAR *fileext;
+    WCHAR icofile[MAX_PATH];
+    char pathascii[MAX_PATH];
+    BITMAPINFOHEADER bmapi = {0};
+    HANDLE hicofile;
+#include <pshpack1.h>
+    struct {
+        WORD zero;
+        WORD type;
+        WORD count;
+        BYTE width;
+        BYTE height;
+        BYTE colors;
+        BYTE zeroa;
+        WORD planes;
+        WORD bpp;
+        DWORD size;
+        DWORD off;
+    } header = {0, 1, 1, cx, cy, 0, 0, 0, 0}; 
+#include <poppack.h>
+    WideCharToMultiByte(CP_ACP, 0, path, -1, pathascii, MAX_PATH, NULL, NULL);
+    NE_ExtractIcon(pathascii, &icon, iconidx, 1, cx, cy, &id, 0);
+    if (icon)
+    {
+        GetIconInfo(icon, &iinfo);
+        GetObject(iinfo.hbmMask, sizeof(BITMAP), &mbmap);
+        GetObject(iinfo.hbmColor, sizeof(BITMAP), &cbmap);
+        mbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * mbmap.bmWidthBytes);
+        cbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * cbmap.bmWidthBytes);
+        GetBitmapBits(iinfo.hbmMask, cy * mbmap.bmWidthBytes, mbits);
+        GetBitmapBits(iinfo.hbmColor, cy * cbmap.bmWidthBytes, cbits);
+        wcscpy(icofile, path);
+        fileext = wcschr(icofile, '.');
+        fileext[1] = 'i';
+        fileext[2] = 'c';
+        fileext[3] = 'o';
+
+        hicofile = CreateFileW(icofile, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hicofile != INVALID_HANDLE_VALUE)
+        {
+            bmapi.biSize = sizeof(bmapi);
+            bmapi.biWidth = cx;
+            bmapi.biHeight = cy * 2;
+            bmapi.biPlanes = 1;
+            bmapi.biBitCount = 32;
+
+            header.size = cy * (mbmap.bmWidthBytes + cbmap.bmWidthBytes) + sizeof(bmapi);
+            header.off = sizeof(header);
+
+            WriteFile(hicofile, &header, sizeof(header), &count, NULL);
+            WriteFile(hicofile, &bmapi, sizeof(bmapi), &count, NULL);
+            for(i = cy - 1; i >= 0; i--)
+                    WriteFile(hicofile, cbits + (i * cbmap.bmWidthBytes), cbmap.bmWidthBytes, &count, NULL);
+            for(i = cy - 1; i >= 0; i--)
+                    WriteFile(hicofile, mbits + (i * mbmap.bmWidthBytes), mbmap.bmWidthBytes, &count, NULL);
+            CloseHandle(hicofile);
+
+            HeapFree(GetProcessHeap(), 0, mbits);
+            HeapFree(GetProcessHeap(), 0, cbits);
+            DeleteObject(iinfo.hbmColor);
+            DeleteObject(iinfo.hbmMask);
+            DestroyIcon(icon);
+            path = icofile;
+            iconidx = 0;
+        }
+    }
+    IShellLinkW_SetIconLocation(link, path, iconidx);
 }
 
 static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
@@ -279,7 +383,6 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         path = heap_alloc(len * sizeof(WCHAR));
         SearchPathW(NULL, prg_name, dotexeW, len, path, NULL);
         IShellLinkW_SetPath(link, path);
-        heap_free(path);
         if (cmd_argc > 1)
         {
             WCHAR *args = strstrW(argv[0], " ");/* FIXME? */
@@ -288,7 +391,10 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         }
 
         if (argc >= 2) IShellLinkW_SetDescription(link, argv[1]);
-        if (argc >= 4) IShellLinkW_SetIconLocation(link, argv[2], atoiW(argv[3]));
+        if (argc >= 4)
+            seticon(link, *argv[2] ? argv[2] : path, atoiW(argv[3]));
+        else
+            seticon(link, path, 0);
         if (argc >= 7) IShellLinkW_SetWorkingDirectory(link, argv[6]);
         if (argc >= 8) IShellLinkW_SetHotkey(link, atoiW(argv[7]));
         if (argc >= 9)
@@ -296,6 +402,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
             if (atoiW(argv[8]) == 0) IShellLinkW_SetShowCmd(link, SW_SHOWMINNOACTIVE);
             else if (atoiW(argv[8]) == 1) IShellLinkW_SetShowCmd(link, SW_SHOWNORMAL);
         }
+        heap_free(path);
 
         hres = IShellLinkW_QueryInterface(link, &IID_IPersistFile, (void **)&file);
         if (FAILED(hres))
@@ -492,7 +599,7 @@ static HDDEDATA CALLBACK DdeCallback(
         Dde_OnConnectConfirm(hconv, hsz1, hsz2);
         return NULL;
     case XTYP_WILDCONNECT:
-        return (HDDEDATA)(DWORD_PTR)Dde_OnWildConnect(hsz1, hsz2);
+        return Dde_OnWildConnect(hsz1, hsz2);
     case XTYP_REQUEST:
         return Dde_OnRequest(uFmt, hconv, hsz1, hsz2);
     case XTYP_EXECUTE:
