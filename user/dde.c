@@ -107,8 +107,8 @@ static inline HDDEDATA Dde_OnWildConnect(HSZ hszTopic, HSZ hszService)
         wildarr[2].hszTopic = hszShell;
         wildarr[3].hszSvc = hszAppProperties;
         wildarr[3].hszTopic = hszShell;
-        wildarr[5].hszSvc = 0;
-        wildarr[5].hszTopic = 0;
+        wildarr[4].hszSvc = 0;
+        wildarr[4].hszTopic = 0;
         hddewild = DdeCreateDataHandle(dwDDEInst, &wildarr, sizeof(wildarr), 0, 0, 0, 0);
     }
     if (hszTopic || hszService)
