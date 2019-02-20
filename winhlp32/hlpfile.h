@@ -30,6 +30,7 @@ typedef struct
     POINT       origin;
     SIZE        size;
     int         style;
+    WORD        flags;
     DWORD       win_style;
     COLORREF    sr_color;       /* color for scrollable region */
     COLORREF    nsr_color;      /* color for non scrollable region */

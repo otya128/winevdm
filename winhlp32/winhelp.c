@@ -621,7 +621,8 @@ static void WINHELP_DeleteWindow(WINHELP_WINDOW* win)
 
 static char* WINHELP_GetCaption(WINHELP_WNDPAGE* wpage)
 {
-    if (!wpage->page) return wpage->wininfo->caption;
+    if ((wpage->wininfo->flags & 4) || !wpage->page)
+        return wpage->wininfo->caption;
     return wpage->page->file->lpszTitle;
 }
 
