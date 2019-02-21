@@ -235,13 +235,6 @@ static void seticon(IShellLinkW *link, WCHAR *path, int iconidx)
     NE_ExtractIcon(pathascii, &icon, iconidx, 1, cx, cy, &id, 0);
     if (icon)
     {
-        GetIconInfo(icon, &iinfo);
-        GetObject(iinfo.hbmMask, sizeof(BITMAP), &mbmap);
-        GetObject(iinfo.hbmColor, sizeof(BITMAP), &cbmap);
-        mbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * mbmap.bmWidthBytes);
-        cbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * cbmap.bmWidthBytes);
-        GetBitmapBits(iinfo.hbmMask, cy * mbmap.bmWidthBytes, mbits);
-        GetBitmapBits(iinfo.hbmColor, cy * cbmap.bmWidthBytes, cbits);
         wcscpy(icofile, path);
         fileext = wcschr(icofile, '.');
         fileext[1] = 'i';
@@ -251,6 +244,16 @@ static void seticon(IShellLinkW *link, WCHAR *path, int iconidx)
         hicofile = CreateFileW(icofile, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hicofile != INVALID_HANDLE_VALUE)
         {
+            GetIconInfo(icon, &iinfo);
+            GetObject(iinfo.hbmMask, sizeof(BITMAP), &mbmap);
+            GetObject(iinfo.hbmColor, sizeof(BITMAP), &cbmap);
+            mbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * mbmap.bmWidthBytes);
+            cbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * cbmap.bmWidthBytes);
+            GetBitmapBits(iinfo.hbmMask, cy * mbmap.bmWidthBytes, mbits);
+            GetBitmapBits(iinfo.hbmColor, cy * cbmap.bmWidthBytes, cbits);
+            DeleteObject(iinfo.hbmColor);
+            DeleteObject(iinfo.hbmMask);
+
             bmapi.biSize = sizeof(bmapi);
             bmapi.biWidth = cx;
             bmapi.biHeight = cy * 2;
@@ -270,12 +273,15 @@ static void seticon(IShellLinkW *link, WCHAR *path, int iconidx)
 
             HeapFree(GetProcessHeap(), 0, mbits);
             HeapFree(GetProcessHeap(), 0, cbits);
-            DeleteObject(iinfo.hbmColor);
-            DeleteObject(iinfo.hbmMask);
-            DestroyIcon(icon);
             path = icofile;
             iconidx = 0;
         }
+        else if (GetLastError() == ERROR_FILE_EXISTS)
+        {
+            path = icofile;
+            iconidx = 0;
+        }
+        DestroyIcon(icon);
     }
     IShellLinkW_SetIconLocation(link, path, iconidx);
 }
