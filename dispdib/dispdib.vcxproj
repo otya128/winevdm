@@ -20,13 +20,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -100,9 +100,9 @@ dispdib.def
   </ItemGroup>
   <ItemGroup>
     <Object Include="dispdib.dll16.obj">
-       <FileType>Document</FileType>
-       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">as --32 -o dispdib.dll16.obj ddeml.dll16.asm</Command>
-       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">dispdib.dll16.asm;%(AdditionalInputs)</AdditionalInputs>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">as --32 -o dispdib.dll16.obj ddeml.dll16.asm</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">dispdib.dll16.asm;%(AdditionalInputs)</AdditionalInputs>
     </Object>
   </ItemGroup>
   <ItemGroup>

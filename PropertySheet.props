@@ -3,6 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
     <AsmPath>C:\msys32\usr\bin\</AsmPath>
+    <NtDllLibPath>$(UniversalCRTSdkDir)Lib\10.0.17134.0\um\x86\</NtDllLibPath>
   </PropertyGroup>
   <PropertyGroup>
     <_PropertySheetDisplayName>MacroPropertySheet</_PropertySheetDisplayName>
@@ -11,6 +12,9 @@
   <ItemGroup>
     <BuildMacro Include="AsmPath">
       <Value>$(AsmPath)</Value>
+    </BuildMacro>
+    <BuildMacro Include="NtDllLibPath">
+      <Value>$(NtDllLibPath)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>

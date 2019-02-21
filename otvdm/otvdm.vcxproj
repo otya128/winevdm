@@ -29,13 +29,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -56,7 +56,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>$(OutDir);$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSdk_71A_LibraryPath_x86);</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -74,7 +74,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libwine.lib;krnl386.lib;user.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>krnl386.exe16;libwine.dll;user32.dll;kernel32.dll;gdi32.dll;shell32.dll;comdlg32.dll;</DelayLoadDLLs>
+      <DelayLoadDLLs>libwine.dll;user32.dll;kernel32.dll;gdi32.dll;shell32.dll;comdlg32.dll;</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(SolutionDir)$(Configuration)\WINDOWS\SYSTEM" 2&gt; NUL || ver &gt; NUL</Command>
@@ -96,8 +96,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libwine.lib;krnl386.lib;user.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>krnl386.exe16;libwine.dll;user32.dll;kernel32.dll;gdi32.dll;shell32.dll;comdlg32.dll;</DelayLoadDLLs>
+      <AdditionalDependencies>$(OutDir)libwine.lib;$(OutDir)krnl386.lib;$(OutDir)user.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>libwine.dll;user32.dll;kernel32.dll;gdi32.dll;shell32.dll;comdlg32.dll;</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(SolutionDir)$(Configuration)\WINDOWS\SYSTEM" 2&gt; NUL || ver &gt; NUL</Command>
