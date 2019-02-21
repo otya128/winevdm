@@ -1196,16 +1196,25 @@ static BOOL is_builtin_winhlp32_stub()
     static BOOL is_stub = FALSE;
     static BOOL detected;
     DWORD ret;
+    HMODULE version;
+    BOOL (WINAPI*pGetFileVersionInfoExW)(DWORD dwFlags, LPCWSTR lpwstrFilename, DWORD dwHandle, DWORD dwLen, LPVOID lpData);
     if (detected)
         return is_stub;
     detected = TRUE;
+    version = GetModuleHandleA("version");
+    pGetFileVersionInfoExW = GetProcAddress(version, "GetFileVersionInfoExW");
+    if (!pGetFileVersionInfoExW)
+    {
+        is_stub = FALSE;
+        return is_stub;
+    }
     GetSystemWindowsDirectoryW(windir, MAX_PATH);
     ret = SearchPathW(windir, L"winhlp32.exe", NULL, MAX_PATH, winhlp32, NULL);
     if (ret && ret < MAX_PATH)
     {
         DWORD size = GetFileVersionInfoSizeW(winhlp32, NULL);
         LPVOID vd = HeapAlloc(GetProcessHeap(), 0, size);
-        if (GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, winhlp32, 0, size, vd))
+        if (pGetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, winhlp32, 0, size, vd))
         {
             WCHAR *internalname = NULL;
             UINT ulen;

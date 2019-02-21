@@ -463,8 +463,10 @@ static BOOL set_peb_compatible_flag()
     set_dll_path();
     if ((flags2 & f) != f  && user32 != NULL)
     {
+#if defined(NTDDI_WIN10)
         WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");
         WINE_ERR("Some compatibility flags can not be applied.\n");
+#endif
         success = FALSE;
     }
     //ExtractAssociatedIcon
@@ -742,6 +744,7 @@ int main( int argc, char *argv[] )
         argc -= 2;
     }
     //compatible mode
+#if defined(NTDDI_WIN10)
     else if ((!compat_success
 
 #ifdef FIX_COMPAT_MODE
@@ -753,6 +756,7 @@ int main( int argc, char *argv[] )
         fix_compatible(argc, argv);
         return 0;
     }
+#endif
 
     if (!argv[1]) usage();
 

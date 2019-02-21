@@ -39,6 +39,7 @@
 #include "winhelp_res.h"
 #include "shellapi.h"
 #include "richedit.h"
+#include "oleidl.h"
 #include "richole.h"
 #include "commctrl.h"
 

@@ -191,6 +191,16 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
     {
     case DLL_PROCESS_ATTACH:
     {
+        WCHAR mod_path[MAX_PATH];
+        LPWSTR last;
+        GetModuleFileNameW(GetModuleHandleW(NULL), mod_path, MAX_PATH);
+        last = wcsrchr(mod_path, '\\');
+        last[0] = 0;
+        if (wcslen(mod_path) + sizeof("\\wow32.dll") < MAX_PATH)
+        {
+            memcpy(last, L"\\wow32.dll", sizeof("\\wow32.dll") * sizeof(WCHAR));
+            LoadLibraryW(mod_path);
+        }
         DWORD tls[TLS_MINIMUM_AVAILABLE];
 
         for (int i = 0; i < TLS_MINIMUM_AVAILABLE; i++)

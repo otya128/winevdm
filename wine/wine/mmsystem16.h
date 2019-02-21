@@ -26,9 +26,11 @@
 #include "wine/windef16.h"
 #define DECL_WINELIB_TYPE_AW(x)
 //#include "mmsystem.h"
-#include <mmeapi.h>
 #include <MMSYSTEM.H>
-#include <mmddk.h>
+#define MCI_OPEN_DRIVER             0x0801
+#define MCI_CLOSE_DRIVER            0x0802
+#include "../windows/mmddk.h"
+
 #define DRV_QUERYDRVENTRY (DRV_RESERVED + 1) //undefined
 #define DRV_SUCCESS		0x0001
 #define DRV_FAILURE		0x0000

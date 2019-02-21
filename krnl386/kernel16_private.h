@@ -119,6 +119,12 @@
 #error aaa
 #endif
 
+#if !defined(NTDDI_WIN10)
+typedef struct _CLIENT_ID {
+    HANDLE UniqueProcess;
+    HANDLE UniqueThread;
+} CLIENT_ID;
+#endif
 typedef struct _GDI_TEB_BATCH
 {
 	ULONG  Offset;

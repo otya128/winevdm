@@ -26,6 +26,12 @@
 #include <wine/windef16.h>
 #include <wine/library.h>
 
+#if !defined(NTDDI_WIN10)
+typedef struct _EXCEPTION_REGISTRATION_RECORD {
+    struct _EXCEPTION_REGISTRATION_RECORD *Next;
+    PEXCEPTION_ROUTINE Handler;
+} EXCEPTION_REGISTRATION_RECORD;
+#endif
 #include <pshpack1.h>
 
 /* Process database (i.e. a normal DOS PSP) */
