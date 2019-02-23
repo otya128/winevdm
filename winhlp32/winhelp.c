@@ -112,6 +112,7 @@ static void WINHELP_SetupText(HWND hTextWnd, WINHELP_WINDOW* win, ULONG relative
     SendMessageW(hTextWnd, EM_SETBKGNDCOLOR, 0, (LPARAM)win->info->sr_color);
     /* set word-wrap to window size (undocumented) */
     SendMessageW(hTextWnd, EM_SETTARGETDEVICE, 0, 0);
+    SendMessageW(hTextWnd, EM_EXLIMITTEXT, 0, -1);
     if (win->page)
     {
         struct RtfData  rd;
@@ -621,7 +622,7 @@ static void WINHELP_DeleteWindow(WINHELP_WINDOW* win)
 
 static char* WINHELP_GetCaption(WINHELP_WNDPAGE* wpage)
 {
-    if ((wpage->wininfo->flags & 4) || !wpage->page)
+    if (((wpage->wininfo->flags & 4) && (wpage->wininfo->caption[0])) || !wpage->page)
         return wpage->wininfo->caption;
     return wpage->page->file->lpszTitle;
 }

@@ -1327,6 +1327,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
     lastcol = -1;
     for (nc = 0; nc < ncol; /**/)
     {
+        BYTE brdr;
         WINE_TRACE("looking for format at offset %lu in column %d\n", (SIZE_T)(format - (buf + 0x15)), nc);
         if (!HLPFILE_RtfAddControl(rd, "\\pard")) goto done;
         if (buf[0x14] == HLP_TABLE)
@@ -1380,9 +1381,11 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
         }
         if (bits & 0x0100)
         {
-            BYTE        brdr = *format++;
             short       w;
-
+            brdr = *format++;
+            // richedit won't display any borders except as part of a table
+            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row")) goto done;
+/*
             if ((brdr & 0x01) && !HLPFILE_RtfAddControl(rd, "\\box")) goto done;
             if ((brdr & 0x02) && !HLPFILE_RtfAddControl(rd, "\\brdrt")) goto done;
             if ((brdr & 0x04) && !HLPFILE_RtfAddControl(rd, "\\brdrl")) goto done;
@@ -1390,15 +1393,15 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             if ((brdr & 0x10) && !HLPFILE_RtfAddControl(rd, "\\brdrr")) goto done;
             if ((brdr & 0x20) && !HLPFILE_RtfAddControl(rd, "\\brdrth")) goto done;
             if (!(brdr & 0x20) && !HLPFILE_RtfAddControl(rd, "\\brdrs")) goto done;
-            if ((brdr & 0x40) && !HLPFILE_RtfAddControl(rd, "\\brdrdb")) goto done;
+            if ((brdr & 0x40) && !HLPFILE_RtfAddControl(rd, "\\brdrdb")) goto done; */
             /* 0x80: unknown */
 
             w = GET_SHORT(format, 0); format += 2;
-            if (w)
+/*          if (w)
             {
                 sprintf(tmp, "\\brdrw%d", HLPFILE_HalfPointsScale(page, w));
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
-            }
+            } */
         }
         if (bits & 0x0200)
         {
@@ -1494,7 +1497,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                     /* FIXME: colors are missing, at a minimum; also, the bold attribute loses information */
 
                     sprintf(tmp, "\\f%d\\cf%d\\fs%d%s%s%s%s",
-                            font, font + 2, fs,
+                            font + 1, font + 2, fs,
                             page->file->fonts[font].LogFont.lfWeight > 400 ? "\\b" : "\\b0",
                             page->file->fonts[font].LogFont.lfItalic ? "\\i" : "\\i0",
                             page->file->fonts[font].LogFont.lfUnderline ? "\\ul" : "\\ul0",
@@ -1692,6 +1695,8 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 format++;
 	    }
 	}
+        if (bits & 0x0100)
+            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row")) goto done;
     }
     ret = TRUE;
 done:
@@ -1750,7 +1755,7 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     if (ck)
     {
         rd->code_page = CP_MACCP;
-        sprintf(tmp, "{\\rtf1\\%s\\deff0", ck);
+        sprintf(tmp, "{\\rtf1\\%s\\deff1", ck);
         if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     }
     else
@@ -1763,12 +1768,13 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
         {
             rd->code_page = cpg;
         }
-        sprintf(tmp, "{\\rtf1\\ansi\\ansicpg%d\\deff0", cpg);
+        sprintf(tmp, "{\\rtf1\\ansi\\ansicpg%d\\deff1", cpg);
         if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     }
 
     /* generate font table */
     if (!HLPFILE_RtfAddControl(rd, "{\\fonttbl")) return FALSE;
+    if (!HLPFILE_RtfAddControl(rd, "{\\f0 Arial;}")) return FALSE;
     for (index = 0; index < hlpfile->numFonts; index++)
     {
         const char* family;
@@ -1782,7 +1788,7 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
         default:            family = "nil";     break;
         }
         sprintf(tmp, "{\\f%d\\f%s\\fprq%d\\fcharset%d %s;}",
-                index, family,
+                index + 1, family,
                 hlpfile->fonts[index].LogFont.lfPitchAndFamily & 0x0F,
                 hlpfile->fonts[index].LogFont.lfCharSet,
                 hlpfile->fonts[index].LogFont.lfFaceName);
