@@ -977,15 +977,16 @@ static BOOL WINHELP_HandleLink(ENLINK* enlink, WINHELP_WINDOW* win)
     HLPFILE*                hlpfile;
     HLPFILE_LINK*           link;
     BOOL                    ret = FALSE;
-    WCHAR                   tmp[256];
+    WCHAR                   tmp[32];
     TEXTRANGEW              chars;
     HLPFILE_WINDOWINFO*     wi;
+    const WCHAR             format[] = {'%', 'p', 0};
 
     chars.chrg.cpMin = enlink->chrg.cpMin;
     chars.chrg.cpMax = enlink->chrg.cpMax;
     chars.lpstrText = &tmp;
     SendMessageW(enlink->nmhdr.hwndFrom, EM_GETTEXTRANGE, 0, &chars);
-    (DWORD)link = wcstoul(tmp, tmp + wcslen(tmp), 16);
+    swscanf(tmp, format, &link);
 
     switch (enlink->msg)
     {

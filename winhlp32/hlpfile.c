@@ -1233,7 +1233,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
     LONG               size, blocksize, datalen;
     unsigned short     bits;
     unsigned           ncol = 1;
-    short              nc, lastcol, table_width;
+    short              nc, lastcol, table_width, lastfont = 0;
     char               tmp[256];
     BOOL               ret = FALSE;
 
@@ -1384,7 +1384,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             short       w;
             brdr = *format++;
             // richedit won't display any borders except as part of a table
-            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row")) goto done;
+            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row}")) goto done;
 /*
             if ((brdr & 0x01) && !HLPFILE_RtfAddControl(rd, "\\box")) goto done;
             if ((brdr & 0x02) && !HLPFILE_RtfAddControl(rd, "\\brdrt")) goto done;
@@ -1503,6 +1503,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                             page->file->fonts[font].LogFont.lfUnderline ? "\\ul" : "\\ul0",
                             page->file->fonts[font].LogFont.lfStrikeOut ? "\\strike" : "\\strike0");
                     if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
+                    lastfont = font;
                 }
                break;
 
@@ -1595,7 +1596,9 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 }
                 break;
 
-	    case 0x89:
+    	    case 0x89:
+            {
+                unsigned fs;
                 format += 1;
                 if (!rd->current_link)
                     WINE_FIXME("No existing link\n");
@@ -1603,7 +1606,24 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 rd->current_link->cpMax = rd->char_pos;
                 rd->current_link = NULL;
                 rd->force_color = FALSE;
+                
+                // fix the font
+                switch (rd->font_scale)
+                {
+                    case 0: fs = page->file->fonts[lastfont].LogFont.lfHeight - 4; break;
+                    default:
+                    case 1: fs = page->file->fonts[lastfont].LogFont.lfHeight; break;
+                    case 2: fs = page->file->fonts[lastfont].LogFont.lfHeight + 4; break;
+                }
+                sprintf(tmp, "\\f%d\\cf%d\\fs%d%s%s%s%s",
+                            lastfont + 1, lastfont + 2, fs,
+                            page->file->fonts[lastfont].LogFont.lfWeight > 400 ? "\\b" : "\\b0",
+                            page->file->fonts[lastfont].LogFont.lfItalic ? "\\i" : "\\i0",
+                            page->file->fonts[lastfont].LogFont.lfUnderline ? "\\ul" : "\\ul0",
+                            page->file->fonts[lastfont].LogFont.lfStrikeOut ? "\\strike" : "\\strike0");
+                if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 break;
+            }
 
             case 0x8B:
                 if (!HLPFILE_RtfAddControl(rd, "\\~")) goto done;
@@ -1703,7 +1723,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
 	    }
 	}
         if (bits & 0x0100)
-            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row")) goto done;
+            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row}")) goto done;
     }
     ret = TRUE;
 done:
