@@ -900,6 +900,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
                     0, 0, 0, 0, win->hMainWnd, (HMENU)CTL_ID_TEXT, Globals.hInstance, NULL);
     /* set ole callback for showing bitmaps */
     SendMessageW(hTextWnd, EM_SETOLECALLBACK, NULL, &callback);
+    SendMessageW(hTextWnd, EM_SHOWSCROLLBAR, SB_HORZ, FALSE);
     SendMessageW(hTextWnd, EM_SETEVENTMASK, 0,
                     SendMessageW(hTextWnd, EM_GETEVENTMASK, 0, 0) | ENM_MOUSEEVENTS | ENM_LINK);
     win->origRicheditWndProc = (WNDPROC)SetWindowLongPtrA(hTextWnd, GWLP_WNDPROC,
