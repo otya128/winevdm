@@ -564,7 +564,7 @@ BOOL WINHELP_ReleaseWindow(WINHELP_WINDOW* win)
 
     if (!--win->ref_count)
     {
-        DestroyWindow(win->hMainWnd);
+        SendMessage(win->hMainWnd, WM_CLOSE, NULL, NULL);
         return FALSE;
     }
     return TRUE;
@@ -1042,7 +1042,8 @@ static BOOL WINHELP_HandleLink(ENLINK* enlink, WINHELP_WINDOW* win)
  */
 static BOOL WINHELP_CheckPopup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* lret)
 {
-    WINHELP_WINDOW*     popup;
+    WINHELP_WINDOW*     popup = Globals.active_popup;
+    BOOL                ret = TRUE;
 
     if (!Globals.active_popup) return FALSE;
 
@@ -1055,12 +1056,7 @@ static BOOL WINHELP_CheckPopup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             {
             case EN_MSGFILTER:
                 if (!WINHELP_CheckPopup(hWnd, msgf->msg, msgf->wParam, msgf->lParam, NULL))
-                {
-                    if (msgf->nmhdr.hwndFrom == Globals.active_popup)
-                        return FALSE;
-                    else
-                        return TRUE;
-                }   
+                    return FALSE;
                 if (lret) *lret = 1;
                 return TRUE;
             case EN_LINK:
@@ -1076,22 +1072,36 @@ static BOOL WINHELP_CheckPopup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             (HWND)lParam == Globals.active_popup->hMainWnd ||
             GetWindow((HWND)lParam, GW_OWNER) == Globals.active_win->hMainWnd)
             return FALSE;
-        /* fall through */
+        break;
     case WM_LBUTTONDOWN:
+        if (hWnd == popup->hMainWnd)
+        {
+            static inloop = FALSE;
+            if (inloop)
+                return FALSE;
+            inloop = TRUE;
+            CallWindowProcA(popup->origRicheditWndProc, GetDlgItem(popup->hMainWnd, CTL_ID_TEXT), msg, wParam, lParam);
+            inloop = FALSE;
+            break;
+        }
     case WM_MBUTTONDOWN:
     case WM_RBUTTONDOWN:
     case WM_NCLBUTTONDOWN:
     case WM_NCMBUTTONDOWN:
     case WM_NCRBUTTONDOWN:
+        if (hWnd != popup->hMainWnd)
+            ret = FALSE;
         break;
+    case WM_CLOSE:
+        DestroyWindow(hWnd);
+        return TRUE;
     default:
         return FALSE;
     }
-    popup = Globals.active_popup;
     Globals.active_popup = NULL;
     WINHELP_ReleaseWindow(popup);
     if (lret) *lret = 1;
-    return TRUE;
+    return ret;
 }
 
 /***********************************************************************
