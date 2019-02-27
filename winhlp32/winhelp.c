@@ -802,7 +802,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
         {
             if (!lstrcmpiA(win->info->name, wpage->wininfo->name))
             {
-                if (win->page == wpage->page && win->info == wpage->wininfo)
+                if (win->page == wpage->page && win->info == wpage->wininfo && win->offset == wpage->relative)
                 {
                     /* see #22979, some hlp files have a macro (run at page opening), which
                      * jumps to the very same page
@@ -840,6 +840,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
 
                 win->page = wpage->page;
                 win->info = wpage->wininfo;
+                win->offset = wpage->relative;
                 hTextWnd = GetDlgItem(win->hMainWnd, CTL_ID_TEXT);
                 // hide the window then destroy it in the message loop
                 ShowWindow(hTextWnd, 0);

@@ -96,6 +96,7 @@ typedef struct tagWinHelp
 
     WINHELP_PAGESET     back;
     unsigned            font_scale; /* 0 = small, 1 = normal, 2 = large */
+    ULONG               offset;
 
     struct tagWinHelp*  next;
 } WINHELP_WINDOW;
