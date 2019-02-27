@@ -849,13 +849,13 @@ static void CALLBACK MACRO_SetHelpOnFile(LPCSTR str)
         strcpy(page->file->help_on_file, str);
 }
 
-static void CALLBACK MACRO_SetPopupColor(LONG r, LONG g, LONG b)
+static void CALLBACK MACRO_SetPopupColor(LONG rgb)
 {
     HLPFILE_PAGE*       page = MACRO_CurrentWindow()->page;
 
-    WINE_TRACE("(%x, %x, %x)\n", r, g, b);
+    WINE_TRACE("(%d)\n", rgb);
     page->file->has_popup_color = TRUE;
-    page->file->popup_color = RGB(r, g, b);
+    page->file->popup_color = rgb;
 }
 
 static void CALLBACK MACRO_ShellExecute(LPCSTR str1, LPCSTR str2, LONG u1, LONG u2, LPCSTR str3, LPCSTR str4)
@@ -995,7 +995,7 @@ static struct MacroDesc MACRO_Builtins[] = {
     {"Search",              NULL, 0, "",       MACRO_Search},
     {"SetContents",         NULL, 0, "SU",     MACRO_SetContents},
     {"SetHelpOnFile",       NULL, 0, "S",      MACRO_SetHelpOnFile},
-    {"SetPopupColor",       "SPC",0, "UUU",    MACRO_SetPopupColor},
+    {"SetPopupColor",       "SPC",0, "U",      MACRO_SetPopupColor},
     {"ShellExecute",        "SE", 0, "SSUUSS", MACRO_ShellExecute},
     {"ShortCut",            "SH", 0, "SSUUS",  MACRO_ShortCut},
     {"TCard",               NULL, 0, "U",      MACRO_TCard},

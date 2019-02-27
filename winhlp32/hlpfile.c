@@ -1078,7 +1078,7 @@ static BOOL     HLPFILE_RtfAddMetaFile(struct RtfData* rd, HLPFILE* file, const 
     ptr = beg + 2; /* for type and pack */
 
     mm = fetch_ushort(&ptr); /* mapping mode */
-    sprintf(tmp, "{\\pict\\wmetafile%d\\picw%d\\pich%d",
+    sprintf(tmp, "\\sl0{\\pict\\wmetafile%d\\picw%d\\pich%d",
             mm, GET_USHORT(ptr, 0), GET_USHORT(ptr, 2));
     if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     ptr += 4;
@@ -1233,7 +1233,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
     LONG               size, blocksize, datalen;
     unsigned short     bits;
     unsigned           ncol = 1;
-    short              nc, lastcol, table_width;
+    short              nc, lastcol, table_width, lastfont = 0;
     char               tmp[256];
     BOOL               ret = FALSE;
 
@@ -1384,7 +1384,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             short       w;
             brdr = *format++;
             // richedit won't display any borders except as part of a table
-            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row")) goto done;
+            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row}")) goto done;
 /*
             if ((brdr & 0x01) && !HLPFILE_RtfAddControl(rd, "\\box")) goto done;
             if ((brdr & 0x02) && !HLPFILE_RtfAddControl(rd, "\\brdrt")) goto done;
@@ -1503,6 +1503,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                             page->file->fonts[font].LogFont.lfUnderline ? "\\ul" : "\\ul0",
                             page->file->fonts[font].LogFont.lfStrikeOut ? "\\strike" : "\\strike0");
                     if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
+                    lastfont = font;
                 }
                break;
 
@@ -1595,14 +1596,34 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 }
                 break;
 
-	    case 0x89:
+    	    case 0x89:
+            {
+                unsigned fs;
                 format += 1;
                 if (!rd->current_link)
                     WINE_FIXME("No existing link\n");
+                if (!HLPFILE_RtfAddControl(rd, "}}}")) goto done;
                 rd->current_link->cpMax = rd->char_pos;
                 rd->current_link = NULL;
                 rd->force_color = FALSE;
+                
+                // fix the font
+                switch (rd->font_scale)
+                {
+                    case 0: fs = page->file->fonts[lastfont].LogFont.lfHeight - 4; break;
+                    default:
+                    case 1: fs = page->file->fonts[lastfont].LogFont.lfHeight; break;
+                    case 2: fs = page->file->fonts[lastfont].LogFont.lfHeight + 4; break;
+                }
+                sprintf(tmp, "\\f%d\\cf%d\\fs%d%s%s%s%s",
+                            lastfont + 1, lastfont + 2, fs,
+                            page->file->fonts[lastfont].LogFont.lfWeight > 400 ? "\\b" : "\\b0",
+                            page->file->fonts[lastfont].LogFont.lfItalic ? "\\i" : "\\i0",
+                            page->file->fonts[lastfont].LogFont.lfUnderline ? "\\ul" : "\\ul0",
+                            page->file->fonts[lastfont].LogFont.lfStrikeOut ? "\\strike" : "\\strike0");
+                if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 break;
+            }
 
             case 0x8B:
                 if (!HLPFILE_RtfAddControl(rd, "\\~")) goto done;
@@ -1628,6 +1649,8 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 WINE_TRACE("macro => %s\n", debugstr_a((char *)format + 3));
                 HLPFILE_AllocLink(rd, hlp_link_macro, (const char*)format + 3,
                                   GET_USHORT(format, 1), 0, !(*format & 4), FALSE, -1);
+                sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
+                if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 3 + GET_USHORT(format, 1);
                 break;
 
@@ -1636,8 +1659,8 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 WINE_WARN("jump topic 1 => %u\n", GET_UINT(format, 1));
                 HLPFILE_AllocLink(rd, (*format & 1) ? hlp_link_link : hlp_link_popup,
                                   page->file->lpszPath, -1, GET_UINT(format, 1), TRUE, FALSE, -1);
-
-
+                sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
+                if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 5;
                 break;
 
@@ -1649,6 +1672,8 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 HLPFILE_AllocLink(rd, (*format & 1) ? hlp_link_link : hlp_link_popup,
                                   page->file->lpszPath, -1, GET_UINT(format, 1),
                                   !(*format & 4), FALSE, -1);
+                sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
+                if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 5;
                 break;
 
@@ -1686,6 +1711,8 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                     }
                     HLPFILE_AllocLink(rd, (*format & 1) ? hlp_link_link : hlp_link_popup,
                                       ptr, -1, GET_UINT(format, 4), !(*format & 4), FALSE, wnd);
+                    sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
+                    if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 }
                 format += 3 + GET_USHORT(format, 1);
                 break;
@@ -1696,7 +1723,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
 	    }
 	}
         if (bits & 0x0100)
-            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row")) goto done;
+            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row}")) goto done;
     }
     ret = TRUE;
 done:
