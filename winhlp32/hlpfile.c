@@ -1722,7 +1722,11 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 format++;
 	    }
 	}
-        if (bits & 0x0100)
+        if (buf[0x14] == HLP_TABLE)
+        {
+            WINE_FIXME("border in table\n");
+        }
+        else if (bits & 0x0100)
             if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row}")) goto done;
     }
     ret = TRUE;
