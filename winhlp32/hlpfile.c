@@ -383,7 +383,7 @@ HLPFILE_PAGE *HLPFILE_PageByOffset(HLPFILE* hlpfile, LONG offset, ULONG* relativ
     {
         if (page->offset <= offset && (!found || found->offset < page->offset))
         {
-            *relative = offset - page->offset;
+            *relative = offset;
             found = page;
         }
     }
@@ -1722,12 +1722,15 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 format++;
 	    }
 	}
-        if (buf[0x14] == HLP_TABLE)
+        if (bits & 0x0100)
         {
-            WINE_FIXME("border in table\n");
-        }
-        else if (bits & 0x0100)
+            if (buf[0x14] == HLP_TABLE)
+            {
+                WINE_FIXME("border in table\n");
+            }
+            else
             if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row}")) goto done;
+        }
     }
     ret = TRUE;
 done:
@@ -1746,10 +1749,12 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     HLPFILE     *hlpfile = page->file;
     BYTE        *buf, *end;
     DWORD       ref = page->reference;
-    unsigned    index, old_index = -1, offset, count = 0, offs = 0;
+    unsigned    index, old_index = hlpfile->version <= 16 ? -1 : page->offset >> 15;
+    unsigned    offset, count = 0, offs = page->offset & 0x7fff;
     unsigned    cpg, parlen;
     char        tmp[1024];
     const char* ck = NULL;
+    BOOL        found = FALSE;
 
     rd->in_text = TRUE;
     rd->data = rd->ptr = HeapAlloc(GetProcessHeap(), 0, rd->allocated = 32768);
@@ -1872,9 +1877,15 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
         case HLP_DISPLAY30:
         case HLP_DISPLAY:
         case HLP_TABLE:
-            if (!HLPFILE_BrowseParagraph(page, rd, buf, end, &parlen)) return FALSE;
-            if (relative > index * 0x8000 + offs)
+            if ((relative <= index * 0x8000 + offs) && !found)
+            {
+                sprintf(tmp, "{\\v\\pard scroll_%x}", relative);
+                if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
+                found = TRUE;
                 rd->char_pos_rel = rd->char_pos;
+            }
+            if (!HLPFILE_BrowseParagraph(page, rd, buf, end, &parlen)) return FALSE;
+
             offs += parlen;
             break;
         default:

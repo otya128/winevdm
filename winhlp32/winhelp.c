@@ -130,11 +130,21 @@ static void WINHELP_SetupText(HWND hTextWnd, WINHELP_WINDOW* win, ULONG relative
             es.pfnCallback = WINHELP_RtfStreamIn;
 
             SendMessageW(hTextWnd, EM_STREAMIN, SF_RTF, (LPARAM)&es);
-            cp = rd.char_pos_rel;
         }
         /* FIXME: else leaking potentially the rd.first_link chain */
         HeapFree(GetProcessHeap(), 0, rd.data);
-        SendMessageW(hTextWnd, EM_POSFROMCHAR, (WPARAM)&ptl, cp ? cp - 1 : 0);
+        if (rd.char_pos_rel)
+        {
+            WCHAR tmp[32];
+            FINDTEXTW find;
+            const WCHAR search[] = {'s','c','r','o','l','l','_','%','x',0};
+            find.chrg.cpMin = 0;
+            find.chrg.cpMax = -1;
+            find.lpstrText = &tmp;
+            swprintf(tmp, 32, search, relative);
+            cp = SendMessageA(hTextWnd, EM_FINDTEXTW, FR_DOWN, &find);
+        }
+        SendMessageW(hTextWnd, EM_POSFROMCHAR, (WPARAM)&ptl, cp || (cp != -1) ? cp - 1 : 0);
         pt.x = 0; pt.y = ptl.y;
         SendMessageW(hTextWnd, EM_SETSCROLLPOS, 0, (LPARAM)&pt);
     }
@@ -564,7 +574,7 @@ BOOL WINHELP_ReleaseWindow(WINHELP_WINDOW* win)
 
     if (!--win->ref_count)
     {
-        SendMessage(win->hMainWnd, WM_CLOSE, NULL, NULL);
+        DestroyWindow(win->hMainWnd);
         return FALSE;
     }
     return TRUE;
@@ -792,7 +802,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
         {
             if (!lstrcmpiA(win->info->name, wpage->wininfo->name))
             {
-                if (win->page == wpage->page && win->info == wpage->wininfo)
+                if (win->page == wpage->page && win->info == wpage->wininfo && win->offset == wpage->relative)
                 {
                     /* see #22979, some hlp files have a macro (run at page opening), which
                      * jumps to the very same page
@@ -830,6 +840,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
 
                 win->page = wpage->page;
                 win->info = wpage->wininfo;
+                win->offset = wpage->relative;
                 hTextWnd = GetDlgItem(win->hMainWnd, CTL_ID_TEXT);
                 // hide the window then destroy it in the message loop
                 ShowWindow(hTextWnd, 0);
@@ -1092,9 +1103,6 @@ static BOOL WINHELP_CheckPopup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
         if (hWnd != popup->hMainWnd)
             ret = FALSE;
         break;
-    case WM_CLOSE:
-        DestroyWindow(hWnd);
-        return TRUE;
     default:
         return FALSE;
     }
