@@ -1379,6 +1379,8 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             sprintf(tmp, "\\fi%d", HLPFILE_HalfPointsScale(page, fetch_short(&format)));
             if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
         }
+        /* prevents contents from being cut off */
+        if (!HLPFILE_RtfAddControl(rd, "\\slmult1")) goto done;
         if (bits & 0x0100)
         {
             short       w;
