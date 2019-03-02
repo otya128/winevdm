@@ -56,6 +56,8 @@ typedef struct tagHlpFileHotSpotLink
     unsigned    y;
     unsigned    width;
     unsigned    height;
+    unsigned	imgidx;
+    struct tagHlpFileHotSpotLink *next; /* don't have to walk all the links */
 } HLPFILE_HOTSPOTLINK;
 
 typedef struct tagHlpFileMacro
@@ -70,6 +72,7 @@ typedef struct tagHlpFilePage
     HLPFILE_MACRO*              first_macro;
 
     HLPFILE_LINK*               first_link;
+    HLPFILE_HOTSPOTLINK*        first_hs;
 
     unsigned                    wNumber;
     unsigned                    offset;
@@ -196,10 +199,12 @@ struct RtfData {
     unsigned    font_scale;     /* how to scale fonts */
     HLPFILE_LINK*first_link;
     HLPFILE_LINK*current_link;
+    HLPFILE_HOTSPOTLINK*first_hs;
     BOOL        force_color;
     unsigned    relative;       /* offset within page to lookup for */
     unsigned    char_pos_rel;   /* char_pos correspondinf to relative */
     unsigned    code_page;
+    unsigned	imgcnt;
 };
 
 BOOL          HLPFILE_BrowsePage(HLPFILE_PAGE*, struct RtfData* rd,

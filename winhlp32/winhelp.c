@@ -142,11 +142,28 @@ static void WINHELP_SetupText(HWND hTextWnd, WINHELP_WINDOW* win, ULONG relative
             find.chrg.cpMax = -1;
             find.lpstrText = &tmp;
             swprintf(tmp, 32, search, relative);
-            cp = SendMessageA(hTextWnd, EM_FINDTEXTW, FR_DOWN, &find);
+            cp = SendMessageW(hTextWnd, EM_FINDTEXTW, FR_DOWN, &find);
         }
         SendMessageW(hTextWnd, EM_POSFROMCHAR, (WPARAM)&ptl, cp || (cp != -1) ? cp - 1 : 0);
         pt.x = 0; pt.y = ptl.y;
         SendMessageW(hTextWnd, EM_SETSCROLLPOS, 0, (LPARAM)&pt);
+        if (rd.first_hs)
+        {
+            IRichEditOle *reole;
+            REOBJECT obj = {sizeof(REOBJECT)};
+            SendMessageW(hTextWnd, EM_GETOLEINTERFACE, 0, &reole);
+            for(int i = 0; i < rd.imgcnt; i++)
+            {
+                HLPFILE_HOTSPOTLINK* hs = rd.first_hs;
+                reole->lpVtbl->GetObject(reole, i, &obj, REO_GETOBJ_NO_INTERFACES);
+                while(hs)
+                {
+                    if (hs->link.bHotSpot && (i == hs->imgidx))
+                        hs->link.cpMin = hs->link.cpMax = obj.cp;
+                    hs = hs->next;
+                }
+            }
+         }
     }
     SendMessageW(hTextWnd, WM_SETREDRAW, TRUE, 0);
     RedrawWindow(hTextWnd, NULL, NULL, RDW_FRAME|RDW_INVALIDATE);
@@ -671,6 +688,28 @@ static void WINHELP_RememberPage(WINHELP_WINDOW* win, WINHELP_WNDPAGE* wpage)
     wpage->page->file->wRefCount++;
 }
 
+static HLPFILE_HOTSPOTLINK* WINHELP_FindHotSpot(WINHELP_WINDOW* win, LPARAM pos)
+{
+    int x = LOWORD(pos), y = HIWORD(pos);
+    POINTL pntl = {x, y};
+    HWND hwndtext = GetDlgItem(win->hMainWnd, CTL_ID_TEXT);
+    LRESULT cp = SendMessageW(hwndtext, EM_CHARFROMPOS, 0, &pntl);
+    HLPFILE_HOTSPOTLINK* hs = win->page->first_hs;
+    if(hs)
+        SendMessageW(hwndtext, EM_POSFROMCHAR, &pntl, hs->link.cpMin);
+    while (hs)
+    {
+        if ((cp == hs->link.cpMin) || (cp == (hs->link.cpMin + 1)))
+        {
+            if ((x > pntl.x + hs->x) && (x <= pntl.x + hs->x + hs->width) &&
+                (y > pntl.y + hs->y) && (y <= pntl.y + hs->y + hs->height))
+                return hs;
+        }
+        hs = hs->next;
+    }
+    return NULL;
+}
+
 static LRESULT CALLBACK WINHELP_RicheditWndProc(HWND hWnd, UINT msg,
                                                 WPARAM wParam, LPARAM lParam)
 {
@@ -694,6 +733,18 @@ static LRESULT CALLBACK WINHELP_RicheditWndProc(HWND hWnd, UINT msg,
             result = CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
             HideCaret(hWnd);
             return result;
+         case WM_SETCURSOR:
+         {
+             DWORD messagePos = GetMessagePos();
+             POINT pt = {LOWORD(messagePos), HIWORD(messagePos)};
+             ScreenToClient(hWnd, &pt);
+             if (win->page && WINHELP_FindHotSpot(win, MAKELPARAM(pt.x, pt.y)))
+             {
+                 SetCursor(win->hHandCur);
+                 return 0;
+             }
+             return CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
+         }
     }
 }
 
@@ -980,18 +1031,54 @@ BOOL WINHELP_OpenHelpWindow(HLPFILE_PAGE* (*lookup)(HLPFILE*, LONG, ULONG*),
     return WINHELP_CreateHelpWindow(&wpage, nCmdShow, TRUE);
 }
 
+static void WINHELP_DoLink(WINHELP_WINDOW* win, HLPFILE_LINK* link, DWORD pos)
+{
+    HLPFILE*                hlpfile;
+    HLPFILE_WINDOWINFO*     wi;
+    switch (link->cookie)
+    {
+        case hlp_link_link:
+            if ((hlpfile = WINHELP_LookupHelpFile(link->string)))
+            {
+                if (link->window == -1)
+                {
+                    wi = win->info;
+                    if (wi->win_style & WS_POPUP) wi = Globals.active_win->info;
+                }
+                else if (link->window < hlpfile->numWindows)
+                    wi = &hlpfile->windows[link->window];
+                else
+                {
+                    WINE_WARN("link to window %d/%d\n", link->window, hlpfile->numWindows);
+                    break;
+                }
+                WINHELP_OpenHelpWindow(HLPFILE_PageByHash, hlpfile, link->hash, wi, SW_NORMAL);
+            }
+            break;
+        case hlp_link_popup:
+            if ((hlpfile = WINHELP_LookupHelpFile(link->string)))
+                    WINHELP_OpenHelpWindow(HLPFILE_PageByHash, hlpfile, link->hash,
+                    WINHELP_GetPopupWindowInfo(hlpfile, win, pos),
+                    SW_NORMAL);
+            break;
+        case hlp_link_macro:
+            MACRO_ExecuteMacro(win, link->string);
+            break;
+        default:
+            WINE_FIXME("Unknown link cookie %d\n", link->cookie);
+    }
+}
+
 /******************************************************************
  *             WINHELP_HandleLink
  *
  */
 static BOOL WINHELP_HandleLink(ENLINK* enlink, WINHELP_WINDOW* win)
 {
-    HLPFILE*                hlpfile;
     HLPFILE_LINK*           link;
     BOOL                    ret = FALSE;
     WCHAR                   tmp[32];
     TEXTRANGEW              chars;
-    HLPFILE_WINDOWINFO*     wi;
     const WCHAR             format[] = {'%', 'p', 0};
 
     chars.chrg.cpMin = enlink->chrg.cpMin;
@@ -1003,39 +1090,7 @@ static BOOL WINHELP_HandleLink(ENLINK* enlink, WINHELP_WINDOW* win)
     switch (enlink->msg)
     {
     case WM_LBUTTONDOWN:
-        switch (link->cookie)
-        {
-            case hlp_link_link:
-                if ((hlpfile = WINHELP_LookupHelpFile(link->string)))
-                {
-                    if (link->window == -1)
-                    {
-                        wi = win->info;
-                        if (wi->win_style & WS_POPUP) wi = Globals.active_win->info;
-                    }
-                    else if (link->window < hlpfile->numWindows)
-                        wi = &hlpfile->windows[link->window];
-                    else
-                    {
-                        WINE_WARN("link to window %d/%d\n", link->window, hlpfile->numWindows);
-                        break;
-                    }
-                    WINHELP_OpenHelpWindow(HLPFILE_PageByHash, hlpfile, link->hash, wi, SW_NORMAL);
-                }
-                break;
-            case hlp_link_popup:
-                if ((hlpfile = WINHELP_LookupHelpFile(link->string)))
-                        WINHELP_OpenHelpWindow(HLPFILE_PageByHash, hlpfile, link->hash,
-                        WINHELP_GetPopupWindowInfo(hlpfile, win, enlink->lParam),
-                        SW_NORMAL);
-                break;
-            case hlp_link_macro:
-                MACRO_ExecuteMacro(win, link->string);
-                break;
-            default:
-                WINE_FIXME("Unknown link cookie %d\n", link->cookie);
-        }
-        break;
+        WINHELP_DoLink(win, link, enlink->lParam);
     case WM_MBUTTONDOWN:
     case WM_RBUTTONDOWN:
     case WM_NCLBUTTONDOWN:
@@ -1579,6 +1634,17 @@ static LRESULT CALLBACK WINHELP_MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, 
                     const MSGFILTER*    msgf = (const MSGFILTER*)lParam;
                     switch (msgf->msg)
                     {
+                    case WM_LBUTTONDOWN:
+                    {
+                        win = (WINHELP_WINDOW*)GetWindowLongPtrW(hWnd, 0);
+                        HLPFILE_HOTSPOTLINK* hs = WINHELP_FindHotSpot(win, msgf->lParam);
+                        if (hs)
+                        {
+                            WINHELP_DoLink(win, &hs->link, msgf->lParam);
+                            return TRUE;
+                        }
+                        break;
+                    }
                     case WM_KEYUP:
                         if (msgf->wParam == VK_ESCAPE)
                             WINHELP_ReleaseWindow((WINHELP_WINDOW*)GetWindowLongPtrW(hWnd, 0));

@@ -784,7 +784,7 @@ static HLPFILE_LINK*       HLPFILE_AllocLink(struct RtfData* rd, int cookie,
  *
  */
 static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
-                                    const BYTE* start, ULONG hs_size, ULONG hs_offset)
+                                    const BYTE* start, ULONG hs_size, ULONG hs_offset, int coorddiv)
 {
     unsigned    i, hs_num;
     ULONG       hs_macro;
@@ -862,10 +862,13 @@ static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
         }
         if (hslink)
         {
-            hslink->x      = GET_USHORT(start, 7 + 15 * i + 3);
-            hslink->y      = GET_USHORT(start, 7 + 15 * i + 5);
-            hslink->width  = GET_USHORT(start, 7 + 15 * i + 7);
-            hslink->height = GET_USHORT(start, 7 + 15 * i + 9);
+            hslink->x      = GET_USHORT(start, 7 + 15 * i + 3) / coorddiv;
+            hslink->y      = GET_USHORT(start, 7 + 15 * i + 5) / coorddiv;
+            hslink->width  = GET_USHORT(start, 7 + 15 * i + 7) / coorddiv;
+            hslink->height = GET_USHORT(start, 7 + 15 * i + 9) / coorddiv;
+            hslink->imgidx = rd->imgcnt;
+            hslink->next = rd->first_hs;
+            rd->first_hs = hslink;
             /* target = GET_UINT(start, 7 + 15 * i + 11); */
         }
         str += strlen(str) + 1;
@@ -999,7 +1002,7 @@ static BOOL HLPFILE_RtfAddBitmap(struct RtfData* rd, HLPFILE* file, const BYTE* 
 
     off = GET_UINT(ptr, 0); ptr += 4;
     hs_offset = GET_UINT(ptr, 0); ptr += 4;
-    HLPFILE_AddHotSpotLinks(rd, file, beg, hs_size, hs_offset);
+    HLPFILE_AddHotSpotLinks(rd, file, beg, hs_size, hs_offset, 1);
 
     /* now read palette info */
     if (type == 0x06)
@@ -1090,7 +1093,8 @@ static BOOL     HLPFILE_RtfAddMetaFile(struct RtfData* rd, HLPFILE* file, const 
     hs_offset = GET_UINT(ptr, 4);
     ptr += 8;
 
-    HLPFILE_AddHotSpotLinks(rd, file, beg, hs_size, hs_offset);
+    // WMF type uses MM_HIMETRIC units for size
+    HLPFILE_AddHotSpotLinks(rd, file, beg, hs_size, hs_offset, mm == 8 ? 27 : 1);
 
     WINE_TRACE("sz=%u csz=%u offs=%u/%u,%u/%u\n",
                size, csize, off, (ULONG)(ptr - beg), hs_size, hs_offset);
@@ -1148,6 +1152,7 @@ static  BOOL    HLPFILE_RtfAddGfxByAddr(struct RtfData* rd, HLPFILE *hlpfile,
         if (numpict != 1) WINE_FIXME("Supporting only one bitmap format per logical bitmap (for now). Using first format\n");
         break;
     }
+    rd->imgcnt++;
     return TRUE;
 }
 
@@ -1762,10 +1767,12 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     rd->data = rd->ptr = HeapAlloc(GetProcessHeap(), 0, rd->allocated = 32768);
     rd->char_pos = 0;
     rd->first_link = rd->current_link = NULL;
+    rd->first_hs = NULL;
     rd->force_color = FALSE;
     rd->font_scale = font_scale;
     rd->relative = relative;
     rd->char_pos_rel = 0;
+    rd->imgcnt = 0;
 
     switch (hlpfile->charset)
     {
@@ -1907,6 +1914,7 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     } while (ref != 0xffffffff);
 done:
     page->first_link = rd->first_link;
+    page->first_hs = rd->first_hs;
     return HLPFILE_RtfAddControl(rd, "}");
 }
 
