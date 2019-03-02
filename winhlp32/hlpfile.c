@@ -1814,6 +1814,7 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     for (index = 0; index < hlpfile->numFonts; index++)
     {
         const char* family;
+        const char* face = hlpfile->fonts[index].LogFont.lfFaceName;
         switch (hlpfile->fonts[index].LogFont.lfPitchAndFamily & 0xF0)
         {
         case FF_MODERN:     family = "modern";  break;
@@ -1823,11 +1824,13 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
         case FF_DECORATIVE: family = "decor";   break;
         default:            family = "nil";     break;
         }
+        if (!*face)
+            face = "System"; /* winhelp.exe: System, winhlp32.exe: GUI font? */
         sprintf(tmp, "{\\f%d\\f%s\\fprq%d\\fcharset%d %s;}",
                 index + 1, family,
                 hlpfile->fonts[index].LogFont.lfPitchAndFamily & 0x0F,
                 hlpfile->fonts[index].LogFont.lfCharSet,
-                hlpfile->fonts[index].LogFont.lfFaceName);
+                face);
         if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     }
     if (!HLPFILE_RtfAddControl(rd, "}")) return FALSE;
