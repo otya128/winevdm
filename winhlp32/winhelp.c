@@ -378,12 +378,10 @@ static BOOL WINHELP_HasWorkingWindow(void)
     return Globals.active_win->page != NULL && Globals.active_win->page->file != NULL;
 }
 
-static void cb_KWBTreeKey(void *p, void **next, void *cookie)
+static void comp_KWBTreeKey(void *p, const void *key, int leaf, void **next)
 {
-    char **key = (char **)cookie;
-    if(!stricmp(*key, (char *)p))
-        *key = (char *)p;
     *next = (char*)p + strlen((char*)p) + 7;
+    return stricmp(p, key);
 }
 
 
@@ -468,8 +466,8 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
                 break;
             }
             char *key = ((char *)wh + wh->ofsData);
-            HLPFILE_BPTreeEnum(hlpfile->kwbtree, cb_KWBTreeKey, &key);
-            if (key == ((char *)wh + wh->ofsData))
+            key = HLPFILE_BPTreeSearch(hlpfile->kwbtree, key, comp_KWBTreeKey);
+            if (!key)
             {
                 HLPFILE_FreeHlpFile(hlpfile);
                 if (!WINHELP_HasWorkingWindow()) MACRO_Exit();
@@ -1369,6 +1367,64 @@ static LRESULT CALLBACK WINHELP_HistoryWndProc(HWND hWnd, UINT msg, WPARAM wPara
     return DefWindowProcA(hWnd, msg, wParam, lParam);
 }
 
+struct index_data
+{
+    HLPFILE*    hlpfile;
+    BOOL        jump;
+    ULONG       offset;
+    WORD        count;
+};
+
+static void comp_TTLBTree(void *p, const void *key, int leaf, void **next)
+{
+    *next = (char *)p + 5 + (leaf?strlen((char *)p + 4):1);
+    if (leaf && (*(DWORD *)*next > key))
+        return 0;
+    return *(DWORD *)p - (DWORD)key;
+}
+
+static INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    static struct index_data* id;
+    HWND hListWnd = GetDlgItem(hWnd, IDC_TOPICS);
+
+    switch (msg)
+    {
+    case WM_INITDIALOG:
+    {
+        id = (struct index_data*)lParam;
+        for (int i = 0; i < id->count; i++)
+        {
+            DWORD toffset = ((DWORD *)id->offset)[i];
+            BYTE* ptr = HLPFILE_BPTreeSearch(id->hlpfile->ttlbtree, toffset, comp_TTLBTree);
+            int idx = SendMessageA(hListWnd, LB_ADDSTRING, 0, (LPARAM)(ptr + 4));
+            SendMessageW(hListWnd, LB_SETITEMDATA, idx, (LPARAM)toffset);
+        }
+    }
+    case WM_COMMAND:
+    {
+        int sel = SendMessageW(hListWnd, LB_GETCURSEL, 0, 0);
+        switch (LOWORD(wParam))
+        {
+        case IDC_TOPICS:
+            if (HIWORD(wParam) == LBN_DBLCLK)
+                EndDialog(hWnd, SendMessageW(hListWnd, LB_GETITEMDATA, sel, 0));
+            break;
+        case 1:
+            EndDialog(hWnd, SendMessageW(hListWnd, LB_GETITEMDATA, sel, 0));
+            break;
+        case 2:
+            EndDialog(hWnd, -1);
+            break;
+        }
+        break;
+    }
+    }
+    return 0;
+}
+
+
+
 /**************************************************************************
  * cb_KWBTree
  *
@@ -1386,13 +1442,6 @@ static void cb_KWBTree(void *p, void **next, void *cookie)
     SendMessageW(hListWnd, LB_SETITEMDATA, count-1, (LPARAM)p);
     *next = (char*)p + strlen((char*)p) + 7;
 }
-
-struct index_data
-{
-    HLPFILE*    hlpfile;
-    BOOL        jump;
-    ULONG       offset;
-};
 
 /**************************************************************************
  * WINHELP_IndexDlgProc
@@ -1429,18 +1478,29 @@ static INT_PTR CALLBACK WINHELP_IndexDlgProc(HWND hWnd, UINT msg, WPARAM wParam,
             if (sel != LB_ERR)
             {
                 BYTE *p;
-                int count;
 
                 p = (BYTE*)SendDlgItemMessageW(hWnd, IDC_INDEXLIST, LB_GETITEMDATA, sel, 0);
-                count = *(short*)((char *)p + strlen((char *)p) + 1);
-                if (count > 1)
+                p += strlen((char *)p);
+                id->count = *(short*)((char *)p + 1);
+                id->offset = *(ULONG*)((char *)p + 3);
+                id->offset = (DWORD)(id->hlpfile->kwdata + id->offset + 9);
+                if (id->count > 1)
                 {
-                    MessageBoxA(hWnd, "count > 1 not supported yet", "Error", MB_OK | MB_ICONSTOP);
-                    SetWindowLongPtrW(hWnd, DWLP_MSGRESULT, PSNRET_INVALID);
-                    return TRUE;
+                    if (id->hlpfile->ttlbtree)
+                    {
+                        id->offset = DialogBoxParamA(NULL, MAKEINTRESOURCE(IDD_TOPIC), hWnd, WINHELP_TopicDlgProc, id);
+                        if (id->offset == 0xFFFFFFFF)
+                            return TRUE;
+                    }
+                    else
+                    {
+                        MessageBoxA(hWnd, "topic not found", "Error", MB_OK | MB_ICONSTOP);
+                        SetWindowLongPtrW(hWnd, DWLP_MSGRESULT, PSNRET_INVALID);
+                        return TRUE;
+                    }                        
                 }
-                id->offset = *(ULONG*)((char *)p + strlen((char *)p) + 3);
-                id->offset = *(long*)(id->hlpfile->kwdata + id->offset + 9);
+                else
+                    id->offset = *((ULONG*)id->offset);
                 if (id->offset == 0xFFFFFFFF)
                 {
                     MessageBoxA(hWnd, "macro keywords not supported yet", "Error", MB_OK | MB_ICONSTOP);

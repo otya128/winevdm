@@ -50,5 +50,7 @@
 #define IDD_INDEX               0x150
 #define IDC_INDEXLIST           0x151
 #define IDD_SEARCH              0x152
+#define IDD_TOPIC               0x153
+#define IDC_TOPICS              0x154
 
 #define IDI_WINHELP             0xF00

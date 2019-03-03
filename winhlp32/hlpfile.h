@@ -117,6 +117,7 @@ typedef struct tagHlpFileFile
     unsigned                    wTOMapLen;
     unsigned*                   TOMap;
     unsigned long               contents_start;
+    BYTE*                       ttlbtree;
 
     struct tagHlpFileFile*      prev;
     struct tagHlpFileFile*      next;
