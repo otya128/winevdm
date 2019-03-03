@@ -67,7 +67,7 @@ static HLPFILE *first_hlpfile = 0;
  *     Pointer to block identified by key, or NULL if failure.
  *
  */
-static void* HLPFILE_BPTreeSearch(BYTE* buf, const void* key,
+void* HLPFILE_BPTreeSearch(BYTE* buf, const void* key,
                            HLPFILE_BPTreeCompare comp)
 {
     unsigned magic;
@@ -2340,6 +2340,26 @@ static BOOL HLPFILE_GetTOMap(HLPFILE *hlpfile)
 
 /***********************************************************************
  *
+ *           HLPFILE_GetTTLBtree
+ */
+static BOOL HLPFILE_GetTTLBtree(HLPFILE *hlpfile)
+{
+    BYTE                *cbuf, *cend;
+    unsigned            clen;
+
+    if (!HLPFILE_FindSubFile(hlpfile, "|TTLBTREE",  &cbuf, &cend))
+    {WINE_WARN("no ttlbtree section\n"); return FALSE;}
+
+    clen = cend - cbuf;
+    hlpfile->ttlbtree = HeapAlloc(GetProcessHeap(), 0, clen);
+    if (!hlpfile->ttlbtree) return FALSE;
+    memcpy(hlpfile->ttlbtree, cbuf, clen);
+    return TRUE;
+}
+
+
+/***********************************************************************
+ *
  *           DeleteMacro
  */
 static void HLPFILE_DeleteMacro(HLPFILE_MACRO* macro)
@@ -2417,6 +2437,12 @@ void HLPFILE_FreeHlpFile(HLPFILE* hlpfile)
     HeapFree(GetProcessHeap(), 0, hlpfile->phrases_buffer);
     HeapFree(GetProcessHeap(), 0, hlpfile->topic_map);
     HeapFree(GetProcessHeap(), 0, hlpfile->help_on_file);
+    HeapFree(GetProcessHeap(), 0, hlpfile->kwbtree);
+    HeapFree(GetProcessHeap(), 0, hlpfile->kwdata);
+    if (hlpfile->TOMap)
+	    HeapFree(GetProcessHeap(), 0, hlpfile->TOMap);
+    if (hlpfile->ttlbtree)
+	    HeapFree(GetProcessHeap(), 0, hlpfile->ttlbtree);
     HeapFree(GetProcessHeap(), 0, hlpfile);
 }
 
@@ -2829,6 +2855,7 @@ static BOOL HLPFILE_DoReadHlpFile(HLPFILE *hlpfile, LPCSTR lpszPath)
 
     HLPFILE_GetKeywords(hlpfile);
     HLPFILE_GetMap(hlpfile);
+    HLPFILE_GetTTLBtree(hlpfile);
     if (hlpfile->version <= 16) return TRUE;
     return HLPFILE_GetContext(hlpfile);
 }
