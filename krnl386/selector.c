@@ -77,11 +77,14 @@ WORD WINAPI AllocSelector16( WORD sel )
     TRACE("(%04x): returning %04x\n", sel, newsel );
     if (!newsel) return 0;
     if (!sel) return newsel;  /* nothing to copy */
+    LDT_ENTRY entry, nentry;
+    wine_ldt_get_entry(sel, &entry);
+    wine_ldt_set_flags(&nentry, wine_ldt_get_flags(&entry));
     for (i = 0; i < count; i++)
     {
-        LDT_ENTRY entry;
-        wine_ldt_get_entry( sel + (i << __AHSHIFT), &entry );
-        wine_ldt_set_entry( newsel + (i << __AHSHIFT), &entry );
+        wine_ldt_set_limit(&nentry, wine_ldt_get_limit(&entry) - (0x10000 * i));
+        wine_ldt_set_base(&nentry, (DWORD)wine_ldt_get_base(&entry) + (0x10000 * i));
+        wine_ldt_set_entry(newsel + (i << __AHSHIFT), &nentry);
     }
     return newsel;
 }
