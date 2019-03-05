@@ -693,12 +693,11 @@ static HLPFILE_HOTSPOTLINK* WINHELP_FindHotSpot(WINHELP_WINDOW* win, LPARAM pos)
     HWND hwndtext = GetDlgItem(win->hMainWnd, CTL_ID_TEXT);
     LRESULT cp = SendMessageW(hwndtext, EM_CHARFROMPOS, 0, &pntl);
     HLPFILE_HOTSPOTLINK* hs = win->page->first_hs;
-    if(hs)
-        SendMessageW(hwndtext, EM_POSFROMCHAR, &pntl, hs->link.cpMin);
     while (hs)
     {
         if ((cp == hs->link.cpMin) || (cp == (hs->link.cpMin + 1)))
         {
+            SendMessageW(hwndtext, EM_POSFROMCHAR, &pntl, hs->link.cpMin);
             if ((x > pntl.x + hs->x) && (x <= pntl.x + hs->x + hs->width) &&
                 (y > pntl.y + hs->y) && (y <= pntl.y + hs->y + hs->height))
                 return hs;

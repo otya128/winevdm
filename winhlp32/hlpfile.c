@@ -818,10 +818,13 @@ static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
          */
         {
         case 0xC8:
+        case 0xCC:
             hslink = (HLPFILE_HOTSPOTLINK*)
                 HLPFILE_AllocLink(rd, hlp_link_macro, str, -1, 0, FALSE, TRUE, -1);
             break;
 
+        case 0xE2:
+        case 0xE3:
         case 0xE6:
         case 0xE7:
             hslink = (HLPFILE_HOTSPOTLINK*)
