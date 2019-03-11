@@ -37,6 +37,9 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(commdlg);
 
+LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name);
+LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg);
+
 /***********************************************************************
  *                FontFamilyEnumProc                     (COMMDLG.19)
  */
@@ -60,11 +63,14 @@ INT16 WINAPI FontStyleEnumProc16( SEGPTR logfont, SEGPTR metrics,
 /***********************************************************************
  *                        ChooseFont   (COMMDLG.15)
  */
-BOOL16 WINAPI ChooseFont16(LPCHOOSEFONT16 lpChFont)
+BOOL16 WINAPI ChooseFont16(SEGPTR cf)
 {
+    LPCHOOSEFONT16 lpChFont = MapSL(cf);
     CHOOSEFONTA cf32;
     LOGFONTA lf32;
     LOGFONT16 *font16;
+    LPDLGTEMPLATEA template = NULL;
+    HINSTANCE16 hInst;
 
     if (!lpChFont) return FALSE;
     font16 = MapSL(lpChFont->lpLogFont);
@@ -98,11 +104,22 @@ BOOL16 WINAPI ChooseFont16(LPCHOOSEFONT16 lpChFont)
     lf32.lfPitchAndFamily = font16->lfPitchAndFamily;
     lstrcpynA( lf32.lfFaceName, font16->lfFaceName, LF_FACESIZE );
 
-    if (lpChFont->Flags & (CF_ENABLETEMPLATEHANDLE | CF_ENABLETEMPLATE))
-        FIXME( "custom templates no longer supported, using default\n" );
+    if ((lpChFont->Flags & CF_ENABLETEMPLATE) || (lpChFont->Flags & CF_ENABLETEMPLATEHANDLE))
+    {
+        if (lpChFont->Flags & CF_ENABLETEMPLATE)
+            template = resource_to_dialog32(hInst, MapSL(lpChFont->lpTemplateName));
+        else
+            template = handle_to_dialog32(lpChFont->hInstance);
+        cf32.hInstance = (HGLOBAL)template;
+        cf32.Flags |= CF_ENABLETEMPLATEHANDLE;
+    }
 
-    if (lpChFont->lpfnHook)
-        FIXME( "custom hook %p no longer supported\n", lpChFont->lpfnHook );
+    if (lpChFont->Flags & CF_ENABLEHOOK)
+    {
+        COMMDLGTHUNK *thunk = allocate_thunk(cf, (SEGPTR)lpChFont->lpfnHook);
+        cf32.Flags |= CF_ENABLEHOOK;
+        cf32.lpfnHook = (LPCFHOOKPROC)thunk;
+    }
 
     if (!ChooseFontA( &cf32 )) return FALSE;
 
@@ -126,6 +143,8 @@ BOOL16 WINAPI ChooseFont16(LPCHOOSEFONT16 lpChFont)
     font16->lfQuality = lf32.lfQuality;
     font16->lfPitchAndFamily = lf32.lfPitchAndFamily;
     lstrcpynA( font16->lfFaceName, lf32.lfFaceName, LF_FACESIZE );
+    delete_thunk(cf32.lpfnHook);
+    HeapFree(GetProcessHeap(), 0, template);
     return TRUE;
 }
 

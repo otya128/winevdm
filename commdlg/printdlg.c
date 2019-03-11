@@ -92,6 +92,16 @@ LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name)
     FreeResource16(handle);
     return r;
 }
+
+LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg)
+{
+    DWORD size2;
+    SEGPTR ptr16 = WOWGlobalLock16(hg);
+    LPDLGTEMPLATEA r = dialog_template16_to_template32(NULL, ptr16, &size2, NULL);
+    WOWGlobalUnlock16(hg);
+    return r;
+}
+
 /**********************************************************************
  *
  *      16 bit commdlg
@@ -139,21 +149,24 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
     pd32.lpfnSetupHook = NULL;
     hInst = lppd->hInstance;
 
-    if (lppd->Flags & PD_ENABLEPRINTTEMPLATE)
+    if ((lppd->Flags & PD_ENABLEPRINTTEMPLATE) || (lppd->Flags & PD_ENABLEPRINTTEMPLATEHANDLE))
     {
-        template_print = resource_to_dialog32(hInst, MapSL(lppd->lpPrintTemplateName));
+        if (lppd->Flags & PD_ENABLEPRINTTEMPLATE)
+            template_print = resource_to_dialog32(hInst, MapSL(lppd->lpPrintTemplateName));
+        else
+            template_print = handle_to_dialog32(lppd->hPrintTemplate);
         pd32.hPrintTemplate = (HGLOBAL)template_print;
         pd32.Flags |= PD_ENABLEPRINTTEMPLATEHANDLE;
     }
-    if (lppd->Flags & PD_ENABLESETUPTEMPLATE)
+    if ((lppd->Flags & PD_ENABLESETUPTEMPLATE) || (lppd->Flags & PD_ENABLESETUPTEMPLATEHANDLE))
     {
-        template_setup = resource_to_dialog32(hInst, MapSL(lppd->lpSetupTemplateName));
+        if (lppd->Flags & PD_ENABLESETUPTEMPLATE)
+            template_setup = resource_to_dialog32(hInst, MapSL(lppd->lpSetupTemplateName));
+        else
+            template_setup = handle_to_dialog32(lppd->hSetupTemplate);
         pd32.hSetupTemplate = (HGLOBAL)template_setup;
         pd32.Flags |= PD_ENABLESETUPTEMPLATEHANDLE;
     }
-    if (lppd->Flags & (PD_ENABLEPRINTTEMPLATEHANDLE |
-                       PD_ENABLESETUPTEMPLATEHANDLE))
-        FIXME( "custom templates handle no longer supported, using default\n" );
     if (lppd->Flags & PD_ENABLEPRINTHOOK)
     {
         COMMDLGTHUNK *thunk = allocate_thunk(pd, (SEGPTR)lppd->lpfnPrintHook);
