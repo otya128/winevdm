@@ -20,6 +20,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "windef.h"
 #include "winbase.h"
@@ -2118,6 +2119,35 @@ COLORREF WINAPI GetTextColor16( HDC16 hdc )
     return GetTextColor( HDC_32(hdc) );
 }
 
+// for old fon vector fonts
+// Windows 10 only returns the extent based on the relative angle between the orientation and escapement
+// but ignores the absolute angles
+// Windows XP is mostly the same but calculates the full extent when the relative angle is 0
+// Windows 3.1 returns the full extent but rounds the relative angle down to 0, 90, 180 or 270 degrees
+void check_font_rotation(HDC hdc, SIZE *box)
+{
+    if (LOWORD(LOBYTE(GetVersion())) >= 0x6)
+    {
+        TEXTMETRICA tm;
+        GetTextMetricsA(hdc, &tm);
+        if((tm.tmPitchAndFamily & (TMPF_VECTOR | TMPF_TRUETYPE)) != TMPF_VECTOR)
+            return;
+        HFONT hfont = GetCurrentObject(hdc, OBJ_FONT);
+        LOGFONT lfont;
+        GetObject(hfont, sizeof(LOGFONT), &lfont);
+        if (lfont.lfEscapement == lfont.lfOrientation)
+        {
+            int angle = lfont.lfEscapement % 1800;
+            const float d2r = 3.14159265358979323846 / 1800;
+            if (angle)
+            {
+                int x = box->cx, y = box->cy;
+                box->cx = (y * cosf((900 - angle) * d2r)) + (x * fabsf(cosf(angle * d2r)));
+                box->cy = (x * cosf((900 - angle) * d2r)) + (y * fabsf(cosf(angle * d2r)));
+            }
+        }
+    }
+}
 
 /***********************************************************************
  *           GetTextExtent    (GDI.91)
@@ -2125,7 +2155,9 @@ COLORREF WINAPI GetTextColor16( HDC16 hdc )
 DWORD WINAPI GetTextExtent16( HDC16 hdc, LPCSTR str, INT16 count )
 {
     SIZE size;
-    if (!GetTextExtentPoint32A( HDC_32(hdc), str, count, &size )) return 0;
+    HDC hdc32 = HDC_32(hdc);
+    if (!GetTextExtentPoint32A( hdc32, str, count, &size )) return 0;
+    check_font_rotation( hdc32, &size ); 
     return MAKELONG( size.cx, size.cy );
 }
 
@@ -3778,10 +3810,12 @@ BOOL16 WINAPI GetCurrentPositionEx16( HDC16 hdc, LPPOINT16 pt )
 BOOL16 WINAPI GetTextExtentPoint16( HDC16 hdc, LPCSTR str, INT16 count, LPSIZE16 size )
 {
     SIZE size32;
-    BOOL ret = GetTextExtentPoint32A( HDC_32(hdc), str, count, &size32 );
+    HDC hdc32 = HDC_32(hdc);
+    BOOL ret = GetTextExtentPoint32A( hdc32, str, count, &size32 );
 
     if (ret)
     {
+        check_font_rotation( hdc32, &size32 ); 
         size->cx = size32.cx;
         size->cy = size32.cy;
     }

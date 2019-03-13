@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define OEMRESOURCE
 
@@ -1497,6 +1498,31 @@ LONG WINAPI TabbedTextOut16( HDC16 hdc, INT16 x, INT16 y, LPCSTR lpstr,
 }
 
 
+void check_font_rotation(HDC hdc, SIZE *box)
+{
+    if (LOWORD(LOBYTE(GetVersion())) >= 0x6)
+    {
+        HFONT hfont = GetCurrentObject(hdc, OBJ_FONT);
+        TEXTMETRICA tm;
+        GetTextMetricsA(hdc, &tm);
+        if((tm.tmPitchAndFamily & (TMPF_VECTOR | TMPF_TRUETYPE)) != TMPF_VECTOR)
+            return;
+        LOGFONT lfont;
+        GetObject(hfont, sizeof(LOGFONT), &lfont);
+        if (lfont.lfEscapement == lfont.lfOrientation)
+        {
+            int angle = lfont.lfEscapement % 1800;
+            const float d2r = 3.14159265358979323846 / 1800;
+            if (angle)
+            {
+                int x = box->cx, y = box->cy;
+                box->cx = (y * cosf((900 - angle) * d2r)) + (x * fabsf(cosf(angle * d2r)));
+                box->cy = (x * cosf((900 - angle) * d2r)) + (y * fabsf(cosf(angle * d2r)));
+            }
+        }
+    }
+}
+
 /***********************************************************************
  *           GetTabbedTextExtent    (USER.197)
  */
@@ -1504,10 +1530,14 @@ DWORD WINAPI GetTabbedTextExtent16( HDC16 hdc, LPCSTR lpstr, INT16 count,
                                     INT16 nb_tabs, const INT16 *tabs16 )
 {
     LONG ret;
+    HDC hdc32 = HDC_32(hdc);
     INT i, *tabs = HeapAlloc( GetProcessHeap(), 0, nb_tabs * sizeof(*tabs) );
     if (!tabs) return 0;
     for (i = 0; i < nb_tabs; i++) tabs[i] = tabs16[i];
-    ret = GetTabbedTextExtentA( HDC_32(hdc), lpstr, count, nb_tabs, tabs );
+    ret = GetTabbedTextExtentA( hdc32, lpstr, count, nb_tabs, tabs );
+    SIZE size = { LOWORD(ret), HIWORD(ret) };
+    check_font_rotation( hdc32, &size );
+    ret = size.cx | (size.cy << 16);
     HeapFree( GetProcessHeap(), 0, tabs );
     return ret;
 }
