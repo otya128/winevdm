@@ -1368,6 +1368,10 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
             {
                 params = paramBlock;
                 LOADPARMS32 paramBlock32;
+                if (lib_only)
+                {
+                    return (HINSTANCE16)21;
+                }
                 paramBlock32.lpEnvAddress = GlobalLock16(params->hEnvironment);
                 DWORD showCmd32[2];
                 paramBlock32.lpCmdLine = MapSL(params->cmdLine);
