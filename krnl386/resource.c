@@ -939,10 +939,11 @@ HRSRC16 WINAPI FindResource16( HMODULE16 hModule, LPCSTR name, LPCSTR type )
 
     if (!pModule) return 0;
 
-    if (pModule->module32)
+    if (pModule->module32 || (pModule->ne_flags & NE_FFLAGS_BUILTIN))
     {
         /* 32-bit PE module */
-        HRSRC hRsrc32 = FindResourceA( pModule->module32, name, type );
+        HMODULE m32 = (pModule->ne_flags & NE_FFLAGS_BUILTIN) ? pModule->owner32 : pModule->module32;
+        HRSRC hRsrc32 = FindResourceA( m32, name, type );
         return MapHRsrc32To16( pModule, hRsrc32, HIWORD(type) ? 0 : LOWORD(type) );
     }
 
@@ -991,13 +992,14 @@ HGLOBAL16 WINAPI LoadResource16( HMODULE16 hModule, HRSRC16 hRsrc )
 
     if (!hRsrc || !pModule) return 0;
 
-    if (pModule->module32)
+    if (pModule->module32 || (pModule->ne_flags & NE_FFLAGS_BUILTIN))
     {
         /* load 32-bit resource and convert it */
+        HMODULE m32 = (pModule->ne_flags & NE_FFLAGS_BUILTIN) ? pModule->owner32 : pModule->module32;
         HRSRC hRsrc32 = MapHRsrc16To32( pModule, hRsrc );
         WORD type     = MapHRsrc16ToType( pModule, hRsrc );
-        HGLOBAL hMem  = LoadResource( pModule->module32, hRsrc32 );
-        DWORD size    = SizeofResource( pModule->module32, hRsrc32 );
+        HGLOBAL hMem  = LoadResource( m32, hRsrc32 );
+        DWORD size    = SizeofResource( m32, hRsrc32 );
         if (!hMem) return 0;
         return NE_LoadPEResource( pModule, type, LockResource( hMem ), size );
     }
@@ -1098,10 +1100,11 @@ DWORD WINAPI SizeofResource16( HMODULE16 hModule, HRSRC16 hRsrc )
         NE_NAMEINFO *pNameInfo = (NE_NAMEINFO*)((char*)pModule + hRsrc);
         return (DWORD)pNameInfo->length << sizeShift;
     }
-    if (pModule->module32)
+    if (pModule->module32 || (pModule->ne_flags & NE_FFLAGS_BUILTIN))
     {
         /* 32-bit PE module */
-        return SizeofResource( pModule->module32, MapHRsrc16To32( pModule, hRsrc ) );
+        HMODULE m32 = (pModule->ne_flags & NE_FFLAGS_BUILTIN) ? pModule->owner32 : pModule->module32;
+        return SizeofResource( m32, MapHRsrc16To32( pModule, hRsrc ) );
     }
     return 0;
 }
