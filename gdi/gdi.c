@@ -4687,7 +4687,7 @@ BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
             }
             FindNextFileA(file, &fileinfo);
         }
-        CloseHandle(file);
+        FindClose(file);
         break;
     }
     case DLL_PROCESS_DETACH:
