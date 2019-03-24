@@ -1407,7 +1407,6 @@ HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
     {
         HDC dc = GetDC(NULL);
         HBITMAP ret = CreateCompatibleBitmap(dc, width, height);
-        ReleaseDC(NULL, dc);
         if (bits)
         {
             BITMAPINFO *bmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 256*2 + sizeof(BITMAPINFOHEADER));
@@ -1423,6 +1422,7 @@ HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
             SetDIBits(dc, ret, 0, height, bits, bmap, DIB_PAL_COLORS);
             HeapFree(GetProcessHeap(), 0, bmap);
         }
+        ReleaseDC(NULL, dc);
         return HBITMAP_16(ret);
     }
     return HBITMAP_16( CreateBitmap( width, height, planes & 0xff, bpp & 0xff, bits ) );
