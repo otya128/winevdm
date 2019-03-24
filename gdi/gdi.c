@@ -1403,6 +1403,28 @@ INT16 WINAPI CombineRgn16(HRGN16 hDest, HRGN16 hSrc1, HRGN16 hSrc2, INT16 mode)
 HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
                                  UINT16 bpp, LPCVOID bits )
 {
+    if (krnl386_get_compat_mode("256color") && (bpp == 8) && (planes == 1))
+    {
+        HDC dc = GetDC(NULL);
+        HBITMAP ret = CreateCompatibleBitmap(dc, width, height);
+        if (bits)
+        {
+            BITMAPINFO *bmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 256*2 + sizeof(BITMAPINFOHEADER));
+            UINT16 *colors = (UINT16 *)bmap->bmiColors;
+            VOID *section;
+            bmap->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bmap->bmiHeader.biWidth = width;
+            bmap->bmiHeader.biHeight = height;
+            bmap->bmiHeader.biPlanes = 1;
+            bmap->bmiHeader.biBitCount = 8;
+            for (int i = 0; i < 256; i++)
+                colors[i] = i;
+            SetDIBits(dc, ret, 0, height, bits, bmap, DIB_PAL_COLORS);
+            HeapFree(GetProcessHeap(), 0, bmap);
+        }
+        ReleaseDC(NULL, dc);
+        return HBITMAP_16(ret);
+    }
     return HBITMAP_16( CreateBitmap( width, height, planes & 0xff, bpp & 0xff, bits ) );
 }
 

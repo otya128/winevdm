@@ -1988,7 +1988,7 @@ HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBack
 {
     HPALETTE hpal32 = HPALETTE_32(hpal);
     HDC hdc32 = HDC_32(hdc);
-    if ((GetObjectType(hpal32) != OBJ_PAL) || (GetObjectType(hdc32) != OBJ_DC))
+    if ((GetObjectType(hpal32) != OBJ_PAL) || ((GetObjectType(hdc32) != OBJ_DC) && (GetObjectType(hdc32) != OBJ_MEMDC)))
         return NULL;
     if (krnl386_get_compat_mode("256color") && WindowFromDC(hdc32))
     {
