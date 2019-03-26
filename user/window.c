@@ -2353,10 +2353,6 @@ __declspec(dllexport) BOOL16 WINAPI USER_ClassNext16(CLASSENTRY *pClassEntry)
     return FALSE;
 }
 
-__declspec(dllimport) HICON NE_ExtractIcon(LPCSTR lpszExeFileName, HICON * RetPtr, INT nIconIndex,
-                UINT nIcons, UINT cxDesired, UINT cyDesired, UINT *pIconId, UINT flags);
-
-
 NE_TYPEINFO *get_resource_table(HMODULE16 hmod, LPCSTR type, LPBYTE *restab);
 /***********************************************************************
  *		RegisterClassEx (USER.397)
