@@ -979,6 +979,16 @@ HRSRC16 WINAPI FindResource16( HMODULE16 hModule, LPCSTR name, LPCSTR type )
     return 0;
 }
 
+NE_TYPEINFO *get_resource_table(HMODULE16 hmod, LPCSTR type, LPBYTE *restab)
+{
+    NE_MODULE *pModule = get_module(hmod);
+    if (!pModule || pModule->module32 || (pModule->ne_flags & NE_FFLAGS_BUILTIN) || !pModule->ne_rsrctab)
+        return NULL;
+    LPBYTE pResTab = (LPBYTE)pModule + pModule->ne_rsrctab;
+    if (restab) *restab = pResTab;
+    type = get_res_name(type);
+    return NE_FindTypeSection(pResTab, (NE_TYPEINFO *)(pResTab + 2), type);
+}
 
 /**********************************************************************
  *          LoadResource     (KERNEL.61)
@@ -1168,10 +1178,10 @@ BOOL16 WINAPI FreeResource16( HGLOBAL16 handle )
         args[1] = handle;
         args[0] = 1;  /* CID_RESOURCE */
         WOWCallback16Ex( (SEGPTR)proc, WCB16_PASCAL, sizeof(args), args, &result );
-        return LOWORD(result);
+        if (!result)
+            return 0;
     }
-    else
-        return GlobalFree16( handle );
+    return GlobalFree16( handle );
 }
 /*************************************************************************
 *			USER32_LoadResource

@@ -2332,6 +2332,7 @@ typedef struct
 #include <poppack.h>
 
 LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin);
+NE_TYPEINFO *get_resource_table(HMODULE16 hmod, LPCSTR type, LPBYTE *restab);
 /***********************************************************************
  *           AddFontResource    (GDI.119)
  */
@@ -2354,16 +2355,8 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
     LPVOID font;
     if((mod = LoadLibrary16(filename)) >= 32)
     {
-        char *fon = GlobalLock16(GetExePtr(mod));
-        WORD ne_resrctab = ((WORD *)fon)[18];
-        NE_TYPEINFO *type = fon + ne_resrctab + 2;
-        while(type->type_id & 0x8000)
-        {
-            if (type->type_id == 0x8008)
-                break;
-            type = (char *)type + sizeof(NE_TYPEINFO) + (type->count * sizeof(NE_NAMEINFO));
-        }
-        if(type->type_id != 0x8008)
+        NE_TYPEINFO *type = get_resource_table(mod, RT_FONT, NULL);
+        if(!type)
         {
             FreeLibrary16(mod);
             return 0;
