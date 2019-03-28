@@ -4652,3 +4652,46 @@ WORD WINAPI GetFontAssocStatus16(HDC16 hdc)
     }
     return ((ULONG(WINAPI*)(HDC))GetFontAssocStatus)(HDC_32(hdc));
 }
+
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
+
+BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
+                          WORD wHeapSize, DWORD dwReserved1, WORD wReserved2)
+{
+    switch (fdwReason)
+    {
+    case DLL_PROCESS_ATTACH:
+    {
+        static BOOL init = FALSE;
+        if (init == TRUE)
+            break;
+        init = TRUE;
+        WIN32_FIND_DATAA fileinfo = {0};
+        char syspath[MAX_PATH];
+        char fonfile[MAX_PATH];
+        RedirectSystemDir("C:\\Windows\\System\\", syspath, MAX_PATH);
+        strcpy(fonfile, syspath);
+        strcat(fonfile, "*.*");
+        HANDLE file = FindFirstFileA(fonfile, &fileinfo);
+        if (file == INVALID_HANDLE_VALUE)
+            break;
+
+        while (GetLastError() == ERROR_SUCCESS)
+        {
+            LPCSTR *ext = fileinfo.cFileName + strlen(fileinfo.cFileName) - 4;
+            if (!stricmp(ext, ".ttf") || !stricmp(ext, ".fon"))
+            {
+                strcpy(fonfile, syspath);
+                strcat(fonfile, fileinfo.cFileName);
+                AddFontResource16(fonfile);
+            }
+            FindNextFileA(file, &fileinfo);
+        }
+        FindClose(file);
+        break;
+    }
+    case DLL_PROCESS_DETACH:
+        break;
+    }
+    return TRUE;
+}
