@@ -2352,6 +2352,8 @@ __declspec(dllexport) BOOL16 WINAPI USER_ClassNext16(CLASSENTRY *pClassEntry)
     FIXME("\n");
     return FALSE;
 }
+
+NE_TYPEINFO *get_resource_table(HMODULE16 hmod, LPCSTR type, LPBYTE *restab);
 /***********************************************************************
  *		RegisterClassEx (USER.397)
  */
@@ -2388,6 +2390,27 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.cbWndExtra    = 100;
     wc32.hInstance     = HINSTANCE_32(inst);
     wc32.hIcon         = get_icon_32(wc->hIcon);
+    
+    if (!wc32.hIcon)
+    {
+        LPBYTE restab;
+        NE_TYPEINFO *type = get_resource_table(inst, RT_GROUP_ICON, &restab);
+        if (!type)
+            type = get_resource_table(inst, RT_ICON, &restab);
+        if (type)
+        {
+            LPCSTR id = (LPCSTR)(((NE_NAMEINFO *)((char *)type + sizeof(NE_TYPEINFO)))->id);
+            char name[32] = {0};
+            if (!((int)id & 0x8000))
+            {
+                int len = restab[0] > 31 ? 31 : restab[0];
+                strncpy(name, restab + (int)id + 1, len);
+                id = name;
+            }
+            wc32.hIcon = get_icon_32(LoadIcon16(inst, id));
+         }
+    }
+
     wc32.hCursor       = get_icon_32( wc->hCursor );
     wc32.hbrBackground = HBRUSH_32(wc->hbrBackground);
     wc32.lpszMenuName  = MapSL(wc->lpszMenuName);
