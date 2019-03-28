@@ -258,7 +258,7 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
     if (size == 0) return GLOBAL_CreateBlock( flags, NULL, 1, hOwner, selflags );
 
     /* Fixup the size */
-    DWORD fixup_size = 0x1f;
+    DWORD fixup_size = (size < 0x10000) ? 0x1f : 0xfff; // selectors larger than 64k need page graularity
     BOOL old = IsOldWindowsTask(GetCurrentTask());
     DWORD add_size = old ? 0x100 : 0;
 
