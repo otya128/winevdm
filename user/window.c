@@ -324,6 +324,11 @@ UINT16 WINAPI SetTimer16( HWND16 hwnd, UINT16 id, UINT16 timeout, TIMERPROC16 pr
 UINT16 WINAPI SetSystemTimer16( HWND16 hwnd, UINT16 id, UINT16 timeout, TIMERPROC16 proc )
 {
     TIMERPROC proc32 = proc == NULL ? NULL : allocate_timer_thunk(proc, TimerProc_Thunk, TRUE);
+    if (!SetSystemTimer)
+    {
+        ERR("SetSystemTimer NULL\n");
+        return 0;
+    }
     return SetSystemTimer( WIN_Handle32(hwnd), id, timeout, proc32 );
 }
 
@@ -1801,6 +1806,11 @@ void WINAPI SwitchToThisWindow16( HWND16 hwnd, BOOL16 restore )
  */
 BOOL16 WINAPI KillSystemTimer16( HWND16 hwnd, UINT16 id )
 {
+    if (!KillSystemTimer)
+    {
+        ERR("KillSystemTimer NULL\n");
+        return 0;
+    }
     return KillSystemTimer( WIN_Handle32(hwnd), id );
 }
 

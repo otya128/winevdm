@@ -111,7 +111,12 @@ static LPCSTR DIALOG_GetControl16( LPCSTR p, DLG_CONTROL_INFO *info )
     {
         switch((BYTE)*p)
         {
-            case 0x80: strcpy( buffer, "BUTTON" ); break;
+            case 0x80: strcpy( buffer, "BUTTON" );
+                // this is undocumented but makes BS_USERBUTTON work
+                // BS_ICON and BS_BITMAP work without it
+                if (((info->style & 0xf) == BS_USERBUTTON) && !(info->style & 0xc0))
+                    info->style |= 0x10;
+                break;
             case 0x81: strcpy( buffer, "EDIT" ); break;
             case 0x82: strcpy( buffer, "STATIC" ); break;
             case 0x83: strcpy( buffer, "LISTBOX" ); break;
