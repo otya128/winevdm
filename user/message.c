@@ -2805,6 +2805,7 @@ LRESULT WINAPI DefDlgProc16( HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lP
 }
 
 
+BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
 /***********************************************************************
  *		PeekMessage  (USER.109)
  */
@@ -2825,6 +2826,8 @@ BOOL16 WINAPI PeekMessage16( MSG16 *msg, HWND16 hwnd,
     {
         RestoreThunkLock(count);
     }
+    if (IsOldWindowsTask(GetCurrentTask()) && !msg->hwnd)
+        msg->hwnd = HWND_16(GetDesktopWindow());
     return ret;
 }
 
