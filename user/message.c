@@ -2542,6 +2542,10 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
     LRESULT result;
     HWND hwnd = WIN_Handle32( hwnd16 );
 
+    // SendMessageTimeout always fails with this message
+    if (msg == WM_DDE_EXECUTE)
+       return PostMessage16( hwnd16, msg, wparam, lparam );
+
     if (hwnd != HWND_BROADCAST &&
         GetWindowThreadProcessId( hwnd, NULL ) == GetCurrentThreadId())
     {
