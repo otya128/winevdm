@@ -195,25 +195,24 @@ DWORD wine_pm_interrupt_handler(WORD num, DWORD addr)
     GlobalUnlock16(hTask);
     return handler;
 }
-//this function is defined at asmstub.asm
-extern void __wine_call_to_16_ret(void);
 
+extern LPVOID *__wine_call_to_16_ret_p;
 wine_call_to_16_vm86_t func_wine_call_to_16_vm86;
 wine_call_to_16_regs_vm86_t func_wine_call_to_16_regs_vm86;
 DWORD WINAPI wine_call_to_16(FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
-    return func_wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
+    return func_wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret_p, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
 }
 void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
     //why??
     context->SegSs = SELECTOROF(getWOW32Reserved());
     context->Esp = OFFSETOF(getWOW32Reserved());
-    func_wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
+    func_wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret_p, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
 }
 void __wine_enter_vm86(CONTEXT *context)
 {
-    func_wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), TRUE, DOSMEM_dosmem, wine_pm_interrupt_handler);
+    func_wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret_p, get_debug_mode(), TRUE, DOSMEM_dosmem, wine_pm_interrupt_handler);
     ERR("NOTIMPL:__wine_enter_vm86(%p)\n", context);
 }
 BOOL16 WINAPI IsDBCSLeadByte16(BYTE TestChar)

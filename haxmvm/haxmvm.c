@@ -373,66 +373,6 @@ BOOL init_vm86(BOOL vm86)
     // fill in the pagedir
     for (int i = 0; i < 512; i++)
         guestpt[0x80000 + i] = ((DWORD)guestpt + 4096 * i) | 7;
-    while (!TRUE)
-    {
-        alloc_ram.size = mbi.RegionSize;
-        VirtualQuery((PVOID)((SIZE_T)mbi.BaseAddress + mbi.RegionSize), &mbi, sizeof(mbi));
-        if (!mbi.RegionSize)
-            break;
-        alloc_ram.va = (SIZE_T)mbi.BaseAddress;
-        alloc_ram.size = (SIZE_T)mbi.RegionSize;
-        if (!alloc_ram.va)
-            continue;
-        if (0&&mbi.State != MEM_COMMIT)
-        {
-            if ((SIZE_T)mbi.BaseAddress + mbi.RegionSize < (SIZE_T)mbi.BaseAddress)
-            {
-                break;
-            }
-            continue;
-        }
-        //MmProbeAndLockPages(xx, xx , IoReadAccess|IoWriteAccess) fails
-        if (0 && mbi.State == MEM_COMMIT)
-        {
-            DWORD old;
-            if (mbi.Protect & PAGE_READONLY)
-            {
-                VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_READWRITE, &old);
-            }
-            if ((mbi.Protect & PAGE_EXECUTE_READ) || (mbi.Protect & PAGE_EXECUTE))
-            {
-                VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_EXECUTE_READWRITE, &old);
-            }
-        }
-        if (mbi.State == MEM_COMMIT)
-        {
-            DWORD old;
-            if (mbi.Protect & PAGE_READONLY)
-            {
-                continue;
-            }
-            if ((mbi.Protect & PAGE_EXECUTE_READ) || (mbi.Protect & PAGE_EXECUTE))
-            {
-                continue;
-            }
-        }
-        if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-        {
-            HAXMVM_ERR;
-        }
-        if ((SIZE_T)mbi.BaseAddress + mbi.RegionSize < (SIZE_T)mbi.BaseAddress)
-        {
-            break;
-        }
-        ram.pa_start = (SIZE_T)mbi.BaseAddress;
-        ram.size = (SIZE_T)mbi.RegionSize;
-        ram.va = (SIZE_T)mbi.BaseAddress;
-        if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
-        {
-            HAXMVM_ERR;
-            return FALSE;
-        }
-    }
     tunnel = (struct hax_tunnel*)tunnel_info.va;
     struct vcpu_state_t state;
     if (!DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL))
@@ -747,8 +687,9 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     {
         SIZE_T page1 = (SIZE_T)from16_reg / 4096 * 4096;
         SIZE_T page2 = (SIZE_T)__wine_call_from_16 / 4096 * 4096;
+        SIZE_T page3 = (SIZE_T)__wine_call_to_16_ret / 4096 * 4096;
         LPBYTE trap = syscall_trap = (LPBYTE)VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_READWRITE);
-        memset(trap, 0xEE, 4095); /* out forces a vmexit from user mode without modifing any registers */
+        memset(trap, 0xEE, 4096); /* out forces a vmexit from user mode without modifing any registers */
         struct hax_alloc_ram_info alloc_ram = { 0 };
         struct hax_set_ram_info ram = { 0 };
         alloc_ram.size = 4096;
@@ -767,6 +708,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         }
         guestpt[page1 >> 12] = (DWORD)trap | 7;
         guestpt[page2 >> 12] = (DWORD)trap | 7;
+        guestpt[page3 >> 12] = (DWORD)trap | 7;
         syscall_init = TRUE;
     }
     //is_single_step = TRUE;
@@ -879,8 +821,10 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                         }
                         state2._esp += 4;
                     }
-                    else if(intvec < 0x10)
+                    else if (intvec < 0x10)
+                    {
                         pih(intvec, MAKESEGPTR(state2._cs.selector, state2._eip & 0xffff));
+                    }
                     else
                     {
                             DWORD eip = POP32(&state2);
