@@ -916,19 +916,60 @@ __declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbA
 
 SIZE_T base = 0;
 SIZE_T x87func = 0x200 - 0x10;
-void callx87(SIZE_T addr)
+void callx87(SIZE_T addr, LPVOID eax)
 {
     DWORD bytes;
     struct vcpu_state_t state;
     DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
     state._rip = addr;
+    state._eax = eax;
+    state._ds.selector = seg_ds;
+    state._ds.base = 0;
     state._cs.selector = seg_cs;
     state._cs.base = 0;
-    DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL);
-    if (!DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_RUN, NULL, 0, NULL, 0, &bytes, NULL))
-        return;
-    //DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
-
+    while (TRUE)
+    {
+        DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL);
+        if (!DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_RUN, NULL, 0, NULL, 0, &bytes, NULL))
+            return;
+        DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
+        if (tunnel->_exit_status == HAX_EXIT_HLT)
+        {
+            struct vcpu_state_t state2 = state;
+            struct hax_alloc_ram_info alloc_ram = { 0 };
+            struct hax_set_ram_info ram = { 0 };
+            LPVOID ptr = (LPBYTE)state2._cs.base + state2._eip;
+            if (((DWORD)ptr >= (DWORD)trap_int) && ((DWORD)ptr <= ((DWORD)trap_int + 256)))
+            {
+                int intvec = ((DWORD)ptr & 0xff) - 1;
+                state2._eip = 256;
+                if (intvec == 0x0e)
+                {
+                    alloc_ram.size = 4096;
+                    alloc_ram.va = state2._cr2 & ~0xfff;
+                    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
+                    {
+                        HAXMVM_ERRF("ALLOC_RAM");
+                    }
+                    ram.pa_start = state2._cr2 & ~0xfff;
+                    ram.size = 4096;
+                    ram.va = state2._cr2 & ~0xfff;
+                    if (!set_ram(&ram))
+                    {
+                        HAXMVM_ERRF("SET_RAM");
+                    }
+                    state2._esp += 4;
+                }
+                else
+                    break;
+            }
+            else
+                break;
+            state = state2;
+        }
+        else
+            break;
+    }
     if (tunnel->_exit_status == HAX_EXIT_STATECHANGE)
     {
         HAXMVM_ERRF("hypervisor is panicked!!!");
@@ -938,43 +979,43 @@ void callx87(SIZE_T addr)
 /* x87 service functions */
 void fldcw(WORD a)
 {
-    SIZE_T location = base + x87func + 1 * 0x10;
-    callx87(location);
+    char instr[] = { 0xd9, 0x28, 0xee }; /* fldcw word ptr [eax] */
+    callx87(instr, &a);
 }
 void wait()
 {
-    SIZE_T location = base + x87func + 2 * 0x10;
-    callx87(location);
+    char instr[] = { 0x9b, 0xee }; /* wait */
+    callx87(instr, NULL);
 }
 void fninit()
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xdb, 0xe3, 0xee }; /* fninit */
+    callx87(instr, NULL);
 }
 void fstcw(WORD* a)
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xd9, 0x38, 0xee }; /* fnstcw word ptr [eax] */
+    callx87(instr, a);
 }
 void frndint()
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xd9, 0xfc, 0xee }; /* frndint */
+    callx87(instr, NULL);
 }
 void fclex()
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xdb, 0xe2, 0xee }; /* fnclex */
+    callx87(instr, NULL);
 }
 void fsave(char* a)
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xdd, 0x30, 0xee }; /* fnsave [eax] */
+    callx87(instr, a);
 }
 void frstor(const char* a)
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xdd, 0x20, 0xee }; /* frstor [eax] */
+    callx87(instr, a);
 }
 typedef void(*fldcw_t)(WORD);
 typedef void(*wait_t)();
