@@ -32,6 +32,7 @@
 #include "user_private.h"
 #include "wine/debug.h"
 #include "message_table.h"
+#include "../krnl386/kernel16_private.h"
 /*
 unknwon combobox message
 When EDIT received WM_KILLFOCUS, EDIT sent this message to COMBOBOX.
@@ -2541,6 +2542,7 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
 {
     LRESULT result;
     HWND hwnd = WIN_Handle32( hwnd16 );
+    SetEvent(kernel_get_thread_data()->idle_event);
 
     // SendMessageTimeout always fails with this message
     if (msg == WM_DDE_EXECUTE)
@@ -2845,6 +2847,7 @@ BOOL16 WINAPI GetMessage32_16( MSG32_16 *msg16, HWND16 hwnd16, UINT16 first,
     MSG msg;
     LRESULT unused;
     HWND hwnd = WIN_Handle32( hwnd16 );
+    SetEvent(kernel_get_thread_data()->idle_event);
 
     if(USER16_AlertableWait)
         MsgWaitForMultipleObjectsEx( 0, NULL, INFINITE, 0, MWMO_ALERTABLE );

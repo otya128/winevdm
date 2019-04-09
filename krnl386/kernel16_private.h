@@ -736,10 +736,11 @@ struct kernel_thread_data
     WORD                htask16;        /* Win16 task handle */
     DWORD               sys_count[4];   /* syslevel mutex entry counters */
     struct tagSYSLEVEL *sys_mutex[4];   /* syslevel mutex pointers */
+    HANDLE              idle_event;     /* input idle event */
     int                 curdir_len;     /* current dir buffer length */
     char               *true_curdir;    /* true current dir */
     char               *curdir_buf;     /* current dir buffer */
-    void               *pad[33];        /* change this if you add fields! */
+    void               *pad[29];        /* change this if you add fields! */
 };
 
 __declspec(dllexport) struct kernel_thread_data *tls_get_kernel_thread_data();
