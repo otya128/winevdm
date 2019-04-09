@@ -1,0 +1,5 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_executable(winhlp32 WIN32 ${SOURCE})
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN=)
+target_link_libraries(winhlp32 libwine comctl32.lib)
