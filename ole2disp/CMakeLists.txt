@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c **/*.c *.cpp **/*.cpp *.rc **/*.rc)
+add_library(ole2disp SHARED ${SOURCE} ole2disp.def ole2disp.dll16.obj)
+include_directories(../wine)
+add_definitions(-DARRAY_SIZE=ARRAYSIZE -D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(ole2disp.dll16 ole2disp)
+add_dependencies(ole2disp convspec generate_asm_ole2disp)
+target_link_libraries(ole2disp libwine winecrt0 wow32 krnl386 ole2 compobj)
+set_target_properties(ole2disp PROPERTIES SUFFIX ".dll16")

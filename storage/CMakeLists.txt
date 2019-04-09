@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(storage SHARED ${SOURCE} storage.def storage.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(storage.dll16 storage)
+add_dependencies(storage convspec generate_asm_storage)
+target_link_libraries(storage libwine winecrt0 wow32 krnl386 ole2)
+set_target_properties(storage PROPERTIES SUFFIX ".dll16")

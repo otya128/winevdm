@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(compobj SHARED ${SOURCE} compobj.def compobj.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(compobj.dll16 compobj)
+add_dependencies(compobj convspec generate_asm_compobj)
+target_link_libraries(compobj libwine winecrt0 wow32 krnl386 ole2 ole32.lib)
+set_target_properties(compobj PROPERTIES SUFFIX ".dll16")
