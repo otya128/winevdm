@@ -237,13 +237,60 @@ WORD WINAPI Get80x87SaveSize16(void)
 }
 
 
+typedef void(*fldcw_t)(WORD);
+typedef void(*wait_t)();
+typedef void(*fninit_t)();
+typedef void(*fstcw_t)(WORD*);
+typedef void(*frndint_t)();
+typedef void(*fclex_t)();
+typedef void(*fsave_t)(char*);
+typedef void(*frstor_t)(const char*);
+typedef DWORD(*fistp_t)(WORD);
+
+void fsave_stub(char* a)
+{
+    FIXME("stub\n");
+}
+void frstor_stub(const char* a)
+{
+    FIXME("stub\n");
+}
+typedef struct
+{
+    fldcw_t fldcw;
+    wait_t wait;
+    fninit_t fninit;
+    fstcw_t fstcw;
+    frndint_t frndint;
+    fclex_t fclex;
+    fsave_t fsave;
+    frstor_t frstor;
+    fistp_t fistp;
+} x87function;
+x87function x87;
+typedef void (*load_x87function_t)(x87function *func);
+void load_x87()
+{
+    char dllname[MAX_PATH];
+    load_x87function_t load_x87function;
+    krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
+    HMODULE vm = LoadLibraryA(dllname);
+    load_x87function = (load_x87function_t)GetProcAddress(vm, "load_x87function");
+    if (load_x87function)
+        load_x87function(&x87);
+    if (!x87.fsave)
+        x87.fsave = fsave_stub;
+    if (!x87.frstor)
+        x87.frstor = frstor_stub;
+}
+#define USE_VM86_DLL 1
 /***********************************************************************
  *           Save80x87State   (SYSTEM.8)
  */
 void WINAPI Save80x87State16( char *ptr )
 {
 #ifdef USE_VM86_DLL
-    fsave(ptr);
+    x87.fsave(ptr);
 #elif defined(__i386__)
     __asm__(".byte 0x66; fsave %0; fwait" : "=m" (ptr) );
 #endif
@@ -256,7 +303,7 @@ void WINAPI Save80x87State16( char *ptr )
 void WINAPI Restore80x87State16( const char *ptr )
 {
 #ifdef USE_VM86_DLL
-    frstor(ptr);
+    x87.frstor(ptr);
 #elif defined(__i386__)
     __asm__(".byte 0x66; frstor %0" : : "m" (ptr) );
 #endif

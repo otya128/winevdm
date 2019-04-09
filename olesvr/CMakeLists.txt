@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(olesvr SHARED ${SOURCE} olesvr.def olesvr.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(olesvr.dll16 olesvr)
+add_dependencies(olesvr convspec generate_asm_olesvr)
+target_link_libraries(olesvr libwine winecrt0 wow32 krnl386 olesvr32.lib)
+set_target_properties(olesvr PROPERTIES SUFFIX ".dll16")

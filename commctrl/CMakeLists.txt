@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(commctrl SHARED ${SOURCE} commctrl.def commctrl.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(commctrl.dll16 commctrl)
+add_dependencies(commctrl convspec generate_asm_commctrl)
+target_link_libraries(commctrl libwine winecrt0 wow32 krnl386 user comctl32.lib)
+set_target_properties(commctrl PROPERTIES SUFFIX ".dll16")

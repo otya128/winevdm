@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(dispdib SHARED ${SOURCE} dispdib.def dispdib.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(dispdib.dll16 dispdib)
+add_dependencies(dispdib convspec generate_asm_dispdib)
+target_link_libraries(dispdib libwine winecrt0 wow32 krnl386)
+set_target_properties(dispdib PROPERTIES SUFFIX ".dll16")

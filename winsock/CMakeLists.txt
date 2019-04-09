@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(winsock SHARED ${SOURCE} winsock.def winsock.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(winsock.dll16 winsock)
+add_dependencies(winsock convspec generate_asm_winsock)
+target_link_libraries(winsock libwine winecrt0 wow32 krnl386 ws2_32.lib)
+set_target_properties(winsock PROPERTIES SUFFIX ".dll16")

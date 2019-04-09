@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(ctl3dv2 SHARED ${SOURCE} ctl3dv2.def ctl3dv2.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(ctl3dv2.dll16 ctl3dv2)
+add_dependencies(ctl3dv2 convspec generate_asm_ctl3dv2)
+target_link_libraries(ctl3dv2 libwine winecrt0 wow32 krnl386 user)
+set_target_properties(ctl3dv2 PROPERTIES SUFFIX ".dll16")

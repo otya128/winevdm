@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(mouse SHARED ${SOURCE} mouse.def mouse.drv16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(mouse.drv16 mouse)
+add_dependencies(mouse convspec generate_asm_mouse)
+target_link_libraries(mouse libwine winecrt0 wow32 krnl386)
+set_target_properties(mouse PROPERTIES SUFFIX ".drv16")

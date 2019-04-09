@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(mmsystem SHARED ${SOURCE} mmsystem.def mmsystem.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(mmsystem.dll16 mmsystem)
+add_dependencies(mmsystem convspec generate_asm_mmsystem)
+target_link_libraries(mmsystem libwine winecrt0 wow32 krnl386 winmm.lib)
+set_target_properties(mmsystem PROPERTIES SUFFIX ".dll16")

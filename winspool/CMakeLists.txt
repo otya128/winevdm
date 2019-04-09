@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(winspool SHARED ${SOURCE} winspool.def winspool.drv16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(winspool.drv16 winspool)
+add_dependencies(winspool convspec generate_asm_winspool)
+target_link_libraries(winspool libwine winecrt0 wow32 krnl386 winspool.lib)
+set_target_properties(winspool PROPERTIES SUFFIX ".drv16")

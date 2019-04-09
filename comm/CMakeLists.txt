@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(comm SHARED ${SOURCE} ${PROJECT_SOURCE_DIR}/dummy.c comm.def comm.drv16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(comm.drv16 comm)
+add_dependencies(comm convspec generate_asm_comm)
+target_link_libraries(comm libwine winecrt0 wow32 krnl386)
+set_target_properties(comm PROPERTIES SUFFIX ".drv16")

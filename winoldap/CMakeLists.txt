@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(winoldap SHARED ${SOURCE} winoldap.def winoldap.mod16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(winoldap.mod16 winoldap)
+add_dependencies(winoldap convspec generate_asm_winoldap)
+target_link_libraries(winoldap libwine winecrt0 wow32 krnl386)
+set_target_properties(winoldap PROPERTIES SUFFIX ".mod16")

@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(winnls SHARED ${SOURCE} winnls.def winnls.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(winnls.dll16 winnls)
+add_dependencies(winnls convspec generate_asm_winnls)
+target_link_libraries(winnls libwine winecrt0 wow32 krnl386 imm32.lib)
+set_target_properties(winnls PROPERTIES SUFFIX ".dll16")
