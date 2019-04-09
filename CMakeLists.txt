@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.12)
+project(winevdm)
+set(ASM_TOOL_DIR C:/msys32/usr/bin/)
+add_subdirectory(wine)
+add_subdirectory(convspec)
+add_subdirectory(winecrt0)
+add_subdirectory(krnl386)

@@ -1,0 +1,5 @@
+file(GLOB SOURCE *.c)
+add_executable(otvdm ${SOURCE})
+include_directories(../wine)
+add_definitions(-D_X86_)
+target_link_libraries(otvdm libwine krnl386)
