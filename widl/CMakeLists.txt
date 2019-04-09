@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c)
+include_directories(../wine .)
+bison_target(widl_parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.tab.c COMPILE_FLAGS "-p parser_")
+flex_target(widl_scanner parser.l ${CMAKE_CURRENT_BINARY_DIR}/parser.l.c COMPILE_FLAGS)
+add_flex_bison_dependency(widl_scanner widl_parser)
+add_executable(widl ${SOURCE} ${BISON_widl_parser_OUTPUTS} ${FLEX_widl_scanner_OUTPUTS})
+add_definitions(-D_X86_ -D__i386__ -Dpopen=_popen -Dpclose=_pclose -Dstrncasecmp=_strnicmp -Dstrcasecmp=_stricmp)
+target_link_libraries(widl wpp libwine)
