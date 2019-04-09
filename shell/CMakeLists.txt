@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp)
+add_library(shell SHARED ${SOURCE} shell.def shell.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(shell.dll16 shell)
+add_dependencies(shell convspec generate_asm_shell)
+target_link_libraries(shell libwine winecrt0 wow32 krnl386 shell32.lib)
+set_target_properties(shell PROPERTIES SUFFIX ".dll16")

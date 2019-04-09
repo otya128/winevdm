@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp)
+add_library(user SHARED ${SOURCE} user.def user.exe16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(user.exe16 USER)
+add_dependencies(user convspec generate_asm_user)
+target_link_libraries(user libwine winecrt0 wow32 krnl386 Mpr.lib UxTheme.lib ole32.lib version.lib)
+set_target_properties(user PROPERTIES SUFFIX ".exe16")

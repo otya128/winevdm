@@ -1,0 +1,8 @@
+file(GLOB SOURCE *.c *.cpp)
+add_library(gdi SHARED ${SOURCE} gdi.def gdi.exe16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(gdi.exe16 GDI)
+add_dependencies(gdi convspec generate_asm_gdi)
+target_link_libraries(gdi libwine winecrt0 wow32 krnl386 user)
+set_target_properties(gdi PROPERTIES SUFFIX ".exe16")
