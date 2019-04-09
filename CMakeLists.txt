@@ -7,10 +7,19 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 macro(spec_build file modname)
     string(TOUPPER modname modname)
     get_filename_component(name_we ${file} NAME_WE)
-    add_custom_command(OUTPUT ${file}.obj
+    add_custom_command(OUTPUT ${file}.obj ${file}.asm
+    DEPENDS ${file}.spec convspec
     COMMAND convspec ${CMAKE_CURRENT_LIST_DIR}/${file}.spec ${modname} > ${file}.asm && ${ASM_TOOL_DIR}/as --32 -o ${file}.obj ${file}.asm)
     add_custom_target(generate_asm_${name_we} DEPENDS ${file}.obj)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
+endmacro()
+macro(widl_build file_idl file_c file_h)
+    get_filename_component(name_we ${file_idl} NAME_WE)
+    add_custom_command(OUTPUT ${file_c} ${file_h}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${file_idl} widl
+    COMMAND $<TARGET_FILE_DIR:widl>/widl ${CMAKE_CURRENT_SOURCE_DIR}/${file_idl} -o ${file_c} && $<TARGET_FILE_DIR:widl>/widl ${CMAKE_CURRENT_SOURCE_DIR}/${file_idl} -o ${file_h}
+WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    add_custom_target(generate_ifs_${name_we} DEPENDS ${file_c} ${file_h})
 endmacro()
 find_package(BISON)
 find_package(FLEX)
@@ -43,7 +52,7 @@ add_subdirectory(mouse)
 add_subdirectory(msacm)
 add_subdirectory(msvideo)
 add_subdirectory(nddeapi)
-#add_subdirectory(ole2)
+add_subdirectory(ole2)
 #add_subdirectory(ole2conv)
 #add_subdirectory(ole2disp)
 #add_subdirectory(ole2nls)
