@@ -21,6 +21,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#define NONAMELESSUNION
 #include "config.h"
 
 #include <assert.h>
@@ -31,8 +32,6 @@
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-
-#define NONAMELESSUNION
 
 #include "windef.h"
 #include "winbase.h"

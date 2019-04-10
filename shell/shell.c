@@ -271,7 +271,7 @@ __declspec(dllimport) HICON NE_ExtractIcon(LPCSTR lpszExeFileName,
 	UINT cyDesired,
 	UINT *pIconId,
 	UINT flags);
-inline UINT PrivateExtractIconsNE(
+static inline UINT PrivateExtractIconsNE(
 	LPCSTR lpwstrFile,
 	int nIndex,
 	int sizeX,

@@ -36,7 +36,7 @@
 #ifdef HAVE_GETOPT_H
 # include <getopt.h>
 #else
-#include "getopt.h"
+#include "getopt_msvc.h"
 #endif
 
 #include "widl.h"
@@ -45,7 +45,7 @@
 #include "wine/wpp.h"
 #include "header.h"
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW32__)
 int mkstemps(char *template, int suffixlen)
 {
     errno_t result =_mktemp_s(template, strlen(template) + 1);

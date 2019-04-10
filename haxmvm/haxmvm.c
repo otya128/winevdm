@@ -109,7 +109,7 @@ WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags)
     }
     return sel;
 }
-_declspec(dllimport) LDT_ENTRY wine_ldt[8192];
+__declspec(dllimport) LDT_ENTRY wine_ldt[8192];
 
 HANDLE hSystem;
 HANDLE hVM;
@@ -119,10 +119,12 @@ struct hax_tunnel *tunnel;
 #ifdef _MSC_VER
 __declspec(align(4096))
 #endif
-DWORD guestpt[0x80400] = {0}
+DWORD
 #ifdef __GNUC__
 __attribute__ ((aligned(4096)))
 #endif
+guestpt[0x80400] = {0}
+
 ;
 
 void load_seg(segment_desc_t *segment, WORD sel)
@@ -255,8 +257,13 @@ _STATIC_ASSERT(sizeof(interrupt_gate) == 8);
 
 #define HAXMVM_STR2(s) #s
 #define HAXMVM_STR(s) HAXMVM_STR2(s)
+#ifdef _MSC_VER
 #define HAXMVM_ERR fprintf(stderr, __FUNCTION__ "("  HAXMVM_STR(__LINE__)  ") HAXM err.\n");
 #define HAXMVM_ERRF(fmt, ...) fprintf(stderr, __FUNCTION__ "("  HAXMVM_STR(__LINE__)  ") " fmt "\n", __VA_ARGS__);
+#else
+#define HAXMVM_ERR fprintf(stderr, "%s("  HAXMVM_STR(__LINE__)  ") HAXM err.\n", __FUNCTION__);
+#define HAXMVM_ERRF(fmt, ...) fprintf(stderr, "%s("  HAXMVM_STR(__LINE__)  ") " fmt "\n", __FUNCTION__, ##__VA_ARGS__);
+#endif
 LPVOID trap_int;
 
 #ifdef _MSC_VER
@@ -296,11 +303,16 @@ static BOOL set_ram(struct hax_set_ram_info *ram)
 BOOL init_vm86(BOOL vm86)
 {
     ((void(*)())GetProcAddress(GetModuleHandleA("libwine"), "set_intel_vt_x_workaround"))();
+#ifdef _MSC_VER
     __asm
     {
         mov seg_cs, cs
         mov seg_ds, ds
     }
+#else
+    seg_cs = wine_get_cs();
+    seg_ds = wine_get_ds();
+#endif
     hSystem = CreateFileW(L"\\\\.\\HAX", 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hSystem == INVALID_HANDLE_VALUE)
     {

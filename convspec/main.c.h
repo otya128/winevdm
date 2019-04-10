@@ -624,7 +624,7 @@ static int parse_input_file( DLLSPEC *spec )
 /*******************************************************************
  *         main
  */
-int main(int argc, char **argv)
+int maiAn(int argc, char **argv)
 {
     DLLSPEC *spec = alloc_dll_spec();
 

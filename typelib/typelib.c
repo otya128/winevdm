@@ -216,7 +216,7 @@ DWORD WINAPI OaBuildVersion16(void)
 		return MAKELONG(3027, 3); /* WfW 3.11 */
     }
 }
-
+HRESULT WINAPI RegisterTypeLibForUser(ITypeLib * ptlib, OLECHAR * szFullPath, OLECHAR * szHelpDir);
 HRESULT WINAPI RegisterTypeLib16(SEGPTR /* ITypeLib* */ptlib, LPCOLESTR16 szFullPath, LPCOLESTR16 szHelpDir)
 {
     LPOLESTR w1 = strdupAtoW(szFullPath);

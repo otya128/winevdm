@@ -27,6 +27,9 @@
 #define __oleidl_h__
 #define _OLE2_H_
 #include <windows.h>
+#ifndef _MSC_VER
+#define _Analysis_noreturn_
+#endif
 #include <ole.h>
 #include <stdarg.h>
 

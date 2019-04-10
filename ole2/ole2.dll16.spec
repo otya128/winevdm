@@ -173,3 +173,9 @@
 521 cdecl HGLOBALStreamImpl16_UnlockRegion(ptr int64 int64 long) HGLOBALStreamImpl16_UnlockRegion
 522 cdecl HGLOBALStreamImpl16_Stat(ptr ptr long) HGLOBALStreamImpl16_Stat
 523 cdecl HGLOBALStreamImpl16_Clone(ptr ptr) HGLOBALStreamImpl16_Clone
+
+@ cdecl -arch=win32 iface32_16(ptr ptr)
+@ cdecl -arch=win32 iface16_32(ptr long)
+@ cdecl -arch=win32 hresult32_16(long)
+@ cdecl -arch=win32 hresult16_32(long)
+@ cdecl -arch=win32 copy_iface16_vtbl(long)

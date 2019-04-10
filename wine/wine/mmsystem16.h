@@ -26,9 +26,16 @@
 #include "wine/windef16.h"
 #define DECL_WINELIB_TYPE_AW(x)
 //#include "mmsystem.h"
+#ifdef _MSC_VER
 #include <mmeapi.h>
+#else
+#endif
 #include <MMSYSTEM.H>
+#ifdef _MSC_VER
 #include <mmddk.h>
+#else
+#include "../windows/mmddk.h"
+#endif
 #define DRV_QUERYDRVENTRY (DRV_RESERVED + 1) //undefined
 #define DRV_SUCCESS		0x0001
 #define DRV_FAILURE		0x0000

@@ -27,7 +27,11 @@
 #define NOBITMAP
 #include "mmreg.h"
 #include "msacm.h"
+#ifdef _MSCVER
 #include "msacmdrv.h"
+#else
+#include "windows/msacmdrv.h"
+#endif
 #include "wineacm16.h"
 #include "wine/debug.h"
 

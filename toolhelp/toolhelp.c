@@ -424,7 +424,7 @@ BOOL16 WINAPI TaskFindHandle16( TASKENTRY *lpte, HTASK16 hTask )
 }
 
 
-typedef __kernel_entry NTSTATUS
+typedef NTSTATUS
 (NTAPI *NtQuerySystemInformation_t)(
     IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
     OUT PVOID SystemInformation,

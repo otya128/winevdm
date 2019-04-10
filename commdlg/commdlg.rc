@@ -1,6 +1,6 @@
 #include "resource.h"
 
-#include "winres.h"
+#include "winresrc.h"
 
 /*  64 KiB dummy resource */
 IDB_BITMAP1             BITMAP                  "dummy.bmp"

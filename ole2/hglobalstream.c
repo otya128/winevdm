@@ -31,6 +31,8 @@
 
 #define COBJMACROS
 #define NONAMELESSUNION
+#undef DUMMYSTRUCTNAME
+#undef DUMMYUNIONNAME
 
 #include "windef.h"
 #include "winbase.h"

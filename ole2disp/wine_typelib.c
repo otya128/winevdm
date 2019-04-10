@@ -60,6 +60,10 @@
 
 #define COBJMACROS
 #define NONAMELESSUNION
+#undef DUMMYUNIONNAME
+#undef DUMMYSTRUCTNAME
+#define __C89_NAMELESSUNIONNAME DUMMYUNIONNAME
+#define _WIN32_WINNT 0xA00
 
 #include "winerror.h"
 #include "windef.h"
@@ -5670,6 +5674,15 @@ static const ITypeCompVtbl tlbtcvt =
     ITypeLibComp_fnBindType
 };
 
+static HRESULT CDECL ITypeInfo_fnInvoke16(
+    /* ITypeInfo2 * */SEGPTR spiface,
+    /* VOID  * */SEGPTR pIUnk,
+    MEMBERID memid,
+    UINT16 wFlags,
+    /* DISPPARAMS  * */ SEGPTR spDispParams,
+    /* VARIANT  * */ SEGPTR spVarResult,
+    /* EXCEPINFO  * */ SEGPTR spExcepInfo,
+    /* UINT  * */SEGPTR spArgErr);
 /*================== ITypeInfo(2) Methods ===================================*/
 static ITypeInfoImpl* ITypeInfoImpl_Constructor(void)
 {
@@ -5693,15 +5706,6 @@ static ITypeInfoImpl* ITypeInfoImpl_Constructor(void)
       typeinfo16 = iface32_16(&IID_ITypeInfo, &pTypeInfoImpl->ITypeInfo2_iface);
       vtbl16 = (ITypeInfo16Vtbl*)copy_iface16_vtbl(typeinfo16);
       SEGPTR make_thunk_32(void *funcptr, const char *arguments, const char *name, BOOL ret_32bit, BOOL reg_func, BOOL is_cdecl);
-      static HRESULT CDECL ITypeInfo_fnInvoke16(
-          /* ITypeInfo2 * */SEGPTR spiface,
-          /* VOID  * */SEGPTR pIUnk,
-          MEMBERID memid,
-          UINT16 wFlags,
-          /* DISPPARAMS  * */ SEGPTR spDispParams,
-          /* VARIANT  * */ SEGPTR spVarResult,
-          /* EXCEPINFO  * */ SEGPTR spExcepInfo,
-          /* UINT  * */SEGPTR spArgErr);
       if (!sITypeInfo_fnInvoke16)
       {
           sITypeInfo_fnInvoke16 = make_thunk_32(ITypeInfo_fnInvoke16, "sslwssss", "ITypeInfo2_fnInvoke16", TRUE, FALSE, TRUE);
@@ -8276,7 +8280,9 @@ static HRESULT WINAPI ITypeInfo_fnInvoke(
                         hres = VariantCopyInd(pVarResult, prgpvarg[i]);
                     }
 
-                    VARIANT_ClearInd(prgpvarg[i]);
+                    /* FIXME */
+                    HRESULT VARIANT_ClearInd(VARIANTARG16 *pVarg);
+                    VARIANT_ClearInd((VARIANTARG16*)prgpvarg[i]);
                 }
                 else if (vargs_converted < pDispParams->cArgs)
                 {

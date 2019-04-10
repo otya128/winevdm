@@ -87,6 +87,13 @@ int main(int argc, char* argv[])
 			spec->main_module = xstrdup(argv[2]);
 			spec->dll_name = xstrdup(argv[2]);
 		}
+		if (argc > 3)
+		{
+			if (!strcmp(argv[3], "-32"))
+			{
+				spec->type = SPEC_WIN32;
+			}
+		}
 	}
 	else
 	{

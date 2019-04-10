@@ -517,6 +517,8 @@ void write_io_dword(offs_t addr, UINT32 val)
 #undef _DEBUG
 #define NDEBUG
 #endif
+#undef min
+#undef max
 #include <vector>
 #ifdef __DEBUG
 #undef __DEBUG
@@ -531,6 +533,7 @@ extern "C"
 {
 #define EXCEPTION_PROTECTED_MODE       0x80020100
     //kenel16_private.h
+#include "wine/exception.h"
 #include "../krnl386/kernel16_private.h"
 #include <wownt32.h>
 #define KRNL386 "krnl386.exe16"
@@ -578,7 +581,7 @@ extern "C"
 		}
 		__wine_call_int_handler(context, intnum);
 	}
-    _declspec(dllimport) LDT_ENTRY wine_ldt[8192];
+    __declspec(dllimport) LDT_ENTRY wine_ldt[8192];
 	/***********************************************************************
 	*           SELECTOR_SetEntries
 	*
@@ -773,7 +776,7 @@ extern "C"
         /* prevent deadlock */
         FILE *err = fdopen(dup(fileno(stderr)), "w");
 
-        __try
+        __TRY
         {
             char buffer[256];
 #if defined(HAS_I386)
@@ -798,7 +801,7 @@ extern "C"
                 else if ((entry.HighWord.Bytes.Flags1 & 0x0010) != 0)
                     continue;
                 fprintf(err, "%04X %p-%p\n", i << 3 | 7, base, limit);
-                __try
+                __TRY
                 {
                     for (int j = 0; j < limit; )
                     {
@@ -848,16 +851,18 @@ extern "C"
                         j += result & 0xFF;
                     }
                 }
-                __except (EXCEPTION_EXECUTE_HANDLER)
+                __EXCEPT_ALL
                 {
 
                 }
+                __ENDTRY
             }
         }
-        __except (EXCEPTION_EXECUTE_HANDLER)
+        __EXCEPT_ALL
         {
 
         }
+        __ENDTRY
         return FALSE;
 
     }
@@ -940,6 +945,7 @@ extern "C"
             *(BYTE*)&table[i * 8 + 5] = 0x66 | 0x80;
             *(WORD*)&table[i * 8 + 6] = 0;
         }
+#ifdef _MSC_VER
         __asm
         {
             mov reg_fs, fs;
@@ -949,6 +955,14 @@ extern "C"
             mov reg_ds, ds;
             mov reg_es, es;
         }
+#else
+        reg_fs = wine_get_fs();
+        reg_gs = wine_get_gs();
+        reg_cs = wine_get_cs();
+        reg_ss = wine_get_ss();
+        reg_ds = wine_get_ds();
+        reg_es = wine_get_es();
+#endif
 
         wine_ldt[reg_gs >> 3].HighWord.Bits.Type = 0x18;
         wine_ldt[reg_gs >> 3].HighWord.Bits.Pres = 1;
@@ -1230,7 +1244,7 @@ extern "C"
 
         //jump to next instr
 
-        __try
+        __TRY
         {
             char buffer[256];
             int opsize = disassemble(buffer);
@@ -1243,10 +1257,11 @@ extern "C"
                 i386_load_segment_descriptor(CS);
             }
         }
-        __except (EXCEPTION_EXECUTE_HANDLER)
+        __EXCEPT_ALL
         {
             dasm[0] = '\0';
         }
+        __ENDTRY
         set_flags(flags);
         RaiseException(EXCEPTION_PROTECTED_MODE, 0, sizeof(arguments) / sizeof(ULONG_PTR), arguments);
     }
@@ -1352,7 +1367,7 @@ extern "C"
             char *dbuf = dasm_buffer.get_current();
             sprintf(dbuf, "vm86main\n");
         }
-		__try
+		__TRY
         {
 			if (!initflag)
 				initflag = init_vm86(false);
@@ -1548,7 +1563,7 @@ extern "C"
                         }
                         LPVOID old;
                         PCONTEXT pctx = NULL;
-#if 1
+#ifdef _MSC_VER
                         __asm
                         {
                             mov old, esp
@@ -1812,7 +1827,7 @@ extern "C"
 					else
 					{
                         char nest_max[] = { ' ', ' ', ' ' , ' ' , ' ' , ' ' , ' ' , '+' , '\0' };
-                        nest_max[min(dasm_nest, sizeof(nest_max) - 1)] = 0;
+                        nest_max[dasm_nest > sizeof(nest_max) - 1 ? sizeof(nest_max) - 1 : dasm_nest] = 0;
 						fprintf(stderr, "%s%d %04x:%04x", nest_max, dasm_nest, SREG(CS), (unsigned)eip);
 						fflush(stderr);
 					}
@@ -1894,9 +1909,10 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
 			}
 			save_context(context);
 		}
-		__except (catch_exception(GetExceptionInformation(), (PEXCEPTION_ROUTINE)handler))
+		__EXCEPT_CTX (catch_exception, (PEXCEPTION_ROUTINE)handler)
 		{
 		}
+		__ENDTRY
 	}
 
 #include <imagehlp.h>
@@ -1942,13 +1958,14 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
         auto lam = [](void *lpThreadParameter)
         {
             DWORD result = 0;
-            __try
+            __TRY
             {
                 result = (DWORD)MessageBoxA((HWND)((const char**)lpThreadParameter)[0], ((const char**)lpThreadParameter)[1], ((const char**)lpThreadParameter)[2], (DWORD)((const char**)lpThreadParameter)[3]);
             }
-            __except (EXCEPTION_EXECUTE_HANDLER)
+            __EXCEPT_ALL
             {
             }
+            __ENDTRY
             return result;
         };
         LPTHREAD_START_ROUTINE routine = lam;
@@ -1985,22 +2002,23 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
         }
         if (NE_DumpAllModules)
         {
-            __try
+            __TRY
             {
                 fprintf(stderr, "=====dump all modules=====\n");
                 NE_DumpAllModules();
                 fprintf(stderr, "=====dump all modules=====\n");
             }
-            __except (EXCEPTION_EXECUTE_HANDLER)
+            __EXCEPT_ALL
             {
 
             }
+            __ENDTRY
         }
         CONTEXT context;
         save_context(&context);
         char buffer[256] = {}, buffer2[256] = {};
         if (!1) {
-            __try
+            __TRY
             {
 #if defined(HAS_I386)
                 UINT64 eip = m_eip;
@@ -2024,10 +2042,11 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
 #endif
                     i386_dasm_one_ex(buffer2, m_prev_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
             }
-            __except (EXCEPTION_CONTINUE_EXECUTION)
+            __EXCEPT_ALL
             {
 
             }
+            __ENDTRY
         }
         char buf_pre[2048];
         buf_pre[0] = '\0';
@@ -2099,7 +2118,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflag
             }
             fflush(stderr);
         }
-        __except (EXCEPTION_EXECUTE_HANDLER)
+        __EXCEPT_ALL
         {
 
         }

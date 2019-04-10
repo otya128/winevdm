@@ -23,6 +23,7 @@
 #include "user_private.h"
 #include "wine/server.h"
 #include "wine/debug.h"
+#include "wine/exception.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
@@ -167,14 +168,15 @@ BOOL is_dialog(HWND hwnd)
     struct WW *ww = GetWindowLongW(hwnd, -1);
     if (!ww)
         return FALSE;
-    __try
+    __TRY
     {
         if (ww->stateFlags.WFDIALOGWINDOW)
             return TRUE;
     }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+    __EXCEPT_ALL
     {
     }
+	__ENDTRY
     return FALSE;
 }
 

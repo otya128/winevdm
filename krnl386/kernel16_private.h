@@ -356,7 +356,17 @@ typedef struct _TEB
 	PVOID                       *FlsSlots;                          /* fb4/17c8 */
 } TEB, *PTEB;
 
+#ifdef _MSC_VER
 __inline struct _TEB * NtCurrentTeb(void) { return (struct _TEB *) (ULONG_PTR)__readfsdword(PcTeb); }
+#else
+static FORCEINLINE struct _TEB * WINAPI NtCurrentTeb(void)
+{
+    struct _TEB *teb;
+    __asm__(".byte 0x64\n\tmovl (0x18),%0" : "=r" (teb));
+    return teb;
+}
+
+#endif
 /*************************************************************************
 * Loader structures
 *
@@ -753,28 +763,31 @@ static inline DWORD stack32_pop( CONTEXT *context )
     return ret;
 }
 
-//#define DEFINE_REGS_ENTRYPOINT(name) \
-//    __ASM_STDCALL_FUNC( name, 0,                                        \
-//                        "pushl %ebp\n\t"                                \
-//                        __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")       \
-//                        __ASM_CFI(".cfi_rel_offset %ebp,0\n\t")         \
-//                        "movl %esp,%ebp\n\t"                            \
-//                        __ASM_CFI(".cfi_def_cfa_register %ebp\n\t")     \
-//                        "leal -(0x2cc+4)(%esp),%esp\n\t"  /* sizeof(CONTEXT) + space for %eax */ \
-//                        "movl %eax,-4(%ebp)\n\t"                        \
-//                        "pushl %esp\n\t"             /* context */      \
-//                        "call " __ASM_NAME("RtlCaptureContext") __ASM_STDCALL(4) "\n\t" \
-//                        "movl -4(%ebp),%eax\n\t"                        \
-//                        "movl %eax,0xb0(%esp)\n\t"   /* context->Eax */ \
-//                        "pushl %esp\n\t"             /* context */      \
-//                        "call " __ASM_NAME("__regs_") #name __ASM_STDCALL(4) "\n\t" \
-//                        "pushl %esp\n\t"             /* context */      \
-//                        "pushl $-2\n\t"   /* GetCurrentThread() */      \
-//                        "call " __ASM_NAME("NtSetContextThread") __ASM_STDCALL(8) "\n\t" \
-//                        "ret" ) /* fake ret to make copy protections happy */
+#ifndef _MSC_VER
+#define DEFINE_REGS_ENTRYPOINT(name) \
+    __ASM_STDCALL_FUNC( name, 0,                                        \
+                        "pushl %ebp\n\t"                                \
+                        __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")       \
+                        __ASM_CFI(".cfi_rel_offset %ebp,0\n\t")         \
+                        "movl %esp,%ebp\n\t"                            \
+                        __ASM_CFI(".cfi_def_cfa_register %ebp\n\t")     \
+                        "leal -(0x2cc+4)(%esp),%esp\n\t"  /* sizeof(CONTEXT) + space for %eax */ \
+                        "movl %eax,-4(%ebp)\n\t"                        \
+                        "pushl %esp\n\t"             /* context */      \
+                        "call " __ASM_NAME("RtlCaptureContext") __ASM_STDCALL(4) "\n\t" \
+                        "movl -4(%ebp),%eax\n\t"                        \
+                        "movl %eax,0xb0(%esp)\n\t"   /* context->Eax */ \
+                        "pushl %esp\n\t"             /* context */      \
+                        "call " __ASM_NAME("__regs_") #name __ASM_STDCALL(4) "\n\t" \
+                        "pushl %esp\n\t"             /* context */      \
+                        "pushl $-2\n\t"   /* GetCurrentThread() */      \
+                        "call " __ASM_NAME("NtSetContextThread") __ASM_STDCALL(8) "\n\t" \
+                        "ret" ) /* fake ret to make copy protections happy */
+#else
 #undef DEFINE_REGS_ENTRYPOINT
 #define DEFINE_REGS_ENTRYPOINT(name) void __stdcall name(){ERR("notimpl:DEFINE_REGS_ENTRYPOINT(" #name ")\n");}
 //void __stdcall name(__declspec(align(0)) struct {__declspec(align(0)) char reg;__declspec(align(0))char a[args];} a){ERR("notimpl:DEFINE_REGS_ENTRYPOINT(" #name ")\n");}
+#endif
 #define __ms_va_list va_list
 #define __ms_va_start va_start
 #define __ms_va_end va_end
@@ -788,6 +801,7 @@ typedef enum _EVENT_TYPE {
 #define CP_UNIXCP CP_ACP
 //winternl.h
 
+#ifdef _MSC_VER
 typedef struct _FILE_INTERNAL_INFORMATION {
 	LARGE_INTEGER IndexNumber;
 } FILE_INTERNAL_INFORMATION, *PFILE_INTERNAL_INFORMATION;
@@ -851,6 +865,7 @@ typedef enum _FILE_INFORMATION_CLASS {
 	FileReplaceCompletionInformation,
 	FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
+#endif
 /*typedef NTSTATUS(WINAPI *PNtAllocateVirtualMemory)(HANDLE ProcessHandle,
 	PVOID *BaseAddress,
 	ULONG_PTR ZeroBits,
@@ -882,8 +897,10 @@ NtRaiseException(IN PEXCEPTION_RECORD ExceptionRecord,
 IN PCONTEXT Context,
 IN BOOLEAN FirstChance);
 NTSYSAPI NTSTATUS  WINAPI NtSetEvent(HANDLE, PULONG);
+#ifdef _MSC_VER
 NTSYSAPI HANDLE    WINAPI RtlCreateHeap(ULONG, PVOID, SIZE_T, SIZE_T, PVOID, PVOID);
 NTSYSAPI NTSTATUS  WINAPI NtQueryInformationFile(HANDLE, PIO_STATUS_BLOCK, PVOID, LONG, FILE_INFORMATION_CLASS);
+#endif
 NTSYSAPI NTSTATUS  WINAPI NtCreateEvent(PHANDLE, ACCESS_MASK, const OBJECT_ATTRIBUTES *, EVENT_TYPE, BOOLEAN);
 NTSYSAPI NTSTATUS  WINAPI NtResetEvent(HANDLE, PULONG);
 NTSYSAPI NTSTATUS  WINAPI NtOpenKey(PHANDLE, ACCESS_MASK, const OBJECT_ATTRIBUTES *);

@@ -1206,6 +1206,17 @@ static BOOL is_builtin_winhlp32_stub()
     {
         DWORD size = GetFileVersionInfoSizeW(winhlp32, NULL);
         LPVOID vd = HeapAlloc(GetProcessHeap(), 0, size);
+#ifndef FILE_VER_GET_NEUTRAL
+#define FILE_VER_GET_NEUTRAL 0x02
+#endif
+#ifndef GetFileVersionInfoSizeEx
+        typedef BOOL (WINAPI*GetFileVersionInfoExW_t)(LPCWSTR lptstrFilename, LPDWORD lpdwHandle, DWORD dwHandle,DWORD dwLen, LPVOID lpData);
+        static GetFileVersionInfoExW_t GetFileVersionInfoExW;
+        if (!GetFileVersionInfoExW)
+        {
+            GetFileVersionInfoExW = (GetFileVersionInfoExW_t)GetProcAddress(GetModuleHandleA("version"), "GetFileVersionInfoExW");
+        }
+#endif
         if (GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, winhlp32, 0, size, vd))
         {
             WCHAR *internalname = NULL;
@@ -3276,10 +3287,10 @@ WORD WINAPI GetIconID16( HGLOBAL16 hResource, DWORD resType )
 
     switch (resType)
     {
-    case RT_CURSOR:
+    case (DWORD)RT_CURSOR:
         return LookupIconIdFromDirectoryEx16( dir, FALSE, GetSystemMetrics(SM_CXCURSOR),
                                               GetSystemMetrics(SM_CYCURSOR), LR_MONOCHROME );
-    case RT_ICON:
+    case (DWORD)RT_ICON:
         return LookupIconIdFromDirectoryEx16( dir, TRUE, GetSystemMetrics(SM_CXICON),
                                               GetSystemMetrics(SM_CYICON), 0 );
     }

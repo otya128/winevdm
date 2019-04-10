@@ -1021,7 +1021,7 @@ static LPSTR VGA_Lock(unsigned*Pitch,unsigned*Height,unsigned*Width,unsigned*Dep
     return bitmap_buffer;
 }
 
-void paint_bitmap();
+static void paint_bitmap();
 static void VGA_Unlock(void)
 {
     BITMAPINFO binfo = { 0 };

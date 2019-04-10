@@ -33,6 +33,8 @@
 #include "wine/gdi_driver.h"
 #endif
 #include "wine/debug.h"
+#include "wine/exception.h"
+#define STRSAFE_NO_DEPRECATE
 #include <strsafe.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -2375,7 +2377,7 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
         mod = 0;
     }
     char *dst = HeapAlloc(GetProcessHeap(), 0, 65536);
-    __try
+    __TRY
     {
         HGLOBAL16 mem = 0;
         for(int num = 0; num < count; num++)
@@ -2392,7 +2394,7 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
                 size = SizeofResource16(mod, res);
                 name++;
             }
-	    else
+            else
                 size = GetFileSize(fh, NULL);
 
             fnt = font;
@@ -2450,10 +2452,11 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
             ret += fnum;
         }
     }
-    __except(EXCEPTION_EXECUTE_HANDLER)
+    __EXCEPT_ALL
     {
         ERR("Failed to load old font\n");
     }
+    __ENDTRY
     if(mod)
         FreeLibrary16(mod);
     else

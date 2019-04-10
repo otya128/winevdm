@@ -1097,7 +1097,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
         }
         if (mod32)
         {
-			if (!(descr = (void *)GetProcAddress(mod32, "_wine_spec_dos_header")))
+			if (!(descr = (void *)GetProcAddress(mod32, "_wine_spec_dos_header")) && !(descr = (void *)GetProcAddress(mod32, "__wine_spec_dos_header")))
             {
                 WARN( "loaded %s but does not contain a 16-bit module\n", debugstr_a(dllname) );
                 FreeLibrary( mod32 );
@@ -1299,6 +1299,9 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
         FIXME("Strange error set by CreateProcess: %u\n", error);
         ret = 11;
         /**/
+#ifndef ERROR_ELEVATION_REQUIRED
+#define ERROR_ELEVATION_REQUIRED 740L
+#endif
         if (error == ERROR_ELEVATION_REQUIRED)
         {
             SHELLEXECUTEINFOA sei = { 0 };

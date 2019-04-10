@@ -189,6 +189,7 @@ void UnredirectDriveRoot(LPSTR buf, SIZE_T buf_len)
 //%WINDIR%->
 __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
 {
+	char dirbuf[240];
 	if (!EnableRedirectSystemDir) return path;
 	char buf[MAX_PATH];
 	if (!PathCanonicalizeA(buf, path))
@@ -217,7 +218,8 @@ __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max
 		memcpy(buf + strlen(bufwdir) - 2, buf + strlen(bufwdir), strlen(buf) - strlen(bufwdir) + 1);
 	}
 	//.\windir\ 
-	char dirbuf[MAX_PATH], *dir = dirbuf;
+	dirbuf[0] = '\0';
+	char*dir = &dirbuf[0];
 	GetModuleFileNameA(GetModuleHandleA("otvdm.exe"), dir, MAX_PATH);
 	char *file = PathFindFileNameA(dir);
 	if (file != dir) *file = '\0';
@@ -475,6 +477,7 @@ char *krnl386_get_search_path(void)
 {
     return get_search_path();
 }
+#define STRSAFE_NO_DEPRECATE
 #include <strsafe.h>
 LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin)
 {

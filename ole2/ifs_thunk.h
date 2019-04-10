@@ -442,14 +442,14 @@ static void map_msg32_16(MSG16 *a16, const MSG *a32)
 #define MAP_HOLEMENU16_32(a32,a16) a32 = HWND_32(a16);FIXME("MAP_HOLEMENU16_32\n");
 #define MAP_HOLEMENU32_16(a16, a32) a16 = HWND_16(a32);FIXME("MAP_HOLEMENU32_16\n");
 
-static void map_statdata32_16(STATDATA16* a16, const STATDATA *a32)
+static inline void map_statdata32_16(STATDATA16* a16, const STATDATA *a32)
 {
     map_formatetc32_16(&a16->formatetc, &a32->formatetc);
     a16->advf = a32->advf;
     a16->pAdvSink = (IAdviseSink*)iface32_16(&IID_IAdviseSink, a32->pAdvSink);
     a16->dwConnection = a32->dwConnection;
 }
-static void map_statdata16_32(STATDATA* a32, const STATDATA16 *a16)
+static inline void map_statdata16_32(STATDATA* a32, const STATDATA16 *a16)
 {
     map_formatetc16_32(&a32->formatetc, &a16->formatetc);
     a32->advf = a16->advf;
