@@ -4,7 +4,7 @@ project(winevdm)
 set(ASM_TOOL_DIR C:/msys32/usr/bin/)
 # prevent wine error
 if (NOT(MSVC))
-    set(CMAKE_CXX_FLAGS "-Wno-narrowing -Wl,--add-stdcall-alias ")
+    set(CMAKE_CXX_FLAGS "-Wno-narrowing  ")
     add_definitions(-D__inline=inline)
 else()
     add_definitions(-DUSE_COMPILER_EXCEPTIONS -Dinline=__inline)

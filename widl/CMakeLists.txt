@@ -1,4 +1,4 @@
-file(GLOB SOURCE *.c)
+file(GLOB SOURCE client.c expr.c getopt.c hash.c header.c proxy.c register.c relay16.c server.c typegen.c typelib.c typetree.c utils.c widl.c write_msft.c)
 include_directories(../wine .)
 bison_target(widl_parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.tab.c COMPILE_FLAGS "-p parser_")
 flex_target(widl_scanner parser.l ${CMAKE_CURRENT_BINARY_DIR}/parser.l.c COMPILE_FLAGS)

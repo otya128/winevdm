@@ -1,4 +1,4 @@
-file(GLOB SOURCE *.c)
+set(SOURCE wpp.c preproc.c)
 include_directories(../wine .)
 bison_target(wpp_parser ppy.y ${CMAKE_CURRENT_BINARY_DIR}/ppy.tab.c COMPILE_FLAGS "-p ppy_")
 flex_target(wpp_scanner ppl.l ${CMAKE_CURRENT_BINARY_DIR}/ppl.c)
