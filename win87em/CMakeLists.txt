@@ -1,0 +1,7 @@
+file(GLOB SOURCE *.c *.cpp)
+add_library(win87em SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/win87em.def win87em.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(win87em.dll16 WIN87EM)
+target_link_libraries(win87em libwine winecrt0 wow32 krnl386)
+set_target_properties(win87em PROPERTIES SUFFIX ".dll16")

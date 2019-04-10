@@ -1,0 +1,7 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(ole2prox SHARED ${SOURCE} ${CMAKE_SOURCE_DIR}/dummy.c ${CMAKE_CURRENT_BINARY_DIR}/ole2prox.def ole2prox.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(ole2prox.dll16 ole2prox)
+target_link_libraries(ole2prox libwine winecrt0 wow32 krnl386)
+set_target_properties(ole2prox PROPERTIES SUFFIX ".dll16")

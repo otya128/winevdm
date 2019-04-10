@@ -25,7 +25,7 @@ void WINAPI krnl386_set_compat_path(const LPCSTR path)
         return;
     int size = 256;
     int type;
-    char drive[5];
+    char drive[MAX_PATH];
     char smvalue[256];
     char *value = path;
     strncpy(drive, path, 3);
@@ -37,9 +37,14 @@ void WINAPI krnl386_set_compat_path(const LPCSTR path)
         HANDLE FindHandle;
         WIN32_FIND_DATAA FindData;
         DWORD SignMedia = 0;
+        char *filepath = strrchr(path, '\\');
+        if (!filepath)
+                return;
+        int len = filepath - path + 1;
+        strncpy(drive, path, len);
         int count = 9;
-        drive[3] = '*';
-        drive[4] = '\0';
+        drive[len] = '*';
+        drive[len + 1] = '\0';
         FindHandle = FindFirstFileA(drive, &FindData);
         if (FindHandle != INVALID_HANDLE_VALUE)
         {
@@ -53,7 +58,13 @@ void WINAPI krnl386_set_compat_path(const LPCSTR path)
             } while (FindNextFileA(FindHandle, &FindData) && count);
             FindClose(FindHandle);
         }
-        snprintf(smvalue, 256, "SIGN.MEDIA=%X %s", SignMedia, path + 3);
+        drive[len - 1] = '\0';
+        filepath = strrchr(drive, '\\');
+        if (!filepath)
+            filepath = path + 3;
+        else
+            filepath = path + (filepath - drive) + 1;
+        snprintf(smvalue, 256, "SIGN.MEDIA=%X %s", SignMedia, filepath);
         value = smvalue;
     }
 

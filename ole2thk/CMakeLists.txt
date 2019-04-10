@@ -1,0 +1,7 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(ole2thk SHARED ${SOURCE} ${CMAKE_SOURCE_DIR}/dummy.c ${CMAKE_CURRENT_BINARY_DIR}/ole2thk.def ole2thk.dll16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(ole2thk.dll16 ole2thk)
+target_link_libraries(ole2thk libwine winecrt0 wow32 krnl386)
+set_target_properties(ole2thk PROPERTIES SUFFIX ".dll16")

@@ -928,6 +928,9 @@ void output_def_file( DLLSPEC *spec, int include_private )
     output( "LIBRARY %s\n\n", spec->file_name);
     output( "EXPORTS\n");
 
+#ifdef WINEBUILD_MSVC
+    kill_at = 1;
+#endif
     /* Output the exports and relay entry points */
 
     for (i = total = 0; i < spec->nb_entry_points; i++)
@@ -950,7 +953,7 @@ void output_def_file( DLLSPEC *spec, int include_private )
         /* FIXME: workaround */
         if (name && *name == '_')
         {
-            output("  %s", name + 1);
+            output("  %s", name);
         }
         else
         {
@@ -958,7 +961,6 @@ void output_def_file( DLLSPEC *spec, int include_private )
         }
 #endif
 
-#ifndef WINEBUILD_MSVC
         switch(odp->type)
         {
         case TYPE_EXTERN:
@@ -968,8 +970,12 @@ void output_def_file( DLLSPEC *spec, int include_private )
         case TYPE_CDECL:
         case TYPE_THISCALL:
             /* try to reduce output */
+#ifndef WINEBUILD_MSVC
+#if 0
             if(strcmp(name, odp->link_name) || (odp->flags & FLAG_FORWARD))
                 output( "=%s", odp->link_name );
+#endif
+#endif
             break;
         case TYPE_STDCALL:
         {
@@ -984,20 +990,26 @@ void output_def_file( DLLSPEC *spec, int include_private )
                 output( "=%s", odp->link_name );
                 if (!kill_at && target_cpu == CPU_x86) output( "@%d", at_param );
             }
+            else
+            {
+#ifndef WINEBUILD_MSVC
+                /* add-stdcall-alias */
+                if (!odp->name || (odp->flags & FLAG_ORDINAL)) output( " NONAME" );
+                if (is_data) output( " DATA" );
+                /* PRIVATE */
+#ifndef WINEBUILD_MSVC
+                if (odp->flags & FLAG_PRIVATE) output( " PRIVATE" );
+#endif
+                output( "\n" );
+                output( "  %s=%s", name, name );
+                if (!kill_at && target_cpu == CPU_x86) output( "@%d", at_param );
+#endif
+            }
             break;
         }
         default:
             assert(0);
         }
-#else
-
-        switch (odp->type)
-        {
-        case TYPE_EXTERN:
-            is_data = 1;
-            break;
-        }
-#endif
         output( " @%d", odp->ordinal );
         if (!odp->name || (odp->flags & FLAG_ORDINAL)) output( " NONAME" );
         if (is_data) output( " DATA" );

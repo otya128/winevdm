@@ -38,8 +38,7 @@
 #undef WOWHandle16
 #undef WOWHandle32
 #undef WOWYield16
-enum WOW_HANDLE_TYPE;
-typedef enum WOW_HANDLE_TYPE WOW_HANDLE_TYPE;
+typedef int WOW_HANDLE_TYPE;
 BOOL init = FALSE;
 BOOL(WINAPI *K32WOWGetDescriptor)(DWORD segptr, LPLDT_ENTRY ldtent);
 LPVOID(WINAPI *K32WOWGetVDMPointer)(DWORD vp, DWORD dwBytes, BOOL fProtectedMode);

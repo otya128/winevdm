@@ -415,3 +415,5 @@
 824 stub ICMCheckColorsInGamut
 1000 pascal -ret16 SetLayout(word long) SetLayout16
 1001 stub GetLayout
+
+5000 pascal DllEntryPoint(long word word word long word) DllEntryPoint

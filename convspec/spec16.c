@@ -567,8 +567,17 @@ static void output_module16( DLLSPEC *spec )
     output( "\t.data\n" );
     output( "\t.align %d\n", get_alignment(4) );
     output( "__wine_spec_dos_header:\n" );
+#ifdef WINEBUILD_MSVC
     output( "\t.globl __wine_spec_dos_header\n" );
     output( ".L__wine_spec_dos_header:\n" );
+    output( "\t.globl ___wine_spec_dos_header\n" );
+    output( ".L___wine_spec_dos_header:\n" );
+    output( "___wine_spec_dos_header:\n" );
+#else
+    output( ".globl ___wine_spec_dos_header\n" );
+    output( ".L__wine_spec_dos_header:\n" );
+    output( "___wine_spec_dos_header:\n" );
+#endif
     output( "\t.short 0x5a4d\n" );                                         /* e_magic */
     output( "\t.short 0\n" );                                              /* e_cblp */
     output( "\t.short 0\n" );                                              /* e_cp */

@@ -20,13 +20,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#define NONAMELESSUNION
+#define NONAMELESSSTRUCT
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 
-#define NONAMELESSUNION
-#define NONAMELESSSTRUCT
 #include "windef.h"
 #include "wine/winbase16.h"
 #include "winver.h"

@@ -324,6 +324,7 @@ static const CALLFROM16 *get_entry_point( STACK16FRAME *frame, LPSTR module, LPS
     /* p now points to lret, get the start of CALLFROM16 structure */
     return (CALLFROM16 *)(p - FIELD_OFFSET( CALLFROM16, ret ));
 }
+#ifdef _MSC_VER
 extern int call_entry_point(void *func, int nb_args, const int *args)
 {
 	//ERR("call_entry_point(%p, %d, %p)", func, nb_args, args);
@@ -352,9 +353,9 @@ extern int call_entry_point(void *func, int nb_args, const int *args)
 	//((int(WINAPI*)(void))func)();
 	return ret;
 }
-/*
+#else
 extern int call_entry_point( void *func, int nb_args, const int *args );
-__ASM_GLOBAL_FUNC( call_entry_point,
+__ASM_GLOBAL_FUNC( _call_entry_point,
                    "pushl %ebp\n\t"
                    __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")
                    __ASM_CFI(".cfi_rel_offset %ebp,0\n\t")
@@ -384,8 +385,7 @@ __ASM_GLOBAL_FUNC( call_entry_point,
                    __ASM_CFI(".cfi_def_cfa %esp,4\n\t")
                    __ASM_CFI(".cfi_same_value %ebp\n\t")
                    "ret" )
-				   */
-
+#endif
 
 /***********************************************************************
  *           relay_call_from_16_no_debug

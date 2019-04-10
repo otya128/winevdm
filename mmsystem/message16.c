@@ -204,7 +204,7 @@ static MMSYSTEM_MapType	MMSYSTDRV_MidiOut_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 		mh32->dwBytesRecorded = mh16->dwBytesRecorded;
 		mh32->dwUser = mh16->dwUser;
 		mh32->dwFlags = mh16->dwFlags;
-		mh16->lpNext = (MIDIHDR16*)mh32; /* for reuse in unprepare and write */
+		mh16->reserved = (MIDIHDR16*)mh32; /* for reuse in unprepare and write */
 		*lpParam1 = (DWORD)mh32;
 		*lpParam2 = offsetof(MIDIHDR,dwOffset); /* old size, without dwOffset */
 
@@ -218,7 +218,7 @@ static MMSYSTEM_MapType	MMSYSTDRV_MidiOut_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
     case MODM_LONGDATA:
 	{
 	    LPMIDIHDR16		mh16 = MapSL(*lpParam1);
-	    LPMIDIHDR		mh32 = (MIDIHDR*)mh16->lpNext;
+	    LPMIDIHDR		mh32 = (MIDIHDR*)mh16->reserved;
 
 	    *lpParam1 = (DWORD)mh32;
 	    *lpParam2 = offsetof(MIDIHDR,dwOffset);
@@ -288,12 +288,12 @@ static  MMSYSTEM_MapType	MMSYSTDRV_MidiOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lp
 	    LPMIDIHDR		mh32 = (LPMIDIHDR)(*lpParam1);
 	    LPMIDIHDR16		mh16 = MapSL(*(SEGPTR*)((LPSTR)mh32 - sizeof(LPMIDIHDR)));
 
-	    assert((MIDIHDR*)mh16->lpNext == mh32);
+	    assert((MIDIHDR*)mh16->reserved == mh32);
 	    mh16->dwFlags = mh32->dwFlags;
 
 	    if (wMsg == MODM_UNPREPARE && fn_ret == MMSYSERR_NOERROR) {
 		HeapFree(GetProcessHeap(), 0, (LPSTR)mh32 - sizeof(LPMIDIHDR));
-		mh16->lpNext = 0;
+		mh16->reserved = 0;
 	    }
 	    ret = MMSYSTEM_MAP_OK;
 	}
@@ -410,9 +410,9 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 		wh32->dwUser = wh16->dwUser;
 		wh32->dwFlags = wh16->dwFlags;
 		wh32->dwLoops = wh16->dwLoops;
-		/* FIXME: nothing on wh32->lpNext */
-		/* could link the wh32->lpNext at this level for memory house keeping */
-		wh16->lpNext = wh32; /* for reuse in unprepare and write */
+		/* FIXME: nothing on wh32->reserved */
+		/* could link the wh32->reserved at this level for memory house keeping */
+		wh16->reserved = wh32; /* for reuse in unprepare and write */
 		*lpParam1 = (DWORD)wh32;
 		*lpParam2 = sizeof(WAVEHDR);
 
@@ -426,7 +426,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
     case WIDM_UNPREPARE:
 	{
 	    LPWAVEHDR		wh16 = MapSL(*lpParam1);
-	    LPWAVEHDR		wh32 = wh16->lpNext;
+	    LPWAVEHDR		wh32 = wh16->reserved;
 
 	    *lpParam1 = (DWORD)wh32;
 	    *lpParam2 = sizeof(WAVEHDR);
@@ -503,13 +503,13 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveIn_UnMap16To32W(UINT wMsg, DWORD_PTR* lpP
 	    LPWAVEHDR		wh32 = (LPWAVEHDR)(*lpParam1);
 	    LPWAVEHDR		wh16 = MapSL(*(SEGPTR*)((LPSTR)wh32 - sizeof(LPWAVEHDR)));
 
-	    assert(wh16->lpNext == wh32);
+	    assert(wh16->reserved == wh32);
 	    wh16->dwBytesRecorded = wh32->dwBytesRecorded;
 	    wh16->dwFlags = wh32->dwFlags;
 
 	    if (wMsg == WIDM_UNPREPARE && fn_ret == MMSYSERR_NOERROR) {
 		HeapFree(GetProcessHeap(), 0, (LPSTR)wh32 - sizeof(LPWAVEHDR));
-		wh16->lpNext = 0;
+		wh16->reserved = 0;
 	    }
 	    ret = MMSYSTEM_MAP_OK;
 	}
@@ -631,9 +631,9 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
 		wh32->dwUser = wh16->dwUser;
 		wh32->dwFlags = wh16->dwFlags;
 		wh32->dwLoops = wh16->dwLoops;
-		/* FIXME: nothing on wh32->lpNext */
-		/* could link the wh32->lpNext at this level for memory house keeping */
-		wh16->lpNext = wh32; /* for reuse in unprepare and write */
+		/* FIXME: nothing on wh32->reserved */
+		/* could link the wh32->reserved at this level for memory house keeping */
+		wh16->reserved = wh32; /* for reuse in unprepare and write */
 		*lpParam1 = (DWORD)wh32;
 		*lpParam2 = sizeof(WAVEHDR);
 
@@ -647,7 +647,7 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
     case WODM_WRITE:
 	{
 	    LPWAVEHDR		wh16 = MapSL(*lpParam1);
-	    LPWAVEHDR		wh32 = wh16->lpNext;
+	    LPWAVEHDR		wh32 = wh16->reserved;
 
 	    *lpParam1 = (DWORD)wh32;
 	    *lpParam2 = sizeof(WAVEHDR);
@@ -734,12 +734,12 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lp
 	    LPWAVEHDR		wh32 = (LPWAVEHDR)(*lpParam1);
 	    LPWAVEHDR		wh16 = MapSL(*(SEGPTR*)((LPSTR)wh32 - sizeof(DWORD) - sizeof(LPWAVEHDR)));
 
-	    assert(wh16->lpNext == wh32);
+	    assert(wh16->reserved == wh32);
 	    wh16->dwFlags = wh32->dwFlags;
 
 	    if (wMsg == WODM_UNPREPARE && fn_ret == MMSYSERR_NOERROR) {
 		HeapFree(GetProcessHeap(), 0, (LPSTR)wh32 - sizeof(DWORD) - sizeof(LPWAVEHDR));
-		wh16->lpNext = 0;
+		wh16->reserved = 0;
 	    }
 	    ret = MMSYSTEM_MAP_OK;
 	}

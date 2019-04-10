@@ -357,7 +357,7 @@ static inline void SAFEARRAY_SetHiddenDWORD(SAFEARRAY16* psa, DWORD dw)
  * NOTES
  * See SafeArray.
  */
-HRESULT WINAPI SafeArraySetIID(SAFEARRAY16 *psa, REFGUID guid)
+HRESULT WINAPI SafeArraySetIID16(SAFEARRAY16 *psa, REFGUID guid)
 {
   GUID* dest = (GUID*)psa;
 
@@ -376,12 +376,12 @@ static void SAFEARRAY_SetFeatures(VARTYPE vt, SAFEARRAY16 *psa)
   if (vt == VT_DISPATCH)
   {
     psa->fFeatures = FADF_HAVEIID;
-    SafeArraySetIID(psa, &IID_IDispatch);
+    SafeArraySetIID16(psa, &IID_IDispatch);
   }
   else if (vt == VT_UNKNOWN)
   {
     psa->fFeatures = FADF_HAVEIID;
-    SafeArraySetIID(psa, &IID_IUnknown);
+    SafeArraySetIID16(psa, &IID_IUnknown);
   }
   else if (vt == VT_RECORD)
     psa->fFeatures = FADF_RECORD;
@@ -908,7 +908,7 @@ HRESULT WINAPI GetActiveObject16(REFCLSID rclsid, SEGPTR pvreserved, SEGPTR *ppu
 {
     HRESULT result;
     IUnknown *punk = NULL;
-    TRACE("(%s,%08x,%p)\n", debugstr_guid(rclsid, pvreserved, ppunk));
+    TRACE("(%s,%08x,%p)\n", debugstr_guid(rclsid), pvreserved, ppunk);
     if (pvreserved)
     {
         ERR("pvreserved must be NULL.\n");

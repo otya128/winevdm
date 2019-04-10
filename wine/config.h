@@ -4,7 +4,6 @@
 #ifndef __WINE_CONFIG_H
 #define __WINE_CONFIG_H
 #ifndef WINE_CROSSTEST
-#define inline __inline
 /* Define to a function attribute for Microsoft hotpatch assembly prefix. */
 #define DECLSPEC_HOTPATCH /* */
 
@@ -1626,8 +1625,10 @@
 /* Define to a macro to generate an assembly function with C calling
    convention */
 #define __ASM_GLOBAL_FUNC(name,code) __ASM_DEFINE_FUNC(name,"",code)
+#ifdef _MSC_VER
 #undef __ASM_GLOBAL_FUNC
 #define __ASM_GLOBAL_FUNC(name,code)
+#endif
 
 /* Define to a macro to generate an assembly name from a C symbol */
 #define __ASM_NAME(name) name

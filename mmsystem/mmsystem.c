@@ -30,6 +30,8 @@
 #include <string.h>
 
 #define NONAMELESSUNION
+#undef DUMMYSTRUCTNAME
+#undef DUMMYUNIONNAME
 #ifdef WINE_NO_UNICODE_MACROS
 # define WINELIB_NAME_AW(func) \
     func##_must_be_suffixed_with_W_or_A_in_this_context \

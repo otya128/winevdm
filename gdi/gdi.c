@@ -20,6 +20,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "windef.h"
 #include "winbase.h"
@@ -32,6 +33,8 @@
 #include "wine/gdi_driver.h"
 #endif
 #include "wine/debug.h"
+#include "wine/exception.h"
+#define STRSAFE_NO_DEPRECATE
 #include <strsafe.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -1402,6 +1405,28 @@ INT16 WINAPI CombineRgn16(HRGN16 hDest, HRGN16 hSrc1, HRGN16 hSrc2, INT16 mode)
 HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
                                  UINT16 bpp, LPCVOID bits )
 {
+    if (krnl386_get_compat_mode("256color") && (bpp == 8) && (planes == 1))
+    {
+        HDC dc = GetDC(NULL);
+        HBITMAP ret = CreateCompatibleBitmap(dc, width, height);
+        if (bits)
+        {
+            BITMAPINFO *bmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 256*2 + sizeof(BITMAPINFOHEADER));
+            UINT16 *colors = (UINT16 *)bmap->bmiColors;
+            VOID *section;
+            bmap->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bmap->bmiHeader.biWidth = width;
+            bmap->bmiHeader.biHeight = height;
+            bmap->bmiHeader.biPlanes = 1;
+            bmap->bmiHeader.biBitCount = 8;
+            for (int i = 0; i < 256; i++)
+                colors[i] = i;
+            SetDIBits(dc, ret, 0, height, bits, bmap, DIB_PAL_COLORS);
+            HeapFree(GetProcessHeap(), 0, bmap);
+        }
+        ReleaseDC(NULL, dc);
+        return HBITMAP_16(ret);
+    }
     return HBITMAP_16( CreateBitmap( width, height, planes & 0xff, bpp & 0xff, bits ) );
 }
 
@@ -2118,6 +2143,35 @@ COLORREF WINAPI GetTextColor16( HDC16 hdc )
     return GetTextColor( HDC_32(hdc) );
 }
 
+// for old fon vector fonts
+// Windows 10 only returns the extent based on the relative angle between the orientation and escapement
+// but ignores the absolute angles
+// Windows XP is mostly the same but calculates the full extent when the relative angle is 0
+// Windows 3.1 returns the full extent but rounds the relative angle down to 0, 90, 180 or 270 degrees
+void check_font_rotation(HDC hdc, SIZE *box)
+{
+    if (LOWORD(LOBYTE(GetVersion())) >= 0x6)
+    {
+        TEXTMETRICA tm;
+        GetTextMetricsA(hdc, &tm);
+        if((tm.tmPitchAndFamily & (TMPF_VECTOR | TMPF_TRUETYPE)) != TMPF_VECTOR)
+            return;
+        HFONT hfont = GetCurrentObject(hdc, OBJ_FONT);
+        LOGFONT lfont;
+        GetObject(hfont, sizeof(LOGFONT), &lfont);
+        if (lfont.lfEscapement == lfont.lfOrientation)
+        {
+            int angle = lfont.lfEscapement % 1800;
+            const float d2r = 3.14159265358979323846 / 1800;
+            if (angle)
+            {
+                int x = box->cx, y = box->cy;
+                box->cx = (y * cosf((900 - angle) * d2r)) + (x * fabsf(cosf(angle * d2r)));
+                box->cy = (x * cosf((900 - angle) * d2r)) + (y * fabsf(cosf(angle * d2r)));
+            }
+        }
+    }
+}
 
 /***********************************************************************
  *           GetTextExtent    (GDI.91)
@@ -2125,7 +2179,9 @@ COLORREF WINAPI GetTextColor16( HDC16 hdc )
 DWORD WINAPI GetTextExtent16( HDC16 hdc, LPCSTR str, INT16 count )
 {
     SIZE size;
-    if (!GetTextExtentPoint32A( HDC_32(hdc), str, count, &size )) return 0;
+    HDC hdc32 = HDC_32(hdc);
+    if (!GetTextExtentPoint32A( hdc32, str, count, &size )) return 0;
+    check_font_rotation( hdc32, &size ); 
     return MAKELONG( size.cx, size.cy );
 }
 
@@ -2278,6 +2334,7 @@ typedef struct
 #include <poppack.h>
 
 LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin);
+NE_TYPEINFO *get_resource_table(HMODULE16 hmod, LPCSTR type, LPBYTE *restab);
 /***********************************************************************
  *           AddFontResource    (GDI.119)
  */
@@ -2300,16 +2357,8 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
     LPVOID font;
     if((mod = LoadLibrary16(filename)) >= 32)
     {
-        char *fon = GlobalLock16(GetExePtr(mod));
-        WORD ne_resrctab = ((WORD *)fon)[18];
-        NE_TYPEINFO *type = fon + ne_resrctab + 2;
-        while(type->type_id & 0x8000)
-        {
-            if (type->type_id == 0x8008)
-                break;
-            type = (char *)type + sizeof(NE_TYPEINFO) + (type->count * sizeof(NE_NAMEINFO));
-        }
-        if(type->type_id != 0x8008)
+        NE_TYPEINFO *type = get_resource_table(mod, RT_FONT, NULL);
+        if(!type)
         {
             FreeLibrary16(mod);
             return 0;
@@ -2328,7 +2377,7 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
         mod = 0;
     }
     char *dst = HeapAlloc(GetProcessHeap(), 0, 65536);
-    __try
+    __TRY
     {
         HGLOBAL16 mem = 0;
         for(int num = 0; num < count; num++)
@@ -2345,7 +2394,7 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
                 size = SizeofResource16(mod, res);
                 name++;
             }
-	    else
+            else
                 size = GetFileSize(fh, NULL);
 
             fnt = font;
@@ -2403,10 +2452,11 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
             ret += fnum;
         }
     }
-    __except(EXCEPTION_EXECUTE_HANDLER)
+    __EXCEPT_ALL
     {
         ERR("Failed to load old font\n");
     }
+    __ENDTRY
     if(mod)
         FreeLibrary16(mod);
     else
@@ -3778,10 +3828,12 @@ BOOL16 WINAPI GetCurrentPositionEx16( HDC16 hdc, LPPOINT16 pt )
 BOOL16 WINAPI GetTextExtentPoint16( HDC16 hdc, LPCSTR str, INT16 count, LPSIZE16 size )
 {
     SIZE size32;
-    BOOL ret = GetTextExtentPoint32A( HDC_32(hdc), str, count, &size32 );
+    HDC hdc32 = HDC_32(hdc);
+    BOOL ret = GetTextExtentPoint32A( hdc32, str, count, &size32 );
 
     if (ret)
     {
+        check_font_rotation( hdc32, &size32 ); 
         size->cx = size32.cx;
         size->cy = size32.cy;
     }
@@ -4595,4 +4647,47 @@ WORD WINAPI GetFontAssocStatus16(HDC16 hdc)
         return 0;
     }
     return ((ULONG(WINAPI*)(HDC))GetFontAssocStatus)(HDC_32(hdc));
+}
+
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
+
+BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
+                          WORD wHeapSize, DWORD dwReserved1, WORD wReserved2)
+{
+    switch (fdwReason)
+    {
+    case DLL_PROCESS_ATTACH:
+    {
+        static BOOL init = FALSE;
+        if (init == TRUE)
+            break;
+        init = TRUE;
+        WIN32_FIND_DATAA fileinfo = {0};
+        char syspath[MAX_PATH];
+        char fonfile[MAX_PATH];
+        RedirectSystemDir("C:\\Windows\\System\\", syspath, MAX_PATH);
+        strcpy(fonfile, syspath);
+        strcat(fonfile, "*.*");
+        HANDLE file = FindFirstFileA(fonfile, &fileinfo);
+        if (file == INVALID_HANDLE_VALUE)
+            break;
+
+        while (GetLastError() == ERROR_SUCCESS)
+        {
+            LPCSTR *ext = fileinfo.cFileName + strlen(fileinfo.cFileName) - 4;
+            if (!stricmp(ext, ".ttf") || !stricmp(ext, ".fon"))
+            {
+                strcpy(fonfile, syspath);
+                strcat(fonfile, fileinfo.cFileName);
+                AddFontResource16(fonfile);
+            }
+            FindNextFileA(file, &fileinfo);
+        }
+        FindClose(file);
+        break;
+    }
+    case DLL_PROCESS_DETACH:
+        break;
+    }
+    return TRUE;
 }

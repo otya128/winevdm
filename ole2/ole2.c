@@ -30,6 +30,8 @@
 #include <string.h>
 
 #define NONAMELESSUNION
+#undef DUMMYSTRUCTNAME
+#undef DUMMYUNIONNAME
 #include "windef.h"
 #include "winbase.h"
 #include "wingdi.h"

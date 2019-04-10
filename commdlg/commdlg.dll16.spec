@@ -9,7 +9,7 @@
 12  pascal -ret16 ReplaceText(segptr) ReplaceText16
 13  pascal   FindTextDlgProc(word word word long) FindTextDlgProc16
 14  pascal   ReplaceTextDlgProc(word word word long) ReplaceTextDlgProc16
-15  pascal -ret16 ChooseFont(ptr) ChooseFont16
+15  pascal -ret16 ChooseFont(segptr) ChooseFont16
 16  pascal -ret16 FormatCharDlgProc(word word word long) FormatCharDlgProc16
 18  pascal -ret16 FontStyleEnumProc(ptr ptr word long)   FontStyleEnumProc16
 19  pascal -ret16 FontFamilyEnumProc(ptr ptr word long)  FontFamilyEnumProc16

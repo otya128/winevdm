@@ -20,6 +20,7 @@
 
 #include "config.h"
 #include "wine/port.h"
+#include "wine/exception.h"
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -600,11 +601,15 @@ static DWORD CALLBACK task_start( LPVOID p )
     if (data->curdir)
         SetCurrentDirectory16(data->curdir);
     HeapFree(GetProcessHeap(), 0, data);
+#ifdef _MSC_VER
     __try
+#endif
     {
         ret = NE_StartTask();
     }
+#ifdef _MSC_VER
     __except (IsDebuggerPresent() ? EXCEPTION_CONTINUE_SEARCH : EXCEPTION_EXECUTE_HANDLER)
+#endif
     {
 
     }

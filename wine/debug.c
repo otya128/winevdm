@@ -259,6 +259,7 @@ int wine_dbg_log( enum __wine_debug_class cls, struct __wine_debug_channel *chan
 }
 
 
+#ifdef _MSC_VER
 __declspec(naked) int interlocked_xchg_add(int *dest, int incr)
 {
 	__asm mov eax, 8[esp];
@@ -266,6 +267,7 @@ __declspec(naked) int interlocked_xchg_add(int *dest, int incr)
 	__asm lock xadd[edx], eax;
 	__asm ret;
 }
+#endif
 /* allocate some tmp string space */
 /* FIXME: this is not 100% thread-safe */
 static char *get_temp_buffer( size_t size )

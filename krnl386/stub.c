@@ -37,51 +37,12 @@ typedef struct tagRMCB {
     DWORD regs_ofs, regs_sel;
     struct tagRMCB *next;
 } RMCB;
+#ifdef _MSC_VER
 void DPMI_CallRMCB32(RMCB *rmcb, UINT16 ss, DWORD esp, UINT16*es, DWORD*edi)
 {
     ERR("NOTIMPL:DPMI_CallRMCB32(%p, %u, %u, %p, %p)\n", rmcb, ss, esp, es, edi);
-    __ASM_GLOBAL_FUNC(DPMI_CallRMCB32,
-        "pushl %ebp\n\t"
-        __ASM_CFI(".cfi_adjust_cfa_offset 4\n\t")
-        __ASM_CFI(".cfi_rel_offset %ebp,0\n\t")
-        "movl %esp,%ebp\n\t"
-        __ASM_CFI(".cfi_def_cfa_register %ebp\n\t")
-        "pushl %edi\n\t"
-        __ASM_CFI(".cfi_rel_offset %edi,-4\n\t")
-        "pushl %esi\n\t"
-        __ASM_CFI(".cfi_rel_offset %esi,-8\n\t")
-        "movl 0x8(%ebp),%eax\n\t"
-        "movl 0x10(%ebp),%esi\n\t"
-        "movl 0xc(%ebp),%edx\n\t"
-        "movl 0x10(%eax),%ecx\n\t"
-        "movl 0xc(%eax),%edi\n\t"
-        "addl $0x4,%eax\n\t"
-        "pushl %ebp\n\t"
-        "pushl %ebx\n\t"
-        "pushl %es\n\t"
-        "pushl %ds\n\t"
-        "pushfl\n\t"
-        "mov %cx,%es\n\t"
-        "mov %dx,%ds\n\t"
-        ".byte 0x36, 0xff, 0x18\n\t" /* lcall *%ss:(%eax) */
-        "popl %ds\n\t"
-        "mov %es,%dx\n\t"
-        "popl %es\n\t"
-        "popl %ebx\n\t"
-        "popl %ebp\n\t"
-        "movl 0x14(%ebp),%eax\n\t"
-        "movw %dx,(%eax)\n\t"
-        "movl 0x18(%ebp),%edx\n\t"
-        "movl %edi,(%edx)\n\t"
-        "popl %esi\n\t"
-        __ASM_CFI(".cfi_same_value %esi\n\t")
-        "popl %edi\n\t"
-        __ASM_CFI(".cfi_same_value %edi\n\t")
-        "leave\n\t"
-        __ASM_CFI(".cfi_def_cfa %esp,4\n\t")
-        __ASM_CFI(".cfi_same_value %ebp\n\t")
-        "ret")
 }
+#endif
 /* Process flags */
 #define PDB32_DEBUGGED      0x0001  /* Process is being debugged */
 #define PDB32_WIN16_PROC    0x0008  /* Win16 process */
@@ -195,25 +156,24 @@ DWORD wine_pm_interrupt_handler(WORD num, DWORD addr)
     GlobalUnlock16(hTask);
     return handler;
 }
-//this function is defined at asmstub.asm
-extern void __wine_call_to_16_ret(void);
 
+extern LPVOID *__wine_call_to_16_ret_p;
 wine_call_to_16_vm86_t func_wine_call_to_16_vm86;
 wine_call_to_16_regs_vm86_t func_wine_call_to_16_regs_vm86;
 DWORD WINAPI wine_call_to_16(FARPROC16 target, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
-    return func_wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
+    return func_wine_call_to_16_vm86(target, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret_p, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
 }
 void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler)
 {
     //why??
     context->SegSs = SELECTOROF(getWOW32Reserved());
     context->Esp = OFFSETOF(getWOW32Reserved());
-    func_wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
+    func_wine_call_to_16_regs_vm86(context, cbArgs, handler, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret_p, get_debug_mode(), FALSE, DOSMEM_dosmem, wine_pm_interrupt_handler);
 }
 void __wine_enter_vm86(CONTEXT *context)
 {
-    func_wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, get_debug_mode(), TRUE, DOSMEM_dosmem, wine_pm_interrupt_handler);
+    func_wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret_p, get_debug_mode(), TRUE, DOSMEM_dosmem, wine_pm_interrupt_handler);
     ERR("NOTIMPL:__wine_enter_vm86(%p)\n", context);
 }
 BOOL16 WINAPI IsDBCSLeadByte16(BYTE TestChar)

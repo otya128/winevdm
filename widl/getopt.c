@@ -40,7 +40,7 @@ EXPRESSLY ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <stdlib.h>
 #include <stdio.h>
 #include <malloc.h>
-#include "getopt.h"
+#include "getopt_msvc.h"
 
 #ifdef __cplusplus
 	#define _GETOPT_THROW throw()

@@ -228,54 +228,6 @@ DWORD get_ofn_flag(DWORD flag)
 {
     return (flag | OFN_NOLONGNAMES) & ~OFN_ENABLETEMPLATE;
 }
-#pragma comment(lib, "dbghelp.lib")
-LPCSTR dynamic_resource(HINSTANCE16 hInstance, SEGPTR lpTemplateName)
-{
-    HGLOBAL16 hmem;
-    HRSRC16 hRsrc;
-    LPCVOID data;
-    if (!(hRsrc = FindResource16(hInstance, MapSL(lpTemplateName), (LPCSTR)RT_DIALOG))) return 0;
-    if (!(hmem = LoadResource16(hInstance, hRsrc))) return 0;
-    if (!(data = LockResource16(hmem))) return 0;
-    PVOID BaseAddress = GetModuleHandleW(L"commdlg.dll16");
-    IMAGE_RESOURCE_DIRECTORY *dir;
-    ULONG size;
-    PVOID root = ImageDirectoryEntryToData(BaseAddress, TRUE, IMAGE_DIRECTORY_ENTRY_RESOURCE, &size);
-    MEMORY_BASIC_INFORMATION mbi;
-    VirtualQuery(root, &mbi, sizeof(mbi));
-    DWORD oldprotect;
-    VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_READWRITE, &oldprotect);
-    dir = root;
-    IMAGE_RESOURCE_DIRECTORY_ENTRY *entry;
-    int min, max, pos;
-
-    entry = (IMAGE_RESOURCE_DIRECTORY_ENTRY *)(dir + 1);
-    min = dir->NumberOfNamedEntries;
-    max = min + dir->NumberOfIdEntries - 1;
-    pos = min;
-    while (pos <= max)
-    {
-        if (entry[pos].Id == (WORD)RT_BITMAP)
-        {
-            entry[pos].Id = (WORD)RT_DIALOG;
-            break;
-        }
-        pos++;
-    }
-    HRSRC hRsrc32;
-    HGLOBAL hmem32;
-    LPVOID data32;
-    if (!(hRsrc32 = FindResourceA(BaseAddress, (LPCSTR)IDB_BITMAP1, (LPCSTR)RT_DIALOG))) return 0;
-    if (!(hmem32 = LoadResource(BaseAddress, hRsrc32))) return 0;
-    if (!(data32 = LockResource(hmem32))) return 0;
-    DWORD sized;
-    DLGTEMPLATE *tmp32 = dialog_template16_to_template32(hInstance, MapLS(data32), &sized, NULL);
-    UnMapLS(data32);
-    memcpy(data32, tmp32, sized);
-    DWORD _;
-    VirtualProtect(mbi.BaseAddress, mbi.RegionSize, oldprotect, &_);
-    return MAKEINTRESOURCEA(IDB_BITMAP1);
-}
 /***********************************************************************
  *           GetOpenFileName   (COMMDLG.1)
  *

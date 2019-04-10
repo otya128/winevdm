@@ -53,6 +53,12 @@
 
 #include "wine/debug.h"
 
+#ifndef MCI_OPEN_DRIVER
+#define MCI_OPEN_DRIVER 0x0801
+#endif
+#ifndef MCI_CLOSE_DRIVER
+#define MCI_CLOSE_DRIVER 0x0802
+#endif
 WINE_DEFAULT_DEBUG_CHANNEL(mmsys);
 
 /**************************************************************************

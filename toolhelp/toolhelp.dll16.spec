@@ -37,3 +37,5 @@
 86 pascal -ret16 Local32Next(ptr) Local32Next16
 
 100 pascal -register next_intcb() next_intcb
+
+@ stdcall -arch=win32 get_intcb(ptr long long long long)

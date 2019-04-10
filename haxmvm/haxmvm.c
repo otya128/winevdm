@@ -109,7 +109,7 @@ WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags)
     }
     return sel;
 }
-_declspec(dllimport) LDT_ENTRY wine_ldt[8192];
+__declspec(dllimport) LDT_ENTRY wine_ldt[8192];
 
 HANDLE hSystem;
 HANDLE hVM;
@@ -119,10 +119,12 @@ struct hax_tunnel *tunnel;
 #ifdef _MSC_VER
 __declspec(align(4096))
 #endif
-DWORD guestpt[0x80400] = {0}
+DWORD
 #ifdef __GNUC__
 __attribute__ ((aligned(4096)))
 #endif
+guestpt[0x80400] = {0}
+
 ;
 
 void load_seg(segment_desc_t *segment, WORD sel)
@@ -255,8 +257,13 @@ _STATIC_ASSERT(sizeof(interrupt_gate) == 8);
 
 #define HAXMVM_STR2(s) #s
 #define HAXMVM_STR(s) HAXMVM_STR2(s)
+#ifdef _MSC_VER
 #define HAXMVM_ERR fprintf(stderr, __FUNCTION__ "("  HAXMVM_STR(__LINE__)  ") HAXM err.\n");
 #define HAXMVM_ERRF(fmt, ...) fprintf(stderr, __FUNCTION__ "("  HAXMVM_STR(__LINE__)  ") " fmt "\n", __VA_ARGS__);
+#else
+#define HAXMVM_ERR fprintf(stderr, "%s("  HAXMVM_STR(__LINE__)  ") HAXM err.\n", __FUNCTION__);
+#define HAXMVM_ERRF(fmt, ...) fprintf(stderr, "%s("  HAXMVM_STR(__LINE__)  ") " fmt "\n", __FUNCTION__, ##__VA_ARGS__);
+#endif
 LPVOID trap_int;
 
 #ifdef _MSC_VER
@@ -296,11 +303,16 @@ static BOOL set_ram(struct hax_set_ram_info *ram)
 BOOL init_vm86(BOOL vm86)
 {
     ((void(*)())GetProcAddress(GetModuleHandleA("libwine"), "set_intel_vt_x_workaround"))();
+#ifdef _MSC_VER
     __asm
     {
         mov seg_cs, cs
         mov seg_ds, ds
     }
+#else
+    seg_cs = wine_get_cs();
+    seg_ds = wine_get_ds();
+#endif
     hSystem = CreateFileW(L"\\\\.\\HAX", 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hSystem == INVALID_HANDLE_VALUE)
     {
@@ -373,66 +385,6 @@ BOOL init_vm86(BOOL vm86)
     // fill in the pagedir
     for (int i = 0; i < 512; i++)
         guestpt[0x80000 + i] = ((DWORD)guestpt + 4096 * i) | 7;
-    while (!TRUE)
-    {
-        alloc_ram.size = mbi.RegionSize;
-        VirtualQuery((PVOID)((SIZE_T)mbi.BaseAddress + mbi.RegionSize), &mbi, sizeof(mbi));
-        if (!mbi.RegionSize)
-            break;
-        alloc_ram.va = (SIZE_T)mbi.BaseAddress;
-        alloc_ram.size = (SIZE_T)mbi.RegionSize;
-        if (!alloc_ram.va)
-            continue;
-        if (0&&mbi.State != MEM_COMMIT)
-        {
-            if ((SIZE_T)mbi.BaseAddress + mbi.RegionSize < (SIZE_T)mbi.BaseAddress)
-            {
-                break;
-            }
-            continue;
-        }
-        //MmProbeAndLockPages(xx, xx , IoReadAccess|IoWriteAccess) fails
-        if (0 && mbi.State == MEM_COMMIT)
-        {
-            DWORD old;
-            if (mbi.Protect & PAGE_READONLY)
-            {
-                VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_READWRITE, &old);
-            }
-            if ((mbi.Protect & PAGE_EXECUTE_READ) || (mbi.Protect & PAGE_EXECUTE))
-            {
-                VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_EXECUTE_READWRITE, &old);
-            }
-        }
-        if (mbi.State == MEM_COMMIT)
-        {
-            DWORD old;
-            if (mbi.Protect & PAGE_READONLY)
-            {
-                continue;
-            }
-            if ((mbi.Protect & PAGE_EXECUTE_READ) || (mbi.Protect & PAGE_EXECUTE))
-            {
-                continue;
-            }
-        }
-        if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-        {
-            HAXMVM_ERR;
-        }
-        if ((SIZE_T)mbi.BaseAddress + mbi.RegionSize < (SIZE_T)mbi.BaseAddress)
-        {
-            break;
-        }
-        ram.pa_start = (SIZE_T)mbi.BaseAddress;
-        ram.size = (SIZE_T)mbi.RegionSize;
-        ram.va = (SIZE_T)mbi.BaseAddress;
-        if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
-        {
-            HAXMVM_ERR;
-            return FALSE;
-        }
-    }
     tunnel = (struct hax_tunnel*)tunnel_info.va;
     struct vcpu_state_t state;
     if (!DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL))
@@ -747,8 +699,9 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     {
         SIZE_T page1 = (SIZE_T)from16_reg / 4096 * 4096;
         SIZE_T page2 = (SIZE_T)__wine_call_from_16 / 4096 * 4096;
+        SIZE_T page3 = (SIZE_T)__wine_call_to_16_ret / 4096 * 4096;
         LPBYTE trap = syscall_trap = (LPBYTE)VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_READWRITE);
-        memset(trap, 0xEE, 4095); /* out forces a vmexit from user mode without modifing any registers */
+        memset(trap, 0xEE, 4096); /* out forces a vmexit from user mode without modifing any registers */
         struct hax_alloc_ram_info alloc_ram = { 0 };
         struct hax_set_ram_info ram = { 0 };
         alloc_ram.size = 4096;
@@ -767,6 +720,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         }
         guestpt[page1 >> 12] = (DWORD)trap | 7;
         guestpt[page2 >> 12] = (DWORD)trap | 7;
+        guestpt[page3 >> 12] = (DWORD)trap | 7;
         syscall_init = TRUE;
     }
     //is_single_step = TRUE;
@@ -879,8 +833,10 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                         }
                         state2._esp += 4;
                     }
-                    else if(intvec < 0x10)
+                    else if (intvec < 0x10)
+                    {
                         pih(intvec, MAKESEGPTR(state2._cs.selector, state2._eip & 0xffff));
+                    }
                     else
                     {
                             DWORD eip = POP32(&state2);
@@ -921,8 +877,8 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         {
                 HAXMVM_ERRF("SET_REGS");
         }
-        save_context(context);
     }
+    save_context(context);
 }
 
 __declspec(dllexport) DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_HANDLER handler,
@@ -972,19 +928,60 @@ __declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbA
 
 SIZE_T base = 0;
 SIZE_T x87func = 0x200 - 0x10;
-void callx87(SIZE_T addr)
+void callx87(SIZE_T addr, LPVOID eax)
 {
     DWORD bytes;
     struct vcpu_state_t state;
     DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
     state._rip = addr;
+    state._eax = eax;
+    state._ds.selector = seg_ds;
+    state._ds.base = 0;
     state._cs.selector = seg_cs;
     state._cs.base = 0;
-    DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL);
-    if (!DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_RUN, NULL, 0, NULL, 0, &bytes, NULL))
-        return;
-    //DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
-
+    while (TRUE)
+    {
+        DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL);
+        if (!DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_RUN, NULL, 0, NULL, 0, &bytes, NULL))
+            return;
+        DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
+        if (tunnel->_exit_status == HAX_EXIT_HLT)
+        {
+            struct vcpu_state_t state2 = state;
+            struct hax_alloc_ram_info alloc_ram = { 0 };
+            struct hax_set_ram_info ram = { 0 };
+            LPVOID ptr = (LPBYTE)state2._cs.base + state2._eip;
+            if (((DWORD)ptr >= (DWORD)trap_int) && ((DWORD)ptr <= ((DWORD)trap_int + 256)))
+            {
+                int intvec = ((DWORD)ptr & 0xff) - 1;
+                state2._eip = 256;
+                if (intvec == 0x0e)
+                {
+                    alloc_ram.size = 4096;
+                    alloc_ram.va = state2._cr2 & ~0xfff;
+                    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
+                    {
+                        HAXMVM_ERRF("ALLOC_RAM");
+                    }
+                    ram.pa_start = state2._cr2 & ~0xfff;
+                    ram.size = 4096;
+                    ram.va = state2._cr2 & ~0xfff;
+                    if (!set_ram(&ram))
+                    {
+                        HAXMVM_ERRF("SET_RAM");
+                    }
+                    state2._esp += 4;
+                }
+                else
+                    break;
+            }
+            else
+                break;
+            state = state2;
+        }
+        else
+            break;
+    }
     if (tunnel->_exit_status == HAX_EXIT_STATECHANGE)
     {
         HAXMVM_ERRF("hypervisor is panicked!!!");
@@ -994,43 +991,43 @@ void callx87(SIZE_T addr)
 /* x87 service functions */
 void fldcw(WORD a)
 {
-    SIZE_T location = base + x87func + 1 * 0x10;
-    callx87(location);
+    char instr[] = { 0xd9, 0x28, 0xee }; /* fldcw word ptr [eax] */
+    callx87(instr, &a);
 }
 void wait()
 {
-    SIZE_T location = base + x87func + 2 * 0x10;
-    callx87(location);
+    char instr[] = { 0x9b, 0xee }; /* wait */
+    callx87(instr, NULL);
 }
 void fninit()
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xdb, 0xe3, 0xee }; /* fninit */
+    callx87(instr, NULL);
 }
 void fstcw(WORD* a)
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xd9, 0x38, 0xee }; /* fnstcw word ptr [eax] */
+    callx87(instr, a);
 }
 void frndint()
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xd9, 0xfc, 0xee }; /* frndint */
+    callx87(instr, NULL);
 }
 void fclex()
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xdb, 0xe2, 0xee }; /* fnclex */
+    callx87(instr, NULL);
 }
 void fsave(char* a)
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xdd, 0x30, 0xee }; /* fnsave [eax] */
+    callx87(instr, a);
 }
 void frstor(const char* a)
 {
-    SIZE_T location = base + x87func + 3 * 0x10;
-    callx87(location);
+    char instr[] = { 0xdd, 0x20, 0xee }; /* frstor [eax] */
+    callx87(instr, a);
 }
 typedef void(*fldcw_t)(WORD);
 typedef void(*wait_t)();

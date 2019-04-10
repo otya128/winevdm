@@ -4,6 +4,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+/* offsetof */
+#include <stddef.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif

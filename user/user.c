@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define OEMRESOURCE
 
@@ -1205,6 +1206,17 @@ static BOOL is_builtin_winhlp32_stub()
     {
         DWORD size = GetFileVersionInfoSizeW(winhlp32, NULL);
         LPVOID vd = HeapAlloc(GetProcessHeap(), 0, size);
+#ifndef FILE_VER_GET_NEUTRAL
+#define FILE_VER_GET_NEUTRAL 0x02
+#endif
+#ifndef GetFileVersionInfoSizeEx
+        typedef BOOL (WINAPI*GetFileVersionInfoExW_t)(LPCWSTR lptstrFilename, LPDWORD lpdwHandle, DWORD dwHandle,DWORD dwLen, LPVOID lpData);
+        static GetFileVersionInfoExW_t GetFileVersionInfoExW;
+        if (!GetFileVersionInfoExW)
+        {
+            GetFileVersionInfoExW = (GetFileVersionInfoExW_t)GetProcAddress(GetModuleHandleA("version"), "GetFileVersionInfoExW");
+        }
+#endif
         if (GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL, winhlp32, 0, size, vd))
         {
             WCHAR *internalname = NULL;
@@ -1497,6 +1509,31 @@ LONG WINAPI TabbedTextOut16( HDC16 hdc, INT16 x, INT16 y, LPCSTR lpstr,
 }
 
 
+void check_font_rotation(HDC hdc, SIZE *box)
+{
+    if (LOWORD(LOBYTE(GetVersion())) >= 0x6)
+    {
+        HFONT hfont = GetCurrentObject(hdc, OBJ_FONT);
+        TEXTMETRICA tm;
+        GetTextMetricsA(hdc, &tm);
+        if((tm.tmPitchAndFamily & (TMPF_VECTOR | TMPF_TRUETYPE)) != TMPF_VECTOR)
+            return;
+        LOGFONT lfont;
+        GetObject(hfont, sizeof(LOGFONT), &lfont);
+        if (lfont.lfEscapement == lfont.lfOrientation)
+        {
+            int angle = lfont.lfEscapement % 1800;
+            const float d2r = 3.14159265358979323846 / 1800;
+            if (angle)
+            {
+                int x = box->cx, y = box->cy;
+                box->cx = (y * cosf((900 - angle) * d2r)) + (x * fabsf(cosf(angle * d2r)));
+                box->cy = (x * cosf((900 - angle) * d2r)) + (y * fabsf(cosf(angle * d2r)));
+            }
+        }
+    }
+}
+
 /***********************************************************************
  *           GetTabbedTextExtent    (USER.197)
  */
@@ -1504,10 +1541,14 @@ DWORD WINAPI GetTabbedTextExtent16( HDC16 hdc, LPCSTR lpstr, INT16 count,
                                     INT16 nb_tabs, const INT16 *tabs16 )
 {
     LONG ret;
+    HDC hdc32 = HDC_32(hdc);
     INT i, *tabs = HeapAlloc( GetProcessHeap(), 0, nb_tabs * sizeof(*tabs) );
     if (!tabs) return 0;
     for (i = 0; i < nb_tabs; i++) tabs[i] = tabs16[i];
-    ret = GetTabbedTextExtentA( HDC_32(hdc), lpstr, count, nb_tabs, tabs );
+    ret = GetTabbedTextExtentA( hdc32, lpstr, count, nb_tabs, tabs );
+    SIZE size = { LOWORD(ret), HIWORD(ret) };
+    check_font_rotation( hdc32, &size );
+    ret = size.cx | (size.cy << 16);
     HeapFree( GetProcessHeap(), 0, tabs );
     return ret;
 }
@@ -1958,7 +1999,7 @@ HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBack
 {
     HPALETTE hpal32 = HPALETTE_32(hpal);
     HDC hdc32 = HDC_32(hdc);
-    if ((GetObjectType(hpal32) != OBJ_PAL) || (GetObjectType(hdc32) != OBJ_DC))
+    if ((GetObjectType(hpal32) != OBJ_PAL) || ((GetObjectType(hdc32) != OBJ_DC) && (GetObjectType(hdc32) != OBJ_MEMDC)))
         return NULL;
     if (krnl386_get_compat_mode("256color") && WindowFromDC(hdc32))
     {
@@ -3246,10 +3287,10 @@ WORD WINAPI GetIconID16( HGLOBAL16 hResource, DWORD resType )
 
     switch (resType)
     {
-    case RT_CURSOR:
+    case (DWORD)RT_CURSOR:
         return LookupIconIdFromDirectoryEx16( dir, FALSE, GetSystemMetrics(SM_CXCURSOR),
                                               GetSystemMetrics(SM_CYCURSOR), LR_MONOCHROME );
-    case RT_ICON:
+    case (DWORD)RT_ICON:
         return LookupIconIdFromDirectoryEx16( dir, TRUE, GetSystemMetrics(SM_CXICON),
                                               GetSystemMetrics(SM_CYICON), 0 );
     }

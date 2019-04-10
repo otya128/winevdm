@@ -23,6 +23,7 @@
 #include "user_private.h"
 #include "wine/server.h"
 #include "wine/debug.h"
+#include "wine/exception.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
@@ -167,14 +168,15 @@ BOOL is_dialog(HWND hwnd)
     struct WW *ww = GetWindowLongW(hwnd, -1);
     if (!ww)
         return FALSE;
-    __try
+    __TRY
     {
         if (ww->stateFlags.WFDIALOGWINDOW)
             return TRUE;
     }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+    __EXCEPT_ALL
     {
     }
+	__ENDTRY
     return FALSE;
 }
 
@@ -324,6 +326,11 @@ UINT16 WINAPI SetTimer16( HWND16 hwnd, UINT16 id, UINT16 timeout, TIMERPROC16 pr
 UINT16 WINAPI SetSystemTimer16( HWND16 hwnd, UINT16 id, UINT16 timeout, TIMERPROC16 proc )
 {
     TIMERPROC proc32 = proc == NULL ? NULL : allocate_timer_thunk(proc, TimerProc_Thunk, TRUE);
+    if (!SetSystemTimer)
+    {
+        ERR("SetSystemTimer NULL\n");
+        return 0;
+    }
     return SetSystemTimer( WIN_Handle32(hwnd), id, timeout, proc32 );
 }
 
@@ -1801,6 +1808,11 @@ void WINAPI SwitchToThisWindow16( HWND16 hwnd, BOOL16 restore )
  */
 BOOL16 WINAPI KillSystemTimer16( HWND16 hwnd, UINT16 id )
 {
+    if (!KillSystemTimer)
+    {
+        ERR("KillSystemTimer NULL\n");
+        return 0;
+    }
     return KillSystemTimer( WIN_Handle32(hwnd), id );
 }
 
@@ -2352,6 +2364,8 @@ __declspec(dllexport) BOOL16 WINAPI USER_ClassNext16(CLASSENTRY *pClassEntry)
     FIXME("\n");
     return FALSE;
 }
+
+NE_TYPEINFO *get_resource_table(HMODULE16 hmod, LPCSTR type, LPBYTE *restab);
 /***********************************************************************
  *		RegisterClassEx (USER.397)
  */
@@ -2388,6 +2402,27 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     wc32.cbWndExtra    = 100;
     wc32.hInstance     = HINSTANCE_32(inst);
     wc32.hIcon         = get_icon_32(wc->hIcon);
+    
+    if (!wc32.hIcon)
+    {
+        LPBYTE restab;
+        NE_TYPEINFO *type = get_resource_table(inst, RT_GROUP_ICON, &restab);
+        if (!type)
+            type = get_resource_table(inst, RT_ICON, &restab);
+        if (type)
+        {
+            LPCSTR id = (LPCSTR)(((NE_NAMEINFO *)((char *)type + sizeof(NE_TYPEINFO)))->id);
+            char name[32] = {0};
+            if (!((int)id & 0x8000))
+            {
+                int len = restab[0] > 31 ? 31 : restab[0];
+                strncpy(name, restab + (int)id + 1, len);
+                id = name;
+            }
+            wc32.hIcon = get_icon_32(LoadIcon16(inst, id));
+         }
+    }
+
     wc32.hCursor       = get_icon_32( wc->hCursor );
     wc32.hbrBackground = HBRUSH_32(wc->hbrBackground);
     wc32.lpszMenuName  = MapSL(wc->lpszMenuName);

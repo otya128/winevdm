@@ -28,6 +28,9 @@
 #include <stdarg.h>
 
 #include <windows.h>
+#ifndef _MSC_VER
+#define _Analysis_noreturn_
+#endif
 #include <ole.h>
  //#include "windef.h"
 #include "wine/windef16.h"
