@@ -1,9 +1,32 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.10.2)
+#-Dinline=__inline
 project(winevdm)
 set(ASM_TOOL_DIR C:/msys32/usr/bin/)
+# prevent wine error
+if (NOT(MSVC))
+    set(CMAKE_CXX_FLAGS "-Wno-narrowing -Wl,--add-stdcall-alias ")
+    add_definitions(-D__inline=inline)
+else()
+    add_definitions(-DUSE_COMPILER_EXCEPTIONS -Dinline=__inline)
+endif()
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+macro(def_file_build32 file)
+    get_filename_component(name_we ${file} NAME_WE)
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name_we}.def
+    DEPENDS ${file}.spec convspec
+    COMMAND convspec ${CMAKE_CURRENT_LIST_DIR}/${file}.spec -DEF -32 > ${CMAKE_CURRENT_BINARY_DIR}/${name_we}.def)
+    add_custom_target(generate_def_${name_we} DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${name_we}.def)
+endmacro()
+macro(def_file_build file)
+    get_filename_component(name_we ${file} NAME_WE)
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name_we}.def
+    DEPENDS ${file}.spec convspec
+    COMMAND convspec ${CMAKE_CURRENT_LIST_DIR}/${file}.spec -DEF > ${CMAKE_CURRENT_BINARY_DIR}/${name_we}.def)
+    add_custom_target(generate_def_${name_we} DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${name_we}.def)
+endmacro()
 macro(spec_build file modname)
     string(TOUPPER modname modname)
     get_filename_component(name_we ${file} NAME_WE)
@@ -11,7 +34,13 @@ macro(spec_build file modname)
     DEPENDS ${file}.spec convspec
     COMMAND convspec ${CMAKE_CURRENT_LIST_DIR}/${file}.spec ${modname} > ${file}.asm && ${ASM_TOOL_DIR}/as --32 -o ${file}.obj ${file}.asm)
     add_custom_target(generate_asm_${name_we} DEPENDS ${file}.obj)
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
+    if (MSVC)
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
+    endif()
+    def_file_build(${file})
+    add_dependencies(${name_we} generate_asm_${name_we})
+    add_dependencies(${name_we} generate_def_${name_we})
+    set_target_properties(${name_we} PROPERTIES PREFIX "")
 endmacro()
 macro(widl_build file_idl file_c file_h)
     get_filename_component(name_we ${file_idl} NAME_WE)

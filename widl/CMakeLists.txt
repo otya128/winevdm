@@ -5,4 +5,7 @@ flex_target(widl_scanner parser.l ${CMAKE_CURRENT_BINARY_DIR}/parser.l.c COMPILE
 add_flex_bison_dependency(widl_scanner widl_parser)
 add_executable(widl ${SOURCE} ${BISON_widl_parser_OUTPUTS} ${FLEX_widl_scanner_OUTPUTS})
 add_definitions(-D_X86_ -D__i386__ -Dpopen=_popen -Dpclose=_pclose -Dstrncasecmp=_strnicmp -Dstrcasecmp=_stricmp)
+if (NOT(MSVC))
+    add_definitions(-DHAVE_GETOPT_H)
+endif()
 target_link_libraries(widl wpp libwine)

@@ -1,4 +1,7 @@
-file(GLOB SOURCE *.c *.cpp)
-add_library(wow32 SHARED ${SOURCE} wow32.def)
-add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DUSE_COMPILER_EXCEPTIONS -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -Dinline=__inline)
 
+file(GLOB SOURCE *.c *.cpp)
+def_file_build32(wow32)
+add_library(wow32 SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/wow32.def)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__)
+add_dependencies(wow32 generate_def_wow32)
+set_target_properties(wow32 PROPERTIES PREFIX "")
