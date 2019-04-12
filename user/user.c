@@ -2394,6 +2394,9 @@ BOOL WINAPI DllEntryPoint( DWORD reason, HINSTANCE16 inst, WORD ds,
     LoadLibrary16( "keyboard.drv" );
     LoadLibrary16( "mouse.drv" );
     LoadLibrary16( "user.exe" );  /* make sure it never gets unloaded */
+    // create dummy menu window, something like this exists on windows xp created by csrss
+    // but is missing on windows 10 x64
+    CreateWindowExA(0x181, "#32768", "", 0x84800000, 0, 0, 0, 0, NULL, NULL, NULL, NULL);
     return TRUE;
 }
 
