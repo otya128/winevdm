@@ -241,6 +241,7 @@ typedef struct
 /* Suggested actions */
 #define SA_Retry             0x01
 #define SA_DelayedRetry      0x02
+#define SA_Prompt            0x03
 #define SA_Abort             0x04
 #define SA_Ignore            0x06
 #define SA_Ask4Retry         0x07
@@ -3641,8 +3642,8 @@ static void INT21_GetExtendedError( CONTEXT *context )
         locus  = EL_Disk;
         break;
     case ERROR_NO_MORE_FILES:
-        class  = EC_MediaError;
-        action = SA_Abort;
+        class  = EC_NotFound;
+        action = SA_Prompt;
         locus  = EL_Disk;
         break;
     case ER_NoNetwork:
