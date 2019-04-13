@@ -562,9 +562,9 @@ void WINAPI next_intcb(CONTEXT *context)
     stkptr[0] = OFFSETOF(next_intcb16);
     stkptr[1] = SELECTOROF(next_intcb16);
     context->Esp -= 4;
-    lastcb++;
     context->Eip = OFFSETOF(intcbs[lastcb].lpfnIntCallback);
     context->SegCs = SELECTOROF(intcbs[lastcb].lpfnIntCallback);
+    lastcb++;
 }
 
 FARPROC16 WINAPI get_intcb(SEGPTR *stack, SEGPTR addr, WORD flags, WORD err, WORD ax)

@@ -197,6 +197,7 @@ EXPORTS
   _EnterWin16Lock
   _LeaveWin16Lock
   IsRealModeTask
+  AllocDStoCSAlias16
 
   RegCloseKey16
   RegCreateKey16

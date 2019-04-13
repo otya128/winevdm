@@ -1167,34 +1167,7 @@ extern "C"
         {
             char buffer[256];
             int len = disassemble(buffer);
-            if(!err && !m_sreg[ES].selector && strstr(buffer, "es:"))
-            {
-                // Some Windows 1.0 C startups try to access the IVT directly
-                static WORD dosmem_0000H = 0;
-                static HTASK16 (WINAPI *GetCurrentTask)(void);
-                static BOOL16 (WINAPI *IsOldWindowsTask)(HINSTANCE16);
-                if (!dosmem_0000H)
-                {
-                    DWORD(WINAPI *GetProcAddress16)(HMODULE16, LPCSTR);
-                    HMODULE16(WINAPI *GetModuleHandle16)(LPCSTR);
-                    if (!krnl386)
-                        krnl386 = LoadLibraryA(KRNL386);
-                    GetProcAddress16 = (DWORD(WINAPI *)(HMODULE16, LPCSTR))GetProcAddress(krnl386, "GetProcAddress16");
-                    GetModuleHandle16 = (HMODULE16(WINAPI *)(LPCSTR))GetProcAddress(krnl386, "GetModuleHandle16");
-                    GetCurrentTask = (HTASK16(WINAPI *)(void))GetProcAddress(krnl386, "GetCurrentTask");
-                    IsOldWindowsTask = (BOOL16(WINAPI *)(HINSTANCE16))GetProcAddress(krnl386, "IsOldWindowsTask");
-                    dosmem_0000H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)183);
-                }
-                if (IsOldWindowsTask(GetCurrentTask()))
-                {
-                    set_flags(flags);
-                    m_sreg[ES].selector = dosmem_0000H;
-                    i386_load_segment_descriptor(ES);
-                    i386_jmp_far(cs, ip);
-                    return;
-                }
-            }
-            else if(err == 0x40)
+            if(err == 0x40)
             {
                 // many startups access the BDA directly
                 static WORD dosmem_0040H = 0;

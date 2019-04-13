@@ -1,0 +1,4 @@
+MODULE    = rmpatch.dll16
+EXTRADLLFLAGS = -m16
+
+C_SRCS = rmpatch.c instr.c
