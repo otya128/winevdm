@@ -336,6 +336,7 @@ unknown:
     return FALSE;
 }
 
+static void (WINAPI *checkpatch)(NE_MODULE *, int, HANDLE16) = NULL;
 
 /***********************************************************************
  *           NE_LoadSegment
@@ -402,12 +403,6 @@ BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum )
         void *mem = GlobalLock16(pSeg->hSeg);
         if (!NE_READ_DATA( pModule, mem, pos, size ))
             return FALSE;
-        if (!memcmp(mem, "MSEM87", 6)) // check for linked in MS 8087 emulator
-        {
-            FARPROC16 fpmath = GetProcAddress16(LoadLibrary16("WIN87EM.DLL"), "__FPMATH");
-            *(char *)((char *)mem + 0x24) = 0xea;  // JMP FAR
-            *(FARPROC16 *)((char *)mem + 0x25) = fpmath;
-        }
         pos += size;
     }
     else
@@ -437,6 +432,9 @@ BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum )
             curr += len;
         }
     }
+    
+    if ((pModule->ne_expver < 0x300) && checkpatch)
+        checkpatch( pModule, segnum, pSeg->hSeg );
 
     pSeg->flags |= NE_SEGFLAGS_LOADED;
 
@@ -468,6 +466,12 @@ BOOL NE_LoadAllSegments( NE_MODULE *pModule )
 {
     int i;
     SEGTABLEENTRY * pSegTable = NE_SEG_TABLE(pModule);
+
+    if ((pModule->ne_expver < 0x300) && !(pModule->ne_flags & NE_FFLAGS_BUILTIN) && !checkpatch)
+    {
+        LoadLibrary16("RMPATCH.DLL");
+        checkpatch = GetProcAddress(GetModuleHandleA("RMPATCH.DLL16"), "checkpatch");
+    }
 
     if (pModule->ne_flags & NE_FFLAGS_SELFLOAD)
     {
