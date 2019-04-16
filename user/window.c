@@ -821,6 +821,7 @@ BOOL16 WINAPI DestroyWindow16( HWND16 hwnd )
     ReleaseThunkLock(&count);
     result = DestroyWindow(WIN_Handle32(hwnd));
     RestoreThunkLock(count);
+    return result;
 }
 
 
