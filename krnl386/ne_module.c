@@ -683,14 +683,12 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
     memcpy( pModule, ne_header, sizeof(*ne_header) );
 
     if (pModule->ne_exetyp != 0x02 && pModule->ne_exetyp != 0x04)
-    {
         ERR("exe type is not windows or windows/386. (typ:%02x, ver:%04x)\n", pModule->ne_exetyp, pModule->ne_expver);
-        /* win95:0x400 */
-        if (pModule->ne_expver >= 0x500)
-        {
-            pModule->ne_expver = 0;
-        }
-    }
+    
+    /* win95:0x400 */
+    if (pModule->ne_expver >= 0x500)
+        pModule->ne_expver = 0;
+
     pModule->count = 0;
     /* check programs for default minimal stack size */
     if (!(pModule->ne_flags & NE_FFLAGS_LIBMODULE) && (pModule->ne_stack < 0x1400))
@@ -1955,6 +1953,30 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
         ret = LoadModule16( "winoldap.mod", &params );
         UnMapLS( params.cmdLine );
         UnMapLS( params.showCmd );
+    }
+    else if (ret > 31)
+    {
+        HTASK16 curtask = pThhook->HeadTDB;
+        while (curtask)
+        {
+            TDB *curtdb = (TDB *)GlobalLock16(curtask);
+            if (curtdb->hInstance == ret)
+            {
+                DWORD count;
+                extern DWORD _tls_index;
+                DWORD ktdoff = (DWORD)kernel_get_thread_data() - *(DWORD*)((LPBYTE)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index * 4);
+                struct kernel_thread_data *chdthd = (struct kernel_thread_data *)(*(DWORD *)((LPBYTE)curtdb->teb->ThreadLocalStoragePointer + _tls_index * 4) + ktdoff);
+                ReleaseThunkLock(&count);
+                WaitForSingleObject(chdthd->idle_event, 30000);
+                RestoreThunkLock(count);
+                GlobalUnlock16(curtask);
+                break;
+            }
+            TDB *lasttask = curtask;
+            curtask = curtdb->hNext;
+            GlobalUnlock16(lasttask);
+        }
+
     }
     return ret;
 }

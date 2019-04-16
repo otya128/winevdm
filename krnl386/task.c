@@ -573,6 +573,7 @@ static DWORD CALLBACK task_start( LPVOID p )
     DWORD ret;
 
     kernel_get_thread_data()->htask16 = pTask->hSelf;
+    kernel_get_thread_data()->idle_event = CreateEventA(NULL, TRUE, FALSE, NULL);
     NtCurrentTeb()->Tib.SubSystemTib = data->tib;
 
     set_thread_internal_windows_ver(0x30A);
@@ -708,6 +709,7 @@ void TASK_ExitTask(void)
 
     /* Remove the task from the list to be sure we never switch back to it */
     TASK_UnlinkTask( pTask->hSelf );
+    CloseHandle(kernel_get_thread_data()->idle_event);
 
     if (!nTaskCount || (nTaskCount == 1 && hFirstTask == initial_task))
     {
