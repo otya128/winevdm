@@ -5118,8 +5118,14 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
         TRACE("FINDNEXT\n");
         if (!INT21_FindNext(context))
         {
-            SetLastError( ERROR_NO_MORE_FILES );
-            SET_AX( context, ERROR_NO_MORE_FILES );
+            DWORD err = ERROR_NO_MORE_FILES;
+            if (GetLastError() == ERROR_PATH_NOT_FOUND)
+            {
+                /* other errors? */
+                err = ERROR_PATH_NOT_FOUND;
+            }
+            SetLastError(err);
+            SET_AX( context, err );
             SET_CFLAG(context);
         }
         else SET_AX( context, 0 );  /* OK */
