@@ -2312,6 +2312,13 @@ static BOOL INT21_FileDateTime( CONTEXT *context )
         TRACE( "SET FILE LAST-WRITTEN DATE AND TIME, handle %d\n",
                BX_reg(context) );
         {
+            DWORD typ = GetFileType(handle);
+            /* is device file */
+            if (typ != FILE_TYPE_DISK || BX_reg(context) < 5 /* dup? */)
+            {
+                /* always success */
+                break;
+            }
             DosDateTimeToFileTime( DX_reg(context), 
                                    CX_reg(context),
                                    &filetime );
