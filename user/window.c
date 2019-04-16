@@ -1702,6 +1702,7 @@ BOOL16 WINAPI SetMenu16( HWND16 hwnd, HMENU16 hMenu )
     {
         SetWindowHMenu16(hwnd, hMenu);
     }
+    return result;
 }
 
 
@@ -2192,6 +2193,7 @@ BOOL16 WINAPI RedrawWindow16( HWND16 hwnd, const RECT16 *rectUpdate,
         result = RedrawWindow(WIN_Handle32(hwnd), NULL, HRGN_32(hrgnUpdate), flags);
     }
     RestoreThunkLock(count);
+    return result;
 }
 
 
