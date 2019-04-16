@@ -1219,9 +1219,16 @@ static HINSTANCE16 NE_CreateThread( NE_MODULE *pModule, WORD cmdShow, LPCSTR cmd
         DirectedYield16( hTask );
         if (!IsTask16( hTask ))  /* thread has died */
         {
-            DWORD exit_code;
-            WaitForSingleObject( hThread, INFINITE );
-            GetExitCodeThread( hThread, &exit_code );
+            DWORD exit_code, count;
+            ReleaseThunkLock(&count);
+            while (1)
+            {
+                GetExitCodeThread( hThread, &exit_code );
+                if (exit_code != STILL_ACTIVE)
+                    break;
+                WaitForSingleObject( hThread, 500 );
+            }
+            RestoreThunkLock(count);
             CloseHandle( hThread );
             return exit_code;
         }
