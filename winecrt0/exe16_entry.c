@@ -23,9 +23,10 @@
 #include "winbase.h"
 #include "wownt32.h"
 #include "wine/winbase16.h"
+#define DECLSPEC_HIDDEN
+#include "../krnl386/kernel16_private.h"
 
 #ifdef __i386__
-#define DECLSPEC_HIDDEN
 extern WORD WINAPI WinMain16( HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD show );
 
 void WINAPI DECLSPEC_HIDDEN __wine_spec_exe16_entry( CONTEXT *context )
@@ -43,6 +44,7 @@ void WINAPI DECLSPEC_HIDDEN __wine_spec_exe16_entry( CONTEXT *context )
     memcpy( cmdline, psp->cmdLine + 1, len );
     cmdline[len] = 0;
 
+    SetEvent(kernel_get_thread_data()->idle_event);
     ExitThread( WinMain16( context->Edi, context->Esi, cmdline, context->Edx ));
 }
 
