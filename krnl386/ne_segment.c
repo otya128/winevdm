@@ -390,12 +390,15 @@ BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum )
         args[1] = hFile16;
         args[0] = segnum;
         WOWCallback16Ex( (DWORD)selfloadheader->LoadAppSeg, WCB16_PASCAL, sizeof(args), args, &ret );
-        pSeg->hSeg = LOWORD(ret);
         TRACE_(dll)("Ret LoadAppSegProc: hSeg=0x%04x\n", pSeg->hSeg);
         _lclose16( hFile16 );
 		setWOW32Reserved(oldstack);
 
-        pSeg->flags |= NE_SEGFLAGS_LOADED;
+        if (ret)
+        {
+            pSeg->hSeg = LOWORD(ret);
+            pSeg->flags |= NE_SEGFLAGS_LOADED;
+        }
         return TRUE;
     }
     else if (!(pSeg->flags & NE_SEGFLAGS_ITERATED))
@@ -680,6 +683,13 @@ static BOOL NE_InitDLL( NE_MODULE *pModule )
 
     /* Call USER signal handler for Win3.1 compatibility. */
     NE_CallUserSignalProc( pModule->self, USIG16_DLL_LOAD, 0, 0, 0 );
+
+    // look though segments for load failures if dll is selfloading
+    if (pModule->ne_flags & NE_FFLAGS_SELFLOAD)
+    {
+        for (int i = 2; i <= pModule->ne_cseg; i++)
+            NE_LoadSegment( pModule, i );
+    }
 
     if (!SELECTOROF(pModule->ne_csip)) return TRUE;  /* no initialization code */
 
