@@ -2447,6 +2447,16 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_NCUAHDRAWFRAME: /* undocumented wparam: hdc */
         ret = callback(HWND_16(hwnd), msg, HDC_16((HDC)wParam), lParam, result, arg);
         break;
+    case 0x4c8: //MCIWNDM_NOTIFYMODE
+    {
+        char clsname[12];
+        BOOL r = GetClassNameA(wParam, &clsname, 12);
+        if (r && !stricmp(clsname, "MCIWNDCLASS"))
+            ret = callback(HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg);
+        else
+            ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
+        break;
+    }
     default:
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
