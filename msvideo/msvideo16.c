@@ -643,8 +643,8 @@ static void MSVIDEO_UnmapMsg16To32(UINT msg, LPVOID data16, LPDWORD lParam1, LPD
           HeapFree(GetProcessHeap(), 0, x[0]);
           if (x[1])
           HeapFree(GetProcessHeap(), 0, x[1]);
-          }
-          break;*/
+          }*/
+          break;
     case ICM_COMPRESS:
     case ICM_DECOMPRESS:
     case ICM_DECOMPRESSEX_QUERY:
@@ -653,7 +653,7 @@ static void MSVIDEO_UnmapMsg16To32(UINT msg, LPVOID data16, LPDWORD lParam1, LPD
     case ICM_DRAW_BEGIN:
     case ICM_DRAW_SUGGESTFORMAT:
     case ICM_DRAW:
-        HeapFree(GetProcessHeap(), 0, data16);
+        HeapFree(GetProcessHeap(), 0, *lParam1);
         break;
     default:
         ERR("Unmapping unmapped msg %d\n", msg);
