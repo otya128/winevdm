@@ -565,6 +565,32 @@ static void set_thread_internal_windows_ver(DWORD version)
     }
 }
 
+static void cwd_warning(void)
+{
+    char cd[MAX_PATH];
+    DWORD result;
+    GetCurrentDirectoryA(MAX_PATH, cd);
+    result = GetShortPathNameA(cd, cd, MAX_PATH);
+    if (result < MAX_PATH && result > 0)
+    {
+        char *c = cd;
+        while (c != (char*)1)
+        {
+            char *next = strchr(c, '\\');
+            if (next - c > 8)
+            {
+                ERR("could not get 8.3 filename. %s\n", cd);
+                break;
+            }
+            c = next + 1;
+        }
+        if (strlen(cd) > 60)
+        {
+            ERR("current directory is too long. %s\n", cd);
+        }
+    }
+}
+
 /* startup routine for a new 16-bit thread */
 static DWORD CALLBACK task_start( LPVOID p )
 {
@@ -601,6 +627,7 @@ static DWORD CALLBACK task_start( LPVOID p )
     }
     if (data->curdir)
         SetCurrentDirectory16(data->curdir);
+    cwd_warning();
     HeapFree(GetProcessHeap(), 0, data);
 #ifdef _MSC_VER
     __try
