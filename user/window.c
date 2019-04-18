@@ -1224,6 +1224,8 @@ WORD WINAPI GetClassWord16( HWND16 hwnd, INT16 offset )
 
     switch (offset)
     {
+    case GCL_CBCLSEXTRA:
+        return GetClassLongA(WIN_Handle32(hwnd), offset);
     case GCL_CBWNDEXTRA:
     {
         char cls[1000];
