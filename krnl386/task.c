@@ -579,8 +579,12 @@ static void cwd_warning(void)
             char *next = strchr(c, '\\');
             if (next - c > 8)
             {
-                ERR("could not get 8.3 filename. %s\n", cd);
-                break;
+                char *ext = strchr(c, '.');
+                if (!ext || (ext - c > 8 || next - (ext + 1) > 3))
+                {
+                    ERR("could not get 8.3 filename. %s\n", cd);
+                    break;
+                }
             }
             c = next + 1;
         }
