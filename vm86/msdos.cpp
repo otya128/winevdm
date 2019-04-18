@@ -1137,21 +1137,30 @@ extern "C"
 
     static int disassemble(char *buffer)
     {
+        __TRY
+        {
 #if defined(HAS_I386)
-        UINT64 eip = m_eip;
+            UINT64 eip = m_eip;
 #else
-        UINT64 eip = m_pc - SREG_BASE(CS);
+            UINT64 eip = m_pc - SREG_BASE(CS);
 #endif
-        UINT8 *oprom = mem + SREG_BASE(CS) + eip;
+            UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 
-        m_operand_size = m_sreg[CS].d;
+            m_operand_size = m_sreg[CS].d;
 #if defined(HAS_I386)
-        if (m_operand_size) {
-            return CPU_DISASSEMBLE_CALL(x86_32) & 0xff;
-        }
-        else
+            if (m_operand_size) {
+                return CPU_DISASSEMBLE_CALL(x86_32) & 0xff;
+            }
+            else
 #endif
-            return i386_dasm_one_ex(buffer, m_eip, oprom, 16) & 0xff;//CPU_DISASSEMBLE_CALL(x86_16);
+                return i386_dasm_one_ex(buffer, m_eip, oprom, 16) & 0xff;//CPU_DISASSEMBLE_CALL(x86_16);
+        }
+        __EXCEPT_PAGE_FAULT
+        {
+            *buffer = 0;
+            return 0;
+        }
+        __ENDTRY
     }
 
     void protected_mode_exception_handler(WORD num, const char *name, pm_interrupt_handler pih)
@@ -1216,25 +1225,16 @@ extern "C"
         ULONG_PTR arguments[7] = { (ULONG_PTR)num, (ULONG_PTR)name, (ULONG_PTR)err, (ULONG_PTR)ip, (ULONG_PTR)cs, (ULONG_PTR)flags, (ULONG_PTR)dasm };
 
         //jump to next instr
-
-        __TRY
+        char buffer[256];
+        int opsize = disassemble(buffer);
+        memcpy(dasm, buffer, sizeof(buffer));
+        if ((int)ip + opsize <= 0xFFFF)
         {
-            char buffer[256];
-            int opsize = disassemble(buffer);
-            memcpy(dasm, buffer, sizeof(buffer));
-            if ((int)ip + opsize <= 0xFFFF)
-            {
-                ip += opsize;
-                m_eip = ip;
-                m_sreg[CS].selector = cs;
-                i386_load_segment_descriptor(CS);
-            }
+            ip += opsize;
+            m_eip = ip;
+            m_sreg[CS].selector = cs;
+            i386_load_segment_descriptor(CS);
         }
-        __EXCEPT_ALL
-        {
-            dasm[0] = '\0';
-        }
-        __ENDTRY
         set_flags(flags);
         RaiseException(EXCEPTION_PROTECTED_MODE, 0, sizeof(arguments) / sizeof(ULONG_PTR), arguments);
     }
