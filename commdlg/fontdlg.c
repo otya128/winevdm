@@ -70,7 +70,6 @@ BOOL16 WINAPI ChooseFont16(SEGPTR cf)
     LOGFONTA lf32;
     LOGFONT16 *font16;
     LPDLGTEMPLATEA template = NULL;
-    HINSTANCE16 hInst;
 
     if (!lpChFont) return FALSE;
     font16 = MapSL(lpChFont->lpLogFont);
@@ -107,7 +106,7 @@ BOOL16 WINAPI ChooseFont16(SEGPTR cf)
     if ((lpChFont->Flags & CF_ENABLETEMPLATE) || (lpChFont->Flags & CF_ENABLETEMPLATEHANDLE))
     {
         if (lpChFont->Flags & CF_ENABLETEMPLATE)
-            template = resource_to_dialog32(hInst, MapSL(lpChFont->lpTemplateName));
+            template = resource_to_dialog32(lpChFont->hInstance, MapSL(lpChFont->lpTemplateName));
         else
             template = handle_to_dialog32(lpChFont->hInstance);
         cf32.hInstance = (HGLOBAL)template;
