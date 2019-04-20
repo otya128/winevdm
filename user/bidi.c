@@ -27,6 +27,7 @@
 #include "wine/winuser16.h"
 #include "winerror.h"
 #include "wine/debug.h"
+#include "user_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(user);
 
@@ -254,9 +255,7 @@ UINT WINAPI LoadSystemLanguageString16( HINSTANCE16 hinstCaller, UINT16 id,
 INT16 WINAPI MessageBoxEx16( HWND16 hwndParent, LPCSTR lpszText,
                              LPCSTR lpszTitle, UINT16 fuStyle, UINT16 iLang )
 {
-    FIXME( "( %04hx, %p, %p, %hu, %hu ): stub\n", hwndParent, lpszText, lpszTitle,
-           fuStyle, iLang );
-    return 0;
+    return MessageBoxExA(WIN_Handle32(hwndParent), lpszText, lpszTitle, fuStyle, iLang);
 }
 
 
