@@ -104,7 +104,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="expr.h" />
-    <ClInclude Include="getopt.h" />
+    <ClInclude Include="getopt_msvc.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="header.h" />
     <ClInclude Include="parser.h" />
