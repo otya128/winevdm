@@ -616,7 +616,7 @@ void MZ_RunInThread( PAPCFUNC proc, ULONG_PTR arg )
     spc.proc = proc;
     spc.arg = arg;
     event = CreateEventW(NULL, TRUE, FALSE, NULL);
-    PostThreadMessageA(loop_tid, WM_USER, (WPARAM)event, (LPARAM)&spc);
+    PostThreadMessageA(loop_tid, WM_USER + 1, (WPARAM)event, (LPARAM)&spc);
     WaitForSingleObject(event, INFINITE);
     CloseHandle(event);
   } else

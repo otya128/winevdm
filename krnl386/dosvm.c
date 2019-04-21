@@ -528,7 +528,7 @@ DWORD DOSVM_Loop( HANDLE hThread )
                   case WM_QUIT:
                       /* stop this madness!! */
                       return 0;
-                  case WM_USER:
+                  case WM_USER + 1:
                       /* run passed procedure in this thread */
                       /* (sort of like APC, but we signal the completion) */
                       {
