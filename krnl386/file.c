@@ -1305,19 +1305,13 @@ const char *GetRedirectWindowsDir()
 #endif
 }
 
-void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output)
+static void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output)
 {
+    if (!filename)
+        filename = "win.ini";
     if (PathIsFileSpecA(filename))
     {
-        //const char *windir = getenv("WINDIR16");//"WINDOWS";
-        /*if (!windir)
-        {
-            strcpy(output, filename);
-            return;
-        }*/
         PathCombineA(output, GetRedirectWindowsDir(), filename);
-        //PathCombineA(output, output, windir);
-        //PathCombineA(output, windir, filename);
     }
     else
     {
