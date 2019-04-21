@@ -1664,6 +1664,9 @@ void WINAPI WriteOutProfiles16(void)
 BOOL16 WINAPI WritePrivateProfileStruct16 (LPCSTR section, LPCSTR key,
                                            LPVOID buf, UINT16 bufsize, LPCSTR filename)
 {
+    char filenamebuf[MAX_PATH];
+    RedirectPrivateProfileStringWindowsDir(filename, &filenamebuf);
+    filename = filenamebuf;
     return WritePrivateProfileStructA( section, key, buf, bufsize, filename );
 }
 
@@ -1674,6 +1677,9 @@ BOOL16 WINAPI WritePrivateProfileStruct16 (LPCSTR section, LPCSTR key,
 BOOL16 WINAPI GetPrivateProfileStruct16(LPCSTR section, LPCSTR key,
                                         LPVOID buf, UINT16 len, LPCSTR filename)
 {
+    char filenamebuf[MAX_PATH];
+    RedirectPrivateProfileStringWindowsDir(filename, &filenamebuf);
+    filename = filenamebuf;
     return GetPrivateProfileStructA( section, key, buf, len, filename );
 }
 
