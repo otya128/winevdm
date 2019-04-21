@@ -500,6 +500,33 @@ static void INT21_FillCountryInformation( BYTE *dst, int size )
 }
 
 
+void msdos_dbcs_table_update(LPBYTE tbl)
+{
+    #define DBCS_SIZE 0x12
+    int active_code_page = GetConsoleCP();
+    UINT8 dbcs_data[DBCS_SIZE];
+    memset(dbcs_data, 0, sizeof(dbcs_data));
+
+    CPINFO info;
+    GetCPInfo(active_code_page, &info);
+
+    if (info.MaxCharSize != 1) {
+        for (int i = 0;; i += 2) {
+            UINT8 lo = info.LeadByte[i + 0];
+            UINT8 hi = info.LeadByte[i + 1];
+            dbcs_data[2 + i + 0] = lo;
+            dbcs_data[2 + i + 1] = hi;
+            if (lo == 0 && hi == 0) {
+                dbcs_data[0] = i + 2;
+                break;
+            }
+        }
+    }
+    else {
+        dbcs_data[0] = 2;	// ???
+    }
+    memcpy(tbl, dbcs_data, sizeof(dbcs_data));
+}
 /***********************************************************************
  *           INT21_FillHeap
  *
@@ -553,8 +580,7 @@ static void INT21_FillHeap( INT21_HEAP *heap )
     /*
      * DBCS lead byte table. This table is empty.
      */
-    heap->dbcs_size = 0;
-    memset( heap->dbcs_table, 0, sizeof(heap->dbcs_table) );
+    msdos_dbcs_table_update( &heap->dbcs_size );
 
     /*
      * Initialize InDos flag.
