@@ -36,3 +36,7 @@
 330 stub DPA_GROW
 46 stub IMAGELIST_ADD
 53 stub IMAGELIST_ADDICON
+
+
+10 pascal -ret16 WritePrivateProfileStruct(str str ptr word str) WritePrivateProfileStruct16
+11 pascal -ret16 GetPrivateProfileStruct(str str ptr word str) GetPrivateProfileStruct16

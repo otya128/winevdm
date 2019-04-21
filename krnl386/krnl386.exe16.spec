@@ -779,3 +779,5 @@
 @ cdecl -arch=win32 make_thunk_32(ptr str str long long long)
 @ cdecl -arch=win32 free_thunk_32(long)
 @ cdecl -arch=win32 get_resource_table(long str ptr)
+@ stdcall -arch=win32 WritePrivateProfileStruct16(str str ptr long str)
+@ stdcall -arch=win32 GetPrivateProfileStruct16(str str ptr long str)
