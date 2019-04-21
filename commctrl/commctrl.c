@@ -122,6 +122,14 @@ void TBBUTTON16_32(LPTBBUTTON btn32, LPTBBUTTON16 lpButtons)
     btn32->dwData = lpButtons->idsHelp;
     btn32->iString = 0;
 }
+void TBBUTTON32_16(LPTBBUTTON btn32, LPTBBUTTON16 lpButtons)
+{
+    lpButtons->iBitmap = btn32->iBitmap;
+    lpButtons->idCommand = btn32->idCommand;
+    lpButtons->fsState = btn32->fsState;
+    lpButtons->fsStyle = btn32->fsStyle;
+    lpButtons->idsHelp = btn32->dwData;
+}
 LRESULT WINAPI ToolbarWindowProc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     LRESULT result;
@@ -190,6 +198,22 @@ LRESULT WINAPI ToolbarWindowProc16(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
         }
         return result;
     }
+    case TB_INSERTBUTTONA:
+    {
+        TBBUTTON btn;
+        TBBUTTON16_32(&btn, (LPTBBUTTON16)MapSL(lParam));
+        result = CallWindowProcA(toolbar_window_class.lpfnWndProc, hwnd, msg, wParam, (LPARAM)&btn);
+        return result;
+    }
+    case TB_GETBUTTON:
+    {
+        TBBUTTON btn;
+        result = CallWindowProcA(toolbar_window_class.lpfnWndProc, hwnd, msg, wParam, (LPARAM)&btn);
+        TBBUTTON32_16(&btn, (LPTBBUTTON16)MapSL(lParam));
+        return result;
+    }
+    case TB_GETBUTTONTEXTA:
+        return CallWindowProcA(toolbar_window_class.lpfnWndProc, hwnd, msg, wParam, (LPARAM)MapSL(lParam));
     default:
         break;
     }
