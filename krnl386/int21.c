@@ -421,8 +421,9 @@ static WORD INT21_GetSystemCountryCode( void )
  * Fill 34-byte buffer with country information data using
  * default system locale.
  */
-static void INT21_FillCountryInformation( BYTE *buffer )
+static void INT21_FillCountryInformation( BYTE *dst, int size )
 {
+    BYTE buffer[0x22];
     /* 00 - WORD: date format
      *          00 = mm/dd/yy
      *          01 = dd/mm/yy
@@ -476,6 +477,7 @@ static void INT21_FillCountryInformation( BYTE *buffer )
 
     /* 24 - BYTE[10]: Reserved */
     memset( buffer + 24, 0, 10 );
+    memcpy( dst, buffer, size );
 }
 
 
@@ -1929,14 +1931,14 @@ static void INT21_ExtendedCountryInformation( CONTEXT *context )
 
     case 0x01: /* GET GENERAL INTERNATIONALIZATION INFO */
         TRACE( "Get general internationalization info\n" );
-        dataptr[0] = 0x01; /* Info ID */
+        dataptr[0] = AL_reg(context); /* Info ID */
         *(WORD*)(dataptr+1) = 38; /* Size of the following info */
         *(WORD*)(dataptr+3) = INT21_GetSystemCountryCode(); /* Country ID */
         *(WORD*)(dataptr+5) = GetOEMCP(); /* Code page */
         /* FIXME: fill buffer partially up to buffsize bytes*/
-        if (buffsize >= 0x29){
-            INT21_FillCountryInformation( dataptr + 7 );
-            SET_CX( context, 0x29 ); /* Size of returned info */
+        if (buffsize > 8){
+            INT21_FillCountryInformation( dataptr + 7, buffsize >= 0x29 ? 0x22 : buffsize - 0x7);
+            SET_CX( context, buffsize >= 0x29 ? 0x29 : buffsize); /* Size of returned info */
         }else{
             SET_CX( context, 0x07 ); /* Size of returned info */        
         }
@@ -4752,7 +4754,7 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
         {
             INT21_FillCountryInformation( CTX_SEG_OFF_TO_LIN(context,
                                                              context->SegDs,
-                                                             context->Edx) );
+                                                             context->Edx), 0x22 );
             SET_AX( context, INT21_GetSystemCountryCode() );
             SET_BX( context, INT21_GetSystemCountryCode() );
             RESET_CFLAG(context);
