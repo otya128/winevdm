@@ -558,3 +558,7 @@ HWND16 WINAPI CreateToolbar16(HWND16 hwnd, DWORD style, UINT16 wID, INT16 nBitma
         iNumButtons, 0, 0, 0, 0, sizeof(TBBUTTON16));
 }
 
+BOOL16 WINAPI MakeDragList16(HWND16 hLB)
+{
+    return MakeDragList(HWND_32(hLB));
+}

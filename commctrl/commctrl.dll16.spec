@@ -5,7 +5,7 @@
 336 stub DPA_DELETEPTR
 329 stub DPA_DESTROY
 334 stub DPA_INSERTPTR
-13 stub MAKEDRAGLIST
+13 pascal -ret16 MakeDragList(word) MakeDragList16
 15 stub DRAWINSERT
 335 stub DPA_SETPTR
 20 pascal -ret16 CreateToolbarEx(word long word word word word ptr word word word word word word) CreateToolbarEx16
