@@ -175,7 +175,7 @@ static void INT_GetRealModeContext( REALMODECALL *call, CONTEXT *context )
 /**********************************************************************
  *	    INT_SetRealModeContext
  */
-static void INT_SetRealModeContext( REALMODECALL *call, CONTEXT *context )
+static void INT_SetRealModeContext( REALMODECALL *call, CONTEXT *context, BOOL mod_csip_ssssp )
 {
     call->eax = context->Eax;
     call->ebx = context->Ebx;
@@ -185,14 +185,17 @@ static void INT_SetRealModeContext( REALMODECALL *call, CONTEXT *context )
     call->edi = context->Edi;
     call->ebp = context->Ebp;
     call->fl  = LOWORD(context->EFlags);
-    call->ip  = LOWORD(context->Eip);
-    call->sp  = LOWORD(context->Esp);
-    call->cs  = context->SegCs;
+    if (mod_csip_ssssp)
+    {
+        call->ip = LOWORD(context->Eip);
+        call->sp = LOWORD(context->Esp);
+        call->cs = context->SegCs;
+        call->ss = context->SegSs;
+    }
     call->ds  = context->SegDs;
     call->es  = context->SegEs;
     call->fs  = context->SegFs;
     call->gs  = context->SegGs;
-    call->ss  = context->SegSs;
 }
 
 /**********************************************************************
@@ -390,7 +393,7 @@ static void DPMI_CallRMCBProc( CONTEXT *context, RMCB *rmcb, WORD flag )
         UINT16 ss,es;
         DWORD esp,edi;
 
-        INT_SetRealModeContext(MapSL(MAKESEGPTR( rmcb->regs_sel, rmcb->regs_ofs )), context);
+        INT_SetRealModeContext(MapSL(MAKESEGPTR( rmcb->regs_sel, rmcb->regs_ofs )), context, TRUE);
         ss = alloc_pm_selector( context->SegSs, WINE_LDT_FLAGS_DATA );
         esp = context->Esp;
 
@@ -562,7 +565,7 @@ static void DOSVM_CallRMInt( CONTEXT *context )
            decide to move interrupts around for whatever reason... */
         DOSVM_CallBuiltinHandler( &realmode_ctx, LOWORD(rm_int)/4 );
     }
-    INT_SetRealModeContext( call, &realmode_ctx );
+    INT_SetRealModeContext( call, &realmode_ctx, FALSE );
 }
 
 
@@ -590,7 +593,7 @@ static void DOSVM_CallRMProc( CONTEXT *context, int iret )
     INT_GetRealModeContext(p, &context16);
     DPMI_CallRMProc( &context16, ((LPWORD)MapSL(MAKESEGPTR(context->SegSs, LOWORD(context->Esp))))+3,
                      CX_reg(context), iret );
-    INT_SetRealModeContext(p, &context16);
+    INT_SetRealModeContext(p, &context16, FALSE);
 }
 
 
@@ -1355,6 +1358,7 @@ void WINAPI DOSVM_Int31Handler( CONTEXT *context )
             TRACE( "allocate memory block (%u bytes)\n", size );
 
             ptr = DPMI_xalloc( size );
+            TRACE( "%p\n", ptr );
             if (!ptr)
             {
                 SET_AX( context, 0x8012 );  /* linear memory not available */
