@@ -424,6 +424,25 @@ static WORD INT21_GetSystemCountryCode( void )
 static void INT21_FillCountryInformation( BYTE *dst, int size )
 {
     BYTE buffer[0x22];
+    static DWORD casemap;
+    if (!casemap)
+    {
+        /*
+        in
+            AL: char (80h <= AL)
+        out
+            AL: upper case char (80h <= AL)
+        */
+        static char casemap_routine[] =
+        {
+            /* FIXME: Get from locale */
+            0xcb /* retf */
+        };
+        WORD seg;
+        LPVOID ptr = DOSMEM_AllocBlock(sizeof(casemap_routine), &seg);
+        memcpy(ptr, casemap_routine, sizeof(casemap_routine));
+        casemap = MAKESEGPTR(seg, 0);
+    }
     /* 00 - WORD: date format
      *          00 = mm/dd/yy
      *          01 = dd/mm/yy
@@ -469,7 +488,7 @@ static void INT21_FillCountryInformation( BYTE *dst, int size )
     buffer[17] = 1; /* FIXME: Get from locale */
 
     /* 18 - DWORD: Address of case map routine */
-    *(DWORD*)(buffer + 18) = 0; /* FIXME: ptr to case map routine */
+    *(DWORD*)(buffer + 18) = casemap;
 
     /* 22 - BYTE[2]: ASCIIZ data-list separator */
     buffer[22] = ','; /* FIXME: Get from locale */
