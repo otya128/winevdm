@@ -411,20 +411,43 @@ static BOOL INT21_ReadChar( BYTE *input, CONTEXT *waitctx )
  */
 static WORD INT21_GetSystemCountryCode( void )
 {
-    return GetSystemDefaultLangID();
+    LCID locale = LOCALE_USER_DEFAULT;
+    char LCdata[80];
+
+    GetLocaleInfoA(locale, LOCALE_ICOUNTRY, LCdata, sizeof(LCdata));
+    return atoi(LCdata);
 }
 
 
+#pragma pack(1)
+typedef struct {
+    UINT16 date_format;
+    char currency_symbol[5];
+    char thou_sep[2];
+    char dec_sep[2];
+    char date_sep[2];
+    char time_sep[2];
+    char currency_format;
+    char currency_dec_digits;
+    char time_format;
+    DWORD case_map;
+    char list_sep[2];
+    char reserved[10];
+} country_info_t;
+#pragma pack()
 /***********************************************************************
  *           INT21_FillCountryInformation
  *
  * Fill 34-byte buffer with country information data using
  * default system locale.
  */
-static void INT21_FillCountryInformation( BYTE *dst, int size )
+static int INT21_FillCountryInformation( BYTE *dst, int size )
 {
-    BYTE buffer[0x22];
+    BYTE buffer[0x22] = { 0 };
     static DWORD casemap;
+    LCID locale = LOCALE_USER_DEFAULT;
+    char LCdata[80];
+    country_info_t *ci = (country_info_t*)buffer;
     if (!casemap)
     {
         /*
@@ -443,57 +466,30 @@ static void INT21_FillCountryInformation( BYTE *dst, int size )
         memcpy(ptr, casemap_routine, sizeof(casemap_routine));
         casemap = MAKESEGPTR(seg, 0);
     }
-    /* 00 - WORD: date format
-     *          00 = mm/dd/yy
-     *          01 = dd/mm/yy
-     *          02 = yy/mm/dd
-     */
-    *(WORD*)(buffer + 0) = 0; /* FIXME: Get from locale */
 
-    /* 02 - BYTE[5]: ASCIIZ currency symbol string */
-    buffer[2] = '$'; /* FIXME: Get from locale */
-    buffer[3] = 0;
-
-    /* 07 - BYTE[2]: ASCIIZ thousands separator */
-    buffer[7] = 0; /* FIXME: Get from locale */
-    buffer[8] = 0;
-
-    /* 09 - BYTE[2]: ASCIIZ decimal separator */
-    buffer[9]  = '.'; /* FIXME: Get from locale */
-    buffer[10] = 0;
-
-    /* 11 - BYTE[2]: ASCIIZ date separator */
-    buffer[11] = '/'; /* FIXME: Get from locale */
-    buffer[12] = 0;
-
-    /* 13 - BYTE[2]: ASCIIZ time separator */
-    buffer[13] = ':'; /* FIXME: Get from locale */
-    buffer[14] = 0;
-
-    /* 15 - BYTE: Currency format
-     *          bit 2 = set if currency symbol replaces decimal point
-     *          bit 1 = number of spaces between value and currency symbol
-     *          bit 0 = 0 if currency symbol precedes value
-     *                  1 if currency symbol follows value
-     */
-    buffer[15] = 0; /* FIXME: Get from locale */
-
-    /* 16 - BYTE: Number of digits after decimal in currency */
-    buffer[16] = 0; /* FIXME: Get from locale */
-
-    /* 17 - BYTE: Time format
-     *          bit 0 = 0 if 12-hour clock
-     *                  1 if 24-hour clock
-     */
-    buffer[17] = 1; /* FIXME: Get from locale */
-
-    /* 18 - DWORD: Address of case map routine */
-    *(DWORD*)(buffer + 18) = casemap;
-
-    /* 22 - BYTE[2]: ASCIIZ data-list separator */
-    buffer[22] = ','; /* FIXME: Get from locale */
-    buffer[23] = 0;
-
+    GetLocaleInfoA(locale, LOCALE_ICURRDIGITS, LCdata, sizeof(LCdata));
+    ci->currency_dec_digits = atoi(LCdata);
+    GetLocaleInfoA(locale, LOCALE_ICURRENCY, LCdata, sizeof(LCdata));
+    ci->currency_format = *LCdata - '0';
+    GetLocaleInfoA(locale, LOCALE_IDATE, LCdata, sizeof(LCdata));
+    ci->date_format = *LCdata - '0';
+    GetLocaleInfoA(locale, LOCALE_SCURRENCY, LCdata, sizeof(LCdata));
+    memcpy(&ci->currency_symbol, LCdata, 4);
+    GetLocaleInfoA(locale, LOCALE_SDATE, LCdata, sizeof(LCdata));
+    *ci->date_sep = *LCdata;
+    GetLocaleInfoA(locale, LOCALE_SDECIMAL, LCdata, sizeof(LCdata));
+    *ci->dec_sep = *LCdata;
+    GetLocaleInfoA(locale, LOCALE_SLIST, LCdata, sizeof(LCdata));
+    *ci->list_sep = *LCdata;
+    GetLocaleInfoA(locale, LOCALE_STHOUSAND, LCdata, sizeof(LCdata));
+    *ci->thou_sep = *LCdata;
+    GetLocaleInfoA(locale, LOCALE_STIME, LCdata, sizeof(LCdata));
+    *ci->time_sep = *LCdata;
+    GetLocaleInfoA(locale, LOCALE_STIMEFORMAT, LCdata, sizeof(LCdata));
+    if (strchr(LCdata, 'H') != NULL) {
+        ci->time_format = 1;
+    }
+    ci->case_map = casemap;
     /* 24 - BYTE[10]: Reserved */
     memset( buffer + 24, 0, 10 );
     memcpy( dst, buffer, size );
