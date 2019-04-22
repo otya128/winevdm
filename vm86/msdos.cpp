@@ -885,6 +885,7 @@ extern "C"
     typedef BOOL(WINAPI *WOWCallback16Ex_t)(DWORD vpfn16, DWORD dwFlags,
         DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
     WOWCallback16Ex_t pWOWCallback16Ex;
+    static WORD tss[0x68 + 65536 / 8] = { 0 };
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
         HMODULE user32 = GetModuleHandleW(L"user32.dll");
@@ -1017,6 +1018,12 @@ extern "C"
         {
             m_cr[0] |= 1;//PROTECTED MODE
         }
+        /* task state segment */
+        m_task.flags = 9;
+        m_task.base = (UINT32)tss;
+        m_task.limit = sizeof(tss);
+        *(WORD*)((char*)tss + 0x66) = sizeof(tss) - 65536 / 8;
+        memset((char*)tss + sizeof(tss) - 65536 / 8, 0x00, 65536 / 8);
         return TRUE;
 	}
     DWORD mergeReg(DWORD a1, DWORD a2)
@@ -1344,6 +1351,7 @@ extern "C"
         }
 		__TRY
         {
+            m_task.base = (UINT32)tss - (UINT32)memory_base;
 			if (!initflag)
 				initflag = init_vm86(false);
 			REG32(EAX) = (DWORD)context->Eax;
