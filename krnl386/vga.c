@@ -28,6 +28,7 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "wincon.h"
+#include "winnls.h"
 #include "dosexe.h"
 #include "vga.h"
 #include "wine/debug.h"
@@ -1680,15 +1681,54 @@ static void VGA_Poll_Graphics(void)
   VGA_Unlock();
 }
 
+/* https://en.wikipedia.org/wiki/Code_page_897 */
+static WCHAR cp932_table[] =
+{
+    /* 00 */ 0,
+    /* 01 */ 0x2554,
+    /* 02 */ 0x2557,
+    /* 03 */ 0x255a,
+    /* 04 */ 0x255d,
+    /* 05 */ 0x2551,
+    /* 06 */ 0x2550,
+    /* 07 */ 0xffec,
+    /* 08 */ 0,
+    /* 09 */ 0xffee,
+    /* 0a */ 0,
+    /* 0b */ 0x303f,
+    /* 0c */ 0,
+    /* 0d */ 0,
+    /* 0e */ 0xffed,
+    /* 0f */ 0x263c,
+    /* 10 */ 0x256c,
+    /* 11 */ 0,
+    /* 12 */ 0x2195,
+    /* 13 */ 0,
+    /* 14 */ 0x2593,
+    /* 15 */ 0x2569,
+    /* 16 */ 0x2566,
+    /* 17 */ 0x2563,
+    /* 18 */ 0,
+    /* 19 */ 0x2560,
+    /* 1a */ 0x2591,
+    /* 1b */ 0x21b5,
+    /* 1c */ 0xffea,
+    /* 1d */ 0xffe8,
+    /* 1e */ 0xffeb,
+    /* 1f */ 0xffe9,
+};
 static void VGA_Poll_Text(void)
 {
-    char *dat, *old, *p_line;
+    unsigned char *dat, *old, *p_line;
     unsigned int X, Y;
     CHAR_INFO ch[256]; /* that should suffice for the largest text width */
+    WCHAR ch_char[256];
+    WORD ch_attr[256];
     COORD siz, off;
     SMALL_RECT dest;
     HANDLE con = VGA_AlphaConsole();
     BOOL linechanged = FALSE; /* video memory area differs from stored copy? */
+    UINT cp = GetConsoleCP();
 
     /* Synchronize cursor position. */
     off.X = vga_text_x;
@@ -1700,6 +1740,67 @@ static void VGA_Poll_Text(void)
     siz.X = vga_text_width; siz.Y = 1;
     off.X = 0; off.Y = 0;
 
+    if (cp == 932)
+    {
+        /* copy from virtual VGA frame buffer to console */
+        for (Y = 0; Y < vga_text_height; Y++)
+        {
+            COORD coord = { 0, Y };
+            DWORD written;
+            linechanged = memcmp(dat, old, vga_text_width * 2);
+            if (linechanged)
+            {
+                BOOL lead = FALSE;
+                int attr_x = 0;
+                /*TRACE("line %d changed\n", Y);*/
+                p_line = dat;
+                for (X = 0; X < vga_text_width; X++)
+                {
+                    char c[2];
+                    WCHAR wc;
+                    ch_char[attr_x] = *p_line++;
+                    if (!ch_char[attr_x])
+                        ch_char[attr_x] = ' ';
+                    ch_attr[X] = *p_line++;
+                    if (lead)
+                    {
+                        c[0] = *(p_line - 4);
+                        c[1] = *(p_line - 2);
+                        MultiByteToWideChar(cp, 0, c, 2, &wc, 1);
+                        ch_char[attr_x - 1] = wc;
+                        attr_x--;
+                        lead = FALSE;
+                    }
+                    else
+                    {
+                        if (!IsDBCSLeadByteEx(cp, ch_char[attr_x]))
+                        {
+                            c[0] = ch_char[attr_x];
+                            wc = c[0];
+                            MultiByteToWideChar(cp, 0, c, 1, &wc, 1);
+                            if (ARRAYSIZE(cp932_table) > wc)
+                            {
+                                wc = cp932_table[wc];
+                            }
+                            ch_char[attr_x] = wc;
+                        }
+                        else
+                        {
+                            lead = TRUE;
+                        }
+                    }
+                    attr_x++;
+                }
+                WriteConsoleOutputCharacterW(con, ch_char, attr_x, coord, &written);
+                WriteConsoleOutputAttribute(con, ch_attr, vga_text_width, coord, &written);
+                memcpy(old, dat, vga_text_width * 2);
+            }
+            /* advance to next text line */
+            dat += vga_text_width * 2;
+            old += vga_text_width * 2;
+        }
+        return;
+    }
     /* copy from virtual VGA frame buffer to console */
     for (Y=0; Y<vga_text_height; Y++) {
 	linechanged = memcmp(dat, old, vga_text_width*2);
