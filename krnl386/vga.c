@@ -1751,47 +1751,47 @@ static void VGA_Poll_Text(void)
             if (linechanged)
             {
                 BOOL lead = FALSE;
-                int attr_x = 0;
+                int char_x = 0;
                 /*TRACE("line %d changed\n", Y);*/
                 p_line = dat;
                 for (X = 0; X < vga_text_width; X++)
                 {
                     char c[2];
                     WCHAR wc;
-                    ch_char[attr_x] = *p_line++;
-                    if (!ch_char[attr_x])
-                        ch_char[attr_x] = ' ';
+                    ch_char[char_x] = *p_line++;
+                    if (!ch_char[char_x])
+                        ch_char[char_x] = ' ';
                     ch_attr[X] = *p_line++;
                     if (lead)
                     {
                         c[0] = *(p_line - 4);
                         c[1] = *(p_line - 2);
                         MultiByteToWideChar(cp, 0, c, 2, &wc, 1);
-                        ch_char[attr_x - 1] = wc;
-                        attr_x--;
+                        ch_char[char_x - 1] = wc;
+                        char_x--;
                         lead = FALSE;
                     }
                     else
                     {
-                        if (!IsDBCSLeadByteEx(cp, ch_char[attr_x]))
+                        if (!IsDBCSLeadByteEx(cp, ch_char[char_x]))
                         {
-                            c[0] = ch_char[attr_x];
+                            c[0] = ch_char[char_x];
                             wc = c[0];
                             MultiByteToWideChar(cp, 0, c, 1, &wc, 1);
                             if (ARRAYSIZE(cp932_table) > wc)
                             {
                                 wc = cp932_table[wc];
                             }
-                            ch_char[attr_x] = wc;
+                            ch_char[char_x] = wc;
                         }
                         else
                         {
                             lead = TRUE;
                         }
                     }
-                    attr_x++;
+                    char_x++;
                 }
-                WriteConsoleOutputCharacterW(con, ch_char, attr_x, coord, &written);
+                WriteConsoleOutputCharacterW(con, ch_char, char_x, coord, &written);
                 WriteConsoleOutputAttribute(con, ch_attr, vga_text_width, coord, &written);
                 memcpy(old, dat, vga_text_width * 2);
             }
