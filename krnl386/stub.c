@@ -174,7 +174,6 @@ void WINAPI wine_call_to_16_regs(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HAND
 void __wine_enter_vm86(CONTEXT *context)
 {
     func_wine_call_to_16_regs_vm86(context, NULL, NULL, __wine_call_from_16_regs, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret_p, get_debug_mode(), TRUE, DOSMEM_dosmem, wine_pm_interrupt_handler);
-    ERR("NOTIMPL:__wine_enter_vm86(%p)\n", context);
 }
 BOOL16 WINAPI IsDBCSLeadByte16(BYTE TestChar)
 {
