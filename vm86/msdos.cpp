@@ -1083,39 +1083,6 @@ extern "C"
 		return (context.Eax & 0xffff) | context.Edx << 16;
 	}
 	UINT old_eip = 0;
-	struct dasm_buffer
-	{
-		size_t index;
-		size_t current_size = 0;
-		const size_t size = 1000;
-		std::vector<char[1000]> buffer;
-		dasm_buffer(size_t cap) : buffer(cap), size(cap)
-		{
-
-		}
-		char *get_current()
-		{
-			char *buf = buffer[index];
-			buf[0] = '\0';
-			current_size++;
-			index = (index + 1) % size;
-			return buf;
-		}
-		void dump()
-		{
-			size_t base = current_size < size ? 0 : (index + size) % size;
-			for (int i = 0; i < current_size && i < size; i++)
-			{
-				fprintf(stderr, "%s", buffer[(base + i) % size]);
-			}
-		}
-	};
-	struct dasm_buffer dasm_buffer(8000);
-	//for debug
-	__declspec(dllexport) void dasm_buffer_dump()
-	{
-		dasm_buffer.dump();
-	}
     BOOL has_x86_exception_err(WORD num)
     {
         switch (num)
@@ -1335,19 +1302,7 @@ extern "C"
         pm_interrupt_handler pih
 		)
 	{
-        DWORD dasm_nest_sp_table[8] = { 0 };
-		bool dasm_buffering = false;
-        int dasm_nest = 0;
         DWORD old_frame16 = PtrToUlong(dynamic_getWOW32Reserved());
-		if (dasm == 2)
-		{
-			dasm_buffering = true;
-		}
-        if (dasm_buffering)
-        {
-            char *dbuf = dasm_buffer.get_current();
-            sprintf(dbuf, "vm86main\n");
-        }
 		__TRY
         {
             m_task.base = (UINT32)tss - (UINT32)memory_base;
@@ -1380,15 +1335,13 @@ extern "C"
 			m_IOP2 = 1;
 			m_eflags |= 0x3000;
 			DWORD ret_addr = 0;
-			//IOPL = 3;
 			if (cbArgs >= 2)
 			{
 				unsigned char *stack = (unsigned char*)i386_translate(SS, REG16(SP), 0);
 				ret_addr = *(DWORD*)stack;
 			}
             bool isVM86mode = false;
-			//dasm = true;
-			while (!m_halted) {
+            while (!m_halted) {
                 if (vm_inject_state.inject && m_IF)
                 {
                     vm_inject_call(ret_addr, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih);
@@ -1411,7 +1364,7 @@ extern "C"
                     {
                         int num = m_pc - (UINT)iret;
                         const char *name = NULL;
-                        //win16 handle int 2/4/6/7
+                        //win16 handles int 2/4/6/7
                         switch (num)
                         {
                         case 0:name = "#DE"; break;
@@ -1534,22 +1487,6 @@ extern "C"
                             context.SegCs = cs16;
                         }
                         int fret;
-                        if (dasm_buffering)
-                        {
-                            char *dbuf = dasm_buffer.get_current();
-
-                           // __declspec(dllexport) void vm_debug_get_entry_point(char *module, char *func, WORD *ordinal)
-                            typedef void(*vm_debug_get_entry_point_t)(char *module, char *func, WORD *ordinal);
-                            static vm_debug_get_entry_point_t vm_debug_get_entry_point;
-                            if (!vm_debug_get_entry_point)
-                            {
-                                vm_debug_get_entry_point = (vm_debug_get_entry_point_t)GetProcAddress(LoadLibraryA(KRNL386), "vm_debug_get_entry_point");
-                            }
-                            char module[100], func[100];
-                            WORD ordinal = 0;
-                            vm_debug_get_entry_point(module, func, &ordinal);
-                            sprintf(dbuf, "call built-in func %p %s.%d: %s\n", entry, module, ordinal, func);
-                        }
                         LPVOID old;
                         PCONTEXT pctx = NULL;
 #ifdef _MSC_VER
@@ -1762,10 +1699,17 @@ extern "C"
                 static DWORD old_cs;
                 static DWORD old_eip;
 
-                WORD k = !wine_ldt_copy.base[SELECTOROF(ADDR_TRACE)>> 3]  ? 0xdead : *(LPWORD)((LPBYTE)wine_ldt_copy.base[SELECTOROF(ADDR_TRACE) >> 3] + OFFSETOF(ADDR_TRACE));
+                WORD k = 0xdead;
+                __try
+                {
+                    k = !wine_ldt_copy.base[SELECTOROF(ADDR_TRACE) >> 3] ? 0xdead : *(LPWORD)((LPBYTE)wine_ldt_copy.base[SELECTOROF(ADDR_TRACE) >> 3] + OFFSETOF(ADDR_TRACE));
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                }
 #endif
 #ifdef SUPPORT_DISASSEMBLER
-				if (dasm
+                if (dasm
 #if defined(TEMP_DASM)
                     || dd
 #endif
@@ -1773,19 +1717,20 @@ extern "C"
                     || oldk != k
 #endif
                     ) {
+                    char *dbuf = NULL;
 #if defined(ADDR_TRACE)
                     if (oldk != k)
                     {
                         fprintf(stderr, "CHANGED=========\n%04x:%04x %04x\n", SREG(CS), m_eip, k);
                     }
 #endif
-					char buffer[256];
+                    char buffer[256];
 #if defined(HAS_I386)
-					UINT64 eip = m_eip;
+                    UINT64 eip = m_eip;
 #else
-					UINT64 eip = m_pc - SREG_BASE(CS);
+                    UINT64 eip = m_pc - SREG_BASE(CS);
 #endif
-					UINT8 *oprom = mem + SREG_BASE(CS) + eip;
+                    UINT8 *oprom = mem + SREG_BASE(CS) + eip;
 #if defined(ADDR_TRACE)
                     if (oldk != k)
                     {
@@ -1797,63 +1742,18 @@ extern "C"
                     }
                     oldk = k;
 #endif
-					char *dbuf = NULL;
-                    if (dasm_nest && dasm_nest < 8)
-                        if (dasm_nest_sp_table[dasm_nest - 1] <= SREG_BASE(SS) + REG16(SP))
-                        {
-                            dasm_nest--;
-                        }
-                    if (dasm_nest >= 8 && dasm_nest_sp_table[7] <= SREG_BASE(SS) + REG16(SP))
-                    {
-                        dasm_nest = 7;
-                    }
-					if (dasm_buffering)
-					{
-						dbuf = dasm_buffer.get_current();
-						dbuf += sprintf(dbuf, "%04x:%04x", SREG(CS), (unsigned)eip);
-					}
-					else
-					{
-                        char nest_max[] = { ' ', ' ', ' ' , ' ' , ' ' , ' ' , ' ' , '+' , '\0' };
-                        nest_max[dasm_nest > sizeof(nest_max) - 1 ? sizeof(nest_max) - 1 : dasm_nest] = 0;
-						fprintf(stderr, "%s%d %04x:%04x", nest_max, dasm_nest, SREG(CS), (unsigned)eip);
-						fflush(stderr);
-					}
-					int result;
+                    fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
+                    int result;
 #if defined(HAS_I386)
-					if (m_operand_size) {
+                    if (m_operand_size) {
                         result = CPU_DISASSEMBLE_CALL(x86_32);
-					}
-					else
+                    }
+                    else
 #endif
                         result = i386_dasm_one_ex(buffer, eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-                    if (!memcmp(buffer, "call", 4))
-                    {
-                        if (dasm_nest < 8)
-                            dasm_nest_sp_table[dasm_nest] = SREG_BASE(SS) + REG16(SP);
-                        dasm_nest++;
-                    }
                     int opsize = result & 0xFF;
-                    /*while (opsize--)
-                    {
-						if (dasm_buffering)
-							dbuf += sprintf(dbuf, "%02X", *oprom);
-						else
-	                        fprintf(stderr, "%02X", *oprom);
-                        oprom++;
-                    }
-                    if (dasm_buffering)
-                        dbuf += sprintf(dbuf, " ", *oprom);
-                    else
-                        fprintf(stderr, " ", *oprom);
-                    */
-					if (dasm_buffering)
-						dbuf += sprintf(dbuf, "\t%s\n", buffer);
-					else
-						fprintf(stderr, "\t%s\n", buffer);
+                    fprintf(stderr, "\t%s\n", buffer);
 #if !defined(TRACE_REGS)
-                    if (!dasm_buffering)
-                    {
                         if (SREG(FS) || SREG(GS))
                         {
                             fprintf(stderr,
@@ -1861,11 +1761,11 @@ extern "C"
 EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X,\
 ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X,\
 ES:%04X,CS:%04X,SS:%04X,DS:%04X,FS:%04x,GS:%04x,\
-IP:%04X,address:%08X,\
+IP:%04X,stack:%08X,\
 EFLAGS:%08X\
 \n",
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG32(EBP), REG32(ESI), REG32(EDI),
-SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags);
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, read_dword(SREG_BASE(SS) + REG32(ESP)), m_eflags);
                         }
                         else
                         {
@@ -1874,15 +1774,15 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflag
 EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X,\
 ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X,\
 ES:%04X,CS:%04X,SS:%04X,DS:%04X,\
-IP:%04X,address:%08X,\
+IP:%04X,stack:%08X,\
 EFLAGS:%08X\
 \n",
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG32(EBP), REG32(ESI), REG32(EDI),
-SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, m_pc, m_eflags);
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, read_dword(SREG_BASE(SS) + REG32(ESP)), m_eflags);
                         }
-                    }
 #endif
-				}
+                }
+				
 #endif
 #if defined(ADDR_TRACE)
                 old_cs = SREG(CS);
