@@ -89,7 +89,7 @@ HANDLE WINAPI ConvertToGlobalHandle(HANDLE hSrc)
         func = GetProcAddress(GetModuleHandleA("kernel32.dll"), "ConvertToGlobalHandle");
     if (!func)
     {
-        ERR("can't load kernel32!VerifyConsoleIoHandle\n");
+        ERR("can't load kernel32!ConvertToGlobalHandle\n");
     }
     return func(hSrc);
 }
@@ -98,25 +98,10 @@ DWORD CallTo16_TebSelector DECLSPEC_HIDDEN;
 SEGPTR CALL32_CBClient_RetAddr DECLSPEC_HIDDEN;
 SEGPTR CALL32_CBClientEx_RetAddr DECLSPEC_HIDDEN;
 WINE_DECLARE_DEBUG_CHANNEL(disasm);
-WINE_DECLARE_DEBUG_CHANNEL(disasmbuf);
-WINE_DECLARE_DEBUG_CHANNEL(disasmnobuf);
-/* symbols exported from relay16.s */
-//zatsu
 char *DOSMEM_dosmem;
 static int get_debug_mode()
 {
-    int disasm = TRACE_ON(disasm);
-    int disasm_buffer = TRACE_ON(disasmbuf);
-    int disasm_no_buffer = TRACE_ON(disasmnobuf);
-    if (!disasm)
-        return 0;
-    if (disasm_buffer && disasm_no_buffer)
-        return 1;
-    if (disasm_buffer)
-        return 2;
-    if (disasm_no_buffer)
-        return 1;
-    return 1;
+    return TRACE_ON(disasm);
 }
 DWORD wine_pm_interrupt_handler(WORD num, DWORD addr)
 {
