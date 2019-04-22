@@ -704,8 +704,6 @@ extern "C"
 
 		process = GetCurrentProcess();
 
-		SymInitialize(process, NULL, TRUE);
-
 		symbol = (SYMBOL_INFO *)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
 		symbol->MaxNameLen = 255;
 		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -888,6 +886,7 @@ extern "C"
     static WORD tss[0x68 + 65536 / 8] = { 0 };
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
+        SymInitialize(GetCurrentProcess(), NULL, TRUE);
         HMODULE user32 = GetModuleHandleW(L"user32.dll");
         MB_GetString = (LPCWSTR(WINAPI*)(int))GetProcAddress(user32, "MB_GetString");
         HMODULE user = LoadLibraryW(L"user.exe16");
