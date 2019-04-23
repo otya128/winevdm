@@ -853,11 +853,16 @@ extern "C"
         return FALSE;
 
     }
-	LONG NTAPI vm86_vectored_exception_handler(struct _EXCEPTION_POINTERS *ExceptionInfo)
-	{
-		capture_stack_trace();
-		return EXCEPTION_CONTINUE_SEARCH;
-	}
+    static BOOL is_error(PEXCEPTION_RECORD rec)
+    {
+        return rec->ExceptionCode == EXCEPTION_PROTECTED_MODE || rec->ExceptionCode == EXCEPTION_ACCESS_VIOLATION;
+    }
+    LONG NTAPI vm86_vectored_exception_handler(struct _EXCEPTION_POINTERS *ExceptionInfo)
+    {
+        if (is_error(ExceptionInfo->ExceptionRecord))
+            capture_stack_trace();
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
     typedef WORD(*get_native_wndproc_segment_t)();
     typedef DWORD(*call_native_wndproc_context_t)(CONTEXT *context);
     get_native_wndproc_segment_t get_native_wndproc_segment;
@@ -1870,7 +1875,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, read_dword(SREG_BASE(SS) + REG32(
             }
             return EXCEPTION_EXECUTE_HANDLER;
         }
-        if (rec->ExceptionCode != EXCEPTION_PROTECTED_MODE && rec->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
+        if (!is_error(rec))
             return EXCEPTION_CONTINUE_SEARCH;
         static void(*NE_DumpAllModules)();
         if (!NE_DumpAllModules)
