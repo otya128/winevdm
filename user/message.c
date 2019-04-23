@@ -4439,10 +4439,6 @@ BOOL WINAPI DllMain(
         separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE);
         ShellDDEInit(TRUE);
     }
-    if (fdwReason == DLL_THREAD_ATTACH)
-    {
-        InitNewThreadHook();
-    }
     if (fdwReason == DLL_PROCESS_DETACH)
     {
         ShellDDEInit(FALSE);

@@ -2385,7 +2385,12 @@ BOOL WINAPI DllEntryPoint( DWORD reason, HINSTANCE16 inst, WORD ds,
                            WORD heap, DWORD reserved1, WORD reserved2 )
 {
     if (reason != DLL_PROCESS_ATTACH) return TRUE;
-    if (USER_HeapSel) return TRUE;  /* already called */
+    if (USER_HeapSel)
+    {
+        void InitNewThreadHook();
+        InitNewThreadHook();
+        return TRUE;  /* already called */
+    }
 
     USER_HeapSel = ds;
     register_wow_handlers();
