@@ -1286,6 +1286,19 @@ extern "C"
         dd = a;
     }
 #endif
+    void raise_vm86_int(int vec)
+    {
+        /* raise EXCEPTION_VM86_INTx */
+        CONTEXT vcontext = {};
+        m_eip += 2;
+        save_context(&vcontext);
+        //dosvm.c exception_handler
+        CONTEXT *ppcontext = &vcontext;
+        ULONG exception_args[1 + sizeof(CONTEXT*) / sizeof(ULONG)] = { vec };
+        *(CONTEXT**)(&exception_args[1]) = ppcontext;
+        RaiseException(0x80000110 /* EXCEPTION_VM86_INTx */, 0, sizeof(exception_args) / sizeof(ULONG), (ULONG_PTR*)exception_args);
+        load_context(&vcontext);
+    }
 	void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
 		void(*from16_reg)(void),
 		LONG(*__wine_call_from_16)(void),
@@ -1657,9 +1670,12 @@ extern "C"
                     UINT8 vec;
                     if (*op == 0xCD)//INT imm8
                     {
-
                         vec = *(op + 1);
-
+                        if (V8086_MODE)
+                        {
+                            raise_vm86_int(vec);
+                            continue;
+                        }
                         CONTEXT context;
                         WORD ip = m_eip;
                         WORD cs = SREG(CS);
@@ -1676,8 +1692,8 @@ extern "C"
                         context.SegCs = cs2;
                         context.Eip = eip2;
                         load_context(&context);
-                        WORD a = POP16();
-                        WORD b = POP16();
+                        POP16();
+                        POP16();
                         m_eip += 2;
                         continue;
                     }

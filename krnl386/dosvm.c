@@ -567,7 +567,6 @@ static LONG WINAPI exception_handler(EXCEPTION_POINTERS *eptr)
   context = *(CONTEXT**)(&rec->ExceptionInformation[1]);
   switch(rec->ExceptionCode) {
   case EXCEPTION_VM86_INTx:
-    FIXME("EXCEPTION_VM86_INTx\n");
     TRACE_(relay)("Call DOS int 0x%02x ret=%04x:%04x\n"
                   " eax=%08x ebx=%08x ecx=%08x edx=%08x esi=%08x edi=%08x\n"
                   " ebp=%08x esp=%08x ds=%04x es=%04x fs=%04x gs=%04x flags=%08x\n",
@@ -593,12 +592,10 @@ static LONG WINAPI exception_handler(EXCEPTION_POINTERS *eptr)
     return EXCEPTION_CONTINUE_EXECUTION;
   
   case EXCEPTION_SINGLE_STEP:
-      FIXME("EXCEPTION_SINGLE_STEP\n");
       ret = DOSVM_EmulateInterruptRM( context, 1 );
     return ret ? EXCEPTION_CONTINUE_EXECUTION : EXCEPTION_EXECUTE_HANDLER;
   
   case EXCEPTION_BREAKPOINT:
-      FIXME("EXCEPTION_BREAKPOINT\n");
       ret = DOSVM_EmulateInterruptRM( context, 3 );
     return ret ? EXCEPTION_CONTINUE_EXECUTION : EXCEPTION_EXECUTE_HANDLER;
   
