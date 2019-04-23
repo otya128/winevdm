@@ -977,6 +977,11 @@ void VGA_SetPalette(PALETTEENTRY *pal, int start, int len)
     {
         ERR("out of range\n");
     }
+    if (!vga_palette)
+    {
+        ERR("vga_palette == NULL\n");
+        return NULL;
+    }
     memcpy(vga_palette + start, pal, len * sizeof(*pal));
 }
 
