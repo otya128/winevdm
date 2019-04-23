@@ -1747,6 +1747,31 @@ static WCHAR cp932_table[] =
     /* 1e */ 0xffeb,
     /* 1f */ 0xffe9,
 };
+static int detect_console(HANDLE con, int y, BOOL *is_raster_font)
+{
+    CHAR_INFO ch[2];
+    CHAR_INFO ch_read[2];
+    COORD siz, off;
+    SMALL_RECT dest;
+    ch[0].Char.UnicodeChar = 0x3042; /* HIRAGANA LETTER A */
+    ch[0].Attributes = COMMON_LVB_LEADING_BYTE;
+    ch[1].Char.UnicodeChar = 0x3042; /* HIRAGANA LETTER A */
+    ch[1].Attributes = COMMON_LVB_TRAILING_BYTE;
+    dest.Top = y;
+    dest.Bottom = y;
+    dest.Left = 0;
+    dest.Right = 2;
+    siz.X = 2;
+    siz.Y = 1;
+    off.X = 0;
+    off.Y = 0;
+    WriteConsoleOutputW(con, ch, siz, off, &dest);
+    ReadConsoleOutputW(con, ch_read, siz, off, &dest);
+    if (ch_read[1].Char.UnicodeChar == 0)
+    {
+        *is_raster_font = TRUE;
+    }
+}
 static void VGA_Poll_Text(void)
 {
     unsigned char *dat, *old, *p_line;
@@ -1772,6 +1797,8 @@ static void VGA_Poll_Text(void)
 
     if (cp == 932)
     {
+        static BOOL console_detected;
+        static BOOL is_raster_font;
         /* copy from virtual VGA frame buffer to console */
         for (Y = 0; Y < vga_text_height; Y++)
         {
@@ -1782,23 +1809,33 @@ static void VGA_Poll_Text(void)
             {
                 BOOL lead = FALSE;
                 int char_x = 0;
+                if (!console_detected)
+                {
+                    detect_console(con, Y, &is_raster_font);
+                    console_detected = TRUE;
+                }
                 /*TRACE("line %d changed\n", Y);*/
                 p_line = dat;
                 for (X = 0; X < vga_text_width; X++)
                 {
-                    char c[2];
+                    char c[3];
                     WCHAR wc;
-                    ch_char[char_x] = *p_line++;
+                    ch_char[char_x] = ch[X].Char.UnicodeChar = *p_line++;
                     if (!ch_char[char_x])
-                        ch_char[char_x] = ' ';
-                    ch_attr[X] = *p_line++;
+                        ch_char[char_x] = ch[X].Char.UnicodeChar = ' ';
+                    ch_attr[X] = ch[X].Attributes = *p_line++;
                     if (lead)
                     {
                         c[0] = *(p_line - 4);
                         c[1] = *(p_line - 2);
+                        c[2] = 0;
                         MultiByteToWideChar(cp, 0, c, 2, &wc, 1);
                         ch_char[char_x - 1] = wc;
                         char_x--;
+                        ch[X - 1].Char.UnicodeChar = wc;
+                        ch[X - 1].Attributes |= COMMON_LVB_LEADING_BYTE;
+                        ch[X].Attributes |= COMMON_LVB_TRAILING_BYTE;
+                        ch[X].Char.UnicodeChar = wc;
                         lead = FALSE;
                     }
                     else
@@ -1806,6 +1843,7 @@ static void VGA_Poll_Text(void)
                         if (!IsDBCSLeadByteEx(cp, ch_char[char_x]))
                         {
                             c[0] = ch_char[char_x];
+                            c[1] = 0;
                             wc = c[0];
                             MultiByteToWideChar(cp, 0, c, 1, &wc, 1);
                             if (ARRAYSIZE(cp932_table) > wc)
@@ -1813,6 +1851,7 @@ static void VGA_Poll_Text(void)
                                 wc = cp932_table[wc];
                             }
                             ch_char[char_x] = wc;
+                            ch[X].Char.UnicodeChar = wc;
                         }
                         else
                         {
@@ -1821,8 +1860,18 @@ static void VGA_Poll_Text(void)
                     }
                     char_x++;
                 }
-                WriteConsoleOutputCharacterW(con, ch_char, char_x, coord, &written);
-                WriteConsoleOutputAttribute(con, ch_attr, vga_text_width, coord, &written);
+                ch_char[char_x] = 0;
+                dest.Top = Y; dest.Bottom = Y;
+                if (is_raster_font)
+                {
+                    WriteConsoleOutputCharacterW(con, ch_char, char_x, coord, &written);
+                    WriteConsoleOutputAttribute(con, ch_attr, vga_text_width, coord, &written);
+                }
+                else
+                {
+                    dest.Left = 0; dest.Right = vga_text_width + 1;
+                    WriteConsoleOutputW(con, ch, siz, off, &dest);
+                }
                 memcpy(old, dat, vga_text_width * 2);
             }
             /* advance to next text line */
