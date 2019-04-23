@@ -911,9 +911,26 @@ static BOOL VGA_SetGraphicMode(WORD mode)
 BOOL VGA_SetMode(WORD mode)
 {
     const VGA_MODE *ModeInfo;
+    BIOSDATA *bda = DOSVM_BiosData();
     /* get info on VGA mode & set appropriately */
     VGA_CurrentMode = mode;
     ModeInfo = VGA_GetModeInfo(VGA_CurrentMode);
+    /*
+     *  xxxxxxx1 = 80x25 text
+     *  xxxxxxx0 = 40x25 text (default)
+     *  xxxxxx1x = graphics (320x200)
+     *  xxxxxx0x = text
+     *  xxxxx1xx = B/W
+     *  xxxxx0xx = color
+     *  xxxx1xxx = enable video signal
+     *  xxx1xxxx = 640x200 B/W graphics
+     *  xx1xxxxx = blink
+     */
+    bda->VideoReg1 = 0;
+    bda->VideoReg1 |= ModeInfo->ModeType == TEXT;
+    bda->VideoReg1 |= ModeInfo->Width == 320 ? 2 : 0;
+    bda->VideoReg1 |= ModeInfo->ModeType == TEXT || ModeInfo->Colors == 1 ? 4 : 0;
+    bda->VideoReg1 |= ModeInfo->Width == 640 ? 16 : 0;
 
     /* check if mode is supported */
     if (ModeInfo->Supported)
