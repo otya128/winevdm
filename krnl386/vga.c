@@ -661,8 +661,9 @@ static void CALLBACK set_timer_rate( ULONG_PTR arg )
     SetWaitableTimer( VGA_timer, &when, arg, VGA_Poll, 0, FALSE );
 }
 
-static DWORD CALLBACK VGA_TimerThread( void *dummy )
+static DWORD CALLBACK VGA_TimerThread( ULONG_PTR Rate )
 {
+    set_timer_rate(Rate);
     for (;;) SleepEx( INFINITE, TRUE );
     return 0;
 }
@@ -685,7 +686,10 @@ static void VGA_DeinstallTimer(void)
 
         CancelWaitableTimer( VGA_timer );
         CloseHandle( VGA_timer );
-        TerminateThread( VGA_timer_thread, 0 );
+        QueueUserAPC(ExitThread, VGA_timer_thread, 0);
+        LeaveCriticalSection(&vga_lock); /* !! */
+        WaitForSingleObject(VGA_timer_thread, INFINITE);
+        EnterCriticalSection(&vga_lock);
         CloseHandle( VGA_timer_thread );
         VGA_timer_thread = 0;
 
@@ -705,9 +709,13 @@ static void VGA_InstallTimer(unsigned Rate)
     if (!VGA_timer_thread)
     {
         VGA_timer = CreateWaitableTimerA( NULL, FALSE, NULL );
-        VGA_timer_thread = CreateThread( NULL, 0, VGA_TimerThread, NULL, 0, NULL );
+        /* Occasionally calling QueueUserAPC immediately after creating a thread will fail */
+        VGA_timer_thread = CreateThread( NULL, 0, VGA_TimerThread, (ULONG_PTR)Rate, 0, NULL );
     }
-    QueueUserAPC( set_timer_rate, VGA_timer_thread, (ULONG_PTR)Rate );
+    else
+    {
+        QueueUserAPC( set_timer_rate, VGA_timer_thread, (ULONG_PTR)Rate );
+    }
 }
 
 static BOOL VGA_IsTimerRunning(void)
