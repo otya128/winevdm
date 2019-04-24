@@ -845,7 +845,7 @@ LPVOID DOSVM_AllocDataUMB( DWORD size, WORD *segment, WORD *selector )
   LPVOID ptr = DOSVM_AllocUMB( size );
 
   if (segment)
-    *segment = (DWORD)ptr >> 4;
+    *segment = ((DWORD)ptr - (DWORD)DOSMEM_dosmem) >> 4;
 
   if (selector)
     *selector = alloc_selector( ptr, size, WINE_LDT_FLAGS_DATA );
