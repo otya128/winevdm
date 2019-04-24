@@ -602,8 +602,7 @@ static void StartPM( CONTEXT *context )
 {
     UINT16 cs, ss, ds, es;
     CONTEXT pm_ctx;
-    DWORD psp_ofs = (DWORD)(DOSVM_psp<<4);
-    PDB16 *psp = (PDB16 *)psp_ofs;
+    PDB16 *psp = (PDB16 *)PTR_REAL_TO_LIN(DOSVM_psp, 0);
     HANDLE16 env_seg = psp->environment;
     unsigned char selflags = WINE_LDT_FLAGS_DATA;
 

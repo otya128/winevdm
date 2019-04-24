@@ -224,8 +224,8 @@ static BOOL MZ_DoLoadImage( HANDLE hFile, LPCSTR filename, OverlayBlock *oblk, W
     alloc=0;
     oldpsp_seg = DOSVM_psp;
     if( !par_env_seg) {  
-        par_psp = (PDB16*)((DWORD)DOSVM_psp << 4);
-        oldenv = (LPSTR)((DWORD)par_psp->environment << 4);
+        par_psp = (PDB16*)PTR_REAL_TO_LIN(DOSVM_psp, 0);
+        oldenv = (LPSTR)((DWORD)PTR_REAL_TO_LIN(par_psp->environment, 0));
     }
   } else {
     /* allocate new DOS process, inheriting from Wine environment */
@@ -470,7 +470,7 @@ BOOL MZ_Exec( CONTEXT *context, LPCSTR filename, BYTE func, LPVOID paramblk )
     {
       LPSTR fullCmdLine;
       WORD fullCmdLength;
-      LPBYTE psp_start = (LPBYTE)((DWORD)DOSVM_psp << 4);
+      LPBYTE psp_start = (LPBYTE)PTR_REAL_TO_LIN(DOSVM_psp, 0);
       PDB16 *psp = (PDB16 *)psp_start;
       ExecBlock *blk = paramblk;
       LPBYTE cmdline = PTR_REAL_TO_LIN(SELECTOROF(blk->cmdline),OFFSETOF(blk->cmdline));
@@ -533,7 +533,7 @@ BOOL MZ_Exec( CONTEXT *context, LPCSTR filename, BYTE func, LPVOID paramblk )
   case 1: /* load but don't execute */
     {
       /* save current process's return SS:SP now */
-      LPBYTE psp_start = (LPBYTE)((DWORD)DOSVM_psp << 4);
+      LPBYTE psp_start = (LPBYTE)PTR_REAL_TO_LIN(DOSVM_psp, 0);
       PDB16 *psp = (PDB16 *)psp_start;
       psp->saveStack = (DWORD)MAKESEGPTR(context->SegSs, LOWORD(context->Esp));
     }
@@ -541,7 +541,7 @@ BOOL MZ_Exec( CONTEXT *context, LPCSTR filename, BYTE func, LPVOID paramblk )
     if (ret) {
       /* MZ_LoadImage created a new PSP and loaded new values into it,
        * let's work on the new values now */
-      LPBYTE psp_start = (LPBYTE)((DWORD)DOSVM_psp << 4);
+      LPBYTE psp_start = (LPBYTE)PTR_REAL_TO_LIN(DOSVM_psp, 0);
       ExecBlock *blk = paramblk;
       LPBYTE cmdline = PTR_REAL_TO_LIN(SELECTOROF(blk->cmdline),OFFSETOF(blk->cmdline));
 
@@ -702,8 +702,8 @@ void MZ_Exit( CONTEXT *context, BOOL cs_psp, WORD retval )
 {
   if (DOSVM_psp) {
     WORD psp_seg = cs_psp ? context->SegCs : DOSVM_psp;
-    LPBYTE psp_start = (LPBYTE)((DWORD)psp_seg << 4);
-    PDB16 *psp = (PDB16 *)(psp_start + (size_t)DOSMEM_dosmem);
+    LPBYTE psp_start = (LPBYTE)PTR_REAL_TO_LIN(psp_seg, 0);
+    PDB16 *psp = (PDB16 *)psp_start;
     WORD parpsp = psp->parentPSP; /* check for parent DOS process */
     if (parpsp) {
       /* retrieve parent's return address */
@@ -719,7 +719,7 @@ void MZ_Exit( CONTEXT *context, BOOL cs_psp, WORD retval )
       DOSMEM_FreeBlock( PTR_REAL_TO_LIN(DOSVM_psp,0) );
       /* switch to parent's PSP */
       DOSVM_psp = parpsp;
-      psp_start = (LPBYTE)((DWORD)parpsp << 4);
+      psp_start = (LPBYTE)((DWORD)PTR_REAL_TO_LIN(parpsp, 0));
       psp = (PDB16 *)psp_start;
       /* now return to parent */
       DOSVM_retval = retval;
