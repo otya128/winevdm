@@ -1190,13 +1190,16 @@ static void I386OP(enter16)()           // Opcode 0xc8
 	else
 		frameptr = REG32(ESP);
 
-	if(level > 0)
+	if(level > 1)
 	{
 		for(x=1;x<level-1;x++)
 		{
 			REG16(BP) -= 2;
 			PUSH16(READ16(REG16(BP)));
 		}
+	}
+	else if (level == 1)
+	{
 		PUSH16(frameptr);
 	}
 	REG16(BP) = frameptr;
