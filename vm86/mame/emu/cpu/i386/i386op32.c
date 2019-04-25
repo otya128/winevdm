@@ -1045,7 +1045,7 @@ static void I386OP(enter32)()           // Opcode 0xc8
 	}
 	else if (level == 1)
 	{
-		PUSH16(frameptr);
+		PUSH32(frameptr);
 	}
 	REG32(EBP) = frameptr;
 	if(!STACK_32BIT)
