@@ -517,7 +517,6 @@ void write_io_dword(offs_t addr, UINT32 val)
 
 static HMODULE krnl386 = 0;
 
-BOOL is_32bit_segment(int sreg);
 extern "C"
 {
 #define EXCEPTION_PROTECTED_MODE       0x80020100
@@ -787,7 +786,7 @@ extern "C"
                 }
                 else if ((entry.HighWord.Bytes.Flags1 & 0x0010) != 0)
                     continue;
-                fprintf(err, "%04X %p-%p\n", i << 3 | 7, base, limit);
+                fprintf(err, "%04X %p-%p\n", i << 3 | 7, (void*)base, (void*)limit);
                 __TRY
                 {
                     for (int j = 0; j < limit; )
@@ -1297,7 +1296,7 @@ extern "C"
         save_context(&vcontext);
         //dosvm.c exception_handler
         CONTEXT *ppcontext = &vcontext;
-        ULONG exception_args[1 + sizeof(CONTEXT*) / sizeof(ULONG)] = { vec };
+        ULONG exception_args[1 + sizeof(CONTEXT*) / sizeof(ULONG)] = { (ULONG)vec };
         *(CONTEXT**)(&exception_args[1]) = ppcontext;
         RaiseException(0x80000110 /* EXCEPTION_VM86_INTx */, 0, sizeof(exception_args) / sizeof(ULONG), (ULONG_PTR*)exception_args);
         load_context(&vcontext);
@@ -1851,7 +1850,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, read_dword(SREG_BASE(SS) + REG32(
         {
             SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 
-            fprintf(stderr, "%i: %s+0x%llx - 0x%p\n", frames - i - 1, symbol->Name, (ULONG64)stack[i] - symbol->Address, symbol->Address);
+            fprintf(stderr, "%i: %s+0x%llx - 0x%p\n", frames - i - 1, symbol->Name, (ULONG64)stack[i] - symbol->Address, (LPVOID)symbol->Address);
         }
 
         free(symbol);
@@ -1893,7 +1892,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, read_dword(SREG_BASE(SS) + REG32(
         if (rec->ExceptionCode == 0x80000100/*EXCEPTION_WINE_STUB*/)
         {
             char buffer[1024];
-            fprintf(stderr, "stub function %s %s\n", rec->ExceptionInformation[0], rec->ExceptionInformation[1]);
+            fprintf(stderr, "stub function %s %s\n", (const char*)rec->ExceptionInformation[0], (const char*)rec->ExceptionInformation[1]);
             LPCWSTR retry = MB_GetString(3);
             LPCWSTR cancel = MB_GetString(1);
             wsprintfA(buffer, "stub function %s %s\nPress %S to continue execution.\nPress %S to terminate this task.", rec->ExceptionInformation[0], rec->ExceptionInformation[1], retry, cancel);
@@ -2014,31 +2013,4 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflag
 
         return EXCEPTION_EXECUTE_HANDLER;
     }
-
-	void *wine_ldt_get_ptr(unsigned short sel, unsigned long offset);
-	void wine_ldt_get_entry(unsigned short sel, LDT_ENTRY *entry);
-}
-BOOL is_32bit_segment(int sreg)
-{
-	LDT_ENTRY entry;
-	wine_ldt_get_entry(SREG(sreg), &entry);
-	if (wine_ldt_get_flags(&entry) & WINE_LDT_FLAGS_32BIT)
-	{
-		return TRUE;
-	}
-	return FALSE;
-}
-UINT get_segment_descriptor_wine(int sreg)
-{
-	LDT_ENTRY entry;
-	wine_ldt_get_entry(SREG(sreg), &entry);
-	void *ptr = wine_ldt_get_ptr(SREG(sreg), 0);
-	return (UINT)ptr;
-}
-void load_segment_descriptor_wine(int sreg)
-{
-	LDT_ENTRY entry;
-	wine_ldt_get_entry(SREG(sreg), &entry);
-	void *ptr = wine_ldt_get_ptr(SREG(sreg), 0);
-	SREG_BASE(sreg) = (UINT)ptr;
 }
