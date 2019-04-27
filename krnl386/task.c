@@ -740,6 +740,7 @@ void TASK_ExitTask(void)
 
     /* Remove the task from the list to be sure we never switch back to it */
     TASK_UnlinkTask( pTask->hSelf );
+    SetEvent(kernel_get_thread_data()->idle_event);
     CloseHandle(kernel_get_thread_data()->idle_event);
 
     if (!nTaskCount || (nTaskCount == 1 && hFirstTask == initial_task))

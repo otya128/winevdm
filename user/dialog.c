@@ -30,6 +30,7 @@
 #include "user_private.h"
 #include "wine/debug.h"
 #include <Uxtheme.h>
+#include "../krnl386/kernel16_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(dialog);
 
@@ -686,6 +687,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, SEGPTR dlgTemplate16,
     DLGPROC proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
     paramd->dlgProc = dlgProc;
     ReleaseThunkLock(&count);
+    SetEvent(kernel_get_thread_data()->idle_event);
 	if (modal)
     {
         result = (HWND)DialogBoxIndirectParamA(
