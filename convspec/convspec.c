@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include <stdio.h>
 static char *optarg;
 static int optind;
 static int opterr;
