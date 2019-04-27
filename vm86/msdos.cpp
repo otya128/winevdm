@@ -1116,12 +1116,15 @@ extern "C"
 
             m_operand_size = m_sreg[CS].d;
 #if defined(HAS_I386)
-            if (m_operand_size) {
+            if (m_sreg[CS].d)
+            {
                 return CPU_DISASSEMBLE_CALL(x86_32) & 0xff;
             }
             else
 #endif
+            {
                 return i386_dasm_one_ex(buffer, m_eip, oprom, 16) & 0xff;//CPU_DISASSEMBLE_CALL(x86_16);
+            }
         }
         __EXCEPT_PAGE_FAULT
         {
@@ -1755,13 +1758,23 @@ extern "C"
                     fprintf(stderr, "%04x:%04x", SREG(CS), (unsigned)eip);
                     int result;
 #if defined(HAS_I386)
-                    if (m_operand_size) {
+                    if (m_sreg[CS].d)
+                    {
                         result = CPU_DISASSEMBLE_CALL(x86_32);
                     }
                     else
 #endif
+                    {
                         result = i386_dasm_one_ex(buffer, eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
+                    }
                     int opsize = result & 0xFF;
+#ifndef DUMP_INSTRMEM
+                    fprintf(stderr, "\t");
+                    for (int i = 0; i < opsize; i++)
+                    {
+                        fprintf(stderr, "%02x", oprom[i]);
+                    }
+#endif
                     fprintf(stderr, "\t%s\n", buffer);
 #if !defined(TRACE_REGS)
                         if (SREG(FS) || SREG(GS))
@@ -1914,38 +1927,6 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, read_dword(SREG_BASE(SS) + REG32(
         }
         CONTEXT context;
         save_context(&context);
-        char buffer[256] = {}, buffer2[256] = {};
-        if (!1) {
-            __TRY
-            {
-#if defined(HAS_I386)
-                UINT64 eip = m_eip;
-#else
-                UINT64 eip = m_pc - SREG_BASE(CS);
-#endif
-                UINT8 *oprom = mem + SREG_BASE(CS) + eip;
-#if defined(HAS_I386)
-                if (m_operand_size) {
-                    CPU_DISASSEMBLE_CALL(x86_32);
-                }
-                else
-#endif
-                    i386_dasm_one_ex(buffer, m_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-                oprom = mem + SREG_BASE(CS) + m_prev_eip;
-#if defined(HAS_I386)
-                if (m_operand_size) {
-                    CPU_DISASSEMBLE_CALL(x86_32);
-                }
-                else
-#endif
-                    i386_dasm_one_ex(buffer2, m_prev_eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
-            }
-            __EXCEPT_ALL
-            {
-
-            }
-            __ENDTRY
-        }
         char buf_pre[2048];
         buf_pre[0] = '\0';
 
@@ -1964,11 +1945,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, read_dword(SREG_BASE(SS) + REG32(
         }
         else
         {
-            buf_pre[0] = 'S';
-            buf_pre[1] = 'E';
-            buf_pre[2] = 'G';
-            buf_pre[3] = 'V';
-            buf_pre[4] = '\0';
+            snprintf(buf_pre, sizeof(buf_pre), "SEGV");
         }
         char buf[2048];
         sprintf(buf,
@@ -1979,9 +1956,9 @@ ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X\n\
 ES:%04X,CS:%04X,SS:%04X,DS:%04X,FS:%04X,GS:%04X\n\
 IP:%04X, address:%08X\n\
 EFLAGS:%08X\
-%s\n%s\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
+\n\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG16(BP), REG16(SI), REG16(DI),
-SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buffer2, buffer, buf_pre);
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buf_pre);
         dump_stack_trace();
         fprintf(stderr, "========================\n");
 #if 0
