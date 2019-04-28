@@ -1388,8 +1388,6 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
                 HANDLE hProcess = 0;
                 DWORD result = LoadModule_wine_implementation(name, &paramBlock32, &hProcess);/* win32 returns 33 */
                 GlobalUnlock16(params->hEnvironment);
-                UnMapLS(params->showCmd);
-                UnMapLS(params->cmdLine);
                 if (result < 32)
                     return result;
                 char cmdlineBuf[_countof("WINOLDAP.MOD -WoAWoW32XXXXXXXX")];
