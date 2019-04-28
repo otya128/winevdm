@@ -5061,7 +5061,7 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
                     context->SegEs = 0;
             }
             else
-                ok = DOSMEM_FreeBlock( PTR_REAL_TO_LIN(context->SegEs, 0) );
+                ok = context->SegEs && DOSMEM_FreeBlock( PTR_REAL_TO_LIN(context->SegEs, 0) );
 
             if (!ok)
             {
