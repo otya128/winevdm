@@ -763,7 +763,10 @@ int main( int argc, char *argv[] )
     }
     else
     {
-        if (!SearchPathA( NULL, argv[1], ".exe", sizeof(buffer), buffer, NULL ))
+        if (!SearchPathA( ".", argv[1], ".exe", sizeof(buffer), buffer, NULL ) &&
+            !SearchPathA( ".", argv[1], ".com", sizeof(buffer), buffer, NULL ) &&
+            !SearchPathA( NULL, argv[1], ".exe", sizeof(buffer), buffer, NULL ) &&
+            !SearchPathA( NULL, argv[1], ".com", sizeof(buffer), buffer, NULL ))
         {
             WINE_MESSAGE( "winevdm: unable to exec '%s': file not found\n", argv[1] );
             ExitProcess(1);
