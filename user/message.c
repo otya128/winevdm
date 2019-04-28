@@ -33,7 +33,8 @@
 #include "wine/debug.h"
 #include "message_table.h"
 #include "../krnl386/kernel16_private.h"
-/*
+#include "commctrl.h"
+ /*
 unknwon combobox message
 When EDIT received WM_KILLFOCUS, EDIT sent this message to COMBOBOX.
 */
@@ -92,6 +93,15 @@ typedef enum
     WINDOW_TYPE_MDICLIENT,
 } WINDOW_TYPE;
 LPBYTE window_type_table;
+#include <pshpack1.h>
+typedef struct
+{
+    UINT16 uNotification;
+    HWND16 hWnd;
+    POINT16 ptCursor;
+} DRAGLISTINFO16;
+#include <poppack.h>
+UINT drag_list_message;
 static void dump_hmenu(HMENU menu)
 {
     int count = GetMenuItemCount(menu);
@@ -1712,8 +1722,21 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = callback(hwnd32, msg, (WPARAM)HDC_32(wParam), lParam, result, arg);
         break;
     default:
-        ret = callback( hwnd32, msg, wParam, lParam, result, arg );
+    {
+        if (msg != WM_NULL && msg == drag_list_message)
+        {
+            DRAGLISTINFO16 *di = (DRAGLISTINFO16*)MapSL(lParam);
+            DRAGLISTINFO di32;
+            di32.hWnd = HWND_32(di->hWnd);
+            di32.uNotification = di->uNotification;
+            di32.ptCursor.x = di->ptCursor.x;
+            di32.ptCursor.y = di->ptCursor.y;
+            ret = callback(hwnd32, msg, wParam, (LPARAM)&di32, result, arg);
+            break;
+        }
+        ret = callback(hwnd32, msg, wParam, lParam, result, arg);
         break;
+    }
     }
     return ret;
 }
@@ -2458,6 +2481,21 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         break;
     }
     default:
+    {
+        if (msg != WM_NULL && msg == drag_list_message)
+        {
+            LPDRAGLISTINFO di = (LPDRAGLISTINFO)lParam;
+            DRAGLISTINFO16 di16;
+            di16.hWnd = HWND_16(di->hWnd);
+            di16.uNotification = di->uNotification;
+            di16.ptCursor.x = di->ptCursor.x;
+            di16.ptCursor.y = di->ptCursor.y;
+            lParam = MapLS(&di16);
+            ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
+            UnMapLS(lParam);
+            break;
+        }
+    }
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
     }
@@ -4436,6 +4474,7 @@ BOOL WINAPI DllMain(
         {
             aero_diasble = FALSE;
         }
+        drag_list_message = RegisterWindowMessage(DRAGLISTMSGSTRING);
         separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE);
         ShellDDEInit(TRUE);
     }
