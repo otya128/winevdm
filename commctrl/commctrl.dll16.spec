@@ -37,6 +37,7 @@
 46 stub IMAGELIST_ADD
 53 stub IMAGELIST_ADDICON
 
+9 pascal -ret16 CreateHeaderWindow(long str word word) CreateHeaderWindow16
 
 10 pascal -ret16 WritePrivateProfileStruct(str str ptr word str) WritePrivateProfileStruct16
 11 pascal -ret16 GetPrivateProfileStruct(str str ptr word str) GetPrivateProfileStruct16

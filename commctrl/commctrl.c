@@ -562,3 +562,9 @@ BOOL16 WINAPI MakeDragList16(HWND16 hLB)
 {
     return MakeDragList(HWND_32(hLB));
 }
+
+HWND16 WINAPI CreateHeaderWindow16(LONG a1, LPSTR a2, HWND16 a3, WORD a4)
+{
+    FIXME("(%08x,%s,%04x,%04x)\n", a1, debugstr_a(a2), a3, a4);
+    return 0;
+}
