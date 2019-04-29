@@ -481,10 +481,10 @@ static int relay_call_from_16_no_debug( void *entry_point, unsigned char *args16
 }
 
 
-__declspec(dllexport) void vm_debug_get_entry_point(char *module, char *func, WORD *ordinal)
+__declspec(dllexport) void vm_debug_get_entry_point(char *module, char *func, WORD *ordinal, STACK16FRAME *frame)
 {
-    STACK16FRAME *frame;
-    frame = CURRENT_STACK16;
+    if (!frame)
+        frame = CURRENT_STACK16;
     //FIXME:security
     const CALLFROM16 *call;
     call = get_entry_point(frame, module, func, ordinal);

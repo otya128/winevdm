@@ -684,6 +684,78 @@ extern "C"
 		auto process = GetCurrentProcess();
 		current_stack_frame_size = CaptureStackBackTrace(0, stack_frame_size, current_stack_frame, NULL);
 	}
+    static DWORD wow_calllback_retaddr;
+    static void print_16bit_stack(DWORD ret_addr, DWORD old_ebp)
+    {
+        auto ret_cs = SELECTOROF(ret_addr);
+        auto ret_ip = OFFSETOF(ret_addr);
+        typedef void(*vm_debug_get_entry_point_t)(char *module, char *func, WORD *ordinal, STACK16FRAME *frame);
+        static vm_debug_get_entry_point_t vm_debug_get_entry_point;
+        if (!vm_debug_get_entry_point)
+        {
+            vm_debug_get_entry_point = (vm_debug_get_entry_point_t)GetProcAddress(LoadLibraryA(KRNL386), "vm_debug_get_entry_point");
+        }
+        if (ret_addr == wow_calllback_retaddr)
+        {
+            fprintf(stderr, "(callback)cs:ip=%04x:%04x bp=%04x\n", ret_cs, ret_ip, old_ebp);
+        }
+        else
+        {
+            auto call_instr = read_byte((DWORD)wine_ldt_copy.base[ret_cs >> 3] + ret_ip - 5);
+            auto call_addr = read_dword((DWORD)wine_ldt_copy.base[ret_cs >> 3] + ret_ip - 4);
+            fprintf(stderr, "cs:ip=%04x:%04x bp=%04x", ret_cs, ret_ip, old_ebp);
+            if (call_instr == 0x9a) /* call far imm */
+            {
+                fprintf(stderr, "(call %04x:%04x)", SELECTOROF(call_addr), OFFSETOF(call_addr));
+                if (wine_ldt[SELECTOROF(call_addr) >> __AHSHIFT].HighWord.Bits.Default_Big)
+                {
+                    char module[100], func[100];
+                    WORD ordinal = 0;
+                    STACK16FRAME frame = { 0 };
+
+                    frame.module_cs = SELECTOROF(call_addr);
+                    frame.entry_ip = OFFSETOF(call_addr) + 7;
+                    vm_debug_get_entry_point(module, func, &ordinal, &frame);
+                    fprintf(stderr, "\n%s.%d: %s", module, ordinal, func);
+                }
+            }
+            else
+            {
+                fprintf(stderr, "                ");
+            }
+            fprintf(stderr, " args(");
+            for (int i = 0; i < 10; i++)
+            {
+                fprintf(stderr, i ? ",%04x" : "%04x", read_word(SREG_BASE(SS) + old_ebp + 6 + i * 2));
+            }
+            fprintf(stderr, ")\n");
+        }
+    }
+    void walk_16bit_stack(void)
+    {
+        if (V8086_MODE)
+            return;
+        __TRY
+        {
+            auto ebp = REG32(EBP);
+            print_16bit_stack(MAKESEGPTR(SREG(CS), m_eip), ebp);
+            while (true)
+            {
+                auto old_ebp = read_word(SREG_BASE(SS) + ebp);
+                auto ret_addr = read_dword(SREG_BASE(SS) + ebp + 2);
+                print_16bit_stack(ret_addr, old_ebp);
+                if (old_ebp == ebp)
+                {
+                    break;
+                }
+                ebp = old_ebp;
+            }
+        }
+        __EXCEPT_PAGE_FAULT
+        {
+        }
+        __ENDTRY
+    }
 	void dump_stack_trace(void)
 	{
 		unsigned int   i;
@@ -820,7 +892,7 @@ extern "C"
                             *framep = frame;
                             dynamic_setWOW32Reserved((LPVOID)(SREG(SS) << 16 | REG16(SP)));
                             {
-                                typedef void(*vm_debug_get_entry_point_t)(char *module, char *func, WORD *ordinal);
+                                typedef void(*vm_debug_get_entry_point_t)(char *module, char *func, WORD *ordinal, STACK16FRAME *frame);
                                 static vm_debug_get_entry_point_t vm_debug_get_entry_point;
                                 if (!vm_debug_get_entry_point)
                                 {
@@ -828,7 +900,7 @@ extern "C"
                                 }
                                 char module[100], func[100];
                                 WORD ordinal = 0;
-                                vm_debug_get_entry_point(module, func, &ordinal);
+                                vm_debug_get_entry_point(module, func, &ordinal, NULL);
                                 fprintf(err, "call built-in func %p %s.%d: %s\n", entry, module, ordinal, func);
                             }
                         }
@@ -1343,12 +1415,14 @@ extern "C"
 			m_IOP1 = 1;
 			m_IOP2 = 1;
 			m_eflags |= 0x3000;
-			DWORD ret_addr = 0;
-			if (cbArgs >= 2)
-			{
-				unsigned char *stack = (unsigned char*)i386_translate(SS, REG16(SP), 0);
-				ret_addr = *(DWORD*)stack;
-			}
+            DWORD ret_addr = 0;
+            if (cbArgs >= 2)
+            {
+                unsigned char *stack = (unsigned char*)i386_translate(SS, REG16(SP), 0);
+                ret_addr = *(DWORD*)stack;
+                if (!wow_calllback_retaddr)
+                    wow_calllback_retaddr = ret_addr;
+            }
             bool isVM86mode = false;
             while (!m_halted) {
                 if (vm_inject_state.inject && m_IF)
@@ -1767,7 +1841,7 @@ extern "C"
                         result = i386_dasm_one_ex(buffer, eip, oprom, 16);//CPU_DISASSEMBLE_CALL(x86_16);
                     }
                     int opsize = result & 0xFF;
-#ifndef DUMP_INSTRMEM
+#ifdef DUMP_INSTRMEM
                     fprintf(stderr, "\t");
                     for (int i = 0; i < opsize; i++)
                     {
@@ -1958,6 +2032,7 @@ EFLAGS:%08X\
 \n\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG16(BP), REG16(SI), REG16(DI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buf_pre);
+        walk_16bit_stack();
         dump_stack_trace();
         fprintf(stderr, "========================\n");
 #if 0
