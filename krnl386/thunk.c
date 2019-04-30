@@ -2343,6 +2343,17 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
     frame32 = pFrame->frame32;
     while (frame32 && frame32->frame16)
     {
+        if (SELECTOROF(frame32->frame16) != SELECTOROF(getWOW32Reserved()))
+        {
+            if (0)
+            {
+                if (lpbuf[8] != context->SegSs)
+                {
+                    FIXME("Switching stack segment with Throw() not supported; expect crash now\n");
+                }
+            }
+            break;
+        }
         if (OFFSETOF(frame32->frame16) < OFFSETOF(getWOW32Reserved()))
             break;  /* Something strange is going on */
         if (OFFSETOF(frame32->frame16) > lpbuf[2])
