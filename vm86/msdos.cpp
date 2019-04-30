@@ -739,7 +739,7 @@ extern "C"
         {
             auto ebp = REG32(EBP);
             print_16bit_stack(MAKESEGPTR(SREG(CS), m_eip), ebp);
-            while (true)
+            for (int i = 0; i < 60; i++)
             {
                 auto old_ebp = read_word(SREG_BASE(SS) + ebp);
                 auto ret_addr = read_dword(SREG_BASE(SS) + ebp + 2);
