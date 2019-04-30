@@ -1999,7 +1999,7 @@ static void i386_protected_mode_call(UINT16 seg, UINT32 off, int indirect, int o
 	CHANGE_PC(m_eip);
 }
 
-static void i386_protected_mode_retf(UINT8 count, UINT8 operand32)
+static void i386_protected_mode_retf(UINT16 count, UINT8 operand32)
 {
 	UINT32 newCS, newEIP;
 	I386_SREG desc;
