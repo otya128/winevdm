@@ -795,6 +795,27 @@ extern "C"
 		free(symbol);
 		current_stack_frame_size = 0;
 	}
+    void dump_all_modules(void)
+    {
+        DWORD cb;
+        HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
+        if (!K32EnumProcessModules(hProcess, nullptr, 0, &cb))
+            goto exit;
+        HMODULE *hModules = new HMODULE[cb / sizeof(HMODULE)];
+        if (!K32EnumProcessModules(hProcess, hModules, cb, &cb))
+            goto exit;
+        for (int i = 0; i < cb / sizeof(HMODULE); i++)
+        {
+            WCHAR name[MAX_PATH];
+            if (GetModuleFileNameExW(hProcess, hModules[i], name, ARRAY_SIZE(name)))
+            {
+                LPWSTR n = wcsrchr(name, L'\\');
+                fwprintf(stderr, L"%s\t%p\n", n ? n + 1 : name, hModules[i]);
+            }
+        }
+    exit:
+        CloseHandle(hProcess);
+    }
     BOOL WINAPI dump(DWORD CtrlType)
     {
         static BOOL dump;
@@ -2032,6 +2053,7 @@ EFLAGS:%08X\
 \n\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG16(BP), REG16(SI), REG16(DI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buf_pre);
+        dump_all_modules();
         walk_16bit_stack();
         dump_stack_trace();
         fprintf(stderr, "========================\n");
