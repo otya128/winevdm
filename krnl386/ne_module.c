@@ -1591,7 +1591,12 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
         NE_CallUserSignalProc( hModule, USIG16_DLL_UNLOAD, 0, 0, 0 );
 
         if (pModule->ne_flags & NE_FFLAGS_LIBMODULE)
-            MODULE_CallWEP( hModule );
+        {
+            if (pModule->ne_cseg != 0)
+            {
+                MODULE_CallWEP( hModule );
+            }
+        }
         else
         {
             call_wep = FALSE;  /* We are freeing a task -> no more WEPs */
