@@ -2355,16 +2355,16 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
     NE_NAMEINFO *name;
     int count = 0;
     LPVOID font;
-    if((mod = LoadLibrary16(filename)) >= 32)
+    if ((mod = LoadLibrary16(filename)) >= 32)
     {
         NE_TYPEINFO *type = get_resource_table(mod, RT_FONT, NULL);
-        if(!type)
+        if (!type)
         {
             FreeLibrary16(mod);
             return 0;
         }
         count = type->count;
-        name = (char *)type + sizeof(NE_TYPEINFO);
+        name = (NE_NAMEINFO*)(type + 1);
     }
     else
     {
@@ -2377,16 +2377,16 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
         mod = 0;
     }
     char *dst = HeapAlloc(GetProcessHeap(), 0, 65536);
+    HGLOBAL16 mem = 0;
     __TRY
     {
-        HGLOBAL16 mem = 0;
         for(int num = 0; num < count; num++)
         {
             WINFNT *fnt;
             int size;
             if(mod)
             {
-                if(mem)
+                if (mem)
                     FreeResource16(mem);
                 HRSRC16 res = FindResource16(mod, name->id, 8);
                 mem = LoadResource16(mod, res);
@@ -2399,7 +2399,17 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
 
             fnt = font;
 
-            if((size < 117) || (fnt->dfVersion != 0x100) || (fnt->fi.dfType & 1))
+            if (fnt->dfVersion != 0x100)
+            {
+                int fnum;
+                if (AddFontMemResourceEx(font, fnt->dfSize, 0, &fnum))
+                {
+                    TRACE("Added %d fonts\n", fnum);
+                    ret += fnum;
+                }
+                continue;
+            }
+            if((size < 117) || (fnt->fi.dfType & 1))
                 continue;
 
             memcpy(dst, font, 118);
@@ -2447,9 +2457,11 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
             fnt->fi.dfFace = hdrsize + nbitsize;
             fnt->dfSize = fnt->fi.dfFace + namelen + 1;
             int fnum;
-            AddFontMemResourceEx(dst, fnt->dfSize, 0, &fnum);
-            TRACE("Added %d fonts\n", fnum);
-            ret += fnum;
+            if (AddFontMemResourceEx(dst, fnt->dfSize, 0, &fnum))
+            {
+                TRACE("Added %d fonts\n", fnum);
+                ret += fnum;
+            }
         }
     }
     __EXCEPT_ALL
@@ -2458,7 +2470,11 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
     }
     __ENDTRY
     if(mod)
+    {
+        if (mem)
+            FreeResource16(mem);
         FreeLibrary16(mod);
+    }
     else
     {
         UnmapViewOfFile(font);
