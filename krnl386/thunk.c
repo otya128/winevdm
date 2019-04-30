@@ -2347,10 +2347,7 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
         {
             if (0)
             {
-                if (lpbuf[8] != context->SegSs)
-                {
-                    FIXME("Switching stack segment with Throw() not supported; expect crash now\n");
-                }
+                FIXME("Switching stack segment with Throw() not supported; expect crash now\n");
             }
             break;
         }
