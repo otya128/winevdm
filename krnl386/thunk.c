@@ -2363,8 +2363,12 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
     context->Edi    = lpbuf[5];
     context->SegDs  = lpbuf[6];
     context->Esp += 0x0c;
-    if (lpbuf[8] != context->SegSs)
-        ERR("Switching stack segment with Throw() not supported; expect crash now\n" );
+    if (0)
+    {
+        if (lpbuf[8] != context->SegSs)
+            ERR("Switching stack segment with Throw() not supported; expect crash now\n");
+    }
+    context->SegSs = lpbuf[8];
     old_filter = SetUnhandledExceptionFilter(Throw16ExceptionFilter);
     v = AddVectoredExceptionHandler(0, Throw16VectoredExceptionHandler);
 #if defined(_MSC_VER)
