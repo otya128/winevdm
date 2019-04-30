@@ -938,19 +938,34 @@ HRESULT WINAPI CoCreateGuid16(GUID *pguid)
  *           CoCreateInstance [COMPOBJ.13]
  */
 HRESULT WINAPI CoCreateInstance16(
-	REFCLSID rclsid,
+	/* REFCLSID */SEGPTR srclsid,
 	SEGPTR pUnkOuter,
 	DWORD dwClsContext,
-	REFIID iid,
-	SEGPTR *ppv)
+	/* REFIID */SEGPTR siid,
+	/* SEGPTR* */SEGPTR sppv)
 {
   LPVOID pv;
   HRESULT result;
+  REFCLSID rclsid = (REFCLSID)MapSL(srclsid);
+  REFIID iid = (REFIID)MapSL(siid);
+  SEGPTR *ppv = (SEGPTR*)MapSL(sppv);
   TRACE("(%s, %p, %x, %s, %p)\n",
 	debugstr_guid(rclsid), pUnkOuter, dwClsContext, debugstr_guid(iid),
 	ppv
   );
   result = CoCreateInstance(rclsid, (IUnknown*)iface16_32(&IID_IUnknown, pUnkOuter), dwClsContext, iid, &pv);
+  if (result == REGDB_E_CLASSNOTREG)
+  {
+      SEGPTR cf;
+      result = CoGetClassObject16(srclsid, dwClsContext, NULL, MapLS(&IID_IClassFactory), MapLS(&cf));
+      if (SUCCEEDED(result))
+      {
+          result = IClassFactory16_CreateInstance(cf, pUnkOuter, siid, sppv);
+          IClassFactory16_Release(cf);
+          return result;
+      }
+      return hresult32_16(result);
+  }
   *ppv = iface32_16(iid, pv);
   return hresult32_16(result);
 }

@@ -10,7 +10,7 @@
 10 stub COLOADLIBRARY
 11 stub COFREELIBRARY
 12 stub COFREEALLLIBRARIES
-13 pascal CoCreateInstance(ptr segptr long ptr ptr) CoCreateInstance16
+13 pascal CoCreateInstance(segptr segptr long segptr segptr) CoCreateInstance16
 14 pascal StringFromIID(ptr ptr) StringFromCLSID16
 15 pascal CoDisconnectObject(segptr long) CoDisconnectObject16
 16 stub CORELEASEMARSHALDATA
