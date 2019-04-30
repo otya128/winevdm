@@ -1035,16 +1035,13 @@ static void I386OP(enter32)()           // Opcode 0xc8
 	else
 		frameptr = REG32(ESP);
 
-	if(level > 1)
+	if(level > 0)
 	{
 		for(x=1;x<level-1;x++)
 		{
 			REG32(EBP) -= 4;
 			PUSH32(READ32(REG32(EBP)));
 		}
-	}
-	else if (level == 1)
-	{
 		PUSH32(frameptr);
 	}
 	REG32(EBP) = frameptr;
