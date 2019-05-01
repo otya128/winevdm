@@ -116,7 +116,7 @@
 112 pascal -ret16 GlobalUnWire(word) GlobalUnWire16
 113 equate __AHSHIFT 3
 114 equate __AHINCR 8
-115 pascal -ret16 OutputDebugString(str) OutputDebugString16
+115 pascal -register OutputDebugString(str) OutputDebugString16
 116 stub InitLib
 117 pascal -ret16 OldYield() OldYield16
 118 pascal -ret16 GetTaskQueueDS() GetTaskQueueDS16

@@ -499,7 +499,7 @@ INT16 WINAPI lstrlen16( LPCSTR str )
 /***********************************************************************
  *           OutputDebugString   (KERNEL.115)
  */
-void WINAPI OutputDebugString16( LPCSTR str )
+void WINAPI OutputDebugString16( LPCSTR str, CONTEXT *ctx )
 {
     OutputDebugStringA( str );
 }
