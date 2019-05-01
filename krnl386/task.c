@@ -1753,6 +1753,29 @@ DWORD WINAPI GetAppCompatFlags16( HTASK16 hTask )
 }
 
 
+const char *env_var_limitation[] =
+{
+    "", "COMSPEC", "TEMP", "TMP",
+};
+BOOL env_var_limit(const char *v)
+{
+    static BOOL init;
+    int i;
+    static BOOL limit;
+    if (!init)
+    {
+        limit = krnl386_get_config_int("otvdm", "EnvironmentVariableLimitation", TRUE);
+    }
+    if (!limit)
+        return TRUE;
+    for (i = 0; i < ARRAY_SIZE(env_var_limitation); i++)
+    {
+        SIZE_T len = strchr(v, '=') ? strchr(v, '=') - v : strlen(v);
+        if (strlen(env_var_limitation[i]) == len && !memicmp(v, env_var_limitation[i], len))
+            return TRUE;
+    }
+    return FALSE;
+}
 /***********************************************************************
  *           GetDOSEnvironment     (KERNEL.131)
  *
@@ -1774,21 +1797,39 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
 
     if (!handle)
     {
-        DWORD size;
+        DWORD size = 0;
         LPSTR p, env;
 
         p = env = GetEnvironmentStringsA();
-        while (*p) p += strlen(p) + 1;
-        p++;  /* skip last null */
-        size = (p - env) + sizeof(WORD) + sizeof(ENV_program_name);
+        while (*p)
+        {
+            if (env_var_limit(p))
+            {
+                size += strlen(p) + 1;
+            }
+            p += strlen(p) + 1;
+        }
+        size++;  /* skip last null */
+        size += sizeof(WORD) + sizeof(ENV_program_name);
         handle = GlobalAlloc16( GMEM_FIXED, size );
         if (handle)
         {
             WORD one = 1;
             LPSTR env16 = GlobalLock16( handle );
-            memcpy( env16, env, p - env );
-            memcpy( env16 + (p - env), &one, sizeof(one));
-            memcpy( env16 + (p - env) + sizeof(WORD), ENV_program_name, sizeof(ENV_program_name));
+            LPSTR env16p = env16;
+            p = env;
+            while (*p)
+            {
+                if (env_var_limit(p))
+                {
+                    memcpy(env16p, p, strlen(p) + 1);
+                    env16p += strlen(p) + 1;
+                }
+                p += strlen(p) + 1;
+            }
+            memcpy( env16p, &one, sizeof(one));
+            env16p += sizeof(one);
+            memcpy( env16p, ENV_program_name, sizeof(ENV_program_name));
             GlobalUnlock16( handle );
         }
         FreeEnvironmentStringsA( env );
