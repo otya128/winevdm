@@ -83,6 +83,7 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, B
     LPWINHELP lpwh;
     HGLOBAL16 hwh;
     int size, dsize, nlen;
+    DWORD mutex_count;
     *success_exec = FALSE;
 
     if (!WM_WINHELP) {
@@ -98,10 +99,13 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, B
             *success_exec = TRUE;
             return TRUE;
         }
+        ReleaseThunkLock(&mutex_count);
         if (WinExec16("winhelp.exe -x", SW_SHOWNORMAL) < 32) {
+            RestoreThunkLock(mutex_count);
             ERR("can't start winhelp.exe -x ?\n");
             return FALSE;
         }
+        RestoreThunkLock(mutex_count);
         //sleep 100ms~2000ms...
         for (int i = 0; i < 20; i++)
         {
@@ -169,7 +173,9 @@ wine_WinHelp16A(HWND16 hWnd, LPCSTR lpszHelp, UINT uCommand, DWORD_PTR dwData, B
         lpwh->ofsData = 0;
     }
     GlobalUnlock16(hwh);
+    ReleaseThunkLock(&mutex_count);
     LRESULT result = SendMessageA(hDest, WM_WINHELP, (WPARAM)hWnd, (LPARAM)hwh);
+    RestoreThunkLock(mutex_count);
     if (!result)
     {
         //failure
@@ -210,6 +216,7 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
     char*               pathend;
     WINEHELP*           lpwh;
     LRESULT             ret;
+    DWORD mutex_count;
 
     hDest = FindWindowA("MS_WINHELP", NULL);
     *success_exec = FALSE;
@@ -220,11 +227,14 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
             *success_exec = TRUE;
             return TRUE;
         }
+        ReleaseThunkLock(&mutex_count);
         if (WinExec16("winhlp32.exe -x", SW_SHOWNORMAL) < 32)
         {
+            RestoreThunkLock(mutex_count);
             ERR("can't start winhlp32.exe -x ?\n");
             return FALSE;
         }
+        RestoreThunkLock(mutex_count);
         //sleep 100ms~2000ms...
         for (int i = 0; i < 20; i++)
         {
@@ -346,7 +356,9 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
         lpwh->size, lpwh->command, lpwh->data,
         lpwh->ofsFilename ? (LPSTR)lpwh + lpwh->ofsFilename : "");
 
+    ReleaseThunkLock(&mutex_count);
     ret = SendMessageA(hDest, WM_COPYDATA, (WPARAM)hWnd, (LPARAM)&cds);
+    RestoreThunkLock(mutex_count);
     HeapFree(GetProcessHeap(), 0, lpwh);
     return ret;
 }

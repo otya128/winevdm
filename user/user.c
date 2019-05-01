@@ -1244,10 +1244,6 @@ BOOL16 WINAPI WinHelp16( HWND16 hWnd, LPCSTR lpHelpFile, UINT16 wCommand,
 {
     BOOL ret;
     DWORD mutex_count;
-
-    /* We might call WinExec() */
-    ReleaseThunkLock(&mutex_count);
-
     BOOL success_exec = FALSE;
     //trying to 16bit WINHELP.EXE
     ret = wine_WinHelp16A(hWnd, lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
@@ -1255,19 +1251,24 @@ BOOL16 WINAPI WinHelp16( HWND16 hWnd, LPCSTR lpHelpFile, UINT16 wCommand,
     {
         if (!is_builtin_winhlp32_stub())
         {
+            /* FIXME: some programs expect WinHelp not to yield. (wCommand=HELP_QUIT) */
+            ReleaseThunkLock(&mutex_count);
             ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData));
+            RestoreThunkLock(mutex_count);
         }
         else
         {
             ret = wine_WinHelp32A(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
             if (!success_exec)
             {
+                /* FIXME: some programs expect WinHelp not to yield. (wCommand=HELP_QUIT) */
+                ReleaseThunkLock(&mutex_count);
                 ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData));
+                RestoreThunkLock(mutex_count);
             }
         }
     }
 
-    RestoreThunkLock(mutex_count);
     return ret;
 }
 
