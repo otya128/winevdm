@@ -1254,14 +1254,16 @@ extern "C"
                     dosmem_0040H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)193);
                     (void(*)(void))GetProcAddress(krnl386, "DOSVM_start_bios_timer")();
                 }
-                if (strstr(buffer, "es,")) // TODO: LES?
-                {
-                    set_flags(flags);
-                    m_sreg[ES].selector = dosmem_0040H;
-                    i386_load_segment_descriptor(ES);
-                    i386_jmp_far(cs, ip + len);
-                    return;
-                }
+                /* allocate segment 40h */
+                LPLDT_ENTRY entry = wine_ldt + (dosmem_0040H >> __AHSHIFT);
+                wine_ldt[0x40 >> __AHSHIFT] = *entry;
+                wine_ldt_copy.base[0x40 >> __AHSHIFT] = wine_ldt_get_base(entry);
+                wine_ldt_copy.limit[0x40 >> __AHSHIFT] = wine_ldt_get_limit(entry);
+                wine_ldt_copy.flags[0x40 >> __AHSHIFT] = (entry->HighWord.Bits.Type |
+                    (entry->HighWord.Bits.Default_Big ? WINE_LDT_FLAGS_32BIT : 0) |
+                    (wine_ldt_copy.flags[0x40 >> __AHSHIFT] & WINE_LDT_FLAGS_ALLOCATED));
+                i386_jmp_far(cs, ip);
+                return;
             }
             HMODULE toolhelp = GetModuleHandleA("toolhelp.dll16");
             if (toolhelp)
