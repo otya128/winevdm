@@ -737,6 +737,7 @@ void TASK_ExitTask(void)
     /* Perform USER cleanup */
 
     TASK_CallTaskSignalProc( USIG16_TERMINATION, pTask->hSelf );
+    NE_CallUserSignalProc(pTask->hSelf, USIG16_TERMINATION, 0, 0, 0);
 
     /* Remove the task from the list to be sure we never switch back to it */
     TASK_UnlinkTask( pTask->hSelf );

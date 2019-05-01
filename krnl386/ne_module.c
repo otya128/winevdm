@@ -1600,7 +1600,6 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
         else
         {
             call_wep = FALSE;  /* We are freeing a task -> no more WEPs */
-            NE_CallUserSignalProc( hModule, USIG16_TERMINATION, 0, 0, 0 );
         }
     }
 
