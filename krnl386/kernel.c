@@ -1108,3 +1108,38 @@ void WINAPIV _DebugOutput( WORD flags, LPCSTR spec, VA_LIST16 valist )
     /* Output */
     FIXME("%s %04x %s\n", caller, flags, debugstr_a(spec) );
 }
+
+
+static LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
+{
+    LPVOID ret;
+
+    if (index < TLS_MINIMUM_AVAILABLE)
+    {
+        ret = teb->TlsSlots[index];
+    }
+    else
+    {
+        index -= TLS_MINIMUM_AVAILABLE;
+        if (index >= 8 * 32 /* 8 * sizeof(teb->Peb->TlsExpansionBitmapBits) */)
+        {
+            return NULL;
+        }
+        if (!teb->TlsExpansionSlots) ret = NULL;
+        else ret = ((PVOID*)teb->TlsExpansionSlots)[index];
+    }
+    return ret;
+}
+
+/***********************************************************************
+ *           TaskGetCSIP16                    (TOOLHELP.82)
+ */
+DWORD WINAPI TaskGetCSIP16(HTASK16 htask)
+{
+    TDB *tdb = (TDB*)GlobalLock16(htask);
+    if (GetCurrentTask() == htask)
+        return 0;
+    STACK16FRAME *frm = ((STACK16FRAME*)MapSL(PtrToUlong(TebTlsGetValue(tdb->teb, WOW32ReservedTls))));
+    return MAKESEGPTR(frm->module_cs, frm->callfrom_ip);
+    /* return MAKESEGPTR(frm->cs, frm->ip); */
+}

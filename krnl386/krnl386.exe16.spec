@@ -781,3 +781,4 @@
 @ cdecl -arch=win32 get_resource_table(long str ptr)
 @ stdcall -arch=win32 WritePrivateProfileStruct16(str str ptr long str)
 @ stdcall -arch=win32 GetPrivateProfileStruct16(str str ptr long str)
+@ stdcall -arch=win32 TaskGetCSIP16(long)
