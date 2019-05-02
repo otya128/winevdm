@@ -1132,6 +1132,20 @@ static LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
 }
 
 /***********************************************************************
+ *           TaskSetCSIP16                    (TOOLHELP.81)
+ */
+BOOL WINAPI TaskSetCSIP16(HTASK16 htask, WORD cs, WORD ip)
+{
+    TDB *tdb = (TDB*)GlobalLock16(htask);
+    if (GetCurrentTask() == htask)
+        return FALSE;
+    STACK16FRAME *frm = ((STACK16FRAME*)MapSL(PtrToUlong(TebTlsGetValue(tdb->teb, WOW32ReservedTls))));
+    frm->cs = cs;
+    frm->ip = ip;
+    return TRUE;
+}
+
+/***********************************************************************
  *           TaskGetCSIP16                    (TOOLHELP.82)
  */
 DWORD WINAPI TaskGetCSIP16(HTASK16 htask)
@@ -1140,6 +1154,18 @@ DWORD WINAPI TaskGetCSIP16(HTASK16 htask)
     if (GetCurrentTask() == htask)
         return 0;
     STACK16FRAME *frm = ((STACK16FRAME*)MapSL(PtrToUlong(TebTlsGetValue(tdb->teb, WOW32ReservedTls))));
-    return MAKESEGPTR(frm->module_cs, frm->callfrom_ip);
-    /* return MAKESEGPTR(frm->cs, frm->ip); */
+    return MAKESEGPTR(frm->cs, frm->ip);
+}
+
+/***********************************************************************
+ *           TaskSwitch16                    (TOOLHELP.83)
+ */
+BOOL WINAPI TaskSwitch16(HTASK16 htask, SEGPTR dwNewCSIP)
+{
+    BOOL s = TaskSetCSIP16(htask, SELECTOROF(dwNewCSIP), OFFSETOF(dwNewCSIP));
+    if (s)
+    {
+        DirectedYield16(htask);
+    }
+    return s;
 }

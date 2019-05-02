@@ -29,9 +29,9 @@
 78 pascal   MemoryRead(word long ptr long) MemoryRead16
 79 pascal   MemoryWrite(word long ptr long) MemoryWrite16
 80 pascal -ret16 TimerCount(ptr) TimerCount16
-81 stub TASKSETCSIP
-82 pascal -ret16 TaskGetCSIP(word) TaskGetCSIP16
-83 stub TASKSWITCH
+81 pascal -ret16 TaskSetCSIP(word word word) TaskSetCSIP16
+82 pascal TaskGetCSIP(word) TaskGetCSIP16
+83 pascal -ret16 TaskSwitch(word segptr) TaskSwitch16
 84 pascal -ret16 Local32Info(ptr word) Local32Info16
 85 pascal -ret16 Local32First(ptr word) Local32First16
 86 pascal -ret16 Local32Next(ptr) Local32Next16
