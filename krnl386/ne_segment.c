@@ -565,7 +565,7 @@ static void NE_FixupSegmentPrologs(NE_MODULE *pModule, WORD segnum)
             {
                 pFunc = pSeg+entry->offs;
                 TRACE("pFunc: %p, *(DWORD *)pFunc: %08x, num_entries: %d\n", pFunc, *(DWORD *)pFunc, num_entries);
-                if (*(pFunc+2) == 0x90)
+                if (*(pFunc+2) == 0x90) /* nop */
                 {
                     if (*(WORD *)pFunc == 0x581e) /* push ds, pop ax */
                     {
@@ -573,7 +573,7 @@ static void NE_FixupSegmentPrologs(NE_MODULE *pModule, WORD segnum)
                         *(WORD *)pFunc = 0xd88c; /* mov ax, ds */
                     }
 
-                    if (*(WORD *)pFunc == 0xd88c)
+                    if (*(WORD *)pFunc == 0xd88c) /* mov ax, ds */
                     {
                         if ((entry->flags & 2)) /* public data ? */
                         {
@@ -1044,6 +1044,7 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
     if (pModule->ne_expver < 0x300 && !(pModule->ne_flags & NE_FFLAGS_BUILTIN))
         selflags &= ~WINE_LDT_FLAGS_32BIT;
     pSeg->hSeg = GLOBAL_Alloc( NE_Ne2MemFlags(pSeg->flags), minsize, pModule->self, selflags );
+    GLOBAL_SetSeg(pSeg->hSeg, segnum, (pSeg->flags & NE_SEGFLAGS_DATA) ? 2 : 3);
     if (!pSeg->hSeg) return FALSE;
 
     pSeg->flags |= NE_SEGFLAGS_ALLOCATED;

@@ -56,8 +56,22 @@ typedef struct
     BYTE      flags;         /* Allocation flags */
     BYTE      selCount;      /* Number of selectors allocated for this block */
     DWORD     dib_avail_size;
-    BYTE      pad[0x10 - 4];     /* win31 GLOBALARENA size = 0x20 */
+    WORD      wSeg;
+    WORD      wType;
+    BYTE      pad[0x10 - 4 - 2 - 2];     /* win31 GLOBALARENA size = 0x20 */
 } GLOBALARENA;
+/* wType values */
+#define GT_UNKNOWN      0
+#define GT_DGROUP       1
+#define GT_DATA         2
+#define GT_CODE         3
+#define GT_TASK         4
+#define GT_RESOURCE     5
+#define GT_MODULE       6
+#define GT_FREE         7
+#define GT_INTERNAL     8
+#define GT_SENTINEL     9
+#define GT_BURGERMASTER 10
 
   /* Flags definitions */
 #define GA_MOVEABLE     0x02  /* same as GMEM_MOVEABLE */
@@ -181,6 +195,8 @@ HGLOBAL16 GLOBAL_CreateBlock( WORD flags, void *ptr, DWORD size,
     pArena->hOwner = hOwner;
     pArena->lockCount = 0;
     pArena->pageLockCount = 0;
+    pArena->wSeg = 0;
+    pArena->wType = GT_UNKNOWN;
     pArena->flags = flags & GA_MOVEABLE;
     if (flags & GMEM_DISCARDABLE) pArena->flags |= GA_DISCARDABLE;
     if (flags & GMEM_DDESHARE) pArena->flags |= GA_IPCSHARE;
@@ -284,6 +300,16 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
     if (add_size)
         GET_ARENA_PTR(handle)->size -= add_size;
     return handle;
+}
+WORD GLOBAL_GetSegNum(HGLOBAL16 hg)
+{
+    return GET_ARENA_PTR(hg)->wSeg;
+}
+
+void GLOBAL_SetSeg(HGLOBAL16 hg, WORD wSeg, WORD type)
+{
+    GET_ARENA_PTR(hg)->wSeg = wSeg;
+    GET_ARENA_PTR(hg)->wType = type;
 }
 
 /***********************************************************************

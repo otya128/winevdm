@@ -956,4 +956,7 @@ char *get_search_path(void);
 void switch_directory(struct kernel_thread_data *thread_data);
 
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16);
+
+void GLOBAL_SetSeg(HGLOBAL16 hg, WORD wSeg, WORD type);
+WORD GLOBAL_GetSegNum(HGLOBAL16 hg);
 #endif  /* __WINE_KERNEL16_PRIVATE_H */
