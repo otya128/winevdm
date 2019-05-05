@@ -43,6 +43,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(toolhelp);
 
 #include "pshpack1.h"
 
+/* Global arena block */
 typedef struct
 {
     void     *base;          /* Base address (0 if discarded) */
@@ -53,6 +54,10 @@ typedef struct
     BYTE      pageLockCount; /* Count of GlobalPageLock() calls */
     BYTE      flags;         /* Allocation flags */
     BYTE      selCount;      /* Number of selectors allocated for this block */
+    DWORD     dib_avail_size;
+    WORD      wSeg;
+    WORD      wType;
+    BYTE      pad[0x10 - 4 - 2 - 2];     /* win31 GLOBALARENA size = 0x20 */
 } GLOBALARENA;
 
 #define GLOBAL_MAX_COUNT  8192        /* Max number of allocated blocks */
@@ -192,8 +197,8 @@ BOOL16 WINAPI GlobalNext16( GLOBALENTRY *pGlobal, WORD wFlags)
     pGlobal->wFlags       = (GetCurrentPDB16() == pArena->hOwner);
     pGlobal->wHeapPresent = FALSE;
     pGlobal->hOwner       = pArena->hOwner;
-    pGlobal->wType        = GT_UNKNOWN;
-    pGlobal->wData        = 0;
+    pGlobal->wType        = pArena->wType;
+    pGlobal->wData        = pArena->wType == GT_CODE || pArena->wType == GT_DATA || pArena->wType == GT_DGROUP ? pArena->wSeg : 0;
     pGlobal->dwNext++;
     return TRUE;
 }
@@ -233,9 +238,9 @@ BOOL16 WINAPI GlobalEntryHandle16( GLOBALENTRY *pGlobal, HGLOBAL16 hItem )
     pGlobal->wFlags       = (GetCurrentPDB16() == pArena->hOwner);
     pGlobal->wHeapPresent = FALSE;
     pGlobal->hOwner       = pArena->hOwner;
-    pGlobal->wType        = GT_UNKNOWN;
-    pGlobal->wData        = 0;
-    pGlobal->dwNext++;
+    pGlobal->wType        = pArena->wType;
+    pGlobal->wData        = pArena->wType == GT_CODE || pArena->wType == GT_DATA || pArena->wType == GT_DGROUP ? pArena->wSeg : 0;
+    pGlobal->dwNext       = (hItem >> __AHSHIFT) + 1;
     return TRUE;
 }
 
