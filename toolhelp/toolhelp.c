@@ -533,33 +533,6 @@ BOOL16 WINAPI NotifyUnregister16( HTASK16 htask )
     return TRUE;
 }
 
-/***********************************************************************
- *		StackTraceCSIPFirst (TOOLHELP.67)
- */
-BOOL16 WINAPI StackTraceCSIPFirst16(STACKTRACEENTRY *ste, WORD wSS, WORD wCS, WORD wIP, WORD wBP)
-{
-    FIXME("(%p, ss %04x, cs %04x, ip %04x, bp %04x): stub.\n", ste, wSS, wCS, wIP, wBP);
-    return TRUE;
-}
-
-/***********************************************************************
- *		StackTraceFirst (TOOLHELP.66)
- */
-BOOL16 WINAPI StackTraceFirst16(STACKTRACEENTRY *ste, HTASK16 Task)
-{
-    FIXME("(%p, %04x), stub.\n", ste, Task);
-    return TRUE;
-}
-
-/***********************************************************************
- *		StackTraceNext (TOOLHELP.68)
- */
-BOOL16 WINAPI StackTraceNext16(STACKTRACEENTRY *ste)
-{
-    FIXME("(%p), stub.\n", ste);
-    return TRUE;
-}
-
 static int lastcb = 0;
 static SEGPTR lastaddr = 0;
 

@@ -227,6 +227,9 @@ EXPORTS
   get_resource_table
   WritePrivateProfileStruct16
   GetPrivateProfileStruct16
+  StackTraceFirst16
+  StackTraceCSIPFirst16
+  StackTraceNext16
   TaskSetCSIP16
   TaskGetCSIP16
   TaskSwitch16

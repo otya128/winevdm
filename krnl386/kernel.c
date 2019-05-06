@@ -29,6 +29,7 @@
 #include "wine/winuser16.h"
 
 #include "kernel16_private.h"
+#include "../toolhelp/toolhelp.h"
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(module);
@@ -1115,25 +1116,113 @@ void WINAPIV _DebugOutput( WORD flags, LPCSTR spec, VA_LIST16 valist )
 }
 
 
-static LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
-{
-    LPVOID ret;
 
-    if (index < TLS_MINIMUM_AVAILABLE)
+#define FRAME_FAR 0
+#define FRAME_NEAR 1
+void fill_stack_trace_entry(STACKTRACEENTRY *ste)
+{
+    ste->hModule = GetExePtr(ste->wCS);
+    ste->wSegment = GLOBAL_GetSegNum(ste->wCS);
+}
+/*
+ * StackTrace:
+ * 1.KRNL386.EXE!WAITEVENT+0x46(win31)
+ * 2.USER.EXE
+ * 3....
+ */
+static SEGPTR waitevent;
+/***********************************************************************
+ *		StackTraceFirst (TOOLHELP.66)
+ */
+BOOL16 WINAPI StackTraceFirst16(STACKTRACEENTRY *ste, HTASK16 htask)
+{
+    if (ste->dwSize != sizeof(*ste))
+        return 0;
+    TDB *tdb2 = (TDB*)GlobalLock16(GetCurrentTask());
+    TDB *tdb = (TDB*)GlobalLock16(htask);
+    if (!waitevent)
+        waitevent = GetProcAddress16(GetModuleHandle16("KERNEL"), "WAITEVENT");
+    if (GetCurrentTask() == htask)
+        return FALSE;
+    SEGPTR stack16 = PtrToUlong(TebTlsGetValue(tdb->teb, WOW32ReservedTls));
+    STACK16FRAME *frm = ((STACK16FRAME*)MapSL(stack16));
+    ste->hTask = htask;
+    ste->wBP = OFFSETOF(stack16) + FIELD_OFFSET(STACK16FRAME, bp);
+    ste->wFlags = FRAME_FAR;
+    ste->wSS = SELECTOROF(stack16);
+    ste->wIP = OFFSETOF(waitevent);
+    ste->wCS = SELECTOROF(waitevent);
+    fill_stack_trace_entry(ste);
+    return TRUE;
+}
+
+/***********************************************************************
+ *		StackTraceCSIPFirst (TOOLHELP.67)
+ */
+BOOL16 WINAPI StackTraceCSIPFirst16(STACKTRACEENTRY *ste, WORD wSS, WORD wCS, WORD wIP, WORD wBP)
+{
+    if (ste->dwSize != sizeof(*ste))
+        return 0;
+    ste->hTask = GetCurrentTask();
+    ste->wSS = wSS;
+    ste->wCS = wCS;
+    ste->wIP = wIP;
+    ste->wBP = wBP;
+    ste->wFlags = FRAME_FAR;
+    fill_stack_trace_entry(ste);
+    return TRUE;
+}
+
+/***********************************************************************
+ *		StackTraceNext (TOOLHELP.68)
+ */
+BOOL16 WINAPI StackTraceNext16(STACKTRACEENTRY *ste)
+{
+    if (ste->dwSize != sizeof(*ste))
+        return 0;
+    LPWORD s = (LPWORD)MapSL(MAKESEGPTR(ste->wSS, ste->wBP));
+    DWORD old_ebp = *s;
+    DWORD ret_addr = *(LPDWORD)(s + 1);
+    if (!waitevent)
+        waitevent = GetProcAddress16(GetModuleHandle16("KERNEL"), "WAITEVENT");
+    if (ste->wBP >= old_ebp || ste->wBP == 0 || IsBadReadPtr16(MAKESEGPTR(ste->wSS, old_ebp), 6))
+        return FALSE;
+    if (MAKESEGPTR(ste->wCS, ste->wIP) == waitevent)
     {
-        ret = teb->TlsSlots[index];
+        TDB *tdb = (TDB*)GlobalLock16(ste->hTask);
+        SEGPTR stack16 = PtrToUlong(TebTlsGetValue(tdb->teb, WOW32ReservedTls));
+        STACK16FRAME *frm = ((STACK16FRAME*)MapSL(stack16));
+        ste->wIP = frm->callfrom_ip;
+        ste->wCS = frm->module_cs;
+        return TRUE;
     }
+    ste->wIP = OFFSETOF(ret_addr);
+    if (IsBadCodePtr16(ret_addr))
+        ste->wFlags = FRAME_NEAR;
     else
     {
-        index -= TLS_MINIMUM_AVAILABLE;
-        if (index >= 8 * 32 /* 8 * sizeof(teb->Peb->TlsExpansionBitmapBits) */)
-        {
-            return NULL;
-        }
-        if (!teb->TlsExpansionSlots) ret = NULL;
-        else ret = ((PVOID*)teb->TlsExpansionSlots)[index];
+        ste->wCS = SELECTOROF(ret_addr);
+        ste->wFlags = FRAME_FAR;
     }
-    return ret;
+    ste->wBP = old_ebp;
+    fill_stack_trace_entry(ste);
+    return 1;
+    s = (LPWORD)MapSL(MAKESEGPTR(ste->wSS, ste->wBP));
+    old_ebp = *s;
+    ret_addr = *(LPDWORD)(s + 1);
+    if (ste->wBP >= old_ebp || ste->wBP == 0 || IsBadReadPtr16(MAKESEGPTR(ste->wSS, old_ebp), 6))
+        return FALSE;
+    ste->wIP = OFFSETOF(ret_addr);
+    if (IsBadCodePtr16(ret_addr))
+        ste->wFlags = FRAME_NEAR;
+    else
+    {
+        ste->wCS = SELECTOROF(ret_addr);
+        ste->wFlags = FRAME_FAR;
+    }
+    ste->wBP = old_ebp;
+    fill_stack_trace_entry(ste);
+    return TRUE;
 }
 
 /***********************************************************************
