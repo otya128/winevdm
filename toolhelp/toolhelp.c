@@ -376,7 +376,10 @@ BOOL16 WINAPI ModuleFindName16( MODULEENTRY *lpme, LPCSTR name )
  */
 BOOL16 WINAPI ModuleFindHandle16( MODULEENTRY *lpme, HMODULE16 hModule )
 {
-    hModule = GetExePtr( hModule );
+    NE_MODULE *pModule;
+    if (!(pModule = GlobalLock16(hModule))) return FALSE;
+    if (pModule->ne_magic != IMAGE_OS2_SIGNATURE)
+        return FALSE;
     lpme->wNext = hModule;
     return ModuleNext16( lpme );
 }
