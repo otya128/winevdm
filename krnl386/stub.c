@@ -170,17 +170,11 @@ __declspec(dllexport) PVOID getWOW32Reserved()
 {
     /* TlsGetValue clears win32 last error! */
     /* GetLastError() is called by INT21_GetExtendedError(FIXME?) */
-    int err = GetLastError();
-    PVOID v = TlsGetValue(WOW32ReservedTls);
-    SetLastError(err);
-    return v;
+    return TebTlsGetValue(NtCurrentTeb(), WOW32ReservedTls);
 }
 __declspec(dllexport) PVOID setWOW32Reserved(PVOID w)
 {
-    int err = GetLastError();
-    TlsSetValue(WOW32ReservedTls, w);
-    SetLastError(err);
-    return w;
+    return TebTlsSetValue(NtCurrentTeb(), WOW32ReservedTls, w);
 }
 
 __declspec(thread) WINE_VM86_TEB_INFO GdiTebBatch;
@@ -192,5 +186,5 @@ __declspec(dllexport) WINE_VM86_TEB_INFO *getGdiTebBatch()
 extern DWORD kernel_thread_data_tls;
 __declspec(dllexport) struct kernel_thread_data *tls_get_kernel_thread_data()
 {
-    return (struct kernel_thread_data*)TlsGetValue(kernel_thread_data_tls);
+    return (struct kernel_thread_data*)TebTlsGetValue(NtCurrentTeb(), kernel_thread_data_tls);
 }
