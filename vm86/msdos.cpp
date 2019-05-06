@@ -669,7 +669,6 @@ extern "C"
         m_eip = context->Eip;
 		set_flags(context->EFlags);
 	}
-	void WINAPI DOSVM_Int21Handler(CONTEXT *context);
 	unsigned char table[256 * 4 + 2 + 0x8 * 256] = { 0xcf };
 	unsigned char iret[256] = { 0xcf };
 	WORD SELECTOR_AllocBlock(const void *base, DWORD size, unsigned char flags);
@@ -1491,22 +1490,27 @@ extern "C"
                             protected_mode_exception_handler(num, name, pih);
                             continue;
                         }
-                        WORD ip = POP16();
-                        WORD cs = POP16();
-                        PUSH16(cs);
-                        PUSH16(ip);
+                        DWORD oldesp = REG32(ESP);
+                        WORD return_ip = POP16();
+                        WORD return_cs = POP16();
+                        PUSH16(return_cs);
+                        PUSH16(return_ip);
                         save_context(&context);
-                        DWORD cs2 = context.SegCs;
-                        DWORD eip2 = context.Eip;
-                        context.Eip = ip;
-                        context.SegCs = cs;
+                        DWORD iret_cs = context.SegCs;
+                        DWORD iret_eip = context.Eip;
+                        context.Eip = return_ip;
+                        context.SegCs = return_cs;
                         //Sometimes wine_int_handler modifies CS:IP
                         dynamic__wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
                         mem = memory_base;
-                        WORD ip3 = context.Eip;
-                        WORD cs3 = context.SegCs;
-                        context.SegCs = cs2;
-                        context.Eip = eip2;
+                        WORD ctx_ip = context.Eip;
+                        WORD ctx_cs = context.SegCs;
+                        /* int1(toolhelp), int3(toolhelp) change cs:ip */
+                        if (context.SegCs == return_cs && context.Eip == return_ip)
+                        {
+                            context.SegCs = iret_cs;
+                            context.Eip = iret_eip;
+                        }
                         load_context(&context);
                         i386_load_segment_descriptor(ES);
                         i386_load_segment_descriptor(CS);
@@ -1514,12 +1518,16 @@ extern "C"
                         i386_load_segment_descriptor(DS);
                         i386_load_segment_descriptor(FS);
                         i386_load_segment_descriptor(GS);
-                        WORD a = POP16();
-                        WORD b = POP16();
-                        WORD c = POP16();
-                        PUSH16((WORD)context.EFlags | (c & 0x200)); // restore IF if it was set on entry
-                        PUSH16(cs3);
-                        PUSH16(ip3);
+                        /* int1(toolhelp), int3(toolhelp), int25(rawread) change esp */
+                        if (context.Esp == oldesp)
+                        {
+                            WORD temp_ip = POP16();
+                            WORD temp_cs = POP16();
+                            WORD temp_flags = POP16();
+                            PUSH16((WORD)context.EFlags | (temp_flags & 0x200)); // restore IF if it was set on entry
+                            PUSH16(ctx_cs);
+                            PUSH16(ctx_ip);
+                        }
                     }
 				}
 				if ((void(*)(void))m_eip == from16_reg)
