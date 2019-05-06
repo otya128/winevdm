@@ -37,11 +37,13 @@ extern DWORD WINAPI GetProcessFlags( DWORD processid );
 
 static DWORD process_dword;
 
+DWORD kernel_thread_data_tls = TLS_OUT_OF_INDEXES;
 /***********************************************************************
  *           KERNEL thread initialisation routine
  */
 static void thread_attach(void)
 {
+    TlsSetValue(kernel_thread_data_tls, HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct kernel_thread_data)));
     /* allocate the 16-bit stack (FIXME: should be done lazily) */
 	HGLOBAL16 hstack = WOWGlobalAlloc16(GMEM_FIXED, 0x10000);
 	kernel_get_thread_data()->stack_sel = GlobalHandleToSel16(hstack);
@@ -60,6 +62,7 @@ static void thread_detach(void)
     WOWGlobalFree16( kernel_get_thread_data()->stack_sel );
     setWOW32Reserved(0);
     if (NtCurrentTeb()->Tib.SubSystemTib) TASK_ExitTask();
+    HeapFree(GetProcessHeap(), 0, TlsGetValue(kernel_thread_data_tls));
 }
 
 //BYTE __wine_spec_dos_header[2000];
@@ -220,6 +223,8 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
             WOW32ReservedTls = TlsAlloc();
             WARN("could not allocate WOW32RESERVED_TLS_INDEX!!\n");
         }
+        kernel_thread_data_tls = TlsAlloc();
+        TlsSetValue(kernel_thread_data_tls, HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct kernel_thread_data)));
         /* init redirect dir */
         GetRedirectWindowsDir();
         init_wow_handle();

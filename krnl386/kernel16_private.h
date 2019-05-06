@@ -730,6 +730,10 @@ extern SEGPTR CALL32_CBClientEx_RetAddr DECLSPEC_HIDDEN;
 
 struct tagSYSLEVEL;
 
+BOOL WINAPI TebTlsSetValue(TEB *teb, DWORD index, LPVOID value);
+LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index);
+extern DWORD kernel_thread_data_tls;
+
 struct kernel_thread_data
 {
     WORD                stack_sel;      /* 16-bit stack selector */

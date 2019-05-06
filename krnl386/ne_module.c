@@ -1972,9 +1972,7 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
             if (curtdb->hInstance == ret)
             {
                 DWORD count;
-                extern DWORD _tls_index;
-                DWORD ktdoff = (DWORD)kernel_get_thread_data() - *(DWORD*)((LPBYTE)NtCurrentTeb()->ThreadLocalStoragePointer + _tls_index * 4);
-                struct kernel_thread_data *chdthd = (struct kernel_thread_data *)(*(DWORD *)((LPBYTE)curtdb->teb->ThreadLocalStoragePointer + _tls_index * 4) + ktdoff);
+                struct kernel_thread_data *chdthd = (struct kernel_thread_data *)TebTlsGetValue(curtdb->teb, kernel_thread_data_tls);
                 ReleaseThunkLock(&count);
                 WaitForSingleObject(chdthd->idle_event, 30000);
                 RestoreThunkLock(count);

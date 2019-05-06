@@ -188,9 +188,9 @@ __declspec(dllexport) WINE_VM86_TEB_INFO *getGdiTebBatch()
 {
     return &GdiTebBatch;
 }
-__declspec(thread) struct kernel_thread_data tls_kernel_thread_data;
 
+extern DWORD kernel_thread_data_tls;
 __declspec(dllexport) struct kernel_thread_data *tls_get_kernel_thread_data()
 {
-    return &tls_kernel_thread_data;
+    return (struct kernel_thread_data*)TlsGetValue(kernel_thread_data_tls);
 }
