@@ -251,7 +251,18 @@ BOOL16 WINAPI GlobalEntryHandle16( GLOBALENTRY *pGlobal, HGLOBAL16 hItem )
 BOOL16 WINAPI GlobalEntryModule16( GLOBALENTRY *pGlobal, HMODULE16 hModule,
                                  WORD wSeg )
 {
-    FIXME("(%p, 0x%04x, 0x%04x), stub.\n", pGlobal, hModule, wSeg);
+    BOOL r = GlobalFirst16(pGlobal, 0);
+    while (r)
+    {
+        if (pGlobal->hOwner == hModule)
+        {
+            if ((pGlobal->wType == GT_CODE || pGlobal->wType == GT_DATA || pGlobal->wType == GT_DGROUP) && pGlobal->wData == wSeg)
+            {
+                return TRUE;
+            }
+        }
+        r = GlobalNext16(pGlobal, 0);
+    }
     return FALSE;
 }
 
