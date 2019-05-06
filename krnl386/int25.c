@@ -87,7 +87,7 @@ void WINAPI DOSVM_Int25Handler( CONTEXT *context )
     DWORD begin;
     DWORD length;
 
-    if (ISV86(context))
+    if (!ISV86(context))
     {
         WORD *stack = CTX_SEG_OFF_TO_LIN(context, context->SegSs, context->Esp);
         WORD eip = *stack;
