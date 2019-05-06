@@ -101,9 +101,18 @@ VOID WINAPI _EnterSysLevel(SYSLEVEL *lock)
         }
 
     RtlEnterCriticalSection( &lock->crst );
+    if (thread_data->yield_wait_event)
+    {
+        HANDLE event = thread_data->yield_wait_event;
+        RtlLeaveCriticalSection(&lock->crst);
+        WaitForSingleObject(event, INFINITE);
+        RtlEnterCriticalSection(&lock->crst);
+        CloseHandle(event);
+    }
     switch_directory(thread_data);
     thread_data->sys_count[lock->level]++;
     thread_data->sys_mutex[lock->level] = lock;
+    SetEvent(thread_data->yield_event);
 
     TRACE("(%p, level %d): thread %x count after  %d\n",
           lock, lock->level, GetCurrentThreadId(), thread_data->sys_count[lock->level] );

@@ -953,6 +953,7 @@ void WINAPI OldYield16(void)
 {
    DWORD count;
 
+   SetEvent(tls_get_kernel_thread_data()->idle_event);
    ReleaseThunkLock(&count);
    RestoreThunkLock(count);
 }
@@ -964,6 +965,7 @@ void WINAPI WIN32_OldYield16(void)
 {
    DWORD count;
 
+   SetEvent(tls_get_kernel_thread_data()->idle_event);
    ReleaseThunkLock(&count);
    RestoreThunkLock(count);
 }
@@ -973,7 +975,48 @@ void WINAPI WIN32_OldYield16(void)
  */
 void WINAPI DirectedYield16( HTASK16 hTask )
 {
-    OldYield16();
+    TDB *tdb = TASK_GetPtr(hTask);
+    DWORD count;
+    struct kernel_thread_data *chdthd;
+    HTASK task;
+    if (!tdb->teb)
+    {
+        OldYield16();
+        return;
+    }
+    SetEvent(tls_get_kernel_thread_data()->idle_event);
+    chdthd = (struct kernel_thread_data *)TebTlsGetValue(tdb->teb, kernel_thread_data_tls);
+    chdthd->yield_event = CreateEventA(NULL, TRUE, FALSE, NULL);
+    task = hFirstTask;
+    /* All threads expect hTask or current task are locked by yield_wait_event */
+    while (task)
+    {
+        tdb = TASK_GetPtr(task);
+        if (task != hTask && tdb->teb->ClientId.UniqueThread != GetCurrentThreadId())
+        {
+            struct kernel_thread_data *td = (struct kernel_thread_data *)TebTlsGetValue(tdb->teb, kernel_thread_data_tls);
+            td->yield_wait_event = CreateEventA(NULL, TRUE, FALSE, NULL);
+        }
+        task = tdb->hNext;
+    }
+    ReleaseThunkLock(&count);
+    /*
+     * In win16, if hTask doesn't wait events, another task will be executed.
+     * Here, wait until timeout.
+     */
+    WaitForSingleObject(chdthd->yield_event, 100);
+    RestoreThunkLock(count);
+    while (task)
+    {
+        tdb = TASK_GetPtr(task);
+        if (task != hTask && tdb->teb->ClientId.UniqueThread != GetCurrentThreadId())
+        {
+            struct kernel_thread_data *td = (struct kernel_thread_data *)TebTlsGetValue(tdb->teb, kernel_thread_data_tls);
+            SetEvent(td->yield_wait_event);
+            td->yield_wait_event = NULL;
+        }
+        task = tdb->hNext;
+    }
 }
 
 /***********************************************************************

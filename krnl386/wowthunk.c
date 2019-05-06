@@ -464,11 +464,6 @@ VOID WINAPI K32WOWYield16( void )
  */
 VOID WINAPI K32WOWDirectedYield16( WORD htask16 )
 {
-    /*
-     * Argh.  Our scheduler doesn't like DirectedYield by Win32
-     * tasks at all.  So we do hope that this routine is indeed
-     * only ever called by Win16 tasks that have thunked up ...
-     */
     DirectedYield16( (HTASK16)htask16 );
 }
 

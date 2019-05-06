@@ -744,7 +744,9 @@ struct kernel_thread_data
     int                 curdir_len;     /* current dir buffer length */
     char               *true_curdir;    /* true current dir */
     char               *curdir_buf;     /* current dir buffer */
-    void               *pad[29];        /* change this if you add fields! */
+    HANDLE              yield_event;    /* yield event */
+    HANDLE              yield_wait_event;/* yield event */
+    void               *pad[30];        /* change this if you add fields! */
 };
 
 __declspec(dllexport) struct kernel_thread_data *tls_get_kernel_thread_data();
