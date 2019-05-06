@@ -34,6 +34,7 @@ WINE_DECLARE_DEBUG_CHANNEL(relay);
 #define BCD_TO_BIN(x) ((x&15) + (x>>4)*10)
 #define BIN_TO_BCD(x) ((x%10) + ((x/10)<<4))
 
+static void WINAPI DOSVM_Int01Handler(CONTEXT*);
 static void WINAPI DOSVM_Int03Handler(CONTEXT*);
 static void WINAPI DOSVM_Int11Handler(CONTEXT*);
 static void WINAPI DOSVM_Int12Handler(CONTEXT*);
@@ -52,7 +53,7 @@ static FARPROC16     DOSVM_Vectors16[256];
 static FARPROC48     DOSVM_Vectors48[256];
 static INTPROC DOSVM_VectorsBuiltin[] =
 {
-  /* 00 */ 0,                  0,                  0,                  DOSVM_Int03Handler,
+  /* 00 */ 0,                  DOSVM_Int01Handler, 0,                  DOSVM_Int03Handler,
   /* 04 */ 0,                  0,                  0,                  0,
   /* 08 */ DOSVM_Int08Handler, DOSVM_Int09Handler, 0,                  0,
   /* 0C */ 0,                  0,                  0,                  0,
@@ -1098,6 +1099,26 @@ static WORD POP16(CONTEXT *context)
     context->Esp += 2;
     return *stack;
 }
+
+static void WINAPI DOSVM_Int01Handler(CONTEXT *context)
+{
+    HMODULE toolhelp = GetModuleHandleA("toolhelp.dll16");
+    WORD flags;
+    context->Eip = POP16(context);
+    context->SegCs = POP16(context);
+    flags = POP16(context);
+    context->EFlags = flags & ~0x100; /* TF */
+    SEGPTR stack = MAKESEGPTR(context->SegSs, context->Esp);
+    FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(context->SegCs, context->Eip), flags, 1, context->Eax);
+    if (intcb)
+    {
+        context->SegSs = SELECTOROF(stack);
+        context->Esp = OFFSETOF(stack);
+        context->SegCs = SELECTOROF(intcb);
+        context->Eip = OFFSETOF(intcb);
+    }
+}
+
 static void WINAPI DOSVM_Int03Handler(CONTEXT *context)
 {
     HMODULE toolhelp = GetModuleHandleA("toolhelp.dll16");
@@ -1105,7 +1126,7 @@ static void WINAPI DOSVM_Int03Handler(CONTEXT *context)
     context->SegCs = POP16(context);
     context->EFlags = POP16(context);
     SEGPTR stack = MAKESEGPTR(context->SegSs, context->Esp);
-    FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(context->SegCs, context->Eip), context->Eip, 3, context->Eax);
+    FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(context->SegCs, context->Eip), context->EFlags, 3, context->Eax);
     if (intcb)
     {
         context->SegSs = SELECTOROF(stack);
