@@ -1138,7 +1138,6 @@ BOOL16 WINAPI StackTraceFirst16(STACKTRACEENTRY *ste, HTASK16 htask)
 {
     if (ste->dwSize != sizeof(*ste))
         return 0;
-    TDB *tdb2 = (TDB*)GlobalLock16(GetCurrentTask());
     TDB *tdb = (TDB*)GlobalLock16(htask);
     if (!waitevent)
         waitevent = GetProcAddress16(GetModuleHandle16("KERNEL"), "WAITEVENT");
@@ -1196,22 +1195,6 @@ BOOL16 WINAPI StackTraceNext16(STACKTRACEENTRY *ste)
         ste->wCS = frm->module_cs;
         return TRUE;
     }
-    ste->wIP = OFFSETOF(ret_addr);
-    if (IsBadCodePtr16(ret_addr))
-        ste->wFlags = FRAME_NEAR;
-    else
-    {
-        ste->wCS = SELECTOROF(ret_addr);
-        ste->wFlags = FRAME_FAR;
-    }
-    ste->wBP = old_ebp;
-    fill_stack_trace_entry(ste);
-    return 1;
-    s = (LPWORD)MapSL(MAKESEGPTR(ste->wSS, ste->wBP));
-    old_ebp = *s;
-    ret_addr = *(LPDWORD)(s + 1);
-    if (ste->wBP >= old_ebp || ste->wBP == 0 || IsBadReadPtr16(MAKESEGPTR(ste->wSS, old_ebp), 6))
-        return FALSE;
     ste->wIP = OFFSETOF(ret_addr);
     if (IsBadCodePtr16(ret_addr))
         ste->wFlags = FRAME_NEAR;
