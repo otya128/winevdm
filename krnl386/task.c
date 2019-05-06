@@ -85,7 +85,7 @@ static UINT16 nTaskCount = 0;
 
 static HTASK16 initial_task, main_task;
 
-static BOOL WINAPI TebTlsSetValue(TEB *teb, DWORD index, LPVOID value)
+BOOL WINAPI TebTlsSetValue(TEB *teb, DWORD index, LPVOID value)
 {
     if (index < TLS_MINIMUM_AVAILABLE)
     {
@@ -103,7 +103,7 @@ static BOOL WINAPI TebTlsSetValue(TEB *teb, DWORD index, LPVOID value)
     return TRUE;
 }
 
-static LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
+LPVOID WINAPI TebTlsGetValue(TEB *teb, DWORD index)
 {
     LPVOID ret;
 
