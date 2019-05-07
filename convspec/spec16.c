@@ -579,18 +579,18 @@ static void output_module16( DLLSPEC *spec )
     output( "___wine_spec_dos_header:\n" );
 #endif
     output( "\t.short 0x5a4d\n" );                                         /* e_magic */
-    output( "\t.short 0\n" );                                              /* e_cblp */
-    output( "\t.short 0\n" );                                              /* e_cp */
-    output( "\t.short 0\n" );                                              /* e_crlc */
+    output( "\t.short 0x0040\n" );                                         /* e_cblp */
+    output( "\t.short 0x0001\n" );                                         /* e_cp */
+    output( "\t.short (.L__wine_spec_ne_header-.L__wine_spec_dos_header)/16\n" );/* e_crlc */
     output( "\t.short 0\n" );                                              /* e_cparhdr */
-    output( "\t.short 0\n" );                                              /* e_minalloc */
+    output( "\t.short 0xffff\n" );                                         /* e_minalloc */
     output( "\t.short 0\n" );                                              /* e_maxalloc */
-    output( "\t.short 0\n" );                                              /* e_ss */
+    output( "\t.short 0x00b8\n" );                                         /* e_ss */
     output( "\t.short 0\n" );                                              /* e_sp */
     output( "\t.short 0\n" );                                              /* e_csum */
     output( "\t.short 0\n" );                                              /* e_ip */
     output( "\t.short 0\n" );                                              /* e_cs */
-    output( "\t.short 0\n" );                                              /* e_lfarlc */
+    output( "\t.short .L__wine_spec_ne_header-.L__wine_spec_dos_header\n" );/* e_lfarlc */
     output( "\t.short 0\n" );                                              /* e_ovno */
     output( "\t.short 0,0,0,0\n" );                                        /* e_res */
     output( "\t.short 0\n" );                                              /* e_oemid */
