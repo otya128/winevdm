@@ -62,7 +62,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)libwine.lib;kernel32.lib;user32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;kernel32.lib;user32.lib</AdditionalDependencies>
       <ModuleDefinitionFile>keyboard.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -84,7 +84,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <ModuleDefinitionFile>keyboard.def</ModuleDefinitionFile>
-      <AdditionalDependencies>$(OutDir)libwine.lib;kernel32.lib;user32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;kernel32.lib;user32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
