@@ -194,16 +194,3 @@ void WINAPI OemToAnsiBuff16( LPCSTR s, LPSTR d, UINT16 len )
 {
     if (len != 0) OemToCharBuffA( s, d, len );
 }
-//
-void __wine_spec_init_ctor()
-{
-	DPRINTF("NOTIMPL:__wine_spec_init_ctor()\n");
-}
-void __wine_spec_unimplemented_stub(const char *module, const char *function)
-{
-	DPRINTF("NOTIMPL:__wine_spec_unimplemented_stub(%s, %s)\n", module, function);
-}
-void __wine_spec_dll_entry()
-{
-	DPRINTF("NOTIMPL:__wine_spec_dll_entry(?)\n");
-}
