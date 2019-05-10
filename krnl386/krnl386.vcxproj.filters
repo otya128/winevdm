@@ -178,9 +178,4 @@
   <ItemGroup>
     <CustomBuild Include="krnl386.exe16.spec" />
   </ItemGroup>
-  <ItemGroup>
-    <MASM Include="asmstub.asm">
-      <Filter>ソース ファイル</Filter>
-    </MASM>
-  </ItemGroup>
 </Project>
