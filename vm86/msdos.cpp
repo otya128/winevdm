@@ -637,8 +637,9 @@ extern "C"
 		context->SegDs = SREG(DS);
 		context->SegFs = SREG(FS);
 		context->SegGs = SREG(GS);
-        context->EFlags = get_flags();// &~0x20000;
-		dynamic_setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
+        context->EFlags = get_flags();
+        if (!V8086_MODE)
+            dynamic_setWOW32Reserved((PVOID)(SREG(SS) << 16 | REG16(SP)));
 	}
 	void load_context(CONTEXT *context)
 	{
