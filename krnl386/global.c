@@ -60,18 +60,6 @@ typedef struct
     WORD      wType;
     BYTE      pad[0x10 - 4 - 2 - 2];     /* win31 GLOBALARENA size = 0x20 */
 } GLOBALARENA;
-/* wType values */
-#define GT_UNKNOWN      0
-#define GT_DGROUP       1
-#define GT_DATA         2
-#define GT_CODE         3
-#define GT_TASK         4
-#define GT_RESOURCE     5
-#define GT_MODULE       6
-#define GT_FREE         7
-#define GT_INTERNAL     8
-#define GT_SENTINEL     9
-#define GT_BURGERMASTER 10
 
   /* Flags definitions */
 #define GA_MOVEABLE     0x02  /* same as GMEM_MOVEABLE */

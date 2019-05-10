@@ -963,6 +963,18 @@ void switch_directory(struct kernel_thread_data *thread_data);
 
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16);
 
+/* wType values */
+#define GT_UNKNOWN      0
+#define GT_DGROUP       1
+#define GT_DATA         2
+#define GT_CODE         3
+#define GT_TASK         4
+#define GT_RESOURCE     5
+#define GT_MODULE       6
+#define GT_FREE         7
+#define GT_INTERNAL     8
+#define GT_SENTINEL     9
+#define GT_BURGERMASTER 10
 void GLOBAL_SetSeg(HGLOBAL16 hg, WORD wSeg, WORD type);
 WORD GLOBAL_GetSegNum(HGLOBAL16 hg);
 #endif  /* __WINE_KERNEL16_PRIVATE_H */
