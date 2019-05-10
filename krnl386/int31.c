@@ -109,7 +109,7 @@ static WORD alloc_pm_selector( WORD seg, unsigned char flags )
     if (sel)
     {
         LDT_ENTRY entry;
-        wine_ldt_set_base( &entry, (void *)(seg << 4) );
+        wine_ldt_set_base( &entry, PTR_REAL_TO_LIN(seg, 0) );
         wine_ldt_set_limit( &entry, 0xffff );
         wine_ldt_set_flags( &entry, flags );
         wine_ldt_set_entry( sel, &entry );
