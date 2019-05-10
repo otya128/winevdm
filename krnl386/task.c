@@ -985,7 +985,26 @@ void WINAPI DirectedYield16( HTASK16 hTask )
         return;
     }
     SetEvent(tls_get_kernel_thread_data()->idle_event);
+    task = hFirstTask;
     chdthd = (struct kernel_thread_data *)TebTlsGetValue(tdb->teb, kernel_thread_data_tls);
+    if (chdthd->yield_event)
+    {
+        WARN("nested DirectedYield doesnt work.\n");
+        OldYield16();
+        return;
+    }
+    while (task)
+    {
+        tdb = TASK_GetPtr(task);
+        struct kernel_thread_data *td = (struct kernel_thread_data *)TebTlsGetValue(tdb->teb, kernel_thread_data_tls);
+        if (td->yield_wait_event)
+        {
+            WARN("nested DirectedYield doesnt work.\n");
+            OldYield16();
+            return;
+        }
+        task = tdb->hNext;
+    }
     chdthd->yield_event = CreateEventA(NULL, TRUE, FALSE, NULL);
     task = hFirstTask;
     /* All threads expect hTask or current task are locked by yield_wait_event */
@@ -1006,6 +1025,9 @@ void WINAPI DirectedYield16( HTASK16 hTask )
      */
     WaitForSingleObject(chdthd->yield_event, 100);
     RestoreThunkLock(count);
+    CloseHandle(chdthd->yield_event);
+    chdthd->yield_event = NULL;
+    task = hFirstTask;
     while (task)
     {
         tdb = TASK_GetPtr(task);
