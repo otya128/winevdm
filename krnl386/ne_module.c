@@ -677,6 +677,7 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
                         debugstr_a(path) );
         return ERROR_BAD_FORMAT;
     }
+    GLOBAL_SetSeg(hModule, 0, GT_MODULE);
 
     FarSetOwner16( hModule, hModule );
     pModule = GlobalLock16( hModule );
@@ -2226,6 +2227,7 @@ static HMODULE16 create_dummy_module( HMODULE module32 )
 
     hModule = GlobalAlloc16( GMEM_MOVEABLE | GMEM_ZEROINIT, size );
     if (!hModule) return ERROR_BAD_FORMAT;
+    GLOBAL_SetSeg(hModule, 0, GT_MODULE);
 
     FarSetOwner16( hModule, hModule );
     pModule = GlobalLock16( hModule );

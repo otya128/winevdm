@@ -307,6 +307,7 @@ static TDB *TASK_Create( NE_MODULE *pModule, UINT16 cmdShow, LPCSTR cmdline, BYT
 
     hTask = GlobalAlloc16( GMEM_FIXED | GMEM_ZEROINIT, sizeof(TDB) );
     if (!hTask) return NULL;
+    GLOBAL_SetSeg(hTask, 0, GT_TASK);
     pTask = TASK_GetPtr( hTask );
     FarSetOwner16( hTask, hModule );
 
