@@ -62,7 +62,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)user.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;comdlg32.lib;user32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)user.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;comdlg32.lib;user32.lib</AdditionalDependencies>
       <ModuleDefinitionFile>commdlg.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -83,7 +83,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>commdlg.def</ModuleDefinitionFile>
-      <AdditionalDependencies>$(OutDir)user.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)wow32.lib;$(OutDir)krnl386.lib;comdlg32.lib;user32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)user.lib;$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;comdlg32.lib;user32.lib</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>

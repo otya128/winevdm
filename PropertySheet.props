@@ -6,6 +6,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <_PropertySheetDisplayName>MacroPropertySheet</_PropertySheetDisplayName>
+    <IncludePath>$(SolutionDir)wow32;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup />
   <ItemGroup>

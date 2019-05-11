@@ -30,11 +30,6 @@
 #include "../krnl386/kernel16_private.h"
 #include "winternl.h"
 #include "wine/debug.h"
-#ifdef USE_VM86_DLL
-//vm
-__declspec(dllimport) void fsave(char *ptr);
-__declspec(dllimport) void frstor(const char *ptr);
-#endif
 
 WINE_DEFAULT_DEBUG_CHANNEL(system);
 
