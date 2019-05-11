@@ -24,7 +24,7 @@
 #include "windef.h"
 #include "winbase.h"
 #include "winternl.h"
-#include "wownt32.h"
+#include "windows/wownt32.h"
 #include "wine/debug.h"
 #include "kernel16_private.h"
 

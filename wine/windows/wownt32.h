@@ -79,7 +79,7 @@ typedef enum
 HANDLE WINAPI WOWHandle32(WORD,WOW_HANDLE_TYPE);
 WORD   WINAPI WOWHandle16(HANDLE,WOW_HANDLE_TYPE);
 
-#ifdef __WINESRC__
+#if 0 && defined(__WINESRC__)
 /* under Wine we use optimized versions where we can */
 #define HWND_32(h16)      ((HWND)      (ULONG_PTR)(h16))
 #define HMENU_32(h16)     ((HMENU)     (ULONG_PTR)(h16))

@@ -34,7 +34,7 @@
 #include "winbase.h"
 #include "wingdi.h"
 #include "winnt.h"
-#include "wownt32.h"
+#include "windows/wownt32.h"
 #include "winuser.h"
 #include "ntstatus.h"
 

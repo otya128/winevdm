@@ -67,7 +67,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;lz32.lib;$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;$(OutDir)wow32.lib;kernel32.lib;advapi32.lib;user32.lib;shell32.lib;gdi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;lz32.lib;$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;kernel32.lib;advapi32.lib;user32.lib;shell32.lib;gdi32.lib</AdditionalDependencies>
       <ModuleDefinitionFile>krnl386.def</ModuleDefinitionFile>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
@@ -87,7 +87,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;lz32.lib;$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;$(OutDir)wow32.lib;kernel32.lib;advapi32.lib;user32.lib;shell32.lib;gdi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;lz32.lib;$(OutDir)libwine.lib;ntdll.lib;ddraw.lib;dsound.lib;kernel32.lib;advapi32.lib;user32.lib;shell32.lib;gdi32.lib</AdditionalDependencies>
       <ForceFileOutput>
       </ForceFileOutput>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>

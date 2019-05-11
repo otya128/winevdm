@@ -34,7 +34,7 @@
 
 #include "windef.h"
 #include "wine/winbase16.h"
-#include "wownt32.h"
+#include "windows/wownt32.h"
 #include "winternl.h"
 #include "kernel16_private.h"
 #include "wine/exception.h"
