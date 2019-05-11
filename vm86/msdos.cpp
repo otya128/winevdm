@@ -1387,7 +1387,6 @@ extern "C"
     {
         /* raise EXCEPTION_VM86_INTx */
         CONTEXT vcontext = {};
-        m_eip += 2;
         save_context(&vcontext);
         //dosvm.c exception_handler
         CONTEXT *ppcontext = &vcontext;
@@ -1748,40 +1747,23 @@ extern "C"
                         set_flags(get_flags() | dynamic_getGdiTebBatch()->vm86_pending);
                     }
                     UINT8 *op = mem + SREG_BASE(CS) + m_eip;
-                    UINT8 vec;
                     if (*op == 0xCD)//INT imm8
                     {
-                        vec = *(op + 1);
-                        if (V8086_MODE)
-                        {
-                            raise_vm86_int(vec);
-                            continue;
-                        }
-                        CONTEXT context;
-                        WORD ip = m_eip;
-                        WORD cs = SREG(CS);
-                        PUSH16(cs);
-                        PUSH16(ip);
-                        save_context(&context);
-                        DWORD cs2 = context.SegCs;
-                        DWORD eip2 = context.Eip;
-                        context.Eip = ip;
-                        context.SegCs = cs;
-                        //Sometimes wine_int_handler modifies CS:IP
-                        dynamic__wine_call_int_handler(&context, vec);
-                        mem = memory_base;
-                        context.SegCs = cs2;
-                        context.Eip = eip2;
-                        load_context(&context);
-                        POP16();
-                        POP16();
+                        UINT8 vec = *(op + 1);
                         m_eip += 2;
+                        raise_vm86_int(vec);
                         continue;
                     }
                     else if (*op == 0xCC)
                     {
-                        vec = 0x03;
                         m_eip += 1;
+                        raise_vm86_int(3);
+                        continue;
+                    }
+                    else if (*op == 0xF1)
+                    {
+                        m_eip += 1;
+                        raise_vm86_int(1);
                         continue;
                     }
                 }
