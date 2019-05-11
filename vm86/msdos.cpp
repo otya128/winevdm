@@ -1468,7 +1468,7 @@ extern "C"
 				{
 					CONTEXT context;
                     {
-                        int num = m_pc - (UINT)iret;
+                        UINT32 num = m_pc - (UINT32)iret;
                         const char *name = NULL;
                         //win16 handles int 2/4/6/7
                         switch (num)
@@ -1491,44 +1491,17 @@ extern "C"
                             protected_mode_exception_handler(num, name, pih);
                             continue;
                         }
-                        DWORD oldesp = REG32(ESP);
                         WORD return_ip = POP16();
                         WORD return_cs = POP16();
-                        PUSH16(return_cs);
-                        PUSH16(return_ip);
+                        WORD flags = POP16();
                         save_context(&context);
-                        DWORD iret_cs = context.SegCs;
-                        DWORD iret_eip = context.Eip;
                         context.Eip = return_ip;
                         context.SegCs = return_cs;
-                        //Sometimes wine_int_handler modifies CS:IP
-                        dynamic__wine_call_int_handler(&context, m_pc - (UINT)/*ptr!*/iret);
+                        context.EFlags = flags;
+                        dynamic__wine_call_int_handler(&context, num);
                         mem = memory_base;
-                        WORD ctx_ip = context.Eip;
-                        WORD ctx_cs = context.SegCs;
-                        /* int1(toolhelp), int3(toolhelp) change cs:ip */
-                        if (context.SegCs == return_cs && context.Eip == return_ip)
-                        {
-                            context.SegCs = iret_cs;
-                            context.Eip = iret_eip;
-                        }
                         load_context(&context);
-                        i386_load_segment_descriptor(ES);
-                        i386_load_segment_descriptor(CS);
-                        i386_load_segment_descriptor(SS);
-                        i386_load_segment_descriptor(DS);
-                        i386_load_segment_descriptor(FS);
-                        i386_load_segment_descriptor(GS);
-                        /* int1(toolhelp), int3(toolhelp), int25(rawread) change esp */
-                        if (context.Esp == oldesp)
-                        {
-                            WORD temp_ip = POP16();
-                            WORD temp_cs = POP16();
-                            WORD temp_flags = POP16();
-                            PUSH16((WORD)context.EFlags | (temp_flags & 0x200)); // restore IF if it was set on entry
-                            PUSH16(ctx_cs);
-                            PUSH16(ctx_ip);
-                        }
+                        continue;
                     }
 				}
 				if ((void(*)(void))m_eip == from16_reg)

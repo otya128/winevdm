@@ -1093,20 +1093,11 @@ static void WINAPI DOSVM_Int5cHandler( CONTEXT *context )
     *(ptr+0x01) = 0xFB; /* NetBIOS emulator not found */
     SET_AL( context, 0xFB );
 }
-static WORD POP16(CONTEXT *context)
-{
-    LPWORD stack = MapSL(MAKESEGPTR(context->SegSs, context->Esp));
-    context->Esp += 2;
-    return *stack;
-}
-
 static void WINAPI DOSVM_Int01Handler(CONTEXT *context)
 {
     HMODULE toolhelp = GetModuleHandleA("toolhelp.dll16");
     WORD flags;
-    context->Eip = POP16(context);
-    context->SegCs = POP16(context);
-    flags = POP16(context);
+    flags = context->EFlags;
     context->EFlags = flags & ~0x100; /* TF */
     SEGPTR stack = MAKESEGPTR(context->SegSs, context->Esp);
     FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(context->SegCs, context->Eip), flags, 1, context->Eax);
@@ -1122,9 +1113,6 @@ static void WINAPI DOSVM_Int01Handler(CONTEXT *context)
 static void WINAPI DOSVM_Int03Handler(CONTEXT *context)
 {
     HMODULE toolhelp = GetModuleHandleA("toolhelp.dll16");
-    context->Eip = POP16(context);
-    context->SegCs = POP16(context);
-    context->EFlags = POP16(context);
     SEGPTR stack = MAKESEGPTR(context->SegSs, context->Esp);
     FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(context->SegCs, context->Eip), context->EFlags, 3, context->Eax);
     if (intcb)

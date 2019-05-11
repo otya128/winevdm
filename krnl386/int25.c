@@ -87,21 +87,7 @@ void WINAPI DOSVM_Int25Handler( CONTEXT *context )
     DWORD begin;
     DWORD length;
 
-    if (!ISV86(context))
-    {
-        WORD *stack = CTX_SEG_OFF_TO_LIN(context, context->SegSs, context->Esp);
-        WORD eip = *stack;
-        WORD cs = *++stack;
-        context->Esp += 4;
-        PUSH_WORD16(context, (WORD)context->EFlags);
-        PUSH_WORD16(context, cs);
-        PUSH_WORD16(context, eip);
-    }
-    else
-    {
-        /* v8086 */
-        PUSH_WORD16(context, (WORD)context->EFlags);
-    }
+    PUSH_WORD16(context, (WORD)context->EFlags);
     drivespec[0] += AL_reg( context );
 
     if (GetDriveTypeW( drivespec ) == DRIVE_NO_ROOT_DIR || 
