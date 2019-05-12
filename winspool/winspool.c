@@ -146,15 +146,18 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
     case DC_PAPERSIZE:
     {
         DWORD papers = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
-        LPPOINT points32 = (LPPOINT)HeapAlloc(GetProcessHeap(), 0, papers * sizeof(POINT));
+        LPPOINT points32 = !pOutput ? NULL : (LPPOINT)HeapAlloc(GetProcessHeap(), 0, papers * sizeof(POINT));
         result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, points32, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
-        LPPOINT16 points16 = (LPPOINT16)pOutput;
-        for (int i = 0; i < result; i++)
+        if (pOutput)
         {
-            points16[i].x = points32[i].x;
-            points16[i].y = points32[i].y;
+            LPPOINT16 points16 = (LPPOINT16)pOutput;
+            for (int i = 0; i < result; i++)
+            {
+                points16[i].x = points32[i].x;
+                points16[i].y = points32[i].y;
+            }
+            HeapFree(GetProcessHeap(), 0, points32);
         }
-        HeapFree(GetProcessHeap(), 0, points32);
         break;
     }
     case DC_EXTRA:
