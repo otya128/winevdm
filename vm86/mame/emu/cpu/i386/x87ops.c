@@ -4442,13 +4442,13 @@ extern "C"
         frstor_t frstor;
 		fistp_t fistp;
     } x87function;
-    __declspec(dllexport) void fldcw(WORD cw)
+    void fldcw(WORD cw)
 	{
 		x87_write_cw(cw);
 
 		x87_check_exceptions();
 	}
-	__declspec(dllexport) void wait()
+	void wait()
 	{
 		/*
 		static void I386OP(wait)()              // Opcode 0x9B
@@ -4457,20 +4457,20 @@ extern "C"
 		}
 		*/
 	}
-	__declspec(dllexport) void fninit()
+	void fninit()
 	{
 		x87_reset();
 	}
-	__declspec(dllexport) void fstcw(WORD *ea)
+	void fstcw(WORD *ea)
 	{
 		*ea = m_x87_cw;
 		//WRITE16(ea, m_x87_cw);
 	}
-	__declspec(dllexport) void fstsw(WORD *ea)
+	void fstsw(WORD *ea)
 	{
 		*ea = m_x87_sw;
 	}
-	__declspec(dllexport) void frndint()
+	void frndint()
 	{
 		floatx80 value;
 
@@ -4489,11 +4489,11 @@ extern "C"
 		if (x87_check_exceptions())
 			x87_write_stack(0, value, TRUE);
 	}
-	__declspec(dllexport) void fclex()
+	void fclex()
 	{
 		m_x87_sw &= ~0x80ff;
 	}
-    __declspec(dllexport) void fsave(char *ptr)
+    void fsave(char *ptr)
     {
         UINT32 ea = (UINT32)ptr + 6;
         *(UINT16*)(ptr + 0) = m_x87_cw;
@@ -4502,7 +4502,7 @@ extern "C"
         for (int i = 0; i < 8; ++i)
             WRITE80(ea + i * 10, ST(i));
     }
-    __declspec(dllexport) void frstor(const char *ptr)
+    void frstor(const char *ptr)
     {
         UINT32 ea = (UINT32)ptr;
         x87_write_cw(READ16(ea));
@@ -4511,7 +4511,7 @@ extern "C"
         for (int i = 0; i < 8; ++i)
             x87_write_stack(i, READ80(ea + i * 10), FALSE);
     }
-	__declspec(dllexport) DWORD fistp(WORD round)
+	DWORD fistp(WORD round)
 	{
 		DWORD m32int = 0x80000000;
 		if (!X87_IS_ST_EMPTY(0))
