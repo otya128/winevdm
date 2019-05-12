@@ -1528,7 +1528,7 @@ DWORD NE_StartTask(void)
 			  OFFSETOF(getWOW32Reserved()));
 
         WOWCallback16Ex( 0, WCB16_REGS, 0, NULL, (DWORD *)&context );
-        ExitThread( LOWORD(context.Eax) );
+        DOSVM_Exit( LOWORD(context.Eax) );
     }
     return hInstance;  /* error code */
 }

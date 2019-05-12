@@ -49,6 +49,7 @@
 #include "kernel16_private.h"
 #include "dosexe.h"
 #include "vga.h"
+#include "../toolhelp/toolhelp.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(module);
 
@@ -71,6 +72,7 @@ void DOSVM_Exit( WORD retval )
 {
     DWORD count;
 
+    TOOLHELP_CallNotify(NFY_EXITTASK, retval);
     ReleaseThunkLock( &count );
     ExitThread( retval );
 }
@@ -680,7 +682,7 @@ static DWORD MZ_Launch( LPCSTR cmdtail, int length )
   _LeaveSysLevel( lock );
 
   /* force the message queue to be created */
-  PeekMessageW(&msg, NULL, WM_USER, WM_USER, PM_NOREMOVE);
+  PeekMessageW(&msg, NULL, WM_USER + 1, WM_USER + 1, PM_NOREMOVE);
 
   ResumeThread(dosvm_thread);
   rv = DOSVM_Loop(dosvm_thread);
