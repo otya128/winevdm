@@ -41,6 +41,7 @@
 #include "wine/debug.h"
 #include "winuser.h"
 #include "shellapi.h"
+#include "../toolhelp/toolhelp.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(module);
 WINE_DECLARE_DEBUG_CHANNEL(loaddll);
@@ -1429,6 +1430,15 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
 }
 
 
+BOOL WINAPI TOOLHELP_CallNotify(WORD wID, DWORD dwData)
+{
+    /* toolhelp.dll16 may be unloaded? */
+    HMODULE hmod = GetModuleHandleA("toolhelp.dll16");
+    BOOL(WINAPI*pTOOLHELP_CallNotify)(WORD wID, DWORD dwData) = (BOOL(WINAPI*)(WORD wID, DWORD dwData))GetProcAddress(hmod, "TOOLHELP_CallNotify");
+    if (pTOOLHELP_CallNotify)
+        return pTOOLHELP_CallNotify(wID, dwData);
+    return FALSE;
+}
 /**********************************************************************
  *          NE_StartTask
  *
@@ -1508,6 +1518,7 @@ DWORD NE_StartTask(void)
         context.Ecx    = pModule->ne_heap;
         context.Edi    = pTask->hInstance;
         context.Esi    = pTask->hPrevInstance;
+        TOOLHELP_CallNotify(NFY_STARTTASK, MAKESEGPTR(context.SegCs, context.Eip));
 
         /* Now call 16-bit entry point */
 

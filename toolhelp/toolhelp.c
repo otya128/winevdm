@@ -767,3 +767,35 @@ BOOL16 WINAPI ClassNext16(CLASSENTRY *pClassEntry)
 {
     return USER_ClassNext16(pClassEntry);
 }
+
+BOOL WINAPI TOOLHELP_CallNotify(WORD wID, DWORD dwData)
+{
+    int i;
+    DWORD ret = FALSE;
+    if (nrofnotifys == 0)
+        return FALSE;
+    TRACE("(%04x,%08x)\n", wID, dwData);
+    for (i = 0; i < nrofnotifys; i++)
+    {
+        WORD args[3];
+        PVOID sssp;
+        if ((wID == NFY_TASKIN || wID == NFY_TASKOUT) && (notifys[i].wFlags & NF_TASKSWITCH) != NF_TASKSWITCH)
+        {
+            continue;
+        }
+        if ((wID == NFY_RIP) && (notifys[i].wFlags & NF_RIP) != NF_RIP)
+        {
+            continue;
+        }
+        sssp = getWOW32Reserved();
+        args[2] = wID;
+        args[1] = HIWORD(dwData);
+        args[0] = LOWORD(dwData);
+        WOWCallback16Ex(notifys[i].lpfnCallback, WCB16_PASCAL, 6, &args, &ret);
+        setWOW32Reserved(sssp);
+        if (LOWORD(ret))
+            break;
+    }
+    TRACE("ret (%04x,%08x) retval=%04x\n", wID, dwData, LOWORD(ret));
+    return LOWORD(ret);
+}

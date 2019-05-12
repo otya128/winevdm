@@ -9,3 +9,4 @@ EXPORTS
   InterruptRegister16
   InterruptUnRegister16
   NotifyUnRegister16
+  TOOLHELP_CallNotify

@@ -337,6 +337,7 @@ typedef struct {
 	WORD	wSegNum;
 	WORD	wType;		/* bit 0 set if this is a code segment */
 	WORD	wcInstance;	/* only valid for data segment */
+	SEGPTR  lpstrModuleName;
 } NFYLOADSEG;
 /* called when freeing a segment. LOWORD(dwData) is the freed selector */
 #define NFY_FREESEG	2
@@ -416,5 +417,7 @@ typedef struct {
 } STACKTRACEENTRY;
 
 #include <poppack.h>
+
+BOOL WINAPI TOOLHELP_CallNotify(WORD wID, DWORD dwData);
 
 #endif /* __WINE_TOOLHELP_H */
