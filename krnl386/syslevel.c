@@ -104,8 +104,26 @@ VOID WINAPI _EnterSysLevel(SYSLEVEL *lock)
     if (thread_data->yield_wait_event)
     {
         HANDLE event = thread_data->yield_wait_event;
+        DWORD mutex_count, count;
         RtlLeaveCriticalSection(&lock->crst);
+        mutex_count = _ConfirmSysLevel(lock);
+        count = mutex_count;
+        /* release lock */
+        while (count-- > 0)
+        {
+            if (--thread_data->sys_count[lock->level] == 0)
+                thread_data->sys_mutex[lock->level] = NULL;
+            RtlLeaveCriticalSection(&lock->crst);
+        }
         WaitForSingleObject(event, INFINITE);
+        count = mutex_count;
+        /* restore lock */
+        while (count-- > 0)
+        {
+            thread_data->sys_count[lock->level]++;
+            thread_data->sys_mutex[lock->level] = lock;
+            RtlEnterCriticalSection(&lock->crst);
+        }
         RtlEnterCriticalSection(&lock->crst);
         CloseHandle(event);
     }
