@@ -31,9 +31,11 @@ WINE_DEFAULT_DEBUG_CHANNEL(int);
 //VM86.DLL
 
 typedef void(*fldcw_t)(WORD);
+typedef void(*fldsw_t)(WORD);
 typedef void(*wait_t)();
 typedef void(*fninit_t)();
 typedef void(*fstcw_t)(WORD*);
+typedef void(*fstsw_t)(WORD*);
 typedef void(*frndint_t)();
 typedef void(*fclex_t)();
 typedef void(*fsave_t)(char*);
@@ -53,6 +55,10 @@ void fninit_stub()
     FIXME("stub\n");
 }
 void fstcw_stub(WORD* a)
+{
+    FIXME("stub\n");
+}
+void fstsw_stub(WORD* a)
 {
     FIXME("stub\n");
 }
@@ -83,6 +89,7 @@ typedef struct
     wait_t wait;
     fninit_t fninit;
     fstcw_t fstcw;
+    fstsw_t fstsw;
     frndint_t frndint;
     fclex_t fclex;
     fsave_t fsave;
@@ -111,6 +118,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
         x87.fninit = fninit_stub;
     if (!x87.fstcw)
         x87.fstcw = fstcw_stub;
+    if (!x87.fstsw)
+        x87.fstsw = fstsw_stub;
     if (!x87.frndint)
         x87.frndint = frndint_stub;
     if (!x87.fclex)
@@ -353,7 +362,7 @@ void WINAPI _fpMath( CONTEXT *context )
         context->Eax &= ~0xffff;  /* set AX to 0 */
 		if (Installed) {
 #if USE_VM86_DLL
-            x87.fstcw(&StatusWord_1);
+            x87.fstsw(&StatusWord_1);
             x87.wait();
 #else/*USE_VM86_DLL*/
 #ifdef __i386__

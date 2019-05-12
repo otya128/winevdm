@@ -4423,6 +4423,7 @@ extern "C"
     typedef void(*wait_t)();
     typedef void(*fninit_t)();
     typedef void(*fstcw_t)(WORD*);
+    typedef void(*fstsw_t)(WORD*);
     typedef void(*frndint_t)();
     typedef void(*fclex_t)();
     typedef void(*fsave_t)(char*);
@@ -4434,6 +4435,7 @@ extern "C"
         wait_t wait;
         fninit_t fninit;
         fstcw_t fstcw;
+        fstsw_t fstsw;
         frndint_t frndint;
         fclex_t fclex;
         fsave_t fsave;
@@ -4463,6 +4465,10 @@ extern "C"
 	{
 		*ea = m_x87_cw;
 		//WRITE16(ea, m_x87_cw);
+	}
+	__declspec(dllexport) void fstsw(WORD *ea)
+	{
+		*ea = m_x87_sw;
 	}
 	__declspec(dllexport) void frndint()
 	{
@@ -4533,6 +4539,7 @@ extern "C"
         func->frstor = frstor;
         func->fsave = fsave;
         func->fstcw = fstcw;
+        func->fstsw = fstsw;
         func->wait = wait;
 		func->fistp = fistp;
     }

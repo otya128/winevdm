@@ -1009,6 +1009,11 @@ void fstcw(WORD* a)
     char instr[] = { 0xd9, 0x38, 0xee }; /* fnstcw word ptr [eax] */
     callx87(instr, a);
 }
+void fstsw(WORD* a)
+{
+    char instr[] = { 0xdd, 0x38, 0xee }; /* fnstsw word ptr [eax] */
+    callx87(instr, a);
+}
 void frndint()
 {
     char instr[] = { 0xd9, 0xfc, 0xee }; /* frndint */
@@ -1033,6 +1038,7 @@ typedef void(*fldcw_t)(WORD);
 typedef void(*wait_t)();
 typedef void(*fninit_t)();
 typedef void(*fstcw_t)(WORD*);
+typedef void(*fstsw_t)(WORD*);
 typedef void(*frndint_t)();
 typedef void(*fclex_t)();
 typedef void(*fsave_t)(char*);
@@ -1043,6 +1049,7 @@ typedef struct
     wait_t wait;
     fninit_t fninit;
     fstcw_t fstcw;
+    fstsw_t fstsw;
     frndint_t frndint;
     fclex_t fclex;
     fsave_t fsave;
@@ -1057,5 +1064,6 @@ __declspec(dllexport) void load_x87function(x87function *func)
     func->frstor = frstor;
     func->fsave = fsave;
     func->fstcw = fstcw;
+    func->fstsw = fstsw;
     func->wait = wait;
 }
