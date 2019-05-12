@@ -8,3 +8,4 @@ EXPORTS
   next_intcb
   InterruptRegister16
   InterruptUnRegister16
+  NotifyUnRegister16

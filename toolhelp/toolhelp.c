@@ -513,9 +513,9 @@ BOOL16 WINAPI NotifyRegister16( HTASK16 htask, FARPROC16 lpfnCallback,
 }
 
 /***********************************************************************
- *		NotifyUnregister (TOOLHELP.74)
+ *		NotifyUnRegister (TOOLHELP.74)
  */
-BOOL16 WINAPI NotifyUnregister16( HTASK16 htask )
+BOOL16 WINAPI NotifyUnRegister16( HTASK16 htask )
 {
     int	i;
 

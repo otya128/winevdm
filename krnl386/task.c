@@ -714,6 +714,18 @@ static void TASK_CallTaskSignalProc( UINT16 uCode, HANDLE16 hTaskOrModule )
 }
 
 
+static void exit_toolhelp()
+{
+    HMODULE toolhelp = GetModuleHandleA("TOOLHELP.DLL16");
+    BOOL16(WINAPI*InterruptUnRegister16)(HTASK16);
+    BOOL16(WINAPI*NotifyUnRegister16)(HTASK16);
+    if (!toolhelp)
+        return;
+    InterruptUnRegister16 = (BOOL16(WINAPI*)(HTASK16))GetProcAddress(toolhelp, "InterruptUnRegister16");
+    NotifyUnRegister16 = (BOOL16(WINAPI*)(HTASK16))GetProcAddress(toolhelp, "NotifyUnRegister16");
+    InterruptUnRegister16(0);
+    NotifyUnRegister16(0);
+}
 /***********************************************************************
  *           TASK_ExitTask
  */
@@ -739,6 +751,9 @@ void TASK_ExitTask(void)
 
     TASK_CallTaskSignalProc( USIG16_TERMINATION, pTask->hSelf );
     NE_CallUserSignalProc(pTask->hSelf, USIG16_TERMINATION, 0, 0, 0);
+
+    /* TOOLHELP */
+    exit_toolhelp();
 
     /* Remove the task from the list to be sure we never switch back to it */
     TASK_UnlinkTask( pTask->hSelf );

@@ -22,7 +22,7 @@
 71 pascal -ret16 SystemHeapInfo(ptr) SystemHeapInfo16
 72 pascal -ret16 MemManInfo(ptr) MemManInfo16
 73 pascal -ret16 NotifyRegister(word segptr word) NotifyRegister16
-74 pascal -ret16 NotifyUnregister(word) NotifyUnregister16
+74 pascal -ret16 NotifyUnRegister(word) NotifyUnRegister16
 75 pascal -ret16 InterruptRegister(word segptr) InterruptRegister16
 76 pascal -ret16 InterruptUnRegister(word) InterruptUnRegister16
 77 pascal -ret16 TerminateApp(word word) TerminateApp16
@@ -39,3 +39,7 @@
 100 pascal -register next_intcb() next_intcb
 
 @ stdcall -arch=win32 get_intcb(ptr long long long long)
+@ stdcall -arch=win32 next_intcb(ptr)
+@ stdcall -arch=win32 InterruptRegister16(long long)
+@ stdcall -arch=win32 InterruptUnRegister16(long)
+@ stdcall -arch=win32 NotifyUnRegister16(long)
