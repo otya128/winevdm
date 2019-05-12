@@ -724,9 +724,11 @@ extern "C"
                 fprintf(stderr, "                ");
             }
             fprintf(stderr, " args(");
+            BOOL farframe = old_ebp & 1;
+            old_ebp &= ~1;
             for (int i = 0; i < 10; i++)
             {
-                fprintf(stderr, i ? ",%04x" : "%04x", read_word(SREG_BASE(SS) + old_ebp + 6 + i * 2));
+                fprintf(stderr, i ? ",%04x" : "%04x", read_word(SREG_BASE(SS) + old_ebp + (farframe ? 6 : 4) + i * 2));
             }
             fprintf(stderr, ")\n");
         }
@@ -738,17 +740,25 @@ extern "C"
         __TRY
         {
             auto ebp = REG32(EBP);
-            print_16bit_stack(MAKESEGPTR(SREG(CS), m_eip), ebp);
+            auto last_cs = SREG(CS);
+            print_16bit_stack(MAKESEGPTR(last_cs, m_eip), ebp);
             for (int i = 0; i < 60; i++)
             {
                 auto old_ebp = read_word(SREG_BASE(SS) + ebp);
-                auto ret_addr = read_dword(SREG_BASE(SS) + ebp + 2);
+                DWORD ret_addr;
+                if (old_ebp & 1)
+                {
+                        ret_addr = read_dword(SREG_BASE(SS) + ebp + 2);
+                        last_cs = SELECTOROF(ret_addr);
+                }
+                else
+                        ret_addr = MAKESEGPTR(last_cs, read_word(SREG_BASE(SS) + ebp + 2));
                 print_16bit_stack(ret_addr, old_ebp);
                 if (old_ebp == ebp)
                 {
                     break;
                 }
-                ebp = old_ebp;
+                ebp = old_ebp & ~1;
             }
         }
         __EXCEPT_PAGE_FAULT
