@@ -441,10 +441,18 @@
 483 pascal -ret16 SystemParametersInfo(word word ptr word) SystemParametersInfo16
 #484 __GP
 # Stubs for Hebrew version
-489 pascal -ret16 USER_489() stub_USER_489
-490 pascal -ret16 USER_490() stub_USER_490
-492 pascal -ret16 USER_492() stub_USER_492
-496 pascal -ret16 USER_496() stub_USER_496
+485 pascal -ret16 MakeMenuRToL() stub_USER_485
+486 pascal -ret16 RawGetTabbedTextExtent() stub_USER_486
+487 pascal -ret16 RawDrawText(word str s_word ptr word) RawDrawText16
+488 pascal -ret16 RawTabbedTextOut() stub_USER_488
+489 pascal -ret16 GetKeyboardLanguage() GetKeyboardLanguage16
+490 pascal -ret16 SetKeyboardLanguage(word word) SetKeyboardLanguage16
+491 pascal -ret16 BiDiGrayString() stub_USER_491
+492 pascal -ret16 MakeScrollBarsRToL(word word word) MakeScrollBarsRToL
+493 pascal -ret16 IsCharBiDi() stub_USER_493
+494 pascal -ret16 IsCharEnglish() stub_USER_494
+495 pascal -ret16 LenFruser1() stub_USER_495
+496 pascal -ret16 DrawTextRToL() stub_USER_496
 498 stub BEAR498
 499 pascal -ret16 WNetErrorText(word ptr word) WNetErrorText16
 500 stub FARCALLNETDRIVER 			# Undocumented Windows
@@ -540,24 +548,34 @@
 890 stub InstallIMT
 891 stub UninstallIMT
 # API for Hebrew version
+901 pascal -ret16 FindResourceEx() FindResourceEx16
 902 pascal -ret16 LoadSystemLanguageString(word word ptr word word) LoadSystemLanguageString16
+903 pascal -ret16 GetClipboardCodePage(word word word) GetClipboardCodePage16
+904 pascal -ret16 ResetDialogTemplate() ResetDialogTemplate16
 905 pascal -ret16 ChangeDialogTemplate() ChangeDialogTemplate16
 906 pascal -ret16 GetNumLanguages() GetNumLanguages16
 907 pascal -ret16 GetLanguageName(word word ptr word) GetLanguageName16
+908 pascal -ret16 GetLanguageResId() GetLanguageResId16
 909 pascal -ret16 SetWindowTextEx(word str word) SetWindowTextEx16
-910 pascal -ret16 BiDiMessageBoxEx() BiDiMessageBoxEx16
+910 pascal -ret16 BiDiMessageBoxEx(word str str word word) MessageBoxEx16
 911 pascal -ret16 SetDlgItemTextEx(word word str word) SetDlgItemTextEx16
 912 pascal   ChangeKeyboardLanguage(word word) ChangeKeyboardLanguage16
 913 pascal -ret16 GetCodePageSystemFont(word word) GetCodePageSystemFont16
 914 pascal -ret16 QueryCodePage(word word word long) QueryCodePage16
 915 pascal   GetAppCodePage(word) GetAppCodePage16
 916 pascal -ret16 CreateDialogIndirectParamML(word ptr word ptr long word word str word) CreateDialogIndirectParamML16
+917 pascal -ret16 CreateDialogParamML() CreateDialogParamML16
 918 pascal -ret16 DialogBoxIndirectParamML(word word word ptr long word word str word) DialogBoxIndirectParamML16
 919 pascal -ret16 LoadLanguageString(word word word ptr word) LoadLanguageString16
 920 pascal   SetAppCodePage(word word word word) SetAppCodePage16
 922 pascal   GetBaseCodePage() GetBaseCodePage16
 923 pascal -ret16 FindLanguageResource(word str str word) FindLanguageResource16
 924 pascal   ChangeKeyboardCodePage(word word) ChangeKeyboardCodePage16
+925 pascal -ret16 LangToBestCodePage() LangToBestCodePage16
+926 pascal -ret16 GetNumKeyboards() GetNumKeyboards16
+927 pascal -ret16 IsCharHebrew(word) IsCharHebrew16
+928 pascal -ret16 IsCharFrench(word) IsCharFrench16
+929 pascal -ret16 IsCharArabic(word) IsCharArabic16
 930 pascal -ret16 MessageBoxEx(word str str word word) MessageBoxEx16
 1000 pascal -ret16 SetProcessDefaultLayout(long) SetProcessDefaultLayout16
 1001 pascal -ret16 GetProcessDefaultLayout(ptr) GetProcessDefaultLayout16

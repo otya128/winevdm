@@ -37,12 +37,6 @@ WINE_DEFAULT_DEBUG_CHANNEL(user);
  */
 LONG WINAPI ChangeDialogTemplate16(void) { FIXME("stub (no prototype)\n"); return 0; }
 
-/***********************************************************************
- *		BiDiMessageBoxEx   (USER.910)
- * FIXME: The prototypes of this function have not been found yet.
- */
-LONG WINAPI BiDiMessageBoxEx16(void) { FIXME("stub (no prototype)\n"); return 0; }
-
 
 /******************************************************************************
  *                    ChangeKeyboardCodePage [USER.924]
@@ -155,7 +149,7 @@ DWORD WINAPI GetBaseCodePage16( void )
 HFONT16 WINAPI GetCodePageSystemFont16( UINT16 iFont, UINT16 iCodePage )
 {
     FIXME( "( %hu, %hu ): stub\n", iFont, iCodePage );
-    return 0;
+    return 1;
 }
 
 
@@ -247,6 +241,37 @@ UINT WINAPI LoadSystemLanguageString16( HINSTANCE16 hinstCaller, UINT16 id,
     return 0;
 }
 
+LONG WINAPI FindResourceEx16()
+{
+    FIXME("stub(np)\n");
+    return 0;
+}
+
+LONG WINAPI GetClipboardCodePage16(WORD a1, WORD a2, WORD a3)
+{
+    FIXME("stub(%04x,%04x,%04x)\n", a1, a2, a3);
+    return 0;
+}
+
+LONG WINAPI ResetDialogTemplate16()
+{
+    FIXME("stub(np)\n");
+    return 0;
+}
+
+LONG WINAPI GetLanguageResId16()
+{
+    FIXME("stub(np)\n");
+    return 0;
+}
+
+LONG WINAPI CreateDialogParamML16()
+{
+    FIXME("stub(np)\n");
+    return 0;
+}
+
+
 
 /***********************************************************************
  *           MessageBoxEx [USER.930]
@@ -267,7 +292,7 @@ LRESULT WINAPI QueryCodePage16( UINT16 idxLang, UINT16 msg,
                                 WPARAM16 wParam, LPARAM lParam )
 {
     FIXME( "( %hu, %hu, %04hx, %08lx ): stub\n", idxLang, msg, wParam, lParam );
-    return 0;
+    return 1;
 }
 
 /***********************************************************************
@@ -319,4 +344,5 @@ BOOL16 WINAPI SetProcessDefaultLayout16( DWORD dwDefaultLayout )
 void WINAPI SetWindowTextEx16( HWND16 hwnd, LPCSTR lpsz, UINT16 iLang )
 {
     FIXME( "( %04hx, %p, %hu ): stub\n", hwnd, lpsz, iLang );
+    SetWindowTextA(WIN_Handle32(hwnd), lpsz);
 }

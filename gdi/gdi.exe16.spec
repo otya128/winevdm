@@ -369,25 +369,49 @@
 528 stub GDIParametersInfo
 529 pascal -ret16 CreateHalftonePalette(word) CreateHalftonePalette16
 # Hebrew version API's
-530 pascal -ret16 RawTextOut() RawTextOut16
-531 pascal -ret16 RawExtTextOut() RawExtTextOut16
+530 pascal -ret16 RawTextOut(word s_word s_word str word) RawTextOut16
+531 pascal -ret16 RawExtTextOut(word s_word s_word word ptr str word ptr) RawExtTextOut16
 532 pascal -ret16 RawGetTextExtent(word str word) RawGetTextExtent16
+533 pascal -ret16 RawGetTextExtentEx() RawGetTextExtentEx16
 536 pascal -ret16 BiDiLayout() BiDiLayout16
-538 pascal -ret16 BiDiCreateTabString() BiDiCreateTabString16
-540 pascal -ret16 BiDiGlyphOut() BiDiGlyphOut16
+537 pascal -ret16 BiDiCreateTabString() BiDiCreateTabString16
+538 pascal -ret16 BiDiCreateString() BiDiCreateString16
+539 pascal -ret16 BiDiStringOut() BiDiStringOut16
+540 pascal -ret16 BiDiGlyphOut(word word word word str word word word) BiDiGlyphOut16
+541 pascal -ret16 BiDiJustifyString() BiDiJustifyString16
+542 pascal -ret16 BiDiSetStringTabs() BiDiSetStringTabs16
 543 pascal -ret16 BiDiGetStringExtent() BiDiGetStringExtent16
-555 pascal -ret16 BiDiDeleteString() BiDiDeleteString16
+544 pascal -ret16 BiDiGetNextGlyph() BiDiGetNextGlyph16
+545 pascal -ret16 BiDiGetPrevGlyph() BiDiGetPrevGlyph16
+546 pascal -ret16 BiDiIsStringRTL() BiDiIsStringRTL16
+547 pascal -ret16 BiDiGlyphLength() BiDiGlyphLength16
+548 pascal -ret16 BiDiCaretStringToPel() BiDiCaretStringTopel16
+549 pascal -ret16 BiDiCaretPelToString() BiDiCaretPelToString16
+550 pascal -ret16 BiDiStringToGlyph() BiDiStringToGlyph16
+551 pascal -ret16 BiDiGlyphToString() BiDiGlyphToString16
+552 pascal -ret16 BiDiPelToGlyph() BiDiPelToGlyph16
+553 pascal -ret16 BiDiGlyphToPel() BiDiGlyphToPel16
+554 pascal -ret16 BiDiBounds() BiDiBounds16
+555 pascal -ret16 BiDiDeleteString(word) BiDiDeleteString16
 556 pascal -ret16 BiDiSetDefaults() BiDiSetDefaults16
 558 pascal -ret16 BiDiGetDefaults() BiDiGetDefaults16
+559 pascal -ret16 BiDiCalcString(word word ptr word word word word word) BiDiCalcString16
 560 pascal -ret16 BiDiShape() BiDiShape16
 561 pascal -ret16 BiDiFontComplement() BiDiFontComplement16
+563 pascal -ret16 BiDiCalcTabString() BiDiCalcTabString16
 564 pascal -ret16 BiDiSetKashida() BiDiSetKashida16
 565 pascal -ret16 BiDiKExtTextOut() BiDiKExtTextOut16
 566 pascal -ret16 BiDiShapeEx() BiDiShapeEx16
-569 pascal -ret16 BiDiCreateStringEx() BiDiCreateStringEx16
+569 pascal -ret16 BiDiCreateStringEx(word word word ptr word word word word word) BiDiCreateStringEx16
+570 pascal -ret16 GetUnicodeMap() GetUnicodeMap16
 571 pascal -ret16 GetTextExtentRtoL() GetTextExtentRtoL16
-572 pascal -ret16 GetHDCCharSet() GetHDCCharSet16
-573 pascal -ret16 BiDiLayoutEx() BiDiLayoutEx16
+572 pascal -ret16 GetHDCCharSet(word) GetHDCCharSet16
+573 pascal -ret16 BiDiLayoutEx(ptr word word word ptr word word word word ptr ptr word word word) BiDiLayoutEx16
+574 pascal -ret16 BiDiCreateTabStringEx() BiDiCreateTabStringEx16
+575 pascal -ret16 BiDiCalcTabStringEx() BiDiCalcTabStringEx16
+576 pascal -ret16 BiDiCalcStringEx() BiDiCalcStringEx16
+588 pascal -ret16 SetTextCodePage(word word) SetTextCodePage16
+589 pascal -ret16 GetTextCodePage() GetTextCodePage16
 602 pascal -ret16 SetDIBColorTable(word word word ptr) SetDIBColorTable16
 603 pascal -ret16 GetDIBColorTable(word word word ptr) GetDIBColorTable16
 604 pascal -ret16 SetSolidBrush(word long) SetSolidBrush16

@@ -3674,31 +3674,31 @@ BOOL16 WINAPI SystemParametersInfo16( UINT16 uAction, UINT16 uParam,
 
 
 /***********************************************************************
- *		USER_489 (USER.489)
+ *		GetKeyboardLanguage (USER.489)
  */
-LONG WINAPI stub_USER_489(void)
+LONG WINAPI GetKeyboardLanguage16(void)
 {
-    FIXME("stub\n");
+    FIXME("stub()\n");
     return 0;
 }
 
 
 /***********************************************************************
- *		USER_490 (USER.490)
+ *		SetKeyboardLanguage (USER.490)
  */
-LONG WINAPI stub_USER_490(void)
+LONG WINAPI SetKeyboardLanguage16(WORD a1, WORD a2)
 {
-    FIXME("stub\n");
+    FIXME("stub(%04x,%04x)\n", a1, a2);
     return 0;
 }
 
 
 /***********************************************************************
- *		USER_492 (USER.492)
+ *		MakeScrollBarsRToL (USER.492)
  */
-LONG WINAPI stub_USER_492(void)
+LONG WINAPI MakeScrollBarsRToL(WORD a1, WORD a2, WORD a3)
 {
-    FIXME("stub\n");
+    FIXME("stub(%04x,%04x,%04x)\n", a1, a2, a3);
     return 0;
 }
 
@@ -3712,6 +3712,83 @@ LONG WINAPI stub_USER_496(void)
     return 0;
 }
 
+LONG WINAPI stub_USER_485(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+LONG WINAPI stub_USER_486(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+INT16 WINAPI RawDrawText16( HDC16 hdc, LPCSTR str, INT16 count, LPRECT16 rect, UINT16 flags )
+{
+    FIXME("(%04x,%s,%d,%p,%04x)\n", hdc, debugstr_an(str, count), rect, flags);
+    return DrawText16(hdc, str, count, rect, flags);
+}
+
+LONG WINAPI stub_USER_488(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+LONG WINAPI stub_USER_491(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+LONG WINAPI stub_USER_493(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+LONG WINAPI stub_USER_494(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+LONG WINAPI stub_USER_495(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+LONG WINAPI LangToBestCodePage16(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+LONG WINAPI GetNumKeyboards16(void)
+{
+    FIXME("stub\n");
+    return 0;
+}
+
+LONG WINAPI IsCharHebrew16(WORD a)
+{
+    FIXME("stub(%04x)\n", a);
+    return 0;
+}
+
+LONG WINAPI IsCharFrench16(WORD a)
+{
+    FIXME("stub(%04x)\n", a);
+    return 0;
+}
+
+LONG WINAPI IsCharArabic16(WORD a)
+{
+    FIXME("stub(%04x)\n", a);
+    return 0;
+}
 
 /***********************************************************************
  *           FormatMessage   (USER.606)
