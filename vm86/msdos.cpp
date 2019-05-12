@@ -2020,8 +2020,8 @@ EFLAGS:%08X\
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG16(BP), REG16(SI), REG16(DI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buf_pre);
         dump_all_modules();
-        walk_16bit_stack();
         dump_stack_trace();
+        walk_16bit_stack();
         fprintf(stderr, "========================\n");
 #if 0
         print_stack();
