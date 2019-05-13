@@ -3,8 +3,8 @@ image: Visual Studio 2017
 configuration: Release
 environment:
   matrix:
-  - BUILD_CMAKE: 0
-  - BUILD_CMAKE: 1
+  - THIS_BUILD_IS_RECOMMENDED__VCXPROJ_BUILD: 1
+  - THIS_BUILD_IS_NOT_RECOMMENDED__GCC_CMAKE_BUILD: 1
 build:
   parallel: true
   verbosity: quiet
@@ -13,10 +13,9 @@ for:
 -
   matrix:
     only:
-      - BUILD_CMAKE: 1
+      - THIS_BUILD_IS_NOT_RECOMMENDED__GCC_CMAKE_BUILD: 1
   build_script:
    ps: |
-     $ErrorActionPreference = "Stop"
      mkdir build
      cd build
      $env:MSYSTEM = "MINGW32"
@@ -139,7 +138,7 @@ for:
 -
   matrix:
     only:
-      - BUILD_CMAKE: 0
+      - THIS_BUILD_IS_RECOMMENDED__VCXPROJ_BUILD: 1
   before_build:
     ps: |
       C:\msys64\usr\bin\as --version
