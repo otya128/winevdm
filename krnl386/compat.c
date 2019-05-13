@@ -6,8 +6,8 @@ static char modes[256];
 
 BOOL WINAPI krnl386_get_compat_mode(const LPCSTR mode)
 {
-    int size = strnlen(mode, 256);
-    if (size == 256)
+    int size = strlen(mode);
+    if (size >= 256)
         return FALSE;
     char lowermode[256];
     for (int i = 0; i < size; i++)

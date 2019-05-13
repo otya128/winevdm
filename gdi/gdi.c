@@ -2458,7 +2458,9 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
                 }
             }
             strncpy(dst + hdrsize + nbitsize, (char *)font + fnt->fi.dfFace, 256);
-            int namelen = strnlen(dst + hdrsize + nbitsize, 256);
+            int namelen = strlen(dst + hdrsize + nbitsize);
+            if (namelen > 256)
+                namelen = 256;
             fnt = dst;
             fnt->dfVersion = 0x200;
             fnt->fi.dfBitsOffset = hdrsize;

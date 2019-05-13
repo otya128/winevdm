@@ -596,8 +596,8 @@ BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
     shared_wow_exec exec_data = { 0 };
     exec_data.header = SHARED_WOW_CURDIR_SUPPORTED;
     exec_data.showCmd = showCmd;
-    strcpy_s(exec_data.cmdline, MAX_PATH, cmdline);
-    strcpy_s(exec_data.appname, MAX_PATH, appname);
+    lstrcpynA(exec_data.cmdline, MAX_PATH, cmdline);
+    lstrcpynA(exec_data.appname, MAX_PATH, appname);
     GetCurrentDirectoryA(MAX_PATH, exec_data.curdir);
     DWORD w;
     WriteFile(client, &exec_data, sizeof(exec_data), &w, NULL);

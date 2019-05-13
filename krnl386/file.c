@@ -52,7 +52,7 @@ BOOL EnableRedirectSystemDir = TRUE;
 BOOL EnableRedirectSystemDir = FALSE;
 #endif
 const char *GetRedirectWindowsDir();
-void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output);
+static void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR output);
 
 NTSYSAPI
 NTSTATUS
