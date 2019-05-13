@@ -745,14 +745,14 @@ extern "C"
             for (int i = 0; i < 60; i++)
             {
                 auto old_ebp = read_word(SREG_BASE(SS) + ebp);
-                DWORD ret_addr;
-                if (old_ebp & 1)
+                DWORD ret_addr = read_dword(SREG_BASE(SS) + ebp + 2);
+                if ((old_ebp & 1) || ((wine_ldt_copy.flags[SELECTOROF(ret_addr) >> 3] & WINE_LDT_FLAGS_TYPE_MASK) == WINE_LDT_FLAGS_CODE))
                 {
-                        ret_addr = read_dword(SREG_BASE(SS) + ebp + 2);
-                        last_cs = SELECTOROF(ret_addr);
+                    old_ebp |= 1;
+                    last_cs = SELECTOROF(ret_addr);
                 }
                 else
-                        ret_addr = MAKESEGPTR(last_cs, read_word(SREG_BASE(SS) + ebp + 2));
+                    ret_addr = MAKESEGPTR(last_cs, OFFSETOF(ret_addr));
                 print_16bit_stack(ret_addr, old_ebp);
                 if (old_ebp == ebp)
                 {
