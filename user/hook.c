@@ -325,8 +325,7 @@ static LRESULT call_hook_entry_16( struct hook16_queue_info *info, struct hook_e
     context.SegDs = context.SegEs = SELECTOROF(getWOW32Reserved());
     context.SegFs = wine_get_fs();
     context.SegGs = wine_get_gs();
-    context.Eax = hook_entry->hinst16 | 1; /* Handle To Sel */
-    if (!context.Eax) context.Eax = context.SegDs;
+    context.Eax = context.SegDs;
     context.SegCs = SELECTOROF((DWORD)hook_entry->proc16);
     context.Eip = OFFSETOF((DWORD)hook_entry->proc16);
     context.Ebp = OFFSETOF(getWOW32Reserved()) + FIELD_OFFSET(STACK16FRAME, bp);
