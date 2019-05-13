@@ -3,5 +3,5 @@ add_library(olesvr SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/olesvr.def olesv
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(olesvr.dll16 olesvr)
-target_link_libraries(olesvr libwine winecrt0 wow32 krnl386 olesvr32.lib)
+target_link_libraries(olesvr libwine winecrt0 krnl386 olesvr32.lib)
 set_target_properties(olesvr PROPERTIES SUFFIX ".dll16")

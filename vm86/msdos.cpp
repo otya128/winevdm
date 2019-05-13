@@ -799,10 +799,10 @@ extern "C"
     {
         DWORD cb;
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
-        if (!K32EnumProcessModules(hProcess, nullptr, 0, &cb))
+        if (!EnumProcessModules(hProcess, nullptr, 0, &cb))
             goto exit;
         HMODULE *hModules = new HMODULE[cb / sizeof(HMODULE)];
-        if (!K32EnumProcessModules(hProcess, hModules, cb, &cb))
+        if (!EnumProcessModules(hProcess, hModules, cb, &cb))
             goto exit;
         for (int i = 0; i < cb / sizeof(HMODULE); i++)
         {
@@ -810,7 +810,7 @@ extern "C"
             if (GetModuleFileNameExW(hProcess, hModules[i], name, ARRAY_SIZE(name)))
             {
                 LPWSTR n = wcsrchr(name, L'\\');
-                fwprintf(stderr, L"%s\t%p\n", n ? n + 1 : name, hModules[i]);
+                fwprintf(stderr, L"%ls\t%p\n", n ? n + 1 : name, hModules[i]);
             }
         }
     exit:

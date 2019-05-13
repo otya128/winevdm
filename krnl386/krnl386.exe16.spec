@@ -787,3 +787,4 @@
 @ stdcall -arch=win32 TaskSetCSIP16(long long long)
 @ stdcall -arch=win32 TaskGetCSIP16(long)
 @ stdcall -arch=win32 TaskSwitch16(long long)
+@ stdcall -arch=win32 AllocDStoCSAlias16(long)

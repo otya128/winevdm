@@ -3,5 +3,5 @@ add_library(toolhelp SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/toolhelp.def t
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(toolhelp.dll16 toolhelp)
-target_link_libraries(toolhelp libwine winecrt0 wow32 krnl386 user)
+target_link_libraries(toolhelp libwine winecrt0 krnl386 user)
 set_target_properties(toolhelp PROPERTIES SUFFIX ".dll16")

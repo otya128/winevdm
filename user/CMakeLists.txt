@@ -3,5 +3,5 @@ add_library(user SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/user.def user.exe1
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp -D_WIN32_WINNT=0x0A00)
 spec_build(user.exe16 USER)
-target_link_libraries(user libwine winecrt0 wow32 krnl386 Mpr.lib UxTheme.lib ole32.lib version.lib)
+target_link_libraries(user libwine winecrt0 krnl386 Mpr.lib UxTheme.lib ole32.lib version.lib)
 set_target_properties(user PROPERTIES SUFFIX ".exe16")

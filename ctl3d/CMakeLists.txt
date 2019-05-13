@@ -3,5 +3,5 @@ add_library(ctl3d SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/ctl3d.def ctl3d.d
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(ctl3d.dll16 ctl3d)
-target_link_libraries(ctl3d libwine winecrt0 wow32 krnl386 ctl3dv2)
+target_link_libraries(ctl3d libwine winecrt0 krnl386 ctl3dv2)
 set_target_properties(ctl3d PROPERTIES SUFFIX ".dll16")

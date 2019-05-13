@@ -3,5 +3,5 @@ add_library(rmpatch SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/rmpatch.def rmp
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(rmpatch.dll16 rmpatch)
-target_link_libraries(rmpatch libwine winecrt0 wow32 krnl386 toolhelp rmpatch32.lib)
+target_link_libraries(rmpatch libwine winecrt0 krnl386 toolhelp)
 set_target_properties(rmpatch PROPERTIES SUFFIX ".dll16")

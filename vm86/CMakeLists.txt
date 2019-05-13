@@ -4,5 +4,5 @@ add_definitions(-D__i386__ -DHAS_I386 -DSUPPORT_FPU -DNtCurrentTeb=NtCurrentTeb_
 if (NOT(MSVC))
     string(APPEND CMAKE_CXX_FLAGS " -fpermissive")
 endif()
-target_link_libraries(vm86 libwine winecrt0 dbghelp.lib)
+target_link_libraries(vm86 libwine winecrt0 dbghelp.lib Psapi.lib)
 set_target_properties(vm86 PROPERTIES PREFIX "")

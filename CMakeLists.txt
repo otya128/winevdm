@@ -46,10 +46,11 @@ macro(widl_build file_idl file_c file_h)
     get_filename_component(name_we ${file_idl} NAME_WE)
     add_custom_command(OUTPUT ${file_c} ${file_h}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${file_idl} widl
-    COMMAND $<TARGET_FILE_DIR:widl>/widl ${CMAKE_CURRENT_SOURCE_DIR}/${file_idl} -o ${file_c} && $<TARGET_FILE_DIR:widl>/widl ${CMAKE_CURRENT_SOURCE_DIR}/${file_idl} -o ${file_h}
+    COMMAND $<TARGET_FILE_DIR:widl>/widl.exe ${CMAKE_CURRENT_SOURCE_DIR}/${file_idl} -o ${file_c} && $<TARGET_FILE_DIR:widl>/widl.exe ${CMAKE_CURRENT_SOURCE_DIR}/${file_idl} -o ${file_h}
 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_custom_target(generate_ifs_${name_we} DEPENDS ${file_c} ${file_h})
 endmacro()
+include_directories(BEFORE wow32)
 find_package(BISON)
 find_package(FLEX)
 

@@ -3,5 +3,5 @@ add_library(gdi SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/gdi.def gdi.exe16.o
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(gdi.exe16 GDI)
-target_link_libraries(gdi libwine winecrt0 wow32 krnl386 user)
+target_link_libraries(gdi libwine winecrt0 krnl386 user)
 set_target_properties(gdi PROPERTIES SUFFIX ".exe16")

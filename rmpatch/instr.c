@@ -39,7 +39,7 @@ static inline void add_stack(CONTEXT *context, int offset)
     ADD_LOWORD(context->Esp, offset);
 }
 
-static inline void *make_ptr(CONTEXT *context, DWORD seg, DWORD off)
+static inline void *make_ptr(CONTEXT *context, DWORD seg, DWORD off, int long_addr)
 {
     return (char *) MapSL(MAKESEGPTR(seg, off));
 }

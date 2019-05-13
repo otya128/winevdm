@@ -3,5 +3,5 @@ add_library(commctrl SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/commctrl.def c
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(commctrl.dll16 commctrl)
-target_link_libraries(commctrl libwine winecrt0 wow32 krnl386 user comctl32.lib)
+target_link_libraries(commctrl libwine winecrt0 krnl386 user comctl32.lib)
 set_target_properties(commctrl PROPERTIES SUFFIX ".dll16")

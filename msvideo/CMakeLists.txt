@@ -3,5 +3,5 @@ add_library(msvideo SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/msvideo.def msv
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(msvideo.dll16 msvideo)
-target_link_libraries(msvideo libwine winecrt0 wow32 krnl386 msvfw32.lib version.lib)
+target_link_libraries(msvideo libwine winecrt0 krnl386 msvfw32.lib version.lib)
 set_target_properties(msvideo PROPERTIES SUFFIX ".dll16")

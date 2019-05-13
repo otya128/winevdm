@@ -3,5 +3,5 @@ add_library(avifile SHARED ${SOURCE} ${CMAKE_SOURCE_DIR}/dummy.c ${CMAKE_CURRENT
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(avifile.dll16 avifile)
-target_link_libraries(avifile libwine winecrt0 wow32 krnl386 avifil32.lib)
+target_link_libraries(avifile libwine winecrt0 krnl386 avifil32.lib)
 set_target_properties(avifile PROPERTIES SUFFIX ".dll16")
