@@ -16,6 +16,8 @@ for:
       - BUILD_CMAKE: 1
   build_script:
    ps: |
+     $ErrorActionPreference = "Stop"
+     mkdir build
      cd build
      $env:MSYSTEM = "MINGW32"
      $env:MSYSTEM_CARCH = "i686"
