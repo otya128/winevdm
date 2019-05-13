@@ -1,0 +1,306 @@
+version: dev{build}
+image: Visual Studio 2017
+configuration: Release
+environment:
+  matrix:
+  - BUILD_CMAKE: 0
+  - BUILD_CMAKE: 1
+build:
+  parallel: true
+  verbosity: quiet
+
+for:
+-
+  matrix:
+    only:
+      - BUILD_CMAKE: 1
+  build_script:
+   ps: |
+     cd build
+     $env:MSYSTEM = "MINGW32"
+     $env:MSYSTEM_CARCH = "i686"
+     $env:MSYSTEM_CHOST = "i686-w64-mingw32"
+     $env:MSYSTEM_PREFIX = "C:/msys64/mingw32"
+     $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;" + $env:Path
+     cmake -G"MSYS Makefiles" ..
+     make -j 2
+     mkdir otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
+     cd otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
+     copy ..\otvdm.exe .
+     copy ..\otvdmw.exe .
+     copy ..\winhlp32.exe .
+     copy ..\libwine.dll .
+     copy ..\..\install.reg .
+     copy ..\..\uninstall.reg .
+     copy ..\..\otvdm.ini .
+     copy ..\..\LICENSE .
+     copy ..\..\README.md README.txt
+     copy ..\*16 .
+     copy ..\haxmvm.dll .
+     copy ..\vm86.dll .
+     copy ..\wow32.dll .
+     mkdir WINDOWS
+     mkdir WINDOWS\SYSTEM
+     mkdir dummydll
+     mkdir dummydll\SYSTEM
+     ni WINDOWS\WIN.INI
+     ni WINDOWS\SYSTEM.INI
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\CTL3D.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\CTL3DV2.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\AVIFILE.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\COMM.DRV
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\COMMDLG.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\COMPOBJ.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\DDEML.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\DISPLAY.DRV
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\VGA.DRV
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\GDI.EXE
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\KEYBOARD.DRV
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\KRNL286.EXE
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\KRNL386.EXE
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\LZEXPAND.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\MMSYTEM.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\MOUSE.DRV
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\MSACM.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\MSVIDEO.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\NDDEAPI.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2CONV.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2DISP.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2NLS.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2PROX.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2THX.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\OLECLI.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\OLESVR.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\SHELL.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\SOUND.DRV
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\STORAGE.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\SYSTEM.DRV
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\TOOLHELP.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\USER.EXE
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\VER.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WIFEMAN.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WIN87EM.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WING.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WINNLS.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WINOLDAP.MOD
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WINSOCK.DLL
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WINSPOOL.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\CTL3D.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\CTL3DV2.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\AVIFILE.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\COMM.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\COMMDLG.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\COMPOBJ.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\DDEML.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\DISPLAY.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\VGA.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\GDI.EXE
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\KEYBOARD.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\KRNL286.EXE
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\KRNL386.EXE
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\LZEXPAND.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\MMSYTEM.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\MOUSE.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\MSACM.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\MSVIDEO.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\NDDEAPI.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2CONV.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2DISP.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2NLS.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2PROX.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2THX.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLECLI.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLESVR.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\SHELL.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\SOUND.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\STORAGE.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\SYSTEM.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\TOOLHELP.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\USER.EXE
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\VER.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WIFEMAN.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WIN87EM.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WING.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINNLS.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINOLDAP.MOD
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSOCK.DLL
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSPOOL.DRV
+     copy C:\msys64\mingw32\bin\libgcc_s_dw2-1.dll .
+     copy C:\msys64\mingw32\bin\libstdc++-6.dll .
+     copy C:\msys64\mingw32\bin\libwinpthread-1.dll .
+     cd ..
+     7z a otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
+     move otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip ..
+
+-
+  matrix:
+    only:
+      - BUILD_CMAKE: 0
+  before_build:
+    ps: |
+      C:\msys64\usr\bin\as --version
+      echo "<?xml version=""1.0"" encoding=""utf-8""?>
+      <Project ToolsVersion=""4.0"" xmlns=""http://schemas.microsoft.com/developer/msbuild/2003"">
+        <ImportGroup Label=""PropertySheets"" />
+        <PropertyGroup Label=""UserMacros"">
+          <AsmPath>C:\msys64\usr\bin\</AsmPath>
+          <NtDllLibPath>`$(UniversalCRTSdkDir)Lib\10.0.17134.0\um\x86\</NtDllLibPath>
+        </PropertyGroup>
+        <PropertyGroup>
+          <_PropertySheetDisplayName>MacroPropertySheet</_PropertySheetDisplayName>
+          <IncludePath>`$(SolutionDir)wow32;`$(IncludePath)</IncludePath>
+        </PropertyGroup>
+        <ItemDefinitionGroup>
+          <ClCompile>
+            <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+            <PreprocessorDefinitions>__CI_VERSION=${env:APPVEYOR_BUILD_NUMBER};%(PreprocessorDefinitions)</PreprocessorDefinitions>
+            <WarningLevel>TurnOffAllWarnings</WarningLevel>
+          </ClCompile>
+        </ItemDefinitionGroup>
+        <ItemGroup>
+          <BuildMacro Include=""AsmPath"">
+            <Value>`$(AsmPath)</Value>
+          </BuildMacro>
+          <BuildMacro Include=""NtDllLibPath"">
+            <Value>`$(NtDllLibPath)</Value>
+          </BuildMacro>
+        </ItemGroup>
+      </Project>
+      " > C:\projects\winevdm\PropertySheet.props
+
+  before_package:
+    ps: |
+      cd Release
+      del *.ilk
+      del *.lib
+      del *.pdb
+      del *.exp
+      del *.map
+      del *.iobj
+      del *.ipdb
+      del widl.exe
+      del convertwinefile.exe
+      del convspec.exe
+      del vdmwrapper.exe
+      del vdmwrapperexe.exe
+      copy ..\install.reg .
+      copy ..\uninstall.reg .
+      copy ..\otvdm.ini .
+      copy ..\LICENSE .
+      copy ..\README.md .\README.txt
+      mkdir dll
+      move *16 dll
+      move haxmvm.dll dll
+      move vm86.dll dll
+      move wow32.dll dll
+      If (${env:APPVEYOR_REPO_BRANCH} -eq "winxp")
+      {
+        del dll\haxmvm.dll
+        move dll\wow32.dll .
+        move dll\vm86.dll .
+        move dll\*.drv16 .
+        move dll\krnl386.exe16 .
+        move dll\user.exe16 .
+        move dll\gdi.exe16 .
+        move dll\ctl3dv2.dll16 .
+        move dll\ctl3d.dll16 .
+        move dll\mmsystem.dll16 .
+        move dll\winnls.dll16 .
+      }
+      mkdir WINDOWS
+      mkdir WINDOWS\SYSTEM
+      ni WINDOWS\WIN.INI
+      ni WINDOWS\SYSTEM.INI
+      mkdir dummydll
+      mkdir dummydll\SYSTEM
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\CTL3D.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\CTL3DV2.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\AVIFILE.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\COMM.DRV
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\COMMDLG.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\COMPOBJ.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\DDEML.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\DISPLAY.DRV
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\VGA.DRV
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\GDI.EXE
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\KEYBOARD.DRV
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\KRNL286.EXE
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\KRNL386.EXE
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\LZEXPAND.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MMSYTEM.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MOUSE.DRV
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MSACM.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MSVIDEO.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\NDDEAPI.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2CONV.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2DISP.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2NLS.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2PROX.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\OLE2THX.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\OLECLI.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\OLESVR.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\SHELL.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\SOUND.DRV
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\STORAGE.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\SYSTEM.DRV
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\TOOLHELP.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\USER.EXE
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\VER.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WIFEMAN.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WIN87EM.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WING.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WINNLS.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WINOLDAP.MOD
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WINSOCK.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WINSPOOL.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\CTL3D.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\CTL3DV2.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\AVIFILE.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\COMM.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\COMMDLG.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\COMPOBJ.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\DDEML.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\DISPLAY.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\VGA.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\GDI.EXE
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\KEYBOARD.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\KRNL286.EXE
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\KRNL386.EXE
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\LZEXPAND.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MMSYTEM.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MOUSE.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MSACM.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MSVIDEO.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\NDDEAPI.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2CONV.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2DISP.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2NLS.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2PROX.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLE2THX.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLECLI.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\OLESVR.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\SHELL.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\SOUND.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\STORAGE.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\SYSTEM.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\TOOLHELP.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\USER.EXE
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\VER.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WIFEMAN.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WIN87EM.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WING.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINNLS.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINOLDAP.MOD
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSOCK.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSPOOL.DRV
+      cd ..
+      rename-item Release otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
+      7z a otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
+
+artifacts:
+- path: '*.zip'
+  name: otvdm-Debug
