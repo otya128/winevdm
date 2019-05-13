@@ -1,6 +1,6 @@
 file(GLOB SOURCE *.c **/*.c *.cpp **/*.cpp *.rc **/*.rc)
 add_library(ole2disp SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/ole2disp.def ole2disp.dll16.obj)
-include_directories(../wine)
+include_directories(../wine ${CMAKE_BINARY_DIR})
 add_definitions(-DARRAY_SIZE=ARRAYSIZE -D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
 spec_build(ole2disp.dll16 ole2disp)
 target_link_libraries(ole2disp libwine winecrt0 krnl386 ole2 compobj)
