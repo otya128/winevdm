@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10.2)
 #-Dinline=__inline
 project(winevdm)
-set(ASM_TOOL_DIR C:/msys32/usr/bin/)
+set(ASM_TOOL_DIR )
 # prevent wine error
 if (NOT(MSVC))
     set(CMAKE_CXX_FLAGS "-Wno-narrowing  ")
@@ -32,7 +32,7 @@ macro(spec_build file modname)
     get_filename_component(name_we ${file} NAME_WE)
     add_custom_command(OUTPUT ${file}.obj ${file}.asm
     DEPENDS ${file}.spec convspec
-    COMMAND convspec ${CMAKE_CURRENT_LIST_DIR}/${file}.spec ${modname} > ${file}.asm && ${ASM_TOOL_DIR}/as --32 -o ${file}.obj ${file}.asm)
+    COMMAND convspec ${CMAKE_CURRENT_LIST_DIR}/${file}.spec ${modname} > ${file}.asm && ${ASM_TOOL_DIR}as --32 -o ${file}.obj ${file}.asm)
     add_custom_target(generate_asm_${name_we} DEPENDS ${file}.obj)
     if (MSVC)
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
