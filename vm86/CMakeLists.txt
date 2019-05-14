@@ -1,6 +1,6 @@
 add_library(vm86 SHARED msdos.cpp vm86.def)
 include_directories(../wine)
-add_definitions(-D__i386__ -DHAS_I386 -DSUPPORT_FPU -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Uinline)
+add_definitions(-D__i386__ -DHAS_I386 -DSUPPORT_FPU -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Uinline -DPSAPI_VERSION=1)
 if (NOT(MSVC))
     string(APPEND CMAKE_CXX_FLAGS " -fpermissive")
 endif()
