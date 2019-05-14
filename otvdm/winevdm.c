@@ -461,6 +461,9 @@ static BOOL set_peb_compatible_flag()
     APPCOMPAT_FLAGS f = NoPaddedBorder | NoGhost;
     HMODULE user32 = GetModuleHandleA("user32.dll");
     set_dll_path();
+    /* is old windows? */
+    if (GetProcAddress(GetModuleHandleA("kernel32"), "GetFileInformationByHandleEx") == NULL)
+        return TRUE;
     if ((flags2 & f) != f  && user32 != NULL)
     {
         WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");

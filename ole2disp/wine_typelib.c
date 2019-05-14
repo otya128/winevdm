@@ -869,6 +869,18 @@ static void TLB_unregister_interface(GUID *guid, REGSAM flag)
 {
     WCHAR subKeyName[50];
     HKEY subKey;
+    static HMODULE advapi32;
+    static LSTATUS (APIENTRY*pRegDeleteKeyExW)(
+        HKEY    hKey,
+        LPCWSTR lpSubKey,
+        REGSAM  samDesired,
+        DWORD   Reserved
+    );
+    if (!advapi32)
+    {
+        advapi32 = GetModuleHandleA("advapi32");
+        pRegDeleteKeyExW = (LSTATUS(APIENTRY*)(HKEY, LPCWSTR, REGSAM, DWORD))GetProcAddress(advapi32, "RegDeleteKeyExW");
+    }
 
     /* the path to the type */
     get_interface_key( guid, subKeyName );
@@ -881,7 +893,14 @@ static void TLB_unregister_interface(GUID *guid, REGSAM flag)
     RegDeleteKeyW(subKey, ProxyStubClsid32W);
     RegDeleteKeyW(subKey, TypeLibW);
     RegCloseKey(subKey);
-    RegDeleteKeyExW(HKEY_CLASSES_ROOT, subKeyName, flag, 0);
+    if (pRegDeleteKeyExW)
+    {
+        pRegDeleteKeyExW(HKEY_CLASSES_ROOT, subKeyName, flag, 0);
+    }
+    else
+    {
+        RegDeleteKeyW(HKEY_CLASSES_ROOT, subKeyName);
+    }
 }
 
 /******************************************************************************
@@ -3314,6 +3333,41 @@ static HRESULT TLB_Mapping_Open(LPCWSTR path, LPVOID *ppBase, DWORD *pdwTLBLengt
     return TYPE_E_CANTLOADLIBRARY;
 }
 
+#include <winternl.h>
+typedef struct _IO_STATUS_BLOCK {
+    union {
+        NTSTATUS Status;
+        PVOID Pointer;
+    } DUMMYUNIONNAME;
+
+    ULONG_PTR Information;
+} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+
+NTSYSAPI NTSTATUS WINAPI NtQueryInformationFile(HANDLE, PIO_STATUS_BLOCK, PVOID, LONG, DWORD);
+NTSYSAPI ULONG NTAPI RtlNtStatusToDosError(NTSTATUS Status);
+BOOL WINAPI callGetFileInformationByHandleEx(HANDLE hFile, LPVOID lpFileInformation, DWORD dwBufferSize)
+{
+    NTSTATUS status;
+    static HMODULE hKernel32;
+    IO_STATUS_BLOCK iosb;
+    static BOOL (WINAPI *pGetFileInformationByHandleEx)(HANDLE, FILE_INFO_BY_HANDLE_CLASS, LPVOID, DWORD);
+    if (!hKernel32)
+    {
+        hKernel32 = LoadLibraryA("kernel32");
+        pGetFileInformationByHandleEx = (BOOL(WINAPI*)(HANDLE, FILE_INFO_BY_HANDLE_CLASS, LPVOID, DWORD))GetProcAddress(hKernel32, "GetFileInformationByHandleEx");
+    }
+    if (pGetFileInformationByHandleEx)
+    {
+        return pGetFileInformationByHandleEx(hFile, FileNameInfo, lpFileInformation, dwBufferSize);
+    }
+    status = NtQueryInformationFile(hFile, &iosb, lpFileInformation, dwBufferSize, 9/*FileNameInformation*/);
+    if (FAILED(status))
+    {
+        SetLastError(RtlNtStatusToDosError(status));
+        return FALSE;
+    }
+    return TRUE;
+}
 /****************************************************************************
  *	TLB_ReadTypeLib
  *
@@ -3373,14 +3427,14 @@ static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath
 
         /* GetFileInformationByHandleEx returns the path of the file without
          * WOW64 redirection */
-        br = GetFileInformationByHandleEx(h, FileNameInfo, &size_info, sizeof(size_info));
+        br = callGetFileInformationByHandleEx(h, &size_info, sizeof(size_info));
         if(br || GetLastError() == ERROR_MORE_DATA){
             FILE_NAME_INFORMATION *info;
             DWORD size = sizeof(*info) + size_info.FileNameLength + sizeof(WCHAR);
 
             info = HeapAlloc(GetProcessHeap(), 0, size);
 
-            br = GetFileInformationByHandleEx(h, FileNameInfo, info, size);
+            br = callGetFileInformationByHandleEx(h, info, size);
             if(br){
                 info->FileName[info->FileNameLength / sizeof(WCHAR)] = 0;
                 lstrcpynW(pszPath + 2, info->FileName, cchPath - 2);

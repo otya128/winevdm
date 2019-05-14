@@ -4216,8 +4216,17 @@ void set_app_id(HWND hWnd, LPCWSTR name)
     DWORD count;
     IPropertyStore *propstore;
     HRESULT hr;
+    static HMODULE shell32;
+    static HRESULT (STDAPICALLTYPE*pSHGetPropertyStoreForWindow)(HWND hwnd, REFIID riid, void** ppv);
+    if (!shell32)
+    {
+        shell32 = GetModuleHandleA("shell32");
+        pSHGetPropertyStoreForWindow = (HRESULT (STDAPICALLTYPE*)(HWND hwnd, REFIID riid, void** ppv))GetProcAddress(shell32, "SHGetPropertyStoreForWindow");
+    }
+    if (!pSHGetPropertyStoreForWindow)
+        return;
     ReleaseThunkLock(&count);
-    hr = SHGetPropertyStoreForWindow(hWnd, &IID_IPropertyStore, &propstore);
+    hr = pSHGetPropertyStoreForWindow(hWnd, &IID_IPropertyStore, &propstore);
     if (SUCCEEDED(hr))
     {
         PROPVARIANT pv;
@@ -4602,7 +4611,7 @@ void register_wow_handlers(void)
     };
 
 	struct wow_handlers32 wow_handlers322 = { 0 };
-    UserRegisterWowHandlers( &handlers16, &wow_handlers322 );//無理矢理動くようにすると謎の関数ポインタが帰ってくる
+    /* UserRegisterWowHandlers( &handlers16, &wow_handlers322 ); */
 	wow_handlers32 = wow_handlers322;
 	wow_handlers32.get_win_handle = get_win_handle;
 	wow_handlers32.create_window = create_window;

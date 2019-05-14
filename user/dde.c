@@ -127,7 +127,7 @@ static WCHAR *get_programs_path(const WCHAR *name)
 
     wcsncpy(clnname, name, MAX_PATH);
     PathCleanupSpec(NULL, clnname);;
-    SHGetKnownFolderPath(&FOLDERID_Programs, 0, NULL, &programs);
+    SHGetFolderPathW(NULL, CSIDL_PROGRAMS, NULL, 0, &programs);
 
     len = lstrlenW(programs) + 1 + lstrlenW(name);
     path = heap_alloc((len + 1) * sizeof(*path));
