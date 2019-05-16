@@ -2135,7 +2135,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             int flag = 0;
             char buf[256];
 
-            if (!UnpackDDElParam( msg, lParam, &lo, &hi ))
+            // UnpackDDElParam fails with HEAP_FAILURE_INVALID_ARGUMENT if lParam doesn't have bit 2 set
+            if (!(lParam & 4) || !UnpackDDElParam( msg, lParam, &lo, &hi ))
             {
                 lo = LOWORD(lParam);
                 hi = HIWORD(lParam);

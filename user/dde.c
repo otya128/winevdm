@@ -121,7 +121,8 @@ static inline HDDEDATA Dde_OnWildConnect(HSZ hszTopic, HSZ hszService)
 static WCHAR *get_programs_path(const WCHAR *name)
 {
     static const WCHAR slashW[] = {'/',0};
-    WCHAR *programs, *path;
+    WCHAR *path;
+    WCHAR programs[MAX_PATH];
     WCHAR clnname[MAX_PATH];
     int len;
 
