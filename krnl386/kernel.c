@@ -62,7 +62,7 @@ static void thread_detach(void)
     /* free the 16-bit stack */
     WOWGlobalFree16( kernel_get_thread_data()->stack_sel );
     setWOW32Reserved(0);
-    if (NtCurrentTeb()->Tib.SubSystemTib) TASK_ExitTask();
+    if (NtCurrentTeb()->Tib.SubSystemTib || kernel_get_thread_data()->htask16) TASK_ExitTask();
     HeapFree(GetProcessHeap(), 0, TlsGetValue(kernel_thread_data_tls));
 }
 

@@ -46,6 +46,30 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(task);
 
+/* Workaround for ReactOS */
+BOOL is_reactos()
+{
+    static BOOL detected;
+    static BOOL is;
+    HKEY hKey;
+    CHAR name[100];
+    DWORD dwType, dwSize = sizeof(name);
+    if (detected)
+        return is;
+    detected = TRUE;
+    if (ERROR_SUCCESS != RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey))
+        return FALSE;
+    if (ERROR_SUCCESS != RegQueryValueExA(hKey, "ProductName", NULL, &dwType, (LPBYTE)name, &dwSize))
+    {
+        RegCloseKey(hKey);
+        return FALSE;
+    }
+    RegCloseKey(hKey);
+    if (dwType != REG_SZ)
+        return FALSE;
+    is = strstr(name, "ReactOS") != NULL;
+    return is;
+}
 #include "pshpack1.h"
 
 struct thunk
@@ -605,7 +629,8 @@ static DWORD CALLBACK task_start( LPVOID p )
 
     kernel_get_thread_data()->htask16 = pTask->hSelf;
     kernel_get_thread_data()->idle_event = CreateEventA(NULL, TRUE, FALSE, NULL);
-    NtCurrentTeb()->Tib.SubSystemTib = data->tib;
+    if (!is_reactos())
+        NtCurrentTeb()->Tib.SubSystemTib = data->tib;
 
     set_thread_internal_windows_ver(0x30A);
 

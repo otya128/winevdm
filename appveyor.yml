@@ -25,8 +25,8 @@ for:
      $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;" + $env:Path
      cmake -G"MSYS Makefiles" ..
      make -j 2
-     mkdir otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
-     cd otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
+     mkdir otvdm-cmake-gcc-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
+     cd otvdm-cmake-gcc-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
      copy ..\otvdm.exe .
      copy ..\otvdmw.exe .
      copy ..\winhlp32.exe .
@@ -132,8 +132,8 @@ for:
      copy C:\msys64\mingw32\bin\libstdc++-6.dll .
      copy C:\msys64\mingw32\bin\libwinpthread-1.dll .
      cd ..
-     7z a otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
-     move otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip ..
+     7z a otvdm-cmake-gcc-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip otvdm-cmake-gcc-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
+     move otvdm-cmake-gcc-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip ..
 
 -
   matrix:

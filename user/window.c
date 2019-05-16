@@ -27,6 +27,31 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
+/* Workaround for ReactOS */
+BOOL is_reactos()
+{
+    static BOOL detected;
+    static BOOL is;
+    HKEY hKey;
+    CHAR name[100];
+    DWORD dwType, dwSize = sizeof(name);
+    if (detected)
+        return is;
+    detected = TRUE;
+    if (ERROR_SUCCESS != RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey))
+        return FALSE;
+    if (ERROR_SUCCESS != RegQueryValueExA(hKey, "ProductName", NULL, &dwType, (LPBYTE)name, &dwSize))
+    {
+        RegCloseKey(hKey);
+        return FALSE;
+    }
+    RegCloseKey(hKey);
+    if (dwType != REG_SZ)
+        return FALSE;
+    is = strstr(name, "ReactOS") != NULL;
+    return is;
+}
+
 void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
 /* size of buffer needed to store an atom string */
@@ -164,6 +189,11 @@ BOOL is_dialog(HWND hwnd)
         DWORD style;
         /*...*/
     };
+    if (is_reactos())
+    {
+        /* see dialog.c DIALOG_CreateIndirect16 */
+        return HIWORD(GetWindowLongPtrW(hwnd, GWLP_HINSTANCE)) == 0xfefe;
+    }
     /* undocumented, GetWindowLongW(hwnd, -1) returns a pointer to the internal window structure */
     struct WW *ww = GetWindowLongW(hwnd, -1);
     if (!ww)
@@ -176,7 +206,7 @@ BOOL is_dialog(HWND hwnd)
     __EXCEPT_ALL
     {
     }
-	__ENDTRY
+    __ENDTRY
     return FALSE;
 }
 
@@ -2401,7 +2431,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     }
 
     wc32.cbSize        = sizeof(wc32);
-    wc32.style         = wc->style | (IsOldWindowsTask(GetCurrentTask()) ? CS_GLOBALCLASS : 0);
+    wc32.style         = wc->style | (IsOldWindowsTask(GetCurrentTask()) || is_reactos() ? CS_GLOBALCLASS : 0);
     wc32.lpfnWndProc   = WindowProc16;//WINPROC_AllocProc16( wc->lpfnWndProc );
     wc32.cbClsExtra    = wc->cbClsExtra;
     wc32.cbWndExtra    = 100;
@@ -2443,15 +2473,8 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     a.local_class_prefix = LOCAL_CLASS_PREFIX;
     arg = (va_list)&a;
     /*
-    WNDCLASS.hInstance behaviour is mysterious
-    RegisterClass(hInst=0xcafe,...)
-    GetClassInfoEx(hInst=0xcafe,...) success
-    CreateWindow(hInst=0x1234,...) success
-    GetClassInfoEx(hInst=0xbeef,...) success???
-    CreateWindow(hInst=0xbeef,...) fail???
-
-    add hModule prefix to classname
-    */
+     * add hModule prefix to classname
+     */
     if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING, "%1!s!%2!04X!%3!s!%0", NULL, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), &buf, 0, &arg))
     {
         wc32.lpszClassName = buf;

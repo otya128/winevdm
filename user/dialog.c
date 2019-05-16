@@ -33,6 +33,7 @@
 #include "../krnl386/kernel16_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(dialog);
+BOOL is_reactos();
 
 #include <pshpack1.h>
 typedef struct
@@ -688,25 +689,25 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, SEGPTR dlgTemplate16,
     paramd->dlgProc = dlgProc;
     ReleaseThunkLock(&count);
     SetEvent(kernel_get_thread_data()->idle_event);
-	if (modal)
+    if (modal)
     {
         result = (HWND)DialogBoxIndirectParamA(
-			hInst32,
-			template32,
-			owner,
+            UlongToHandle(HandleToUlong(hInst32) | (is_reactos() ? 0xfefe0000 : 0)),
+            template32,
+            owner,
             proc, param);
-	}
+    }
     else
     {
         result = CreateDialogIndirectParamA(
-            hInst32,
+            UlongToHandle(HandleToUlong(hInst32) | (is_reactos() ? 0xfefe0000 : 0)),
             template32,
             owner,
             proc, param);
     }
     HeapFree(GetProcessHeap(), 0, template32);
     RestoreThunkLock(count);
-	return result;
+    return result;
 }
 
 /***********************************************************************
