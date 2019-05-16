@@ -231,7 +231,7 @@ static inline BOOL apply_relocations( NE_MODULE *pModule, const struct relocatio
             }
             else
             {
-                address = (FARPROC16)MAKESEGPTR( SEL(pSegTable[rep->target1-1].hSeg), rep->target2 );
+                address = (FARPROC16)MAKESEGPTR( SEL(pSegTable[(rep->target1 & 0xff)-1].hSeg), rep->target2 );
             }
 
             TRACE("%d: %04x:%04x %s\n",
