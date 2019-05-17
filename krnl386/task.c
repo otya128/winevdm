@@ -1861,7 +1861,7 @@ DWORD WINAPI GetAppCompatFlags16( HTASK16 hTask )
 
 const char *env_var_limitation[] =
 {
-    "", "COMSPEC", "TEMP", "TMP",
+    "", "COMSPEC", "TEMP", "TMP", "PATH"
 };
 BOOL env_var_limit(const char *v)
 {
@@ -1928,7 +1928,8 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
             {
                 if (env_var_limit(p))
                 {
-                    memcpy(env16p, p, strlen(p) + 1);
+                    for (int i = 0; i < strlen(p) + 1; i++)
+                        env16p[i] = toupper(p[i]);
                     env16p += strlen(p) + 1;
                 }
                 p += strlen(p) + 1;
