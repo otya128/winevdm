@@ -1928,8 +1928,14 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
             {
                 if (env_var_limit(p))
                 {
-                    for (int i = 0; i < strlen(p) + 1; i++)
+                    int i;
+                    for (i = 0; i < strlen(p) + 1; i++)
+                    {
+                        if (p[i] == '=')
+                            break;
                         env16p[i] = toupper(p[i]);
+                    }
+                    memcpy(env16p + i, p + i, strlen(p) + 1 - i);
                     env16p += strlen(p) + 1;
                 }
                 p += strlen(p) + 1;
