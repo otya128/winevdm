@@ -4342,6 +4342,10 @@ LRESULT CALLBACK WndProcRetHook(int code, WPARAM wParam, LPARAM lParam)
     {
         CWPRETSTRUCT *pcwp = (CWPRETSTRUCT *)lParam;
         HWND hwnd = pcwp->hwnd;
+        if (!IsWindow(hwnd))
+        {
+            return CallNextHookEx(hook, code, wParam, lParam);
+        }
         HWND16 hwnd16 = HWND_16(hwnd);
         detect_window_type(hwnd16, hwnd);
         if (window_type_table[hwnd16] == WINDOW_TYPE_STATIC)
