@@ -1935,15 +1935,16 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
                             break;
                         env16p[i] = toupper(p[i]);
                     }
-                    memcpy(env16p + i, p + i, strlen(p) + 1 - i);
+                    memcpy(env16p + i, p + i, strlen(p + i) + 1);
                     env16p += strlen(p) + 1;
                 }
                 p += strlen(p) + 1;
             }
+            *env16p = 0;
+            env16p++;
             memcpy( env16p, &one, sizeof(one));
             env16p += sizeof(one);
             memcpy( env16p, ENV_program_name, sizeof(ENV_program_name));
-            *(env16p + sizeof(ENV_program_name) + 1) = 0;
             GlobalUnlock16( handle );
         }
         FreeEnvironmentStringsA( env );
