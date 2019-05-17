@@ -1916,7 +1916,7 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
             p += strlen(p) + 1;
         }
         size++;  /* skip last null */
-        size += sizeof(WORD) + sizeof(ENV_program_name);
+        size += sizeof(WORD) + sizeof(ENV_program_name) + 1;
         handle = GlobalAlloc16( GMEM_FIXED, size );
         if (handle)
         {
@@ -1943,6 +1943,7 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
             memcpy( env16p, &one, sizeof(one));
             env16p += sizeof(one);
             memcpy( env16p, ENV_program_name, sizeof(ENV_program_name));
+            *(env16p + sizeof(ENV_program_name) + 1) = 0;
             GlobalUnlock16( handle );
         }
         FreeEnvironmentStringsA( env );
