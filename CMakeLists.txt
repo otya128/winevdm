@@ -30,9 +30,10 @@ endmacro()
 macro(spec_build file modname)
     string(TOUPPER modname modname)
     get_filename_component(name_we ${file} NAME_WE)
+    cmake_parse_arguments(SPEC_BUILD "" "" "ARG" ${ARGN})
     add_custom_command(OUTPUT ${file}.obj ${file}.asm
     DEPENDS ${file}.spec convspec
-    COMMAND convspec ${CMAKE_CURRENT_LIST_DIR}/${file}.spec ${modname} > ${file}.asm && ${ASM_TOOL_DIR}as --32 -o ${file}.obj ${file}.asm)
+    COMMAND convspec ${CMAKE_CURRENT_LIST_DIR}/${file}.spec ${modname} ${SPEC_BUILD_ARG} > ${file}.asm && ${ASM_TOOL_DIR}as --32 -o ${file}.obj ${file}.asm)
     add_custom_target(generate_asm_${name_we} DEPENDS ${file}.obj)
     if (MSVC)
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
