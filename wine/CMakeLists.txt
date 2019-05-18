@@ -1,7 +1,9 @@
 file(GLOB SOURCE *.c)
-add_library(libwine SHARED ${SOURCE})
 if (NOT(MSVC))
+    add_library(libwine SHARED ${SOURCE})
     string(APPEND CMAKE_CXX_FLAGS " -export-all-symbols")
+else()
+    add_library(libwine SHARED ${SOURCE} wine.def)
 endif()
 
 add_definitions(-D_X86_ -D__i386__ -D__WINESRC__)
