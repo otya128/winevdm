@@ -709,10 +709,10 @@ static void CREATESTRUCT32Ato16( HWND hwnd32, const CREATESTRUCTA* from, CREATES
         to->hMenu      = (HMENU16)from->hMenu;
     }
     to->hwndParent     = HWND_16(from->hwndParent);
-    to->cy             = from->cy;
-    to->cx             = from->cx;
-    to->y              = from->y;
-    to->x              = from->x;
+    to->cy             = from->cy == CW_USEDEFAULT ? CW_USEDEFAULT16 : from->cy;
+    to->cx             = from->cx == CW_USEDEFAULT ? CW_USEDEFAULT16 : from->cx;
+    to->y              = from->y == CW_USEDEFAULT ? CW_USEDEFAULT16 : from->y;
+    to->x              = from->x == CW_USEDEFAULT ? CW_USEDEFAULT16 : from->x;
     to->style          = from->style;
     to->dwExStyle      = from->dwExStyle;
 }
@@ -730,10 +730,10 @@ static void CREATESTRUCT16to32A( HWND hwnd32, const CREATESTRUCT16* from, CREATE
         to->hMenu      = (HMENU)from->hMenu;
     }
     to->hwndParent     = WIN_Handle32(from->hwndParent);
-    to->cy             = from->cy;
-    to->cx             = from->cx;
-    to->y              = from->y;
-    to->x              = from->x;
+    to->cy             = from->cy == CW_USEDEFAULT16 ? CW_USEDEFAULT : from->cy;
+    to->cx             = from->cx == CW_USEDEFAULT16 ? CW_USEDEFAULT : from->cx;
+    to->y              = from->y == CW_USEDEFAULT16 ? CW_USEDEFAULT : from->y;
+    to->x              = from->x == CW_USEDEFAULT16 ? CW_USEDEFAULT : from->x;
     to->style          = from->style;
     to->dwExStyle      = from->dwExStyle;
     to->lpszName       = MapSL(from->lpszName);
