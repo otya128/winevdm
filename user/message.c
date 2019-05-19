@@ -34,7 +34,9 @@
 #include "message_table.h"
 #include "../krnl386/kernel16_private.h"
 #include "commctrl.h"
- /*
+#include "wine/exception.h"
+
+/*
 unknwon combobox message
 When EDIT received WM_KILLFOCUS, EDIT sent this message to COMBOBOX.
 */
@@ -2135,12 +2137,23 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             int flag = 0;
             char buf[256];
 
-            // UnpackDDElParam fails with HEAP_FAILURE_INVALID_ARGUMENT if lParam doesn't have bit 2 set
-            if (!(lParam & 4) || !UnpackDDElParam( msg, lParam, &lo, &hi ))
+            __TRY
+            {
+                // if bit 4 is not set it's either a pointer or atom
+                if (!(lParam & 4))
+                    lo = *(UINT *)lParam;
+                if (!UnpackDDElParam( msg, lParam, &lo, &hi ))
+                {
+                    lo = LOWORD(lParam);
+                    hi = HIWORD(lParam);
+                }
+            }
+            __EXCEPT_ALL
             {
                 lo = LOWORD(lParam);
                 hi = HIWORD(lParam);
             }
+	    __ENDTRY
 
             if (hi >= 0xc000 && GlobalGetAtomNameA((ATOM)hi, buf, sizeof(buf)) > 0) flag |= 1;
             if (HIWORD(hi) && GlobalSize((HANDLE)hi) != 0) flag |= 2;
