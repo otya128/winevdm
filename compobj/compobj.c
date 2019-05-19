@@ -128,7 +128,14 @@ VOID CDECL IMalloc16_fnFree(IMalloc16* iface,SEGPTR pv)
     IMalloc16Impl *This = impl_from_IMalloc16(iface);
     TRACE_(olemalloc)("(%p)->Free(%p(%04x:%04x))\n",This,ptr,SELECTOROF(pv),OFFSETOF(pv));
 //    UnMapLS(pv);
-    HeapFree( GetProcessHeap(), 0, ptr );
+    /*
+     * Corel Move 5.0 passes the allocated pointer plus 4 bytes.
+     * https://support.microsoft.com/en-us/help/286470/how-to-use-pageheap-exe-in-windows-xp-windows-2000-and-windows-server
+     * The Windows heap managers (all versions) have always guaranteed that the
+     * heap allocations have a start address that is 8-byte aligned (on 64-bit
+     * platforms the alignment is 16-bytes).
+     */
+    HeapFree( GetProcessHeap(), 0, (LPVOID)((SIZE_T)ptr & ~7) );
 }
 
 /******************************************************************************
