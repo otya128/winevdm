@@ -24,12 +24,12 @@ for:
      $env:MSYSTEM_PREFIX = "C:/msys64/mingw32"
      $env:Path = "C:\msys64\mingw32\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;" + $env:Path
      cmake -G"MSYS Makefiles" .. -DCMAKE_CXX_FLAGS=-w -DCMAKE_C_FLAGS=-w
-     if (!$?)
+     if (0 -ne $LastExitCode)
      {
          throw "Failed to execute cmake"
      }
      make -j 2
-     if (!$?)
+     if (0 -ne $LastExitCode)
      {
          throw "Failed to execute make"
      }
