@@ -548,6 +548,7 @@ static void set_thread_internal_windows_ver(DWORD version)
 {
     /* In WOW64, NtCurrentTeb()->Win32ClientInfo is not used */
     BOOL iswow64 = FALSE;
+    LPDWORD lpdwExpWinVer;
     IsWow64Process(GetCurrentProcess(), &iswow64);
     typedef struct
     {
@@ -579,15 +580,22 @@ static void set_thread_internal_windows_ver(DWORD version)
         LPBYTE wow64teb = *(LPBYTE*)((LPBYTE)NtCurrentTeb() + 0x0F70);
 #endif
         LPCLIENTINFO64 wow64teb_Win32ClientInfo = (LPCLIENTINFO64)(wow64teb + 0x800);
-        wow64teb_Win32ClientInfo->dwExpWinVer = version;
+        lpdwExpWinVer = &wow64teb_Win32ClientInfo->dwExpWinVer;
     }
     else
     {
         /* NT 5.0 and higher */
         LPBYTE teb = (LPBYTE)NtCurrentTeb();
         LPCLIENTINFO32 teb_Win32ClientInfo = (LPCLIENTINFO32)(teb + 0x06CC);
-        teb_Win32ClientInfo->dwExpWinVer = version;
+        lpdwExpWinVer = &teb_Win32ClientInfo->dwExpWinVer;
     }
+    if (*lpdwExpWinVer == 0)
+    {
+        MSG msg;
+        /* init user32 */
+        PeekMessageW(&msg, NULL, 0, 0, 0);
+    }
+    *lpdwExpWinVer = version;
 }
 
 static void cwd_warning(void)
