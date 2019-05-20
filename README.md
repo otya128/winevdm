@@ -4,18 +4,28 @@
 
 [Download stable version](https://github.com/otya128/winevdm/releases)
 
-[Download latest version (unstable)](https://ci.appveyor.com/project/otya128/winevdm/build/artifacts)
+[Download latest version (unstable)](https://ci.appveyor.com/project/otya128/winevdm/)
 
 16-bit Windows (Windows 1.x, 2.x, 3.0, 3.1, etc.) on 64-bit Windows
 
 An altered version of winevdm (a 16-bit Windows emulator), ported to 64-bit Windows.
 
-# How to compile
+# How to compile(Visual Studio)
 
 + Install Visual Studio 2017
-+ Install binutils
 + Edit PropertySheet.props
 + Compile
+
+# How to compile(cmake)
+
+```sh
+git clone https://github.com/otya128/winevdm.git
+cd winevdm
+mkdir build
+cd build
+cmake ..
+make
+```
 
 # How to run
 
