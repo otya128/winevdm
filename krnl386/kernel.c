@@ -59,6 +59,8 @@ static void thread_attach(void)
  */
 static void thread_detach(void)
 {
+    if (!kernel_get_thread_data())
+        return;
     /* free the 16-bit stack */
     WOWGlobalFree16( kernel_get_thread_data()->stack_sel );
     setWOW32Reserved(0);
