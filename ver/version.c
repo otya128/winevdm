@@ -522,7 +522,7 @@ DWORD WINAPI GetFileVersionInfo16( LPCSTR lpszFileName, DWORD handle,
     {
         char path[MAX_PATH];
         if (findfile( lpszFileName, path, MAX_PATH ));
-            ret = GetFileVersionInfoSizeA( (LPSTR)path, handle, cbBuf, lpvData );
+            ret = GetFileVersionInfoA( (LPSTR)path, handle, cbBuf, lpvData );
     }
     return ret;
 }
