@@ -410,6 +410,17 @@ static DWORD find_resource( HFILE lzfd, LPCSTR type, LPCSTR id, DWORD *reslen, D
     return magic;
 }
 
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
+char *krnl386_get_search_path(void);
+BOOL findfile(const char *file, char *out, int size)
+{
+    RedirectSystemDir(file, out, size);
+    if (GetFileAttributesA(out) != INVALID_FILE_ATTRIBUTES)
+        return TRUE;
+    if (SearchPathA(krnl386_get_search_path(), file, NULL, size, out, NULL))
+        return TRUE;
+    return FALSE;
+}
 
 /*************************************************************************
  * GetFileResourceSize                     [VER.2]
@@ -425,6 +436,12 @@ DWORD WINAPI GetFileResourceSize16( LPCSTR lpszFileName, LPCSTR lpszResType,
           debugstr_a(lpszFileName), lpszResType, lpszResId, lpszResId );
 
     lzfd = LZOpenFileA( (LPSTR)lpszFileName, &ofs, OF_READ );
+    if (lzfd < 0)
+    {
+        char path[MAX_PATH];
+        if (findfile( lpszFileName, path, MAX_PATH ))
+            lzfd = LZOpenFileA( (LPSTR)path, &ofs, OF_READ );
+    }
     if (lzfd >= 0)
     {
         if (!find_resource( lzfd, lpszResType, lpszResId, &reslen, lpdwFileOffset )) reslen = 0;
@@ -450,6 +467,12 @@ DWORD WINAPI GetFileResource16( LPCSTR lpszFileName, LPCSTR lpszResType,
                 dwFileOffset, dwResLen, lpvData );
 
     lzfd = LZOpenFileA( (LPSTR)lpszFileName, &ofs, OF_READ );
+    if (lzfd < 0)
+    {
+        char path[MAX_PATH];
+        if (findfile( lpszFileName, path, MAX_PATH ))
+            lzfd = LZOpenFileA( (LPSTR)path, &ofs, OF_READ );
+    }
     if ( lzfd < 0 ) return 0;
 
     if ( !dwFileOffset )
@@ -473,8 +496,16 @@ DWORD WINAPI GetFileResource16( LPCSTR lpszFileName, LPCSTR lpszResType,
  */
 DWORD WINAPI GetFileVersionInfoSize16( LPCSTR lpszFileName, LPDWORD lpdwHandle )
 {
+    BOOL ret;
     TRACE("(%s, %p)\n", debugstr_a(lpszFileName), lpdwHandle );
-    return GetFileVersionInfoSizeA( lpszFileName, lpdwHandle );
+    ret = GetFileVersionInfoSizeA( lpszFileName, lpdwHandle );
+    if (!ret)
+    {
+        char path[MAX_PATH];
+        if (findfile( lpszFileName, path, MAX_PATH ))
+            ret = GetFileVersionInfoSizeA( (LPSTR)path, lpdwHandle );
+    }
+    return ret;
 }
 
 /*************************************************************************
@@ -483,10 +514,17 @@ DWORD WINAPI GetFileVersionInfoSize16( LPCSTR lpszFileName, LPDWORD lpdwHandle )
 DWORD WINAPI GetFileVersionInfo16( LPCSTR lpszFileName, DWORD handle,
                                    DWORD cbBuf, LPVOID lpvData )
 {
+    DWORD ret;
     TRACE("(%s, %08x, %d, %p)\n",
                 debugstr_a(lpszFileName), handle, cbBuf, lpvData );
-
-    return GetFileVersionInfoA( lpszFileName, handle, cbBuf, lpvData );
+    ret = GetFileVersionInfoA( lpszFileName, handle, cbBuf, lpvData );
+    if (!ret)
+    {
+        char path[MAX_PATH];
+        if (findfile( lpszFileName, path, MAX_PATH ));
+            ret = GetFileVersionInfoSizeA( (LPSTR)path, handle, cbBuf, lpvData );
+    }
+    return ret;
 }
 
 /*************************************************************************
