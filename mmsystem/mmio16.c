@@ -156,6 +156,7 @@ static LRESULT CALLBACK MMIO_Callback3216(SEGPTR cb16, LPMMIOINFO lpmmioinfo, UI
     if (!cb16) return MMSYSERR_INVALPARAM;
 
     memset(&mmioInfo16, 0, sizeof(MMIOINFO16));
+    mmioInfo16.dwFlags = lpmmioinfo->dwFlags;
     mmioInfo16.lDiskOffset = lpmmioinfo->lDiskOffset;
     mmioInfo16.adwInfo[0]  = lpmmioinfo->adwInfo[0];
     mmioInfo16.adwInfo[1]  = lpmmioinfo->adwInfo[1];
