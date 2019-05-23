@@ -1009,6 +1009,9 @@ static LRESULT WINAPI MCIWndProc16(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
         lparam = (ULONG_PTR)MapSL(lparam);
         break;
 
+    case MCI_OPEN:
+        return CallWindowProcA(pMCIWndProc, hwnd, MCIWNDM_OPENA, 0, (ULONG_PTR)MapSL(lparam));
+
     case MCIWNDM_SETPALETTE:
         wparam = HPALETTE_32(wparam);
         break;
