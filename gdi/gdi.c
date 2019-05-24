@@ -4691,14 +4691,18 @@ BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
         WIN32_FIND_DATAA fileinfo = {0};
         char syspath[MAX_PATH];
         char fonfile[MAX_PATH];
-        RedirectSystemDir("C:\\Windows\\System\\", syspath, MAX_PATH);
+        char origsyspath[MAX_PATH];
+        strncpy(origsyspath, getenv("windir"), MAX_PATH);
+        strcat(origsyspath, "\\system\\");
+        RedirectSystemDir(origsyspath, syspath, MAX_PATH);
         strcpy(fonfile, syspath);
         strcat(fonfile, "*.*");
         HANDLE file = FindFirstFileA(fonfile, &fileinfo);
         if (file == INVALID_HANDLE_VALUE)
             break;
 
-        while (GetLastError() == ERROR_SUCCESS)
+        BOOL ret;
+        do
         {
             LPCSTR *ext = fileinfo.cFileName + strlen(fileinfo.cFileName) - 4;
             if (!stricmp(ext, ".ttf") || !stricmp(ext, ".fon"))
@@ -4707,8 +4711,8 @@ BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
                 strcat(fonfile, fileinfo.cFileName);
                 AddFontResource16(fonfile);
             }
-            FindNextFileA(file, &fileinfo);
-        }
+            ret = FindNextFileA(file, &fileinfo);
+        } while (ret);
         FindClose(file);
         break;
     }
