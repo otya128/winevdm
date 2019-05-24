@@ -72,7 +72,8 @@ void DEVMODE16To32(CONST DEVMODE16 *src, LPDEVMODEA dst, LONG extra)
     dst->dmDuplex = src->dmDuplex;
     dst->dmYResolution = src->dmYResolution;
     dst->dmTTOption = src->dmTTOption;
-    memcpy((char*)dst + sizeof(DEVMODEA), (char*)src + sizeof(DEVMODE16), extra - sizeof(DEVMODEA));
+    if (extra)
+        memcpy((char*)dst + sizeof(DEVMODEA), (char*)src + sizeof(DEVMODE16), extra - sizeof(DEVMODEA));
 }
 void DEVMODE32To16(LPDEVMODE16 dst, const LPDEVMODEA src, LONG extra)
 {
@@ -95,7 +96,8 @@ void DEVMODE32To16(LPDEVMODE16 dst, const LPDEVMODEA src, LONG extra)
     dst->dmDuplex = src->dmDuplex;
     dst->dmYResolution = src->dmYResolution;
     dst->dmTTOption = src->dmTTOption;
-    memcpy((char*)dst + sizeof(DEVMODE16), (char*)src + sizeof(DEVMODEA), extra - sizeof(DEVMODEA));
+    if (extra)
+        memcpy((char*)dst + sizeof(DEVMODE16), (char*)src + sizeof(DEVMODEA), extra - sizeof(DEVMODEA));
 }
 int WINAPI ExtDeviceMode16(HWND16 hwnd16, HANDLE16 hDriver16, LPDEVMODE16 pDevModeOutput, LPSTR pDeviceName, LPSTR pPort, LPDEVMODE16 pDevModeInput, LPSTR pProfile, WORD fMode)
 {
