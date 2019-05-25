@@ -893,7 +893,7 @@ BOOL16 WINAPI MoveWindow16( HWND16 hwnd, INT16 x, INT16 y, INT16 cx, INT16 cy, B
 /***********************************************************************
  *		RegisterClass (USER.57)
  */
-ATOM WINAPI RegisterClass16( const WNDCLASS16 *wc )
+BOOL16 WINAPI RegisterClass16( const WNDCLASS16 *wc )
 {
     WNDCLASSEX16 wcex;
 
@@ -909,7 +909,7 @@ ATOM WINAPI RegisterClass16( const WNDCLASS16 *wc )
     wcex.lpszMenuName  = wc->lpszMenuName;
     wcex.lpszClassName = wc->lpszClassName;
     wcex.hIconSm       = 0;
-    return RegisterClassEx16( &wcex );
+    return RegisterClassEx16( &wcex ) != 0;
 }
 
 
