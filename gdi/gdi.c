@@ -2050,7 +2050,7 @@ INT16 WINAPI GetObject16( HGDIOBJ16 handle16, INT16 count, LPVOID buffer )
         {
             DIBSECTION dib;
             INT size;
-            BITMAP16 *bmp16 = buffer;
+            BITMAP16 bmp16;
 
             if (!(size = GetObjectW( handle, sizeof(dib), &dib ))) return 0;
             if (size == sizeof(DIBSECTION) && count > sizeof(BITMAP16))
@@ -2060,16 +2060,17 @@ INT16 WINAPI GetObject16( HGDIOBJ16 handle16, INT16 count, LPVOID buffer )
             }
             else
             {
-                if (count < sizeof(BITMAP16)) return 0;
-                bmp16->bmType       = dib.dsBm.bmType;
-                bmp16->bmWidth      = dib.dsBm.bmWidth;
-                bmp16->bmHeight     = dib.dsBm.bmHeight;
-                bmp16->bmWidthBytes = dib.dsBm.bmWidthBytes;
-                bmp16->bmPlanes     = dib.dsBm.bmPlanes;
-                bmp16->bmBitsPixel  = dib.dsBm.bmBitsPixel;
-                bmp16->bmBits       = 0;
-                return sizeof(BITMAP16);
-            }
+		if (!buffer) return sizeof(BITMAP16);
+                bmp16.bmType       = dib.dsBm.bmType;
+                bmp16.bmWidth      = dib.dsBm.bmWidth;
+                bmp16.bmHeight     = dib.dsBm.bmHeight;
+                bmp16.bmWidthBytes = dib.dsBm.bmWidthBytes;
+                bmp16.bmPlanes     = dib.dsBm.bmPlanes;
+                bmp16.bmBitsPixel  = dib.dsBm.bmBitsPixel;
+                bmp16.bmBits       = 0;
+            	memcpy(buffer, &bmp16, count);
+		return count;
+	    }
         }
 
     default:
