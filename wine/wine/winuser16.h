@@ -902,7 +902,7 @@ void        WINAPI PostQuitMessage16(INT16);
 BOOL16      WINAPI PtInRect16(const RECT16*,POINT16);
 UINT16      WINAPI RealizePalette16(HDC16);
 BOOL16      WINAPI RedrawWindow16(HWND16,const RECT16*,HRGN16,UINT16);
-ATOM        WINAPI RegisterClass16(const WNDCLASS16*);
+BOOL16      WINAPI RegisterClass16(const WNDCLASS16*);
 ATOM        WINAPI RegisterClassEx16(const WNDCLASSEX16*);
 UINT16      WINAPI RegisterClipboardFormat16(LPCSTR);
 BOOL        WINAPI RegisterShellHook16(HWND16,UINT16);
