@@ -136,8 +136,6 @@ static WCHAR *get_programs_path(const WCHAR *name)
     lstrcatW(path, slashW);
     lstrcatW(path, clnname);
 
-    CoTaskMemFree(programs);
-
     return path;
 }
 
