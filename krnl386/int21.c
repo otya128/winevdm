@@ -4932,15 +4932,25 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
     case 0x41: /* "UNLINK" - DELETE FILE */
         {
             WCHAR fileW[MAX_PATH];
+            CHAR buf[MAX_PATH];
+            int count = 0;
             char *fileA = CTX_SEG_OFF_TO_LIN(context, 
                                              context->SegDs, 
                                              context->Edx);
-
+            retry:
             TRACE( "UNLINK %s\n", fileA );
             MultiByteToWideChar(CP_OEMCP, 0, fileA, -1, fileW, MAX_PATH);
 
             if (!DeleteFileW( fileW ))
+            {
+                fileA = RedirectDriveRoot(fileA, buf, MAX_PATH, FALSE);
+                if (!count)
+                {
+                    count = 1;
+                    goto retry;
+                }
                 bSetDOSExtendedError = TRUE;
+            }
             else
                 RESET_CFLAG(context);
         }
