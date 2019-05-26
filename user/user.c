@@ -1311,6 +1311,8 @@ INT16 WINAPI LoadString16( HINSTANCE16 instance, UINT16 resource_id, LPSTR buffe
 
     TRACE("inst=%04x id=%04x buff=%p len=%d\n", instance, resource_id, buffer, buflen);
 
+    if (buflen && buffer)
+        buffer[0] = 0;
     hrsrc = FindResource16( instance, MAKEINTRESOURCEA((resource_id>>4)+1), (LPSTR)RT_STRING );
     if (!hrsrc) return 0;
     hmem = LoadResource16( instance, hrsrc );
