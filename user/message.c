@@ -4139,7 +4139,7 @@ static LRESULT static_proc_CallProc16To32A(winproc_callback_t callback, HWND hwn
     case STM_SETICON16:
         wParam = (WPARAM)get_icon_32((HICON16)wParam);
         *f = TRUE;
-        ret = callback(hwnd, STM_GETICON, wParam, lParam, result, arg);
+        ret = callback(hwnd, STM_SETICON, wParam, lParam, result, arg);
         return ret;
     case STM_GETICON16:
         ret = callback(hwnd, STM_GETICON, wParam, lParam, result, arg);
