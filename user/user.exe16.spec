@@ -394,7 +394,7 @@
 427 pascal -ret16 FindWindowEx(word word str str) FindWindowEx16
 428 stub TileWindows
 429 stub CascadeWindows
-430 pascal -ret16 lstrcmp(str str) lstrcmp16
+430 pascal -ret16 lstrcmp(str str) lstrcmpA
 431 pascal   AnsiUpper(segstr) AnsiUpper16
 432 pascal   AnsiLower(segstr) AnsiLower16
 433 pascal -ret16 IsCharAlpha(word) IsCharAlphaA
