@@ -310,10 +310,9 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         path = get_programs_path(argv[0]);
 
         CreateDirectoryW(path, NULL);
-        ShellExecuteW(NULL, NULL, path, NULL, NULL, SW_SHOWNORMAL);
-
         heap_free(last_group);
         last_group = path;
+        ShellExecuteW(NULL, NULL, path, NULL, NULL, SW_SHOWNORMAL);
     }
     else if (!strcmpiW(command, delete_groupW))
     {
@@ -507,16 +506,21 @@ static DWORD parse_dde_command(HSZ hszTopic, WCHAR *command)
             while (*command != ')')
             {
                 while (*command == ' ') command++;
-                if (*command == '"')
+                if (*command != ',')
                 {
-                    command++;
-                    if (!(p = strchrW(command, '"'))) goto error;
+                    if (*command == '"')
+                    {
+                        command++;
+                        if (!(p = strchrW(command, '"'))) goto error;
+                    }
+                    else
+                    {
+                        if (!(p = strpbrkW(command, param_end))) goto error;
+                        while (p[-1] == ' ') p--;
+                    }
                 }
                 else
-                {
-                    if (!(p = strpbrkW(command, param_end))) goto error;
-                    while (p[-1] == ' ') p--;
-                }
+                    p = command;
 
                 argc++;
                 argv = heap_realloc(argv, argc * sizeof(*argv));
@@ -617,6 +621,34 @@ static HDDEDATA CALLBACK DdeCallback(
     }
 }
 
+LRESULT WINAPI progman16_wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    if ((msg >= WM_DDE_FIRST) && (msg <= WM_DDE_LAST))
+    {
+        switch (msg)
+        {
+            case WM_DDE_INITIATE:
+            {
+                PostMessage(wparam, WM_DDE_ACK, wparam, lparam);
+                break;
+            }
+            case WM_DDE_EXECUTE:
+            {
+                char *connect = GlobalLock(lparam);
+                if (connect)
+                {
+                    WCHAR command[256] = {0};
+                    MultiByteToWideChar(CP_ACP, 0, connect, -1, command, 255);
+                    HDDEDATA ret = parse_dde_command(hszProgmanTopic, command);
+                    PostMessage(wparam, WM_DDE_ACK, hwnd, ret == DDE_FACK ? 0x8000 : 0);
+                }
+                break;
+            }
+        }
+    }
+    return DefWindowProc(hwnd, msg, wparam, lparam);
+}
+
 /*************************************************************************
  * ShellDDEInit (SHELL32.@)
  *
@@ -631,11 +663,13 @@ static HDDEDATA CALLBACK DdeCallback(
  */
 void WINAPI ShellDDEInit(BOOL bInit)
 {
+    static const WCHAR wszProgman[] = {'P','r','o','g','m','a','n','1','6',0};
+    static HWND progman16_hwnd;
+    static HINSTANCE mod_instance;
     TRACE("bInit = %s\n", bInit ? "TRUE" : "FALSE");
 
     if (bInit)
     {
-        static const WCHAR wszProgman[] = {'P','r','o','g','m','a','n','1','6',0};
         static const WCHAR wszAsterisk[] = {'*',0};
         static const WCHAR wszShell[] = {'S','h','e','l','l',0};
         static const WCHAR wszAppProperties[] =
@@ -656,6 +690,14 @@ void WINAPI ShellDDEInit(BOOL bInit)
         DdeNameService(dwDDEInst, hszFolders, 0, DNS_REGISTER);
         DdeNameService(dwDDEInst, hszProgmanService, 0, DNS_REGISTER);
         /* DdeNameService(dwDDEInst, hszShell, 0, DNS_REGISTER); */
+        WNDCLASSW class = {0};
+        class.lpfnWndProc = &progman16_wndproc;
+        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                        (LPCSTR)&progman16_wndproc, &mod_instance);
+        class.hInstance = mod_instance;
+        class.lpszClassName = &wszProgman;
+        RegisterClassW(&class);
+        progman16_hwnd = CreateWindowW(wszProgman, wszProgman, 0, 0, 0, 0, 0, NULL, NULL, mod_instance, NULL);
     }
     else
     {
@@ -670,5 +712,7 @@ void WINAPI ShellDDEInit(BOOL bInit)
         DdeFreeStringHandle(dwDDEInst, hszProgmanTopic);
 
         DdeUninitialize(dwDDEInst);
+        DestroyWindow(progman16_hwnd);
+        UnregisterClassW(wszProgman, mod_instance);
     }
 }

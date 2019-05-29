@@ -2752,6 +2752,9 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
         GlobalGetAtomNameA(className, atomname, ARRAYSIZE(atomname));
         className = atomname;
     }
+    else if (!strcmp(className, "PROGMAN"))
+        className = "PROGMAN16";
+
     while (TRUE)
     {
         child32 = FindWindowExA(NULL, child32, NULL, title);
