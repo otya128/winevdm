@@ -1410,12 +1410,12 @@ HLOCAL16 WINAPI LocalReAlloc16( HLOCAL16 handle, WORD size, UINT16 flags )
     }
     if (!hmem)
     {
-        int blksize = oldsize + 4;
+        int blksize = oldsize;
         LOCALARENA *pPrev = ARENA_PTR( ptr, pArena->prev & ~3 );
         if ((pPrev->prev & 3) == LOCAL_ARENA_FREE)
-            blksize += pPrev->size;
+            blksize += pPrev->size + ARENA_HEADER_SIZE;
         if ((pNext->prev & 3) == LOCAL_ARENA_FREE)
-            blksize += pNext->size;
+            blksize += pNext->size + ARENA_HEADER_SIZE;
         if (blksize >= size)
         {
             /* Remove the block from the heap and try again */
