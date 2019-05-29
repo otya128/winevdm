@@ -1410,24 +1410,34 @@ HLOCAL16 WINAPI LocalReAlloc16( HLOCAL16 handle, WORD size, UINT16 flags )
     }
     if (!hmem)
     {
-        /* Remove the block from the heap and try again */
-        LPSTR buffer = HeapAlloc( GetProcessHeap(), 0, oldsize );
-        if (!buffer) return 0;
-        memcpy( buffer, ptr + arena + ARENA_HEADER_SIZE, oldsize );
-        LOCAL_FreeArena( ds, arena );
-        if (!(hmem = LOCAL_GetBlock( ds, size, flags )))
+        int blksize = oldsize + 4;
+        LOCALARENA *pPrev = ARENA_PTR( ptr, pArena->prev & ~3 );
+        if ((pPrev->prev & 3) == LOCAL_ARENA_FREE)
+            blksize += pPrev->size;
+        if ((pNext->prev & 3) == LOCAL_ARENA_FREE)
+            blksize += pNext->size;
+        if (blksize >= size)
         {
-            if (!(hmem = LOCAL_GetBlock( ds, oldsize, flags )))
+            /* Remove the block from the heap and try again */
+            LPSTR buffer = HeapAlloc( GetProcessHeap(), 0, oldsize );
+            if (!buffer) return 0;
+            memcpy( buffer, ptr + arena + ARENA_HEADER_SIZE, oldsize );
+            LOCAL_FreeArena( ds, arena );
+            if (!(hmem = LOCAL_GetBlock( ds, size, flags )))
             {
-                ERR("Can't restore saved block\n" );
-                HeapFree( GetProcessHeap(), 0, buffer );
-                return 0;
+                // shouldn't happen
+                if (!(hmem = LOCAL_GetBlock( ds, oldsize, flags )))
+                {
+                    ERR("Can't restore saved block\n" );
+                    HeapFree( GetProcessHeap(), 0, buffer );
+                    return 0;
+                }
+                size = oldsize;
             }
-            size = oldsize;
+            ptr = MapSL( MAKESEGPTR( ds, 0 ) );  /* Reload ptr */
+            memcpy( ptr + hmem, buffer, oldsize );
+            HeapFree( GetProcessHeap(), 0, buffer );
         }
-        ptr = MapSL( MAKESEGPTR( ds, 0 ) );  /* Reload ptr */
-        memcpy( ptr + hmem, buffer, oldsize );
-        HeapFree( GetProcessHeap(), 0, buffer );
     }
     else
     {
