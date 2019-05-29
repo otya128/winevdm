@@ -641,6 +641,7 @@ LRESULT WINAPI progman16_wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
                     MultiByteToWideChar(CP_ACP, 0, connect, -1, command, 255);
                     HDDEDATA ret = parse_dde_command(hszProgmanTopic, command);
                     PostMessage(wparam, WM_DDE_ACK, hwnd, ret == DDE_FACK ? 0x8000 : 0);
+                    GlobalUnlock(lparam);
                 }
                 break;
             }
