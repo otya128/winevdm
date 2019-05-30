@@ -3500,6 +3500,42 @@ HFONT16 WINAPI GetCurLogFont16( HDC16 hdc )
     return HFONT_16( GetCurrentObject( HDC_32(hdc), OBJ_FONT ) );
 }
 
+static DWORD rle_size(int type, const VOID *bits)
+{
+    __TRY
+    {
+        DWORD offset = 0;
+        BYTE *data = (BYTE *)bits;
+        do
+        {
+            if (!data[offset++])
+            {
+                BYTE byte = data[offset++];
+                switch (byte)
+                {
+                    case 0:
+                        break;
+                    case 1:
+                        return offset;
+                    default:
+                        offset += byte / type;
+                        offset = (offset + 1) & ~1;
+                        break;
+                }
+            }
+            else
+                offset++;
+        }
+        while (1);
+    }
+    __EXCEPT_ALL
+    {
+        ERR("bad bitmap, type %d", type);
+    }
+    __ENDTRY
+    return 0;
+}
+
 
 /***********************************************************************
  *           StretchDIBits   (GDI.439)
@@ -3581,7 +3617,21 @@ HBITMAP16 WINAPI CreateDIBitmap16( HDC16 hdc, const BITMAPINFOHEADER * header,
                                    DWORD init, LPCVOID bits, const BITMAPINFO * data,
                                    UINT16 coloruse )
 {
-    return HBITMAP_16( CreateDIBitmap( HDC_32(hdc), header, init, bits, data, coloruse ) );
+    BITMAPINFO *bmp = NULL;
+    HBITMAP16 ret;
+    if (((data->bmiHeader.biCompression == BI_RLE4) || (data->bmiHeader.biCompression == BI_RLE8)) && !data->bmiHeader.biSizeImage)
+    {
+        int hdrsize = data->bmiHeader.biSize + ((data->bmiHeader.biClrUsed ? data->bmiHeader.biClrUsed :
+                        (data->bmiHeader.biBitCount == 4 ? 16 : 256)) * (coloruse == DIB_PAL_COLORS ? 2 : 4));
+
+        bmp = HeapAlloc(GetProcessHeap(), 0, hdrsize);
+        memcpy(bmp, data, hdrsize);
+        bmp->bmiHeader.biSizeImage = rle_size(data->bmiHeader.biCompression, bits);
+    }
+    ret = HBITMAP_16( CreateDIBitmap( HDC_32(hdc), header, init, bits, bmp ? bmp : data, coloruse ) );
+    if (bmp)
+        HeapFree(GetProcessHeap(), 0, bmp);
+    return ret;
 }
 
 
