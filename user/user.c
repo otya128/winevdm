@@ -3107,6 +3107,7 @@ INT16 WINAPIV wsprintf16( LPSTR buffer, LPCSTR spec, VA_LIST16 valist )
 }
 
 
+#if 0
 /***********************************************************************
  *           lstrcmp   (USER.430)
  */
@@ -3121,7 +3122,7 @@ INT16 WINAPI lstrcmp16( LPCSTR str1, LPCSTR str2 )
     if (ret > 0) return  1;
     return 0;
 }
-
+#endif
 
 /***********************************************************************
  *           AnsiUpper   (USER.431)
