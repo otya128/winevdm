@@ -58,6 +58,7 @@
 #include "wine/list.h"
 #include "wine/winuser16.h"
 #include "winemm16.h"
+#include "mmreg.h"
 
 #include "wine/debug.h"
 
@@ -1264,6 +1265,34 @@ UINT16 WINAPI waveOutGetErrorText16(UINT16 uError, LPSTR lpText, UINT16 uSize)
     return waveOutGetErrorTextA(uError, lpText, uSize);
 }
 
+static void     init_wfx_adpcm(ADPCMWAVEFORMAT* awfx)
+{
+    register WAVEFORMATEX*      pwfx = &awfx->wfx;
+    static ADPCMCOEFSET MSADPCM_CoeffSet[] =
+    {
+            {256, 0}, {512, -256}, {0, 0}, {192, 64}, {240, 0}, {460, -208}, {392, -232}
+    };
+
+    /* we assume wFormatTag, nChannels, nSamplesPerSec and wBitsPerSample
+     * have been initialized... */
+
+    switch (pwfx->nSamplesPerSec)
+    {
+    case  8000: pwfx->nBlockAlign = 256 * pwfx->nChannels;   break;
+    case 11025: pwfx->nBlockAlign = 256 * pwfx->nChannels;   break;
+    case 22050: pwfx->nBlockAlign = 512 * pwfx->nChannels;   break;
+    case 44100: pwfx->nBlockAlign = 1024 * pwfx->nChannels;  break;
+    default:                               break;
+    }
+    pwfx->cbSize = 2 * sizeof(WORD) + 7 * sizeof(ADPCMCOEFSET);
+    /* 7 is the size of the block head (which contains two samples) */
+
+    awfx->wSamplesPerBlock = pwfx->nBlockAlign * 2 / pwfx->nChannels - 12;
+    pwfx->nAvgBytesPerSec = (pwfx->nSamplesPerSec * pwfx->nBlockAlign) / awfx->wSamplesPerBlock;
+    awfx->wNumCoef = 7;
+    memcpy(awfx->aCoef, MSADPCM_CoeffSet, 7 * sizeof(ADPCMCOEFSET));
+}
+
 /**************************************************************************
  *			waveOutOpen			[MMSYSTEM.404]
  */
@@ -1274,6 +1303,11 @@ UINT16 WINAPI waveOutOpen16(HWAVEOUT16* lphWaveOut, UINT16 uDeviceID,
     HWAVEOUT		        hWaveOut;
     UINT		        ret;
     struct mmsystdrv_thunk*     thunk;
+    WAVEFORMATEX             *wavefmt;
+    wavefmt = (WAVEFORMATEX *)HeapAlloc(GetProcessHeap(), 0, sizeof(WAVEFORMATEX) + lpFormat->cbSize);
+
+    memcpy(wavefmt, lpFormat, sizeof(WAVEFORMATEX) + lpFormat->cbSize);
+
 
     if (!(thunk = MMSYSTDRV_AddThunk(dwCallback, dwFlags, MMSYSTDRV_WAVEOUT)))
     {
@@ -1292,8 +1326,11 @@ UINT16 WINAPI waveOutOpen16(HWAVEOUT16* lphWaveOut, UINT16 uDeviceID,
      * however, we need to promote correctly the wave mapper id
      * (0xFFFFFFFF and not 0x0000FFFF)
      */
+    if (wavefmt->wFormatTag == WAVE_FORMAT_ADPCM)
+        init_wfx_adpcm((ADPCMWAVEFORMAT*) wavefmt);
+
     ret = waveOutOpen(&hWaveOut, (uDeviceID == (UINT16)-1) ? (UINT)-1 : uDeviceID,
-                      lpFormat, (DWORD)thunk, dwInstance, dwFlags);
+                      wavefmt, (DWORD)thunk, dwInstance, dwFlags);
 
     if (ret == MMSYSERR_NOERROR && !(dwFlags & WAVE_FORMAT_QUERY))
     {
@@ -1301,6 +1338,7 @@ UINT16 WINAPI waveOutOpen16(HWAVEOUT16* lphWaveOut, UINT16 uDeviceID,
          if (lphWaveOut != NULL)
              *lphWaveOut = HWAVEOUT_16(hWaveOut);
     } else MMSYSTDRV_DeleteThunk(thunk);
+    HeapFree(GetProcessHeap(), 0, wavefmt);
     return ret;
 }
 
