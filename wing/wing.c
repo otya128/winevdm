@@ -194,10 +194,14 @@ SEGPTR WINAPI WinGGetDIBPointer16(HBITMAP16 hWinGBitmap, BITMAPINFO* bmpi)
 {
     struct dib_segptr_bits *bits;
 
-    if (bmpi) FIXME( "%04x %p: setting BITMAPINFO not supported\n", hWinGBitmap, bmpi );
-
     LIST_FOR_EACH_ENTRY( bits, &dib_segptr_list, struct dib_segptr_bits, entry )
-        if (HBITMAP_16(bits->bmp) == hWinGBitmap) return MAKESEGPTR( bits->sel, 0 );
+        if (HBITMAP_16(bits->bmp) == hWinGBitmap)
+        {
+            DIBSECTION dib;
+            if (bmpi && (GetObjectA(HBITMAP_32(hWinGBitmap), sizeof(DIBSECTION), &dib) == sizeof(DIBSECTION)))
+                memcpy(bmpi, &(dib.dsBmih), sizeof(BITMAPINFOHEADER));
+            return MAKESEGPTR( bits->sel, 0 );
+        }
 
     return 0;
 }
