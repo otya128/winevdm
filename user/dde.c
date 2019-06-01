@@ -623,29 +623,30 @@ static HDDEDATA CALLBACK DdeCallback(
 
 LRESULT WINAPI progman16_wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    if ((msg >= WM_DDE_FIRST) && (msg <= WM_DDE_LAST))
+    switch (msg)
     {
-        switch (msg)
+        case WM_DDE_INITIATE:
         {
-            case WM_DDE_INITIATE:
-            {
-                PostMessage(wparam, WM_DDE_ACK, wparam, lparam);
-                break;
-            }
-            case WM_DDE_EXECUTE:
-            {
-                char *connect = GlobalLock(lparam);
-                if (connect)
-                {
-                    WCHAR command[256] = {0};
-                    MultiByteToWideChar(CP_ACP, 0, connect, -1, command, 255);
-                    HDDEDATA ret = parse_dde_command(hszProgmanTopic, command);
-                    PostMessage(wparam, WM_DDE_ACK, hwnd, ret == DDE_FACK ? 0x8000 : 0);
-                    GlobalUnlock(lparam);
-                }
-                break;
-            }
+            PostMessage(wparam, WM_DDE_ACK, wparam, lparam);
+            break;
         }
+        case WM_DDE_EXECUTE:
+        {
+            char *connect = GlobalLock(lparam);
+            if (connect)
+            {
+                WCHAR command[256] = {0};
+                MultiByteToWideChar(CP_ACP, 0, connect, -1, command, 255);
+                HDDEDATA ret = parse_dde_command(hszProgmanTopic, command);
+                PostMessage(wparam, WM_DDE_ACK, hwnd, ret == DDE_FACK ? 0x8000 : 0);
+                GlobalUnlock(lparam);
+            }
+            break;
+        }
+        case WM_WINDOWPOSCHANGING:
+            ((WINDOWPOS *)lparam)->flags |= SWP_HIDEWINDOW;
+            ((WINDOWPOS *)lparam)->flags &= ~SWP_SHOWWINDOW;
+            return 0;
     }
     return DefWindowProc(hwnd, msg, wparam, lparam);
 }
