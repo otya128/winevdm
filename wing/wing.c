@@ -38,6 +38,7 @@ struct dib_segptr_bits
     HBITMAP   bmp;
     WORD      sel;
     WORD      count;
+    BOOL      topdown;
 };
 
 static struct list dib_segptr_list = LIST_INIT( dib_segptr_list );
@@ -57,7 +58,7 @@ static void cleanup_segptr_bits(void)
     }
 }
 
-static SEGPTR alloc_segptr_bits( HBITMAP bmp, void *bits32 )
+static SEGPTR alloc_segptr_bits( HBITMAP bmp, void *bits32, BOOL topdown )
 {
     DIBSECTION dib;
     unsigned int i, size;
@@ -74,6 +75,7 @@ static SEGPTR alloc_segptr_bits( HBITMAP bmp, void *bits32 )
     bits->bmp   = bmp;
     bits->count = (size + 0xffff) / 0x10000;
     bits->sel   = AllocSelectorArray16( bits->count );
+    bits->topdown = topdown;
 
     for (i = 0; i < bits->count; i++)
     {
@@ -142,8 +144,8 @@ BOOL16 WINAPI WinGRecommendDIBFormat16(BITMAPINFO *bmpi)
 	return FALSE;
 
     bmpi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmpi->bmiHeader.biWidth = 320;
-    bmpi->bmiHeader.biHeight = -1;
+    bmpi->bmiHeader.biWidth = 1;
+    bmpi->bmiHeader.biHeight = 1;
     bmpi->bmiHeader.biPlanes = 1;
     bmpi->bmiHeader.biBitCount = 8;
     bmpi->bmiHeader.biCompression = BI_RGB;
@@ -181,7 +183,7 @@ HBITMAP16 WINAPI WinGCreateBitmap16(HDC16 hdc, BITMAPINFO *bmpi, SEGPTR *bits)
     hbitmap = CreateDIBSection( HDC_32(hdc), bmpi, DIB_RGB_COLORS, &bits32, 0, 0 );
     if (hbitmap)
     {
-        SEGPTR segptr = alloc_segptr_bits( hbitmap, bits32 );
+        SEGPTR segptr = alloc_segptr_bits( hbitmap, bits32, (bmpi->bmiHeader.biHeight < 0) );
         if (bits) *bits = segptr;
     }
     return HBITMAP_16(hbitmap);
@@ -198,8 +200,11 @@ SEGPTR WINAPI WinGGetDIBPointer16(HBITMAP16 hWinGBitmap, BITMAPINFO* bmpi)
         if (HBITMAP_16(bits->bmp) == hWinGBitmap)
         {
             DIBSECTION dib;
-            if (bmpi && (GetObjectA(HBITMAP_32(hWinGBitmap), sizeof(DIBSECTION), &dib) == sizeof(DIBSECTION)))
+            if (bmpi && (GetObjectA(bits->bmp, sizeof(DIBSECTION), &dib) == sizeof(DIBSECTION)))
+            {
                 memcpy(bmpi, &(dib.dsBmih), sizeof(BITMAPINFOHEADER));
+                if (bits->topdown) bmpi->bmiHeader.biHeight = -bmpi->bmiHeader.biHeight;
+            }
             return MAKESEGPTR( bits->sel, 0 );
         }
 
