@@ -700,6 +700,7 @@ void WINAPI ShellDDEInit(BOOL bInit)
         class.lpszClassName = &wszProgman;
         RegisterClassW(&class);
         progman16_hwnd = CreateWindowW(wszProgman, wszProgman, 0, 0, 0, 0, 0, NULL, NULL, mod_instance, NULL);
+        CoInitialize(NULL);
     }
     else
     {
