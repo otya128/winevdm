@@ -1113,6 +1113,8 @@ static void WINAPI DOSVM_Int01Handler(CONTEXT *context)
 static void WINAPI DOSVM_Int03Handler(CONTEXT *context)
 {
     HMODULE toolhelp = GetModuleHandleA("toolhelp.dll16");
+    if (!toolhelp)
+        return;
     SEGPTR stack = MAKESEGPTR(context->SegSs, context->Esp);
     FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(context->SegCs, context->Eip), context->EFlags, 3, context->Eax);
     if (intcb)
