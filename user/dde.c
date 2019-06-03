@@ -643,10 +643,6 @@ LRESULT WINAPI progman16_wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
             }
             break;
         }
-        case WM_WINDOWPOSCHANGING:
-            ((WINDOWPOS *)lparam)->flags |= SWP_HIDEWINDOW;
-            ((WINDOWPOS *)lparam)->flags &= ~SWP_SHOWWINDOW;
-            return 0;
     }
     return DefWindowProc(hwnd, msg, wparam, lparam);
 }
@@ -699,7 +695,7 @@ void WINAPI ShellDDEInit(BOOL bInit)
         class.hInstance = mod_instance;
         class.lpszClassName = &wszProgman;
         RegisterClassW(&class);
-        progman16_hwnd = CreateWindowW(wszProgman, wszProgman, 0, 0, 0, 0, 0, NULL, NULL, mod_instance, NULL);
+        progman16_hwnd = CreateWindowW(wszProgman, wszProgman, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, mod_instance, NULL);
         CoInitialize(NULL);
     }
     else

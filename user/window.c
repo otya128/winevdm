@@ -2753,11 +2753,14 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
         className = atomname;
     }
     else if (className && !strcmp(className, "PROGMAN"))
+    {
+        parent32 = HWND_MESSAGE;
         className = "PROGMAN16";
+    }
 
     while (TRUE)
     {
-        child32 = FindWindowExA(NULL, child32, NULL, title);
+        child32 = FindWindowExA(parent32, child32, NULL, title);
         if (!child32)
             break;
         if (!className)
