@@ -648,6 +648,8 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
 	{
 	    LPWAVEHDR		wh16 = MapSL(*lpParam1);
 	    LPWAVEHDR		wh32 = wh16->reserved;
+	    if (wMsg == WODM_UNPREPARE)
+		    wh32->dwFlags = wh16->dwFlags;
 
 	    *lpParam1 = (DWORD)wh32;
 	    *lpParam2 = sizeof(WAVEHDR);
