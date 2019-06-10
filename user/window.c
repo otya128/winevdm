@@ -1997,10 +1997,15 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
     {
         hwnd32 = HWND_NOTOPMOST;
     }
-    if (flags & SWP_NOREDRAW)
+    if ((flags & SWP_NOREDRAW) && (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a))
     {
         RECT rect;
         GetWindowRect(hwnd32, &rect);
+        /* top-level window */
+        if (GetAncestor(hwnd32, GA_PARENT) == GetDesktopWindow())
+        {
+            flags &= ~SWP_NOREDRAW;
+        }
         if (rect.left == rect.right || rect.bottom == rect.top)
         {
             flags &= ~SWP_NOREDRAW;
