@@ -2089,6 +2089,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback( HWND_16(hwnd), msg, wParam, HTASK_16( lParam ), result, arg );
         break;
     case WM_PAINT:
+        // force a paint for win30 windows, KB Q80898
+        if ((GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a) && !(GetWindowLongA(hwnd, GWL_STYLE) & WS_CHILD))
+            RedrawWindow(hwnd, NULL, NULL, RDW_INTERNALPAINT | RDW_ALLCHILDREN);
         if (IsIconic( hwnd ) && GetClassLongPtrW( hwnd, GCLP_HICON ))
             ret = callback( HWND_16(hwnd), WM_PAINTICON, 1, lParam, result, arg );
         else
@@ -4415,7 +4418,9 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
             if (pcwp->message == WM_SHOWWINDOW)
             {
                 //see 42353ecbadd096358f250a9dd931d4cf0981b417 reactos win32ss/user/ntuser/winpos.c:2551
-                SendMessageA(pcwp->hwnd, WM_SETVISIBLE, pcwp->wParam, 0);
+                //WM_SETVISIBLE is only valid for win30 and older
+                if (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a)
+                    SendMessageA(pcwp->hwnd, WM_SETVISIBLE, pcwp->wParam, 0);
                 if (aero_diasble)
                 {
                     SetWindowTheme(pcwp->hwnd, L"", L"");
