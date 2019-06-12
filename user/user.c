@@ -340,9 +340,17 @@ HICON get_icon_32( HICON16 icon16 )
                 iinfo.fIcon = (ptr->ptHotSpot.x == ICON_HOTSPOT) && (ptr->ptHotSpot.y == ICON_HOTSPOT);
                 iinfo.xHotspot = ptr->ptHotSpot.x;
                 iinfo.yHotspot = ptr->ptHotSpot.y;
-                iinfo.hbmMask  = CreateBitmap( ptr->nWidth, ptr->nHeight, 1, 1, ptr + 1 );
-                iinfo.hbmColor = CreateBitmap( ptr->nWidth, ptr->nHeight, ptr->bPlanes, ptr->bBitsPerPixel,
+                if ((ptr->bBitsPerPixel * ptr->bPlanes) > 1)
+                {
+                    iinfo.hbmMask  = CreateBitmap( ptr->nWidth, ptr->nHeight, 1, 1, ptr + 1 );
+                    iinfo.hbmColor = CreateBitmap( ptr->nWidth, ptr->nHeight, ptr->bPlanes, ptr->bBitsPerPixel,
                                                (char *)(ptr + 1) + and_size );
+                }
+                else
+                {
+                    iinfo.hbmMask  = CreateBitmap( ptr->nWidth, ptr->nHeight * 2, 1, 1, ptr + 1 );
+                    iinfo.hbmColor = NULL;
+                }
                 ret = CreateIconIndirect( &iinfo );
                 DeleteObject( iinfo.hbmMask );
                 DeleteObject( iinfo.hbmColor );
