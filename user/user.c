@@ -353,7 +353,8 @@ HICON get_icon_32( HICON16 icon16 )
                 }
                 ret = CreateIconIndirect( &iinfo );
                 DeleteObject( iinfo.hbmMask );
-                DeleteObject( iinfo.hbmColor );
+                if (iinfo.hbmColor)
+                    DeleteObject( iinfo.hbmColor );
                 memcpy( (char *)(ptr + 1) + xor_size + and_size, &ret, sizeof(ret) );
                 wow_handlers32.set_icon_param( ret, icon16 );
             }
