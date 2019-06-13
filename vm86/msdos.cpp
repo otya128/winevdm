@@ -1007,7 +1007,7 @@ extern "C"
 		CPU_INIT_CALL(CPU_MODEL);
 		//enable x87
 		build_x87_opcode_table();
-		build_opcode_table(OP_I386 | OP_FPU);
+		build_opcode_table(OP_I386 | OP_FPU | OP_I486);
 		CPU_RESET_CALL(CPU_MODEL);
         UINT8 *base = 0;//mem;
 		m_idtr.base = (UINT32)(table - base);
