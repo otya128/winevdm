@@ -72,6 +72,7 @@
       <ObjectFileName>w$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>w$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <XMLDocumentationFileName>w$(IntDir)</XMLDocumentationFileName>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -98,6 +99,7 @@
       <ObjectFileName>w$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>w$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <XMLDocumentationFileName>w$(IntDir)</XMLDocumentationFileName>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
