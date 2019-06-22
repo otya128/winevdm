@@ -437,6 +437,7 @@ void __wine_load_dos_exe( LPCSTR filename, LPCSTR cmdline )
     }
 
     AllocConsole();
+    SetConsoleTitleA(filename);
 
     if (MZ_DoLoadImage( hFile, filename, NULL, 0 ))
     {
