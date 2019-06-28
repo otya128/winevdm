@@ -238,7 +238,7 @@ for:
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\KRNL286.EXE
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\KRNL386.EXE
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\LZEXPAND.DLL
-      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MMSYTEM.DLL
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MMSYSTEM.DLL
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MOUSE.DRV
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MSACM.DLL
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\MSVIDEO.DLL
@@ -279,7 +279,7 @@ for:
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\KRNL286.EXE
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\KRNL386.EXE
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\LZEXPAND.DLL
-      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MMSYTEM.DLL
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MMSYSTEM.DLL
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MOUSE.DRV
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MSACM.DLL
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\MSVIDEO.DLL
