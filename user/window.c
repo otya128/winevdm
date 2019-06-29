@@ -2025,7 +2025,11 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
  */
 HWND16 WINAPI SetParent16( HWND16 hwndChild, HWND16 hwndNewParent )
 {
-    return HWND_16( SetParent( WIN_Handle32(hwndChild), WIN_Handle32(hwndNewParent) ));
+    DWORD count;
+    ReleaseThunkLock(&count);
+    HWND16 hwnd16 = HWND_16( SetParent( WIN_Handle32(hwndChild), WIN_Handle32(hwndNewParent) ));
+    RestoreThunkLock(count);
+    return hwnd16;
 }
 
 
