@@ -241,7 +241,8 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
                 }
             } else {
                 *lParam = (DWORD)MapSL(*lParam);
-                return MMSYSTEM_MAP_OK;
+                if(!(dwFlags & MCI_STATUS_ITEM))
+                    return MMSYSTEM_MAP_OK;
             }
         }
         return MMSYSTEM_MAP_OKMEM;
@@ -465,12 +466,20 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
         break;
     case MCI_STATUS:
         if (lParam) {
-            LPMCI_DGV_STATUS_PARMSW mdsp32w = (LPMCI_DGV_STATUS_PARMSW)lParam;
-            char *base = (char*)lParam - sizeof(LPMCI_DGV_STATUS_PARMS16);
-            LPMCI_DGV_STATUS_PARMS16 mdsp16 = *(LPMCI_DGV_STATUS_PARMS16*)base;
-            mdsp16->dwReturn = mdsp32w->dwReturn;
-            HeapFree(GetProcessHeap(), 0, (LPVOID)mdsp32w->lpstrDrive);
-            HeapFree(GetProcessHeap(), 0, base);
+            if (dwFlags & (MCI_DGV_STATUS_REFERENCE | MCI_DGV_STATUS_DISKSPACE)) {
+                LPMCI_DGV_STATUS_PARMSW mdsp32w = (LPMCI_DGV_STATUS_PARMSW)lParam;
+                char *base = (char*)lParam - sizeof(LPMCI_DGV_STATUS_PARMS16);
+                LPMCI_DGV_STATUS_PARMS16 mdsp16 = *(LPMCI_DGV_STATUS_PARMS16*)base;
+                mdsp16->dwReturn = mdsp32w->dwReturn;
+                HeapFree(GetProcessHeap(), 0, (LPVOID)mdsp32w->lpstrDrive);
+                HeapFree(GetProcessHeap(), 0, base);
+            }
+            else if (dwFlags & MCI_STATUS_ITEM)
+            {
+               LPMCI_STATUS_PARMS msp = lParam;
+               if (msp->dwItem == 0x4001) // MCI_DGV_STATUS_HWND
+                   msp->dwReturn = (DWORD_PTR)HWND_16((HWND)(msp->dwReturn));
+            }
         }
         break;
     case MCI_WINDOW:

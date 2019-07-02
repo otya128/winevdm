@@ -178,7 +178,10 @@ static LRESULT call_window_proc_callback( HWND hwnd, UINT msg, WPARAM wp, LPARAM
                                           LRESULT *result, void *arg )
 {
     WNDPROC proc = arg;
+    DWORD count;
+    ReleaseThunkLock(&count);
     *result = CallWindowProcA( proc, hwnd, msg, wp, lp );
+    RestoreThunkLock(count);
     return *result;
 }
 
