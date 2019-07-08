@@ -3460,7 +3460,10 @@ void x87_fscale(UINT8 modrm)
 		value = fx80_inan;
 	}
 	else
+	{
+		m_x87_sw &= ~X87_SW_C1;
 		value = floatx80_scale(ST(0), ST(1));
+	}
 
 	if (x87_check_exceptions())
 		x87_write_stack(0, value, FALSE);
