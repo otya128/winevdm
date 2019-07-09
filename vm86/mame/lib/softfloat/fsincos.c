@@ -44,6 +44,7 @@ static const floatx80 floatx80_default_nan = packFloatx80(0, 0xffff, U64(0xfffff
 | value `a'.
 *----------------------------------------------------------------------------*/
 
+#if 0
 INLINE bits64 extractFloatx80Frac( floatx80 a )
 {
 	return a.low;
@@ -71,6 +72,7 @@ INLINE flag extractFloatx80Sign( floatx80 a )
 	return a.high>>15;
 
 }
+#endif
 
 /*----------------------------------------------------------------------------
 | Takes extended double-precision floating-point  NaN  `a' and returns the
@@ -95,12 +97,14 @@ INLINE floatx80 propagateFloatx80NaNOneArg(floatx80 a)
 | `zSigPtr', respectively.
 *----------------------------------------------------------------------------*/
 
+#if 0
 void normalizeFloatx80Subnormal(UINT64 aSig, INT32 *zExpPtr, UINT64 *zSigPtr)
 {
 	int shiftCount = countLeadingZeros64(aSig);
 	*zSigPtr = aSig<<shiftCount;
 	*zExpPtr = 1 - shiftCount;
 }
+#endif
 
 /* reduce trigonometric function argument using 128-bit precision
    M_PI approximation */
