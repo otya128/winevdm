@@ -1,0 +1,28 @@
+[Version]
+Signature="$Windows NT$"
+
+[DefaultInstall.ntamd64]
+DelReg=DefaultInstall.ntamd64.DelReg
+AddReg=DefaultInstall.ntamd64.AddReg
+
+[DefaultInstall.ntamd64.DelReg]
+HKLM,%NtVdm64%\OTVDM
+HKLM,%NtVdm64%\OTVDM,,0x4000
+
+[DefaultInstall.ntamd64.AddReg]
+HKLM,%NtVdm64%\0OTVDM,CommandLine,,%CommandLine%
+HKLM,%NtVdm64%\0OTVDM,InternalName,,*
+HKLM,%NtVdm64%\0OTVDM,ProductName,,*
+HKLM,%NtVdm64%\0OTVDM,ProductVersion,,*
+HKLM,%NtVdm64%\0OTVDM,MappedExeName,,%01%\%MappedExeName%
+HKLM,%NtVdm64%\0OTVDM,CommandLine,0x4000,%CommandLine%
+HKLM,%NtVdm64%\0OTVDM,InternalName,0x4000,*
+HKLM,%NtVdm64%\0OTVDM,ProductName,0x4000,*
+HKLM,%NtVdm64%\0OTVDM,ProductVersion,0x4000,*
+HKLM,%NtVdm64%\0OTVDM,MappedExeName,0x4000,%01%\%MappedExeName%
+
+[Strings]
+NtVdm64=SOFTWARE\Microsoft\Windows NT\CurrentVersion\NtVdm64
+CommandLine=" --ntvdm64: ""%m"" --ntvdm64-args: %c"
+;If you want to hide the console window, change otvdm.exe to otvdmw.exe
+MappedExeName=otvdm.exe

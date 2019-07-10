@@ -39,7 +39,7 @@ for:
      copy ..\otvdmw.exe .
      copy ..\winhlp32.exe .
      copy ..\libwine.dll .
-     copy ..\..\install.reg .
+     copy ..\..\install.inf .
      copy ..\..\uninstall.reg .
      copy ..\..\otvdm.ini .
      copy ..\..\LICENSE .
@@ -194,7 +194,7 @@ for:
       del convspec.exe
       del vdmwrapper.exe
       del vdmwrapperexe.exe
-      copy ..\install.reg .
+      copy ..\install.inf .
       copy ..\uninstall.reg .
       copy ..\otvdm.ini .
       copy ..\LICENSE .
