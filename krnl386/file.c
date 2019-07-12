@@ -622,7 +622,10 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
             return HFILE_ERROR;
         }
         name = RedirectDriveRoot(name, buf, ARRAY_SIZE(buf), FALSE);
-        namew = strdupOEMtoW(name);
+        if (mode & OF_REOPEN)
+            namew = strdupOEMtoW(name);
+        else
+            namew = strdupAtoW(name);
 
         /* the watcom 10.6 IDE relies on a valid path returned in ofs->szPathName
            Are there any cases where getting the path here is wrong?
