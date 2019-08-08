@@ -809,9 +809,10 @@ extern "C"
     {
         DWORD cb;
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
+        HMODULE *hModules;
         if (!EnumProcessModules(hProcess, nullptr, 0, &cb))
             goto exit;
-        HMODULE *hModules = new HMODULE[cb / sizeof(HMODULE)];
+        hModules = new HMODULE[cb / sizeof(HMODULE)];
         if (!EnumProcessModules(hProcess, hModules, cb, &cb))
             goto exit;
         for (int i = 0; i < cb / sizeof(HMODULE); i++)
