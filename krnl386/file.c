@@ -1458,7 +1458,10 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
             if (!ret)
             {
                 HeapFree( GetProcessHeap(), 0, data );
-                return construct_redirected_ini_section(section, buffer, oldlen, filename);
+                ret = construct_redirected_ini_section(section, buffer, oldlen, filename);
+                if (!ret)
+                    ret = GetPrivateProfileStringA(section, entry, def_val, buffer, len, filename);
+                return ret;
             }
             if (ret != size - 2) break;
             /* overflow, try again */
