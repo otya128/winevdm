@@ -688,9 +688,9 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, SEGPTR dlgTemplate16,
     DLGPROC proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
     paramd->dlgProc = dlgProc;
     ReleaseThunkLock(&count);
-    SetEvent(kernel_get_thread_data()->idle_event);
     if (modal)
     {
+        SetEvent(kernel_get_thread_data()->idle_event);
         result = (HWND)DialogBoxIndirectParamA(
             UlongToHandle(HandleToUlong(hInst32) | (is_reactos() ? 0xfefe0000 : 0)),
             template32,
