@@ -808,8 +808,8 @@ extern "C"
     void dump_all_modules(void)
     {
         DWORD cb;
+        HMODULE *hModules = nullptr;
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, GetCurrentProcessId());
-        HMODULE *hModules;
         if (!EnumProcessModules(hProcess, nullptr, 0, &cb))
             goto exit;
         hModules = new HMODULE[cb / sizeof(HMODULE)];
@@ -826,6 +826,7 @@ extern "C"
         }
     exit:
         CloseHandle(hProcess);
+        delete[] hModules;
     }
     BOOL WINAPI dump(DWORD CtrlType)
     {
