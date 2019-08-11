@@ -4726,6 +4726,33 @@ WORD WINAPI GetFontAssocStatus16(HDC16 hdc)
     return ((ULONG(WINAPI*)(HDC))GetFontAssocStatus)(HDC_32(hdc));
 }
 
+// style
+// bit 1: scan direction 0 = left to right 1 = right to left
+// bit 7: match type 0 = color 1 = not color
+
+WORD WINAPI ScanLR16(HDC16 hdc, WORD x, WORD y, DWORD color, WORD style)
+{
+    HDC hdc32 = HDC_32(hdc);
+    if (!hdc32 || (GetDeviceCaps(hdc32, TECHNOLOGY) != DT_RASDISPLAY))
+    {
+        ERR("Invalid DC (%04x)\n", hdc);
+        return -1;
+    }
+    COLORREF pixel = GetPixel(hdc32, x, y);
+    if (pixel == CLR_INVALID)
+        return 0x8000; // out of range
+    for (int i = x; (i <= 0xffff) && (i >= 0); (style & 2) ? i-- : i++)
+    {
+        pixel = GetPixel(hdc32, i, y);
+        if (pixel == CLR_INVALID)
+            return -1;
+        if ((style & 0x80) ? (pixel != color) : (pixel == color))
+            return i;
+    }
+    return -1;
+}
+        
+
 LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 
 BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
