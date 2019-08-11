@@ -123,7 +123,7 @@
 132 pascal -ret16 SetEnvironment(str str word) SetEnvironment16
 133 pascal -ret16 GetEnvironment(str str word) GetEnvironment16
 134 pascal -ret16 GetRgnBox(word ptr) GetRgnBox16
-#135 pascal ScanLr
+135 pascal -ret16 ScanLR(word word word long word) ScanLR16
 136 pascal -ret16 RemoveFontResource(str) RemoveFontResource16
 #137 - 147 removed sometime after W2.0
 137 stub GSV
