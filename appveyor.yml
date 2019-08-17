@@ -5,6 +5,7 @@ environment:
   matrix:
   - THIS_BUILD_IS_RECOMMENDED__VCXPROJ_BUILD: 1
   - THIS_BUILD_IS_NOT_RECOMMENDED__GCC_CMAKE_BUILD: 1
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
 build:
   parallel: true
   verbosity: quiet
@@ -138,7 +139,7 @@ for:
      copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSPOOL.DRV
      copy C:\msys64\mingw32\bin\libgcc_s_dw2-1.dll .
      copy C:\msys64\mingw32\bin\libstdc++-6.dll .
-     copy C:\msys64\mingw32\bin\libwinpthread-1.dll .
+     copy C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw32\bin\libwinpthread-1.dll .
      cd ..
      7z a otvdm-cmake-gcc-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip otvdm-cmake-gcc-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
      move otvdm-cmake-gcc-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip ..
