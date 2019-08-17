@@ -35,6 +35,7 @@
 #include "wownt32.h"
 #include "vfw16.h"
 #include "wine/debug.h"
+#include "wine/mmsystem16.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -1036,4 +1037,153 @@ HWND16 CDECL MCIWndCreate16(HWND16 parent, HINSTANCE16 hinst16,
     if (hwnd)
         pMCIWndProc = (void *)SetWindowLongPtrA(hwnd, GWLP_WNDPROC, (ULONG_PTR)MCIWndProc16);
     return HWND_16(hwnd);
+}
+
+typedef struct videohdr_tag16 {
+    SEGPTR      lpData;
+    DWORD       dwBufferLength;
+    DWORD       dwBytesUsed;
+    DWORD       dwTimeCaptured;
+    DWORD       dwUser;
+    DWORD       dwFlags;
+    DWORD       dwReserved[4];
+} VIDEOHDR16, NEAR *PVIDEOHDR16, FAR * LPVIDEOHDR16;
+typedef WORD HVIDEO16;
+typedef HVIDEO16 *LPHVIDEO16;
+
+DWORD WINAPI videoGetNumDevs16(void)
+{
+    FIXME("()\n");
+    return 0;
+}
+DWORD WINAPI videoOpen16(LPHVIDEO16 lphVideo, DWORD dwDevice, DWORD dwFlags)
+{
+    FIXME("\n");
+    return 0;
+}
+DWORD WINAPI videoClose16(HVIDEO16 hVideo)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoDialog16(HVIDEO16 hVideo, HWND16 hWndParent, DWORD dwFlags)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoGetChannelCaps16(HVIDEO16 hVideo, LPCHANNEL_CAPS lpChannelCaps, DWORD dwSize)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoUpdate16(HVIDEO16 hVideo, HWND16 hWnd, HDC16 hDC)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoConfigure16(HVIDEO16 hVideo, UINT16 msg, DWORD dwFlags, LPDWORD lpdwReturn, LPVOID lpData1, DWORD dwSize1, LPVOID lpData2, DWORD dwSize2)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoConfigureStorage16(HVIDEO16 hVideo, LPSTR lpstrIdent, DWORD dwFlags)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoFrame16(HVIDEO16 hVideo, LPVIDEOHDR16 lpVHdr)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoMessage16(HVIDEO16 hVideo, UINT16 msg, DWORD dwP1, DWORD dwP2)
+{
+    FIXME("\n");
+    return 0;
+}
+
+
+DWORD WINAPI videoStreamAddBuffer16(HVIDEO16 hVideo, LPVIDEOHDR16 lpVHdr, DWORD dwSize)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamGetError16(HVIDEO16 hVideo, LPDWORD lpdwErrorFirst, LPDWORD lpdwErrorLast)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoGetErrorText16(HVIDEO16 hVideo, UINT16 wError, LPSTR lpText, UINT16 wSize)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamGetPosition16(HVIDEO16 hVideo, LPMMTIME16 lpInfo, DWORD dwSize)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamInit16(HVIDEO16 hVideo, DWORD dwMicroSecPerFrame, DWORD dwCallback, DWORD dwCallbackInst, DWORD dwFlags)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamFini16(HVIDEO16 hVideo)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamPrepareHeader16(HVIDEO16 hVideo, LPVIDEOHDR16 lpVHdr, DWORD dwSize)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamReset16(HVIDEO16 hVideo)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamStart16(HVIDEO16 hVideo)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamStop16(HVIDEO16 hVideo)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamUnprepareHeader16(HVIDEO16 hVideo, LPVIDEOHDR16 lpVHdr, DWORD dwSize)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamAllocHdrAndBuffer16(HVIDEO16 hVideo, LPVIDEOHDR16 *plpVHdr, DWORD dwSize)
+{
+    FIXME("\n");
+    return 0;
+}
+
+DWORD WINAPI videoStreamFreeHdrAndBuffer16(HVIDEO16 hVideo, LPVIDEOHDR16 lpVHdr)
+{
+    FIXME("\n");
+    return 0;
 }

@@ -1,30 +1,30 @@
 #1 pascal WEP(word)
 2 pascal VideoForWindowsVersion() VideoForWindowsVersion
 3 pascal DllEntryPoint(long word word word long word) VIDEO_LibMain
-20 stub VIDEOGETNUMDEVS
-21 stub VIDEOGETERRORTEXT
+20 pascal videoGetNumDevs() videoGetNumDevs16
+21 pascal videoGetErrorText(word word str word) videoGetErrorText16
 22 pascal VideoCapDriverDescAndVer(word ptr word ptr word) VideoCapDriverDescAndVer16
-28 stub VIDEOOPEN
-29 stub VIDEOCLOSE
-30 stub VIDEODIALOG
-31 stub VIDEOFRAME
-32 stub VIDEOCONFIGURE
-33 stub VIDEOCONFIGURESTORAGE
-34 stub VIDEOGETCHANNELCAPS
-35 stub VIDEOUPDATE
-40 stub VIDEOSTREAMADDBUFFER
-41 stub VIDEOSTREAMFINI
-42 stub VIDEOSTREAMGETERROR
-43 stub VIDEOSTREAMGETPOSITION
-44 stub VIDEOSTREAMINIT
-46 stub VIDEOSTREAMPREPAREHEADER
-47 stub VIDEOSTREAMRESET
-49 stub VIDEOSTREAMSTART
-50 stub VIDEOSTREAMSTOP
-51 stub VIDEOSTREAMUNPREPAREHEADER
-52 stub VIDEOSTREAMALLOCHDRANDBUFFER
-53 stub VIDEOSTREAMFREEHDRANDBUFFER
-60 stub VIDEOMESSAGE
+28 pascal videoOpen(ptr long long) videoOpen16
+29 pascal videoClose(word) videoClose16
+30 pascal videoDialog(word word long) videoDialog16
+31 pascal videoFrame(word ptr) videoFrame16
+32 pascal videoConfigure(word word long ptr ptr long ptr long) videoConfigure16
+33 pascal videoConfigureStorage(word str long) videoConfigureStorage16
+34 pascal videoGetChannelCaps(word ptr long) videoGetChannelCaps16
+35 pascal videoUpdate(word word word) videoUpdate16
+40 pascal videoStreamAddBuffer(word ptr long) videoStreamAddBuffer16
+41 pascal videoStreamFini(word) videoStreamFini16
+42 pascal videoStreamGetError(word ptr ptr) videoStreamGetError16
+43 pascal videoStreamGetPosition(word ptr long) videoStreamGetPosition16
+44 pascal videoStreamInit(word long long long long) videoStreamInit16
+46 pascal videoStreamPrepareHeader(word ptr long) videoStreamPrepareHeader16
+47 pascal videoStreamReset(word) videoStreamReset16
+49 pascal videoStreamStart(word) videoStreamStart16
+50 pascal videoStreamStop(word) videoStreamStop16
+51 pascal videoStreamUnprepareHeader(word ptr long) videoStreamUnprepareHeader16
+52 pascal videoStreamAllocHdrAndBuffer(word ptr long) videoStreamAllocHdrAndBuffer16
+53 pascal videoStreamFreeHdrAndBuffer(word ptr) videoStreamFreeHdrAndBuffer16
+60 pascal videoMessage(word word long long) videoMessage16
 102 pascal -ret16 DrawDibOpen() DrawDibOpen16
 103 pascal -ret16 DrawDibClose(word) DrawDibClose16
 104 pascal -ret16 DrawDibBegin(word word s_word s_word ptr s_word s_word word) DrawDibBegin16
