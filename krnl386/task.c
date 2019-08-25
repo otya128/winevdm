@@ -1869,7 +1869,7 @@ DWORD WINAPI GetAppCompatFlags16( HTASK16 hTask )
 
 const char *env_var_limitation[] =
 {
-    "", "COMSPEC", "TEMP", "TMP", "PATH"
+    "COMSPEC", "TEMP", "TMP", "PATH"
 };
 BOOL env_var_limit(const char *v)
 {
