@@ -401,6 +401,7 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 	INT items = dlgTemplate->nbItems;
 	dlgItemTemplate32 = (BYTE*) (((DWORD)dlgItemTemplate32 + 3) & ~((DWORD)3));
 	WORD *dlgItemTemplatew;
+	BOOL rscIdWorkaround;
 	TRACE(" BEGIN\n");
 	while (items--)
 	{
@@ -416,13 +417,16 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		dlgItemTemplatew = (WORD*)(dlgItemTemplate32 + 1);
         info.className = win32classname(hInst, info.className);
 		copy_widestr(info.className, &dlgItemTemplatew);
+        rscIdWorkaround = FALSE;
         if (!HIWORD(info.windowName))
         {
             char buffer[512];
             if (((dlgItemTemplate32->style & 0xF) == SS_ICON || (dlgItemTemplate32->style & 0xF) == SS_BITMAP) && stricmp(info.className, "STATIC") == 0)
             {
-                sprintf(buffer, "#%d", (int)info.windowName);
-                copy_widestr(buffer, &dlgItemTemplatew);
+                rscIdWorkaround = TRUE;
+                *dlgItemTemplatew++ = 0x0000;
+                *dlgItemTemplatew++ = sizeof(WORD) * 2;
+                *dlgItemTemplatew++ = LOWORD(info.windowName);
             }
             else
             {
@@ -444,7 +448,7 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
             *((LPCVOID*)dlgItemTemplatew) = MAKESEGPTR(SELECTOROF(base16), OFFSETOF(base16) + (WORD)((SIZE_T)info.data - base32));
 			dlgItemTemplatew += 2;
 		}
-		else
+		else if (!rscIdWorkaround)
 		{
 			*dlgItemTemplatew++ = 0;
 		}
