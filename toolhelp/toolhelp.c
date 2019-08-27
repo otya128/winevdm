@@ -139,12 +139,17 @@ static GLOBALARENA *get_global_arena(void)
     return MapSL(MAKESEGPTR(get_thhook()->hGlobalHeap, 0));
 }
 
+#define LOCAL_HEAP_MAGIC  0x484c  /* 'LH' */
 static LOCALHEAPINFO *get_local_heap( HANDLE16 ds )
 {
     INSTANCEDATA *ptr = MapSL( MAKESEGPTR( ds, 0 ));
+    LOCALHEAPINFO *pInfo;
 
     if (!ptr || !ptr->heap) return NULL;
-    return (LOCALHEAPINFO*)((char*)ptr + ptr->heap);
+    pInfo = (LOCALHEAPINFO*)((char*)ptr + ptr->heap);
+    if (pInfo->magic != LOCAL_HEAP_MAGIC)
+        return NULL;
+    return pInfo;
 }
 
 
@@ -200,6 +205,7 @@ BOOL16 WINAPI GlobalNext16( GLOBALENTRY *pGlobal, WORD wFlags)
     pGlobal->wType        = pArena->wType;
     pGlobal->wData        = pArena->wType == GT_CODE || pArena->wType == GT_DATA || pArena->wType == GT_DGROUP ? pArena->wSeg : 0;
     pGlobal->dwNext++;
+    TRACE("%04x, %04x, %04x\n", pGlobal->hBlock, pGlobal->dwNext, pGlobal->wData);
     return TRUE;
 }
 
@@ -298,6 +304,7 @@ BOOL16 WINAPI LocalFirst16( LOCALENTRY *pLocalEntry, HGLOBAL16 handle )
     pLocalEntry->wHeapType = NORMAL_HEAP;
     pLocalEntry->wNext     = LOCAL_ARENA_PTR(ptr,pInfo->first)->next;
     pLocalEntry->wSize     = pLocalEntry->wNext - pLocalEntry->hHandle;
+    TRACE("%04x, %04x, %04x, %d\n", ds, pLocalEntry->hHandle, pLocalEntry->wNext, pLocalEntry->wSize);
     return TRUE;
 }
 
@@ -325,6 +332,7 @@ BOOL16 WINAPI LocalNext16( LOCALENTRY *pLocalEntry )
     else
         pLocalEntry->wNext = 0;
     pLocalEntry->wSize     = pLocalEntry->wNext - pLocalEntry->hHandle;
+    TRACE("%04x, %04x, %04x, %d\n", ds, pLocalEntry->hHandle, pLocalEntry->wNext, pLocalEntry->wSize);
     return TRUE;
 }
 
