@@ -3358,7 +3358,7 @@ BOOL16 WINAPI DestroyCursor16(HCURSOR16 hCursor)
  *		DumpIcon (USER.459)
  */
 DWORD WINAPI DumpIcon16( SEGPTR pInfo, WORD *lpLen,
-                       SEGPTR *lpXorBits, SEGPTR *lpAndBits )
+                       SEGPTR *lpAndBits, SEGPTR *lpXorBits )
 {
     CURSORICONINFO *info = MapSL( pInfo );
     int sizeAnd, sizeXor;
@@ -3369,7 +3369,7 @@ DWORD WINAPI DumpIcon16( SEGPTR pInfo, WORD *lpLen,
     if (lpAndBits) *lpAndBits = pInfo + sizeof(CURSORICONINFO);
     if (lpXorBits) *lpXorBits = pInfo + sizeof(CURSORICONINFO) + sizeAnd;
     if (lpLen) *lpLen = sizeof(CURSORICONINFO) + sizeAnd + sizeXor;
-    return MAKELONG( sizeXor, sizeXor );
+    return MAKELONG( ((info->bPlanes * info->bBitsPerPixel) > 1) ? sizeAnd : sizeXor, sizeXor );
 }
 
 
