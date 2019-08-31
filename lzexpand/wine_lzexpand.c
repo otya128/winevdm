@@ -50,6 +50,7 @@
 
 #include "wine/unicode.h"
 #include "wine/debug.h"
+#include "wine/winbase16.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(file);
 
@@ -572,6 +573,7 @@ void WINAPI LZClose( HFILE fd )
             HeapFree( GetProcessHeap(), 0, lzs->get );
             CloseHandle( LongToHandle(lzs->realfd) );
             lzstates[fd - LZ_MIN_HANDLE] = NULL;
+            DisposeLZ32Handle(lzs->realfd);
             HeapFree( GetProcessHeap(), 0, lzs );
         }
 }
