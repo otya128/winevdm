@@ -2498,7 +2498,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
         WNDCLASS16Info[atom].cbWndExtra = wc->cbWndExtra;
 	}
     class_len = strlen(a.name) + 1;
-    menu_len = !IS_INTRESOURCE(wc->lpszMenuName) ? strlen(wc32.lpszMenuName) + 1 : 0;
+    menu_len = !IS_INTRESOURCE(wc->lpszMenuName) && ((ULONG_PTR)wc32.lpszMenuName >> 16) ? strlen(wc32.lpszMenuName) + 1 : 0;
     buf_len = strlen(buf) + 1;
 
 	if (atom && (class = HeapAlloc(GetProcessHeap(), 0, sizeof(*class) + class_len + menu_len + buf_len)))
