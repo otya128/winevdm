@@ -531,10 +531,11 @@ static LPSTR LZEXPAND_MangleName( LPCSTR fn )
  *
  * Opens a file. If not compressed, open it as a normal file.
  */
-HFILE WINAPI LZOpenFileA( LPSTR fn, LPOFSTRUCT ofs, WORD mode )
+HFILE WINAPI LZOpenFile( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle )
 {
 	HFILE	fd,cfd;
 	BYTE    ofs_cBytes = ofs->cBytes;
+	*lzhandle = FALSE;
 
 	TRACE("(%s,%p,%d)\n",fn,ofs,mode);
 	/* 0x70 represents all OF_SHARE_* flags, ignore them for the check */
@@ -551,26 +552,11 @@ HFILE WINAPI LZOpenFileA( LPSTR fn, LPOFSTRUCT ofs, WORD mode )
 		return fd;
 	if (fd==HFILE_ERROR)
 		return HFILE_ERROR;
+	*lzhandle = TRUE;
 	cfd=LZInit(fd);
 	if ((INT)cfd <= 0) return fd;
 	return cfd;
 }
-
-
-/***********************************************************************
- *           LZOpenFileW   (KERNEL32.@)
- */
-HFILE WINAPI LZOpenFileW( LPWSTR fn, LPOFSTRUCT ofs, WORD mode )
-{
-    HFILE ret;
-    DWORD len = WideCharToMultiByte( CP_ACP, 0, fn, -1, NULL, 0, NULL, NULL );
-    LPSTR xfn = HeapAlloc( GetProcessHeap(), 0, len );
-    WideCharToMultiByte( CP_ACP, 0, fn, -1, xfn, len, NULL, NULL );
-    ret = LZOpenFileA(xfn,ofs,mode);
-    HeapFree( GetProcessHeap(), 0, xfn );
-    return ret;
-}
-
 
 /***********************************************************************
  *           LZClose   (KERNEL32.@)

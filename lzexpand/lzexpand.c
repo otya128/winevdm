@@ -111,15 +111,17 @@ LONG WINAPI LZCopy16( HFILE16 src, HFILE16 dest )
 }
 
 
+HFILE WINAPI LZOpenFile( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle );
 /***********************************************************************
  *           LZOpenFile   (LZEXPAND.2)
  */
 HFILE16 WINAPI LZOpenFile16(LPSTR fn, LPOFSTRUCT ofs, UINT16 mode)
 {
-	HFILE hfret = LZOpenFileA(fn, ofs, mode);
+	BOOL lzhandle;
+	HFILE hfret = LZOpenFile(fn, ofs, mode, &lzhandle);
 	/* return errors and LZ handles unmodified */
 	if ((INT)hfret < 0) return hfret;
-	if (IS_LZ_HANDLE(hfret)) return hfret;
+	if (lzhandle) return hfret;
 	/* but allocate a dos handle for 'normal' files */
 	return Win32HandleToDosFileHandle((HANDLE)hfret);
 }
