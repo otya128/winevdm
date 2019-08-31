@@ -531,7 +531,7 @@ static LPSTR LZEXPAND_MangleName( LPCSTR fn )
  *
  * Opens a file. If not compressed, open it as a normal file.
  */
-HFILE WINAPI LZOpenFile( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle )
+HFILE WINAPI LZOpenFileA16( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle )
 {
 	HFILE	fd,cfd;
 	BYTE    ofs_cBytes = ofs->cBytes;

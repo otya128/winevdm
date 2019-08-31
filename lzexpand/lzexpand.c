@@ -111,14 +111,14 @@ LONG WINAPI LZCopy16( HFILE16 src, HFILE16 dest )
 }
 
 
-HFILE WINAPI LZOpenFile( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle );
+HFILE WINAPI LZOpenFileA16( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle );
 /***********************************************************************
  *           LZOpenFile   (LZEXPAND.2)
  */
 HFILE16 WINAPI LZOpenFile16(LPSTR fn, LPOFSTRUCT ofs, UINT16 mode)
 {
 	BOOL lzhandle;
-	HFILE hfret = LZOpenFile(fn, ofs, mode, &lzhandle);
+	HFILE hfret = LZOpenFileA16(fn, ofs, mode, &lzhandle);
 	/* return errors and LZ handles unmodified */
 	if ((INT)hfret < 0) return hfret;
 	if (lzhandle) return hfret;
