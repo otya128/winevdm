@@ -2890,7 +2890,7 @@ BOOL16 WINAPI PeekMessage16( MSG16 *msg, HWND16 hwnd,
     if (!(flags & PM_NOYIELD))
     {
         ReleaseThunkLock(&count);
-        MsgWaitForMultipleObjects(0, NULL, FALSE, 1, QS_ALLINPUT);
+        MsgWaitForMultipleObjects(0, NULL, FALSE, 0, QS_ALLINPUT);
         /* Sleep(1); /* yield thread */
         /* Some programs use PeekMessage instead of GetMessage, so use 100% CPU... */
         /* MsgWaitForMultipleObjects(0, NULL, FALSE, 10, QS_ALLINPUT); /**/
