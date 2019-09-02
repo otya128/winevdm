@@ -31,10 +31,12 @@
 WINE_DEFAULT_DEBUG_CHANNEL(sound);
 
 #define S_SERDVNA (-1)
-#define S_SERMACT (-4)
+#define S_SERMACT (-3)
 #define S_SERQFUL (-4)
 #define S_SERDNT  (-5)
+#define S_SERDLN  (-6)
 #define S_SERDTP  (-8)
+#define S_SERDPT (-12)
 #define S_SERDFQ (-13)
 #define S_QUEUEEMPTY 0
 
@@ -119,7 +121,7 @@ INT16 WINAPI SetVoiceAccent16(INT16 nVoice, INT16 nTempo, INT16 nVolume,
   if (nVoice != 1) return 0;
   TRACE("(%d,%d,%d,%d,%d):\n", nVoice, nTempo, nVolume, nMode, nPitch);
   if ((nTempo < 32) || (nTempo > 255)) return S_SERDTP;
-  if (nPitch > 83) return -12;
+  if (nPitch > 83) return S_SERDPT;
   tempo = nTempo;
   pitch = nPitch;
   return 0;
@@ -169,6 +171,7 @@ INT16 WINAPI SetVoiceNote16(INT16 nVoice, INT16 nValue, INT16 nLength,
                             INT16 nCdots)
 {
   if (--nValue > 83) return S_SERDNT;
+  if (!nLength) return S_SERDLN;
   TRACE("(%d,%d,%d,%d)\n",nVoice,nValue,nLength,nCdots);
   const int notes[] = { 4186, 4435, 4699, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902 };
   nValue = (nValue + pitch) % 84;
