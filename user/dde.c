@@ -363,7 +363,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         HRESULT hres;
         int cmd_argc;
         WCHAR **cmd_argv;
-        WCHAR *prg_name;
+        WCHAR *prg_name, *dirend;
 
         if (argc < 1) return DDE_FNOTPROCESSED;
 
@@ -385,7 +385,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
             return DDE_FNOTPROCESSED;
         }
         path = heap_alloc(len * sizeof(WCHAR));
-        SearchPathW(NULL, prg_name, dotexeW, len, path, NULL);
+        SearchPathW(NULL, prg_name, dotexeW, len, path, &dirend);
         IShellLinkW_SetPath(link, path);
         if (cmd_argc > 1)
         {
@@ -399,7 +399,13 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
             seticon(link, *argv[2] ? argv[2] : path, atoiW(argv[3]));
         else
             seticon(link, path, 0);
-        if (argc >= 7) IShellLinkW_SetWorkingDirectory(link, argv[6]);
+        if (argc >= 7)
+            IShellLinkW_SetWorkingDirectory(link, argv[6]);
+        else
+        {
+            *dirend = 0;
+            IShellLinkW_SetWorkingDirectory(link, path);
+        }
         if (argc >= 8) IShellLinkW_SetHotkey(link, atoiW(argv[7]));
         if (argc >= 9)
         {
