@@ -177,7 +177,7 @@ INT WINAPI LZStart(void)
  * since _llseek uses the same types as libc.lseek, we just use the macros of
  *  libc
  */
-HFILE WINAPI LZInit( HFILE hfSrc )
+HFILE WINAPI LZInit32( HFILE hfSrc, BOOL *lzhandle )
 {
 
 	struct	lzfileheader	head;
@@ -213,6 +213,7 @@ HFILE WINAPI LZInit( HFILE hfSrc )
 	memset(lzs->table,' ',LZ_TABLE_SIZE);
 	/* Yes, start 16 byte from the END of the table */
 	lzs->curtabent	= 0xff0;
+	if (lzhandle) *lzhandle = TRUE;
 	return LZ_MIN_HANDLE + i;
 }
 
@@ -470,7 +471,7 @@ LONG WINAPI LZCopy( HFILE src, HFILE dest )
 
 	TRACE("(%d,%d)\n",src,dest);
 	if (!IS_LZ_HANDLE(src)) {
-		src = LZInit(src);
+		src = LZInit32(src, NULL);
                 if ((INT)src <= 0) return 0;
 		if (src != oldsrc) usedlzinit=1;
 	}
@@ -532,7 +533,7 @@ static LPSTR LZEXPAND_MangleName( LPCSTR fn )
  *
  * Opens a file. If not compressed, open it as a normal file.
  */
-HFILE WINAPI LZOpenFileA16( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle )
+HFILE WINAPI LZOpenFile32( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle )
 {
 	HFILE	fd,cfd;
 	BYTE    ofs_cBytes = ofs->cBytes;
@@ -553,8 +554,7 @@ HFILE WINAPI LZOpenFileA16( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle 
 		return fd;
 	if (fd==HFILE_ERROR)
 		return HFILE_ERROR;
-	*lzhandle = TRUE;
-	cfd=LZInit(fd);
+	cfd=LZInit32(fd, lzhandle);
 	if ((INT)cfd <= 0) return fd;
 	return cfd;
 }
@@ -571,7 +571,6 @@ void WINAPI LZClose( HFILE fd )
         else
         {
             HeapFree( GetProcessHeap(), 0, lzs->get );
-            CloseHandle( LongToHandle(lzs->realfd) );
             lzstates[fd - LZ_MIN_HANDLE] = NULL;
             DisposeLZ32Handle(lzs->realfd);
             HeapFree( GetProcessHeap(), 0, lzs );

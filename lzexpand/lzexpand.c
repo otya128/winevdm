@@ -47,13 +47,15 @@ INT16 WINAPI LZStart16(void)
 }
 
 
+HFILE WINAPI LZInit32( HFILE hfSrc, BOOL *lzhandle );
 /***********************************************************************
  *           LZInit   (LZEXPAND.3)
  */
 HFILE16 WINAPI LZInit16( HFILE16 hfSrc )
 {
-    HFILE ret = LZInit( (HFILE)DosFileHandleToWin32Handle(hfSrc) );
-    if (IS_LZ_HANDLE(ret)) return ret;
+    BOOL lzhandle = FALSE;
+    HFILE ret = LZInit32( (HFILE)DosFileHandleToWin32Handle(hfSrc), &lzhandle );
+    if (lzhandle) return ret;
     if ((INT)ret <= 0) return ret;
     return hfSrc;
 }
@@ -111,14 +113,14 @@ LONG WINAPI LZCopy16( HFILE16 src, HFILE16 dest )
 }
 
 
-HFILE WINAPI LZOpenFileA16( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle );
+HFILE WINAPI LZOpenFile32( LPSTR fn, LPOFSTRUCT ofs, WORD mode, BOOL *lzhandle );
 /***********************************************************************
  *           LZOpenFile   (LZEXPAND.2)
  */
 HFILE16 WINAPI LZOpenFile16(LPSTR fn, LPOFSTRUCT ofs, UINT16 mode)
 {
-	BOOL lzhandle;
-	HFILE hfret = LZOpenFileA16(fn, ofs, mode, &lzhandle);
+	BOOL lzhandle = FALSE;
+	HFILE hfret = LZOpenFile32(fn, ofs, mode, &lzhandle);
 	/* return errors and LZ handles unmodified */
 	if ((INT)hfret < 0) return hfret;
 	if (lzhandle) return hfret;
