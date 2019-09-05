@@ -155,7 +155,7 @@ INT16 WINAPI SetVoiceSound16(INT16 nVoice, DWORD lFrequency, INT16 nDuration)
   if (playing) return 0;
   if (nextnote >= (queuelen / sizeof(NOTE))) return S_SERQFUL;
   int freq = HIWORD(lFrequency);
-  if ((freq < 37) || (freq > 32767)) return S_SERDFQ;
+  if (freq && ((freq < 37) || (freq > 32767))) return S_SERDFQ;
 
   TRACE("freq: %d duration: %d\n", freq, nDuration);
   queue[nextnote].freq = freq;
@@ -170,12 +170,16 @@ INT16 WINAPI SetVoiceSound16(INT16 nVoice, DWORD lFrequency, INT16 nDuration)
 INT16 WINAPI SetVoiceNote16(INT16 nVoice, INT16 nValue, INT16 nLength,
                             INT16 nCdots)
 {
-  if (--nValue > 83) return S_SERDNT;
-  if (!nLength) return S_SERDLN;
+  if ((UINT16)nValue > 84) return S_SERDNT;
+  if (nLength <= 0) return S_SERDLN;
   TRACE("(%d,%d,%d,%d)\n",nVoice,nValue,nLength,nCdots);
   const int notes[] = { 4186, 4435, 4699, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902 };
-  nValue = (nValue + pitch) % 84;
-  int freq = notes[nValue % 12] >> (6 - (nValue / 12));
+  int freq = 0;
+  if (nValue)
+  {
+    nValue = ((nValue + pitch) % 84) - 1;
+    freq = notes[nValue % 12] >> (6 - (nValue / 12));
+  }
   int len = (nCdots ? ((nCdots * 3) / 2) : 1) * ((96000 / tempo) / nLength);
   if (nCdots != 0 && len > 32767)
   {
@@ -201,12 +205,20 @@ static DWORD WINAPI play(LPVOID param)
   for (int i = 0; i < nextnote; i++)
   {
     int notelen = (float)queue[i].duration / mspersamp;
-    int hwavelen = max(1, (int)((1000.0f / ((float)queue[i].freq * mspersamp)) / 2));
-    char samp = 0xff;
-    for (int j = 0; j < notelen; j++)
+    if (!queue[i].freq)
     {
-      wavbuf[k + j] = samp;
-      if (!(j % hwavelen)) samp = ~samp;
+        for (int j = 0; j < notelen; j++)
+            wavbuf[k + j] = 0x80;
+    }
+    else
+    {
+      int hwavelen = max(1, (int)((1000.0f / ((float)queue[i].freq * mspersamp)) / 2));
+      char samp = 0xff;
+      for (int j = 0; j < notelen; j++)
+      {
+        wavbuf[k + j] = samp;
+        if (!(j % hwavelen)) samp = ~samp;
+      }
     }
     k += notelen;
   }
