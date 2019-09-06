@@ -519,6 +519,8 @@ static DWORD parse_dde_command(HSZ hszTopic, WCHAR *command)
                         command++;
                         if (!(p = strchrW(command, '"'))) goto error;
                     }
+                    else if (*command == ')')
+                        break;
                     else
                     {
                         if (!(p = strpbrkW(command, param_end))) goto error;
