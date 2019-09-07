@@ -2610,7 +2610,9 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
 {
     LRESULT result;
     HWND hwnd = WIN_Handle32( hwnd16 );
-    SetEvent(kernel_get_thread_data()->idle_event);
+    // work around for Borland Office 2.0 installer
+    if ((msg != WM_GETTEXT) || (GetWindowThreadProcessId(hwnd, NULL) != GetCurrentThreadId()))
+        SetEvent(kernel_get_thread_data()->idle_event);
 
     // SendMessageTimeout always fails with this message
     if (msg == WM_DDE_EXECUTE)
