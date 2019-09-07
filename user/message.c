@@ -4528,7 +4528,8 @@ BOOL16 WINAPI WaitMessage16()
 {
     DWORD lock;
     ReleaseThunkLock(&lock);
-	BOOL ret = WaitMessage();
+    SetEvent(kernel_get_thread_data()->idle_event);
+    BOOL ret = WaitMessage();
     RestoreThunkLock(lock);
     return ret;
 }
