@@ -287,6 +287,7 @@ static struct magic_device magic_devices[] =
 };
 
 LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL is_dir);
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 
 /* Many calls translate a drive argument like this:
    drive number (00h = default, 01h = A:, etc)
@@ -1123,6 +1124,7 @@ static BOOL INT21_CreateFile( CONTEXT *context,
              FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_ARCHIVE);
     }
 
+	pathA = RedirectSystemDir(pathA, redir_buf, MAX_PATH);
     /*
      * Open the file.
      */
@@ -2065,7 +2067,6 @@ static void INT21_ExtendedCountryInformation( CONTEXT *context )
 }
 
 
-LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 /***********************************************************************
  *           INT21_FileAttributes
  *
