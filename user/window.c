@@ -2835,6 +2835,8 @@ LRESULT def_frame_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESU
 {
     DWORD count;
     ReleaseThunkLock(&count);
+    if (hwnd == (HWND)arg)
+        arg = NULL;
     *result = DefFrameProcA(hwnd, (HWND)arg, msg, wp, lp);
     RestoreThunkLock(count);
     return *result;
