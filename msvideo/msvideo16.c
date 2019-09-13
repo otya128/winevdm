@@ -1007,6 +1007,7 @@ static LRESULT WINAPI MCIWndProc16(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
     {
     case MCIWNDM_SENDSTRINGA:
     case MCIWNDM_SETTIMEFORMATA:
+    case MCIWNDM_GETMODEA:
         lparam = (ULONG_PTR)MapSL(lparam);
         break;
 
