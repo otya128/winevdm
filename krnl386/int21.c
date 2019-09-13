@@ -2108,6 +2108,7 @@ static BOOL INT21_FileAttributes( CONTEXT *context,
             return FALSE;
         else
         {
+            result &= 0xff;
             SET_CX( context, (WORD)result );
             if (!islong)
                 SET_AX( context, (WORD)result ); /* DR DOS */
