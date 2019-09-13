@@ -20,8 +20,8 @@
 105 stub     AVIMAKECOMPRESSEDSTREAM
 106 stub     AVIMAKEFILEFROMSTREAMS
 107 stub     AVIMAKESTREAMFROMCLIPBOARD
-110 pascal   AVIStreamGetFrame(long long) AVIStreamGetFrame
-111 pascal   AVIStreamGetFrameClose(long) AVIStreamGetFrameClose
+110 pascal   AVIStreamGetFrame(long long) AVIStreamGetFrame16
+111 pascal   AVIStreamGetFrameClose(long) AVIStreamGetFrameClose16
 112 pascal   AVIStreamGetFrameOpen(long ptr) AVIStreamGetFrameOpen
 120 stub     _AVISAVE
 121 stub     AVISAVEV
