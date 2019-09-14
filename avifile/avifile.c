@@ -4,23 +4,41 @@
 #include "wingdi.h"
 #include "vfw.h"
 
-SEGPTR frame16 = NULL;
-
-LPVOID WINAPI AVIStreamGetFrame16(PGETFRAME pg, LONG lPos)
+typedef struct
 {
-    if (frame16)
-        UnMapLS(frame16);
+    PGETFRAME frame32;
+    SEGPTR frame16;
+} GETFRAME16;
 
-    frame16 = MapLS(AVIStreamGetFrame(pg, lPos));
-    return frame16;
+GETFRAME16* WINAPI AVIStreamGetFrameOpen16(PAVISTREAM pavi, LPBITMAPINFOHEADER lpbiWanted)
+{
+    GETFRAME16* pframe16;
+    PGETFRAME pframe32 = AVIStreamGetFrameOpen(pavi, lpbiWanted);
+
+    if (!pframe32)
+        return NULL;
+
+    pframe16 = (GETFRAME16 *)HeapAlloc(GetProcessHeap(), 0, sizeof(GETFRAME16));
+    pframe16->frame32 = pframe32;
+    pframe16->frame16 = NULL;
+    return pframe16;
 }
 
-LRESULT WINAPI AVIStreamGetFrameClose16(PGETFRAME pg)
+LPVOID WINAPI AVIStreamGetFrame16(GETFRAME16* pg, LONG lPos)
 {
-    if (frame16)
-    {
-        UnMapLS(frame16);
-        frame16 = NULL;
-    }
-    return AVIStreamGetFrameClose(pg);
+    if (pg->frame16)
+        UnMapLS(pg->frame16);
+
+    pg->frame16 = MapLS(AVIStreamGetFrame(pg->frame32, lPos));
+    return pg->frame16;
+}
+
+LRESULT WINAPI AVIStreamGetFrameClose16(GETFRAME16* pg)
+{
+    if (pg->frame16)
+        UnMapLS(pg->frame16);
+    
+    LRESULT ret = AVIStreamGetFrameClose(pg->frame32);
+    HeapFree(GetProcessHeap(), 0, pg);
+    return ret;
 }

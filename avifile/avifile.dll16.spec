@@ -22,7 +22,7 @@
 107 stub     AVIMAKESTREAMFROMCLIPBOARD
 110 pascal   AVIStreamGetFrame(long long) AVIStreamGetFrame16
 111 pascal   AVIStreamGetFrameClose(long) AVIStreamGetFrameClose16
-112 pascal   AVIStreamGetFrameOpen(long ptr) AVIStreamGetFrameOpen
+112 pascal   AVIStreamGetFrameOpen(long ptr) AVIStreamGetFrameOpen16
 120 stub     _AVISAVE
 121 stub     AVISAVEV
 122 stub     AVISAVEOPTIONS
