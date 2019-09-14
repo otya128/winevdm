@@ -983,6 +983,11 @@ void DOSVM_InitSegments(void)
         ptr[i * 5 + 4] = 0x00;
     }
 
+    // replace int 8 with a far ret so it doesn't cause a DF trap
+    ptr[8 * 5 + 0] = 0xCA;
+    ptr[8 * 5 + 1] = 0x02;
+    ptr[8 * 5 + 2] = 0x00;
+
     /*
      * PM / offset 0: Stub where __wine_call_from_16_regs returns.
      * PM / offset 3: Stub which swaps back to 32-bit application code/stack.

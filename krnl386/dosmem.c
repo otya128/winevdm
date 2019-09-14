@@ -40,6 +40,7 @@
 #include "kernel16_private.h"
 #include "dosexe.h"
 #include "wine/debug.h"
+#include "windows/wownt32.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(dosmem);
 WINE_DECLARE_DEBUG_CHANNEL(selector);
@@ -238,6 +239,9 @@ static void DOSMEM_FillBiosSegments(void)
     *(DWORD*)(pBiosSys + 0xfff0) = VM_STUB(0x19);
 }
 
+typedef BOOL (WINAPI *vm_inject_t)(DWORD vpfn16, DWORD dwFlags,
+    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+vm_inject_t vm_inject;
 /***********************************************************************
  *           BiosTick
  *
@@ -245,8 +249,16 @@ static void DOSMEM_FillBiosSegments(void)
  */
 static void CALLBACK BiosTick( LPVOID arg, DWORD low, DWORD high )
 {
+    FARPROC16 tickhndlr = DOSVM_GetPMHandler16(8);
     BIOSDATA *pBiosData = arg;
     pBiosData->Ticks++;
+    // TODO: fix PIT
+    if (tickhndlr && (tickhndlr != (FARPROC16)MAKESEGPTR(DOSVM_dpmi_segments->int16_sel, 5 * 8)))
+    {
+        DWORD ret;
+        WORD dummyflags;
+        vm_inject(tickhndlr, WCB16_PASCAL, 2, &dummyflags, &ret);
+    }
 }
 
 /***********************************************************************
@@ -256,6 +268,18 @@ static DWORD CALLBACK timer_thread( void *arg )
 {
     LARGE_INTEGER when;
     HANDLE timer;
+
+    if (!vm_inject)
+    {
+        char dllname[MAX_PATH];
+        krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
+        HMODULE vm = LoadLibraryA(dllname);
+        vm_inject = (vm_inject_t)GetProcAddress(vm, "vm_inject");
+        if (!vm_inject)
+        {
+            vm_inject = WOWCallback16Ex;
+        }
+    }
 
     if (!(timer = CreateWaitableTimerA( NULL, FALSE, NULL ))) return 0;
 

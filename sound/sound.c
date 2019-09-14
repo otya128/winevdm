@@ -48,7 +48,7 @@ typedef struct {
 static NOTE *queue;
 static int queuelen;
 static HTASK owner = 0;
-static BOOL playing;
+static volatile BOOL playing;
 static int nextnote;
 static HANDLE thread;
 static LPHWAVEOUT wohand;
@@ -57,6 +57,7 @@ static int pitch;
 static int tempo;
 
 INT16 WINAPI StopSound16(void);
+INT16 WINAPI WaitSoundState16(INT16 x);
 
 /***********************************************************************
  *		OpenSound (SOUND.1)
@@ -88,6 +89,7 @@ void WINAPI CloseSound16(void)
 {
   if (owner != GetCurrentTask()) return;
   StopSound16();
+  WaitSoundState16(S_QUEUEEMPTY);
   HeapFree(GetProcessHeap(), 0, (LPVOID)queue);
   waveOutClose(wohand);
   CloseHandle(event);
@@ -294,10 +296,10 @@ INT16 WINAPI SyncAllVoices16(void)
 /***********************************************************************
  *		CountVoiceNotes (SOUND.13)
  */
-INT16 WINAPI CountVoiceNotes16(INT16 x)
+INT16 WINAPI CountVoiceNotes16(INT16 nVoice)
 {
-    FIXME("(%d): stub\n", x);
-    return 0;
+    if (nVoice != 1) return 0;
+    return nextnote;
 }
 
 /***********************************************************************

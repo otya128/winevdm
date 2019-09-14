@@ -4546,6 +4546,8 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
         TRACE("SET INTERRUPT VECTOR 0x%02x\n",AL_reg(context));
         {
             FARPROC16 ptr = (FARPROC16)MAKESEGPTR( context->SegDs, DX_reg(context) );
+            if (AL_reg(context) == 8)
+                DOSVM_start_bios_timer();
             if (!ISV86(context) && DOSVM_IsWin16())
                 DOSVM_SetPMHandler16(  AL_reg(context), ptr );
             else
