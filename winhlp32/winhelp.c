@@ -477,9 +477,17 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
             WINHELP_OpenHelpWindow(HLPFILE_PageByOffset, hlpfile, offset, WINHELP_GetWindowInfo(hlpfile, "main"), SW_NORMAL);
             break;
         }
+        case HELP_COMMAND:
+        {
+            // TODO: filename might be different than the open file
+            if (ptr)
+            {
+                MACRO_ExecuteMacro(Globals.active_win, (LPSTR)wh + wh->ofsData);
+            }
+            break;
+        }
         /* case HELP_WM_HELP: */
         /* case HELP_SETPOPUP_POS: */
-        /* case HELP_COMMAND: */
         /* case HELP_PARTIALKEY: */
         /* case HELP_MULTIKEY: */
         /* case HELP_SETWINPOS: */
