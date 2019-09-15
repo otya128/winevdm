@@ -1006,7 +1006,20 @@ static LRESULT WINAPI MCIWndProc16(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
     switch (msg)
     {
     case MCIWNDM_SENDSTRINGA:
+        lparam = (ULONG_PTR)MapSL(lparam);
+        if (strstr(lparam, "update"))
+        {
+            char newstr[64];
+            int pos1, pos2, hdc16;
+            int count = sscanf(lparam, "%[a-z ]%n%d%n", newstr, &pos1, &hdc16, &pos2);
+            sprintf(newstr + pos1, " %u%s", HDC_32((HDC16)hdc16), lparam + pos2);
+
+            return CallWindowProcA(pMCIWndProc, hwnd, msg, wparam, newstr);
+        }
+        break;
+ 
     case MCIWNDM_SETTIMEFORMATA:
+    case MCIWNDM_GETMODEA:
         lparam = (ULONG_PTR)MapSL(lparam);
         break;
 
