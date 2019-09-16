@@ -36,13 +36,18 @@ WINE_DEFAULT_DEBUG_CHANNEL(sound);
 #define S_SERDNT  (-5)
 #define S_SERDLN  (-6)
 #define S_SERDTP  (-8)
+#define S_SERDMD (-10)
 #define S_SERDPT (-12)
 #define S_SERDFQ (-13)
 #define S_QUEUEEMPTY 0
+#define S_NORMAL     0
+#define S_LEGATO     1
+#define S_STACCATO   2
 
 typedef struct {
   UINT16 freq;
-  INT16 duration;
+  UINT16 duration;
+  UINT16 interstice;
 } NOTE;
 
 static NOTE *queue;
@@ -55,6 +60,7 @@ static LPHWAVEOUT wohand;
 static HANDLE event;
 static int pitch;
 static int tempo;
+static int mode;
 
 INT16 WINAPI StopSound16(void);
 INT16 WINAPI WaitSoundState16(INT16 x);
@@ -79,6 +85,7 @@ INT16 WINAPI OpenSound16(void)
   nextnote = 0;
   pitch = 0;
   tempo = 120;
+  mode = S_NORMAL;
   return 1;
 }
 
@@ -124,8 +131,10 @@ INT16 WINAPI SetVoiceAccent16(INT16 nVoice, INT16 nTempo, INT16 nVolume,
   TRACE("(%d,%d,%d,%d,%d):\n", nVoice, nTempo, nVolume, nMode, nPitch);
   if ((nTempo < 32) || (nTempo > 255)) return S_SERDTP;
   if (nPitch > 83) return S_SERDPT;
+  if (nMode > 2) return S_SERDMD;
   tempo = nTempo;
   pitch = nPitch;
+  mode = nMode;
   return 0;
 }
 
@@ -161,7 +170,9 @@ INT16 WINAPI SetVoiceSound16(INT16 nVoice, DWORD lFrequency, INT16 nDuration)
 
   TRACE("freq: %d duration: %d\n", freq, nDuration);
   queue[nextnote].freq = freq;
-  queue[nextnote].duration = ((nDuration + 1) / 2) * 5; // 2.5 ms per tick rounded up
+  int len = ((nDuration + 1) / 2) * 5; // 2.5 ms per tick rounded up
+  queue[nextnote].duration = freq ? len : 0;
+  queue[nextnote].interstice = !freq ? len : 0;
   nextnote++;
   return 0;
 }
@@ -172,22 +183,31 @@ INT16 WINAPI SetVoiceSound16(INT16 nVoice, DWORD lFrequency, INT16 nDuration)
 INT16 WINAPI SetVoiceNote16(INT16 nVoice, INT16 nValue, INT16 nLength,
                             INT16 nCdots)
 {
+  if (owner != GetCurrentTask()) return 0;
+  if (nVoice != 1) return 0;
+  if (playing) return 0;
+  if (nextnote >= (queuelen / sizeof(NOTE))) return S_SERQFUL;
   if ((UINT16)nValue > 84) return S_SERDNT;
   if (nLength <= 0) return S_SERDLN;
   TRACE("(%d,%d,%d,%d)\n",nVoice,nValue,nLength,nCdots);
   const int notes[] = { 4186, 4435, 4699, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902 };
+  int modelen = 0;
   int freq = 0;
+  int len = (240000 * (2 - powf(.5f, nCdots))) / (nLength * tempo);
+  if (len >= 65536) return S_SERDLN;
   if (nValue)
   {
     nValue = ((nValue + pitch) % 84) - 1;
     freq = notes[nValue % 12] >> (6 - (nValue / 12));
+    modelen = (mode == S_STACCATO) ? 3 : (mode == S_LEGATO) ? 1 : 7;
   }
-  int len = (nCdots ? ((nCdots * 3) / 2) : 1) * ((96000 / tempo) / nLength);
-  if (nCdots != 0 && len > 32767)
-  {
-      len = (96000 / tempo) / nLength;
-  }
-  return SetVoiceSound16(nVoice, freq << 16, len);
+
+  queue[nextnote].freq = freq;
+  queue[nextnote].duration = modelen ? (len * modelen) / (modelen + 1) : 0;
+  queue[nextnote].interstice = len - queue[nextnote].duration;
+  nextnote++;
+  
+  return 0;
 }
 
 static DWORD WINAPI play(LPVOID param)
@@ -195,7 +215,7 @@ static DWORD WINAPI play(LPVOID param)
   int len = 0;
   const float mspersamp = 1000.0f / 48000.0f;
   for (int i = 0; i < nextnote; i++)
-    len += (float)queue[i].duration / mspersamp;
+    len += (float)(queue[i].duration + queue[i].interstice) / mspersamp;
   if (!len) return;
  
   int buflen = len;
@@ -207,12 +227,7 @@ static DWORD WINAPI play(LPVOID param)
   for (int i = 0; i < nextnote; i++)
   {
     int notelen = (float)queue[i].duration / mspersamp;
-    if (!queue[i].freq)
-    {
-        for (int j = 0; j < notelen; j++)
-            wavbuf[k + j] = 0x80;
-    }
-    else
+    if (notelen)
     {
       int hwavelen = max(1, (int)((1000.0f / ((float)queue[i].freq * mspersamp)) / 2));
       char samp = 0xff;
@@ -223,6 +238,13 @@ static DWORD WINAPI play(LPVOID param)
       }
     }
     k += notelen;
+    int interslen = (float)queue[i].interstice / mspersamp;
+    if (interslen)
+    {
+        for (int j = 0; j < interslen; j++)
+            wavbuf[k + j] = 0x80;
+    }
+    k += interslen;
   }
 
   WAVEHDR whdr = { wavbuf, buflen, 0, 0, 0, 0, NULL, NULL };
