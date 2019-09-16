@@ -191,19 +191,19 @@ INT16 WINAPI SetVoiceNote16(INT16 nVoice, INT16 nValue, INT16 nLength,
   if (nLength <= 0) return S_SERDLN;
   TRACE("(%d,%d,%d,%d)\n",nVoice,nValue,nLength,nCdots);
   const int notes[] = { 4186, 4435, 4699, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902 };
-  int modelen = 0;
+  float modelen = 0;
   int freq = 0;
-  int len = (240000 * (2 - powf(.5f, nCdots))) / (nLength * tempo);
+  float len = (240000 * (2 - powf(.5f, nCdots))) / (nLength * tempo);
   if (len >= 65536) return S_SERDLN;
   if (nValue)
   {
     nValue = ((nValue + pitch) % 84) - 1;
     freq = notes[nValue % 12] >> (6 - (nValue / 12));
-    modelen = (mode == S_STACCATO) ? 3 : (mode == S_LEGATO) ? 1 : 7;
+    modelen = (mode == S_STACCATO) ? .75f : (mode == S_LEGATO) ? 1 : .875f;
   }
 
   queue[nextnote].freq = freq;
-  queue[nextnote].duration = modelen ? (len * modelen) / (modelen + 1) : 0;
+  queue[nextnote].duration = roundf(len * modelen);
   queue[nextnote].interstice = len - queue[nextnote].duration;
   nextnote++;
   
