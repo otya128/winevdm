@@ -1988,7 +1988,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             cds.cbData = cds32->cbData;
             cds.lpData = MapLS( cds32->lpData );
             lParam = MapLS( &cds );
-            ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
+            ret = callback( HWND_16(hwnd), msg, HWND_16(wParam), lParam, result, arg );
             UnMapLS( lParam );
             UnMapLS( cds.lpData );
         }

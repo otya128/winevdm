@@ -41,6 +41,7 @@
 #include "wine/debug.h"
 #include "winuser.h"
 #include "shellapi.h"
+#include "shlwapi.h"
 #include "../toolhelp/toolhelp.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(module);
@@ -1889,11 +1890,33 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
 
     if (args)
     {
+        BOOL done = FALSE;
         args++;
-        arglen = strlen(args);
-        cmdline = HeapAlloc(GetProcessHeap(), 0, 2 + arglen);
+        // workaround for msvc 1.5
+        if (StrStrIA(name, "wintee32"))
+        {
+            char fixargs[128];
+            char *harg = strstr(args, "-h");
+            if (harg)
+            {
+                int pos;
+                HWND16 hwnd;
+                sscanf(harg, "-h%x%n", &hwnd, &pos);
+                memcpy(fixargs, args, (int)(harg - args));
+                sprintf(fixargs + (int)(harg - args), "-h%x%s", HWND_32(hwnd), args + pos);
+                arglen = strlen(fixargs);
+                cmdline = HeapAlloc(GetProcessHeap(), 0, 2 + arglen);
+                strcpy(cmdline + 1, fixargs);
+                done = TRUE;
+            }
+        }
+        if (!done)
+        {
+            arglen = strlen(args);
+            cmdline = HeapAlloc(GetProcessHeap(), 0, 2 + arglen);
+            strcpy(cmdline + 1, args);
+        }
         cmdline[0] = (BYTE)arglen;
-        strcpy(cmdline + 1, args);
     }
     else
     {
