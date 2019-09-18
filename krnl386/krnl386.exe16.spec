@@ -17,7 +17,7 @@
 14  pascal LocalNotify(long) LocalNotify16
 15  pascal -register GlobalAlloc(word long) WIN16_GlobalAlloc16
 16  pascal -ret16 GlobalReAlloc(word long word) WIN16_GlobalReAlloc16
-17  pascal -ret16 GlobalFree(word) WIN16_GlobalFree16
+17  pascal GlobalFree(word) WIN16_GlobalFree16
 18  pascal GlobalLock(word) WIN16_GlobalLock16
 19  pascal GlobalUnlock(word) WIN16_GlobalUnlock16
 20  pascal GlobalSize(word) WIN16_GlobalSize16

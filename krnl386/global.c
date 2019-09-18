@@ -759,7 +759,7 @@ DWORD WINAPI WIN16_GlobalFlags16(HGLOBAL16 handle)
     CURRENT_STACK16->es = 0;
     return MAKELONG(GlobalFlags16(handle), GlobalHandleToSel16(handle));
 }
-HGLOBAL16 WINAPI WIN16_GlobalFree16(HGLOBAL16 handle)
+DWORD WINAPI WIN16_GlobalFree16(HGLOBAL16 handle)
 {
     CURRENT_STACK16->es = 0;
     return GlobalFree16(handle);
