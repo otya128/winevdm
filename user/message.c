@@ -2206,6 +2206,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case BM_SETSTYLE:
         ret = callback( HWND_16(hwnd), msg + BM_GETCHECK16 - BM_GETCHECK, wParam, lParam, result, arg );
         break;
+    case EM_GETSEL:
     case EM_GETRECT:
     {
         lParam = MapLS(lParam);
@@ -2216,7 +2217,6 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case EM_GETLINE:
         ret = callback(HWND_16(hwnd), msg + EM_GETSEL16 - EM_GETSEL, wParam, (LPARAM)MapLS(lParam), result, arg);
         break;
-    case EM_GETSEL:
     case EM_SETRECT:
     case EM_SETRECTNP:
     case EM_SCROLL:
