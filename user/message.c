@@ -2217,6 +2217,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback(HWND_16(hwnd), msg + EM_GETSEL16 - EM_GETSEL, wParam, (LPARAM)MapLS(lParam), result, arg);
         break;
     case EM_GETSEL:
+        ret = callback(HWND_16(hwnd), msg + EM_GETSEL16 - EM_GETSEL, 0, 0, result, arg);
+        break;
     case EM_SETRECT:
     case EM_SETRECTNP:
     case EM_SCROLL:
