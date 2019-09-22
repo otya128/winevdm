@@ -1852,8 +1852,24 @@ LRESULT WINAPI SendDriverMessage16(HDRVR16 hDriver, UINT16 msg, LPARAM lParam1,
  */
 HDRVR16 WINAPI OpenDriver16(LPCSTR lpDriverName, LPCSTR lpSectionName, LPARAM lParam2)
 {
-    FIXME( "(%s, %s, %08lx): stub\n", debugstr_a(lpDriverName), debugstr_a(lpSectionName), lParam2);
-    return 0;
+    TRACE( "(%s, %s, %08lx): stub\n", debugstr_a(lpDriverName), debugstr_a(lpSectionName), lParam2);
+    static HDRVR16 (WINAPI *DrvOpen16)(LPCSTR, LPCSTR, LPARAM) = NULL;
+    if (!DrvOpen16)
+    {
+        HMODULE mmsystem = GetModuleHandleA("mmsystem.dll16");
+        if (!mmsystem)
+        {
+            ERR("mmsystem not loaded\n");
+            return 0;
+        }
+        (FARPROC)DrvOpen16 = GetProcAddress(mmsystem, "DrvOpen16");
+        if (!DrvOpen16)
+        {
+            ERR("DrvOpen16 load error\n");
+            return 0;
+        }
+    }
+    return DrvOpen16(lpDriverName, lpSectionName, lParam2);
 }
 
 

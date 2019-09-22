@@ -285,9 +285,23 @@ HDRVR16 WINAPI DrvOpen16(LPCSTR lpDriverName, LPCSTR lpSectionName, LPARAM lPara
 				 drvName, sizeof(drvName), "SYSTEM.INI") > 0) {
 	lpDrv = DRIVER_TryOpenDriver16(drvName, lParam2);
     }
-    if (!lpDrv) {
-	TRACE("Failed to open driver %s from system.ini file, section %s\n", debugstr_a(lpDriverName), debugstr_a(lpSectionName));
-	return 0;
+    if (!lpDrv)
+    {
+        if (!stricmp(lpSectionName, "drivers"))
+        {
+            // if 32bit driver exists pretend success
+            if (GetPrivateProfileStringA("drivers32", lpDriverName, "",
+		        		 drvName, sizeof(drvName), "SYSTEM.INI") > 0)
+                return 0xdead;
+        }
+        else if (!stricmp(lpSectionName, "mci"))
+        {
+            if (GetPrivateProfileStringA("mci32", lpDriverName, "",
+		        		 drvName, sizeof(drvName), "SYSTEM.INI") > 0)
+                return 0xdead;
+        }
+        TRACE("Failed to open driver %s from system.ini file, section %s\n", debugstr_a(lpDriverName), debugstr_a(lpSectionName));
+        return 0;
     }
  the_end:
     TRACE("=> %04x / %p\n", lpDrv->hDriver16, lpDrv);
