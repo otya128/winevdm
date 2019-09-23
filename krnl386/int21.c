@@ -3945,17 +3945,25 @@ static unsigned INT21_FindHelper(LPCWSTR fullPath, unsigned drive, unsigned coun
     if ((search_attr & ~(FA_UNUSED | FA_ARCHIVE | FA_RDONLY | attr_win32)) == FA_LABEL)
     {
         WCHAR path[] = {' ',':','\\',0};
+        WCHAR volname[MAX_PATH];
 
         if (count) return 0;
         path[0] = drive + 'A';
-        entry->cAlternateFileName[0] = '\0';
-        if (!GetVolumeInformationW(path, entry->cAlternateFileName, 13, NULL, NULL, NULL, NULL, 0)) return 0;
-        if (!entry->cAlternateFileName[0]) return 0;
+        volname[0] = '\0';
+        if (!GetVolumeInformationW(path, volname, MAX_PATH, NULL, NULL, NULL, NULL, 0)) return 0;
+        if (!volname[0]) return 0;
         RtlSecondsSince1970ToTime( 0, (LARGE_INTEGER *)&entry->ftCreationTime );
         RtlSecondsSince1970ToTime( 0, (LARGE_INTEGER *)&entry->ftLastAccessTime );
         RtlSecondsSince1970ToTime( 0, (LARGE_INTEGER *)&entry->ftLastWriteTime );
         entry->dwFileAttributes = FA_LABEL;
         entry->nFileSizeHigh = entry->nFileSizeLow = 0;
+        entry->cAlternateFileName[12] = '\0'; 
+        wcsncpy(entry->cAlternateFileName, volname, 8);
+        if (wcslen(volname) > 8)
+        {
+            entry->cAlternateFileName[8] = '.';
+            wcsncpy(entry->cAlternateFileName + 9, volname + 8, 3);
+        }
         TRACE("returning %s as label\n", debugstr_w(entry->cAlternateFileName));
         return 1;
     }
