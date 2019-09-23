@@ -1862,7 +1862,7 @@ HDRVR16 WINAPI OpenDriver16(LPCSTR lpDriverName, LPCSTR lpSectionName, LPARAM lP
             ERR("mmsystem not loaded\n");
             return 0;
         }
-        ((FARPROC)DrvOpen16) = GetProcAddress(mmsystem, "DrvOpen16");
+        DrvOpen16 = (HDRVR16 (WINAPI *)(LPCSTR, LPCSTR, LPARAM))GetProcAddress(mmsystem, "DrvOpen16");
         if (!DrvOpen16)
         {
             ERR("DrvOpen16 load error\n");
