@@ -3950,6 +3950,7 @@ static unsigned INT21_FindHelper(LPCWSTR fullPath, unsigned drive, unsigned coun
         if (count) return 0;
         path[0] = drive + 'A';
         volname[0] = '\0';
+        entry->cAlternateFileName[0] = '\0';
         if (!GetVolumeInformationW(path, volname, MAX_PATH, NULL, NULL, NULL, NULL, 0)) return 0;
         if (!volname[0]) return 0;
         RtlSecondsSince1970ToTime( 0, (LARGE_INTEGER *)&entry->ftCreationTime );
@@ -4140,7 +4141,16 @@ static BOOL INT21_FindNextFCB( CONTEXT *context )
 
     /* Convert file name to FCB format */
     if (entry.cAlternateFileName[0])
-        INT21_ToDosFCBFormat( entry.cAlternateFileName, nameW );
+    {
+        if (entry.dwFileAttributes == FA_LABEL)
+        {
+            wcsncpy(nameW, entry.cAlternateFileName, 8);
+            if (entry.cAlternateFileName[8] == '.')
+                wcsncpy(nameW + 8, entry.cAlternateFileName + 9, 3);
+        }
+        else
+            INT21_ToDosFCBFormat( entry.cAlternateFileName, nameW );
+    }
     else
         INT21_ToDosFCBFormat( entry.cFileName, nameW );
     WideCharToMultiByte(CP_OEMCP, 0, nameW, 11, ddl->filename, 11, NULL, NULL);
