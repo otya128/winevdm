@@ -23,7 +23,7 @@
 # ATI driver exports
 22 stub SetPalette
 23 stub GetPalette
-24 stub SetPaletteTranslate
+24 pascal -ret16 SetPaletteTranslate(word ptr) SetPaletteTranslate16
 25 stub GetPaletteTranslate
 26 stub UpdateColors
 27 stub StretchBlt
