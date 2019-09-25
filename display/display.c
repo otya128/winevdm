@@ -93,3 +93,9 @@ VOID WINAPI UserRepaintDisable16( BOOL16 disable )
 {
     FIXME("stub\n");
 }
+
+WORD WINAPI SetPaletteTranslate16( WORD wNumEntries, LPBYTE lpTranslate)
+{
+    WARN("stub\n");
+    return 0;
+}
