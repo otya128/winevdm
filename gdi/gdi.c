@@ -1416,7 +1416,7 @@ HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
             VOID *section;
             bmap->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
             bmap->bmiHeader.biWidth = width;
-            bmap->bmiHeader.biHeight = height;
+            bmap->bmiHeader.biHeight = -height;
             bmap->bmiHeader.biPlanes = 1;
             bmap->bmiHeader.biBitCount = 8;
             for (int i = 0; i < 256; i++)
