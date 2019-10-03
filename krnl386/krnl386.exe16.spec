@@ -176,7 +176,7 @@
 173 equate __ROMBIOS 0
 174 equate __A000H 0
 175 pascal -ret16 AllocSelector(word) AllocSelector16
-176 pascal -ret16 FreeSelector(word) FreeSelector16
+176 pascal -ret16 FreeSelector(word) WIN16_FreeSelector16
 177 pascal -ret16 PrestoChangoSelector(word word) PrestoChangoSelector16
 178 equate __WINFLAGS 0x413
 179 equate __D000H 0
