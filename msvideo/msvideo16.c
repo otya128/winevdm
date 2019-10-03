@@ -1000,23 +1000,18 @@ BOOL CDECL MCIWndRegisterClass16(void)
 }
 
 static LRESULT (WINAPI *pMCIWndProc)(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+char * WINAPI xlate_str_handle(const char *origstr, char *newstr);
 
 static LRESULT WINAPI MCIWndProc16(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
     switch (msg)
     {
     case MCIWNDM_SENDSTRINGA:
+    {
+        char newstr[128];
         lparam = (ULONG_PTR)MapSL(lparam);
-        if (strstr(lparam, "update"))
-        {
-            char newstr[64];
-            int pos1, pos2, hdc16;
-            int count = sscanf(lparam, "%[a-z ]%n%d%n", newstr, &pos1, &hdc16, &pos2);
-            sprintf(newstr + pos1, " %u%s", HDC_32((HDC16)hdc16), lparam + pos2);
-
-            return CallWindowProcA(pMCIWndProc, hwnd, msg, wparam, newstr);
-        }
-        break;
+        return CallWindowProcA(pMCIWndProc, hwnd, msg, wparam, xlate_str_handle(lparam, newstr));
+    }
  
     case MCIWNDM_SETTIMEFORMATA:
     case MCIWNDM_GETMODEA:
