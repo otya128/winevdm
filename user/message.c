@@ -1313,7 +1313,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         if (f)
             return ret;
     }
-    if (is_aviwnd(hwnd, hwnd32))
+    if (is_aviwnd(hwnd, hwnd32) && (GetWindowThreadProcessId(hwnd32, NULL) != GetCurrentThreadId()))
     {
         aviwnd_cwp = arg;
         return 1;
