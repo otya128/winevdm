@@ -984,7 +984,13 @@ BOOL is_aviwnd(HWND16 hWnd16, HWND hWnd)
         return TRUE;
     char name[10];
     if (GetClassNameA(hWnd, &name, 10))
-        return !strcmp(name, "AVIWnd32");
+    {
+        if (!strcmp(name, "AVIWnd32"))
+        {
+            window_type_table[hWnd16] = WINDOW_TYPE_AVIWND;
+            return TRUE;
+        }
+    }
     return FALSE;
 }
 
@@ -1819,6 +1825,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         {
             MSG avimsg = { hwnd, msg, wParam, lParam };
             LRESULT ret = SendMessageA(parent, aviwnd_msg, NULL, &avimsg);
+            if (msg == WM_DESTROY)
+                window_type_table[hwnd16] = 0;
             if (avimsg.time)
                 return CallWindowProcA(avimsg.time, hwnd, msg, wParam, lParam);
             return ret;
