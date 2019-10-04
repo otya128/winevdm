@@ -409,7 +409,6 @@ INT16 WINAPI GetProfileString16( LPCSTR section, LPCSTR entry, LPCSTR def_val,
                                       buffer, len, "win.ini" );
 }
 
-
 /***********************************************************************
  *           WriteProfileString   (KERNEL.59)
  */
@@ -1513,6 +1512,20 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
     return GetPrivateProfileStringA( section, entry, def_val, buffer, len, filename );
 }
 
+static BOOL16 check_write_profile_error(LPCSTR filename, DWORD error)
+{
+    if (error == ERROR_ACCESS_DENIED)
+    {
+        OFSTRUCT ofstr;
+        HFILE ret = OpenFile(filename, &ofstr, OF_EXIST);
+        if (ret != HFILE_ERROR)
+        {
+            WARN("Failed to write profile data because it was redirected to the registry");
+            return TRUE; // fake success, any written data can't be read anyway
+        }
+    }
+    return FALSE;
+}
 
 /***********************************************************************
  *           WritePrivateProfileString   (KERNEL.129)
@@ -1523,7 +1536,10 @@ BOOL16 WINAPI WritePrivateProfileString16( LPCSTR section, LPCSTR entry,
     char filenamebuf[MAX_PATH];
     RedirectPrivateProfileStringWindowsDir(filename, &filenamebuf);
     filename = filenamebuf;
-    return WritePrivateProfileStringA(section,entry,string,filename);
+    BOOL ret = WritePrivateProfileStringA(section,entry,string,filename);
+    if (!ret)
+        return check_write_profile_error(filename, GetLastError());
+    return ret;
 }
 
 
