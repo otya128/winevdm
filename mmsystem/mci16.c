@@ -61,6 +61,45 @@
 #endif
 WINE_DEFAULT_DEBUG_CHANNEL(mmsys);
 
+char *WINAPI xlate_str_handle(const char *origstr, char *newstr)
+{
+    if (!strncmp(origstr, "update ", 7))
+    {
+        int pos1, pos2, hdc16;
+        int count = sscanf(origstr, "%[a-z ]%n%d%n", newstr, &pos1, &hdc16, &pos2);
+        sprintf(newstr + pos1, " %u%s", HDC_32((HDC16)hdc16), origstr + pos2);
+        return newstr;
+    }
+    else if (!strncmp(origstr, "setvideo ", 9))
+    {
+        char *pal = strstr(origstr, "palette handle");
+        if (pal)
+        {
+            int pos0 = (intptr_t)pal - (intptr_t)origstr;
+            strncpy(newstr, origstr, pos0);
+            int pos1, pos2, hpal16;
+            int count = sscanf(pal, "%[a-z ]%n%d%n", newstr + pos0, &pos1, &hpal16, &pos2);
+            sprintf(newstr + pos0 + pos1, " %u%s", HPALETTE_32((HPALETTE16)hpal16), pal + pos2);
+            return newstr;
+        }
+    }
+    else if (!strncmp(origstr, "open ", 5))
+    {
+        char *par = strstr(origstr, "parent");
+        if (par)
+        {
+            int pos0 = (intptr_t)par - (intptr_t)origstr;
+            strncpy(newstr, origstr, pos0);
+            int pos1, pos2, hwnd16;
+            int count = sscanf(par, "%[a-z ]%n%d%n", newstr + pos0, &pos1, &hwnd16, &pos2);
+            sprintf(newstr + pos0 + pos1, " %u%s", HWND_32((HWND16)hwnd16), par + pos2);
+            return newstr;
+        }
+    }
+
+    return origstr;
+}
+
 /**************************************************************************
  * 			MCI_MessageToString			[internal]
  */
@@ -906,7 +945,8 @@ UINT16 WINAPI mciDriverYield16(UINT16 uDeviceID)
 DWORD WINAPI mciSendString16(LPCSTR lpstrCommand, LPSTR lpstrRet,
 			     UINT16 uRetLen, HWND16 hwndCallback)
 {
-    return mciSendStringA(lpstrCommand, lpstrRet, uRetLen, HWND_32(hwndCallback));
+    char newstr[128];
+    return mciSendStringA(xlate_str_handle(lpstrCommand, newstr), lpstrRet, uRetLen, HWND_32(hwndCallback));
 }
 
 /**************************************************************************

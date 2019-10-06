@@ -5,3 +5,4 @@ LIBRARY mmsystem.dll16
 EXPORTS
   _wine_spec_dos_header @1 DATA
   DrvOpen16
+  xlate_str_handle

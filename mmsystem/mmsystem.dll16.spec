@@ -174,3 +174,5 @@
 
 # these are Wine only exported functions. Is there another way to do it ?
 2047   pascal  __wine_mmThreadEntryPoint(long) WINE_mmThreadEntryPoint
+
+@ stdcall -arch=win32 xlate_str_handle(ptr ptr)
