@@ -1966,7 +1966,8 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
         lstrcpynA( buffer, name, sizeof(buffer) );
         if (strlen( buffer ) < sizeof(buffer) - 4 && !strchr( buffer, '.' )) strcat( buffer, ".exe" );
         ret = LoadModule16( buffer, &params );
-        //if (ret == ERROR_FILE_NOT_FOUND) ret = 21;  /* it might be a 32-bit builtin too */
+        if ((ret == ERROR_FILE_NOT_FOUND) && SearchPathA( NULL, name, ".exe", sizeof(buffer), buffer, NULL ))
+            ret = 21;  // check the real path for a host 32bit or 64bit exe
     }
     else ret = ERROR_FILE_NOT_FOUND;
 
