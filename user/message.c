@@ -69,6 +69,8 @@ WINE_DEFAULT_DEBUG_CHANNEL(msg);
 WINE_DECLARE_DEBUG_CHANNEL(message);
 BOOL is_win_menu_disallowed(DWORD style);
 DWORD USER16_AlertableWait = 0;
+static UINT aviwnd_msg = 0;
+static void *aviwnd_cwp;
 
 struct wow_handlers32 wow_handlers32;
 #define TIMER32_LPARAM 0x42137460
@@ -93,6 +95,7 @@ typedef enum
     WINDOW_TYPE_SCROLLBAR,
     WINDOW_TYPE_COMBOBOX,
     WINDOW_TYPE_MDICLIENT,
+    WINDOW_TYPE_AVIWND,
 } WINDOW_TYPE;
 LPBYTE window_type_table;
 #include <pshpack1.h>
@@ -974,6 +977,23 @@ BOOL is_mdiclient(HWND16 hWnd16, HWND hWnd)
     WNDPROC lpfnWndProc = (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
     return is_mdiclient_wndproc(lpfnWndProc);
 }
+
+BOOL is_aviwnd(HWND16 hWnd16, HWND hWnd)
+{
+    if (window_type_table[hWnd16] == WINDOW_TYPE_AVIWND)
+        return TRUE;
+    char name[10];
+    if (GetClassNameA(hWnd, &name, 10))
+    {
+        if (!strcmp(name, "AVIWnd32"))
+        {
+            window_type_table[hWnd16] = WINDOW_TYPE_AVIWND;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 /***********************************************************************
 *           listbox_proc16
 */
@@ -1239,6 +1259,7 @@ static ATOM topic32_16(ATOM atom)
         return gatom_progman;
     return atom;
 }
+
 /**********************************************************************
  *	     WINPROC_CallProc16To32A
  */
@@ -1297,6 +1318,11 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         ret = static_proc_CallProc16To32A(callback, hwnd32, msg, wParam, lParam, 0, result, arg, &f);
         if (f)
             return ret;
+    }
+    if (is_aviwnd(hwnd, hwnd32) && (GetWindowThreadProcessId(hwnd32, NULL) != GetCurrentThreadId()))
+    {
+        aviwnd_cwp = arg;
+        return 1;
     }
     switch(msg)
     {
@@ -1788,6 +1814,33 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     {
         window_type_table[hwnd16] = (BYTE)WINDOW_TYPE_COMBOBOX;
     }
+    if (is_aviwnd(hwnd16, hwnd) && (GetWindowThreadProcessId(hwnd, NULL) == GetCurrentThreadId()))
+    {
+        if (!aviwnd_msg)
+            aviwnd_msg = RegisterWindowMessageA("AVIWnd_Msg");
+        HWND parent = GetParent(hwnd);
+        DWORD pid;
+        GetWindowThreadProcessId(parent, &pid);
+        if (pid == GetCurrentProcessId())
+        {
+            MSG avimsg = { hwnd, msg, wParam, lParam };
+            LRESULT ret = SendMessageA(parent, aviwnd_msg, NULL, &avimsg);
+            if (msg == WM_DESTROY)
+                window_type_table[hwnd16] = 0;
+            if (avimsg.time)
+                return CallWindowProcA(avimsg.time, hwnd, msg, wParam, lParam);
+            return ret;
+        }
+    }
+    if (msg && (msg == aviwnd_msg))
+    {
+        MSG *avimsg = (MSG *)lParam;
+        aviwnd_cwp = NULL;
+        LRESULT ret = WindowProc16(avimsg->hwnd, avimsg->message, avimsg->wParam, avimsg->lParam);
+        avimsg->time = aviwnd_cwp;
+        return ret;
+    }
+            
     switch (msg)
     {
     case WM_NCCREATE:
