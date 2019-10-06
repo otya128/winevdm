@@ -89,6 +89,11 @@ WORD WINAPI AllocSelector16( WORD sel )
     return newsel;
 }
 
+DWORD WINAPI WIN16_FreeSelector16(WORD sel)
+{
+    CURRENT_STACK16->es = 0;
+    return FreeSelector16(sel);
+}
 
 /***********************************************************************
  *           FreeSelector   (KERNEL.176)
