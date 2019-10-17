@@ -635,7 +635,7 @@ LRESULT WINAPI progman16_wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
     {
         case WM_DDE_INITIATE:
         {
-            PostMessage(wparam, WM_DDE_ACK, wparam, lparam);
+            SendMessage(wparam, WM_DDE_ACK, hwnd, lparam);
             break;
         }
         case WM_DDE_EXECUTE:
