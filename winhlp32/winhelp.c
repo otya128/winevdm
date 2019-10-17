@@ -179,6 +179,7 @@ BOOL WINHELP_GetOpenFileName(LPSTR lpszFile, int len)
     CHAR szzFilter[2 * MAX_STRING_LEN + 100];
     LPSTR p = szzFilter;
 
+    memset(&openfilename, 0, sizeof(OPENFILENAMEA));
     WINE_TRACE("()\n");
 
     LoadStringA(Globals.hInstance, STID_HELP_FILES_HLP, p, MAX_STRING_LEN);
