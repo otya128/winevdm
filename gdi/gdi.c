@@ -1947,12 +1947,6 @@ DWORD WINAPI GetDCOrg16( HDC16 hdc )
 INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
 {
     HDC hdc32 = HDC_32(hdc);
-    BOOL release = FALSE;
-    if (!GetObjectType(hdc32)) // Assume object was already released
-    {
-        release = TRUE;
-        hdc32 = GetDC(NULL);
-    }
     INT16 ret = GetDeviceCaps( hdc32, cap );
     /* some apps don't expect -1 and think it's a B&W screen */
     if (krnl386_get_compat_mode("256color") && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
@@ -1974,8 +1968,6 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
         }
     }
     else if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;
-    if (release)
-        ReleaseDC(NULL, hdc32);
     return ret;
 }
 

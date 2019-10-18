@@ -27,6 +27,12 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
+struct {
+    int next;
+    HDC16 dcs[5];
+    HWND16 wnds[5];
+} dcc = {0};
+
 /* Workaround for ReactOS */
 BOOL is_reactos()
 {
@@ -1148,6 +1154,22 @@ HDC16 WINAPI GetWindowDC16( HWND16 hwnd )
  */
 INT16 WINAPI ReleaseDC16( HWND16 hwnd, HDC16 hdc )
 {
+    if (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a)
+    {
+        if (dcc.dcs[dcc.next])
+        {
+            HDC16 oldhdc = dcc.dcs[dcc.next];
+            HDC16 oldhwnd = dcc.wnds[dcc.next];
+            if(ReleaseDC( WIN_Handle32(oldhwnd), HDC_32(oldhdc) ) || !IsWindow(HWND_32(oldhwnd)))
+            {
+                K32WOWHandle16DestroyHint(HDC_32(oldhdc), WOW_TYPE_HDC);
+            }
+        }
+        dcc.dcs[dcc.next] = hdc;
+        dcc.wnds[dcc.next] = hwnd;
+        dcc.next = (dcc.next + 1) % 5;
+        return GetObjectType(HDC_32(hdc)) == OBJ_DC;
+    }
     INT16 result = (INT16)ReleaseDC( WIN_Handle32(hwnd), HDC_32(hdc) );
     if (result)
     {
