@@ -778,7 +778,12 @@ static UINT_PTR convert_handle_16_to_32(HANDLE16 src, unsigned int flags)
     UINT        sz = GlobalSize16(src);
     LPSTR       ptr16, ptr32;
 
-    if (!(dst = GlobalAlloc(flags, sz)))
+    if (dst = GLOBAL_GetOrig(src))
+    {
+        if (GlobalSize(dst) != sz)
+            dst = GlobalReAlloc(dst, sz, 0);
+    }
+    else if (!(dst = GlobalAlloc(flags, sz)))
         return 0;
     ptr16 = GlobalLock16(src);
     ptr32 = GlobalLock(dst);
@@ -802,6 +807,7 @@ static HANDLE16 convert_handle_32_to_16(UINT_PTR src, unsigned int flags)
     if (ptr16 != NULL && ptr32 != NULL) memcpy(ptr16, ptr32, sz);
     GlobalUnlock((HANDLE)src);
     GlobalUnlock16(dst);
+    GLOBAL_SetOrig(dst, (HANDLE)src);
 
     return dst;
 }

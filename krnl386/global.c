@@ -58,7 +58,8 @@ typedef struct
     DWORD     dib_avail_size;
     WORD      wSeg;
     WORD      wType;
-    BYTE      pad[0x10 - 4 - 2 - 2];     /* win31 GLOBALARENA size = 0x20 */
+    HGLOBAL   orig_hndl;
+    BYTE      pad[0x10 - 4 - 2 - 2 - 4];     /* win31 GLOBALARENA size = 0x20 */
 } GLOBALARENA;
 
   /* Flags definitions */
@@ -186,6 +187,7 @@ HGLOBAL16 GLOBAL_CreateBlock( WORD flags, void *ptr, DWORD size,
     pArena->wSeg = 0;
     pArena->wType = GT_UNKNOWN;
     pArena->flags = flags & GA_MOVEABLE;
+    pArena->orig_hndl = NULL;
     if (flags & GMEM_DISCARDABLE) pArena->flags |= GA_DISCARDABLE;
     if (flags & GMEM_DDESHARE) pArena->flags |= GA_IPCSHARE;
     if (!(selflags & (WINE_LDT_FLAGS_CODE^WINE_LDT_FLAGS_DATA))) pArena->flags |= GA_DGROUP;
@@ -298,6 +300,16 @@ void GLOBAL_SetSeg(HGLOBAL16 hg, WORD wSeg, WORD type)
 {
     GET_ARENA_PTR(hg)->wSeg = wSeg;
     GET_ARENA_PTR(hg)->wType = type;
+}
+
+HGLOBAL GLOBAL_GetOrig(HGLOBAL16 hg)
+{
+    return GET_ARENA_PTR(hg)->orig_hndl;
+}
+
+void GLOBAL_SetOrig(HGLOBAL16 hg16, HGLOBAL hg)
+{
+    GET_ARENA_PTR(hg16)->orig_hndl = hg;
 }
 
 /***********************************************************************
