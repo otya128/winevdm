@@ -1156,6 +1156,8 @@ INT16 WINAPI ReleaseDC16( HWND16 hwnd, HDC16 hdc )
 {
     if (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a)
     {
+        if (!GetObjectType(HDC_32(hdc)) == OBJ_DC)
+            return 0;
         if (dcc.dcs[dcc.next])
         {
             HDC16 oldhdc = dcc.dcs[dcc.next];
@@ -1168,7 +1170,7 @@ INT16 WINAPI ReleaseDC16( HWND16 hwnd, HDC16 hdc )
         dcc.dcs[dcc.next] = hdc;
         dcc.wnds[dcc.next] = hwnd;
         dcc.next = (dcc.next + 1) % 5;
-        return GetObjectType(HDC_32(hdc)) == OBJ_DC;
+        return 1;
     }
     INT16 result = (INT16)ReleaseDC( WIN_Handle32(hwnd), HDC_32(hdc) );
     if (result)
