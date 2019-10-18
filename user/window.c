@@ -1156,7 +1156,7 @@ INT16 WINAPI ReleaseDC16( HWND16 hwnd, HDC16 hdc )
 {
     if (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a)
     {
-        if (!GetObjectType(HDC_32(hdc)) == OBJ_DC)
+        if (WindowFromDC(HDC_32(hdc)) != HWND_32(hwnd))
             return 0;
         if (dcc.dcs[dcc.next])
         {
