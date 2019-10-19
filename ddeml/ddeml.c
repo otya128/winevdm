@@ -34,6 +34,7 @@
 #include "wownt32.h"
 #include "dde.h"
 #include "ddeml.h"
+#include "winuser.h"
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ddeml);
@@ -395,8 +396,16 @@ HDDEDATA WINAPI DdeCreateDataHandle16(DWORD idInst, LPBYTE pSrc, DWORD cb,
  */
 HSZ WINAPI DdeCreateStringHandle16(DWORD idInst, LPCSTR str, INT16 codepage)
 {
-    if  (codepage != CP_WINANSI)
-        WARN("Codepage %x supplied but only CP_WINANSI is supported\n", codepage);
+    if (codepage != CP_WINANSI)
+    {
+        if (!codepage || (codepage == GetKBCodePage()))
+            WARN("Codepage %x supplied but only CP_WINANSI is supported\n", codepage);
+        else
+        {
+            ERR("Invalid codepage %x\n", codepage);
+            return DMLERR_INVALIDPARAMETER;
+        }
+    }
   
     return DdeCreateStringHandleA(idInst, str, CP_WINANSI);
 }
