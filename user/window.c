@@ -3026,6 +3026,9 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         cs.cy = CW_USEDEFAULT;
     }
 
+    if (!(style & (WS_POPUP | WS_CHILD)))
+        style |= WS_CAPTION;
+
     /* Create the window */
 
     cs.lpCreateParams = data;
