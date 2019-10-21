@@ -3021,7 +3021,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         style |= WS_CAPTION;
 
     // make windows 1.0 programs appear in a usable window
-    if ((GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x200) && !(style & WS_CHILD))
+    if ((GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x201) && !(style & WS_CHILD))
     {
         if (!cs.cx || !cs.cy)
         {
