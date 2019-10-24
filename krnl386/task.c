@@ -1974,13 +1974,15 @@ static void parse_autoexec()
         fclose(aeb);
     }
     // at least one program requires some kind of path
+    char path[MAX_PATH];
     if (!pathfound)
     {
-        char path[MAX_PATH];
         if (!GetEnvironmentVariable("PATH16", path, MAX_PATH))
             RedirectSystemDir("C:\\WINDOWS\\", path, MAX_PATH);
         SetEnvironmentVariable("PATH\x16", path);
     }
+    GetEnvironmentVariable("PATH\x16", path, MAX_PATH);
+    SetEnvironmentVariable("PATH16", path);
 }
 
 /***********************************************************************
