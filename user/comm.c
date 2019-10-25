@@ -85,7 +85,6 @@ struct DosDeviceStruct {
     HANDLE handle;
     int unget;
     int evtchar;
-    BOOL xmit,buf;
     /* events */
     int commerror, eventmask;
     /* buffers */
@@ -101,6 +100,9 @@ struct DosDeviceStruct {
     SEGPTR seg_unknown;
     BYTE unknown[40];
     HANDLE eventth;
+	HANDLE writeth;
+	HANDLE writeev;
+	HANDLE writelock;
     BOOL exit;
 };
 
@@ -140,6 +142,7 @@ static DWORD WINAPI eventth(LPVOID cid)
 	COMSTAT stat;
 	DWORD count = -1;
 	OVERLAPPED ov;
+	int ret = 0;
 
 	ZeroMemory(&ov, sizeof(ov));
 	ov.hEvent = CreateEventW(NULL, 0, 0, NULL);
@@ -161,10 +164,10 @@ static DWORD WINAPI eventth(LPVOID cid)
 					error = GetLastError();
 			}
 			if (!ret && (error == ERROR_OPERATION_ABORTED))
-				return 0;
+				break;
 		}
         if (ptr->exit)
-            return 0;
+            break;
 
 		if(GetCommModemStatus(ptr->handle, &mstat))
 			*((WORD *)(ptr->unknown + COMM_MSR_OFFSET)) = mstat;
@@ -174,7 +177,10 @@ static DWORD WINAPI eventth(LPVOID cid)
 			PostMessageA(ptr->wnd, WM_COMMNOTIFY, cid, CN_EVENT);
 
 		if (!ClearCommError(ptr->handle, &temperror, &stat))
-			return -1;
+		{
+			ret = -1;
+			break;
+		}
 		
 		if ((ptr->n_read != -1) && (ptr->n_read < stat.cbInQue) && ptr->wnd)
 			PostMessageA(ptr->wnd, WM_COMMNOTIFY, cid, CN_RECEIVE);
@@ -182,7 +188,8 @@ static DWORD WINAPI eventth(LPVOID cid)
 		if ((ptr->n_write != -1) && (ptr->n_write > stat.cbOutQue) && ptr->wnd)
 			PostMessageA(ptr->wnd, WM_COMMNOTIFY, cid, CN_TRANSMIT);
 	}
-	return 0;
+	CloseHandle(ov.hEvent);
+	return ret;
 }
 
 static VOID WINAPI COMM16_WriteComplete(DWORD dwErrorCode, DWORD len, LPOVERLAPPED ov)
@@ -210,25 +217,45 @@ static VOID WINAPI COMM16_WriteComplete(DWORD dwErrorCode, DWORD len, LPOVERLAPP
 	}
 	TRACE("async write completed %d bytes\n",len);
 
-	if (ptr->buf) {
-		/* update the buffer pointers */
-		prev = ((ptr->obuf_tail > ptr->obuf_head) ? ptr->obuf_size : 0) + ptr->obuf_head - ptr->obuf_tail;
-		ptr->obuf_tail += len;
-		if (ptr->obuf_tail >= ptr->obuf_size)
-			ptr->obuf_tail = 0;
-	}
+	WaitForSingleObject(ptr->writelock, INFINITE);
+
+	/* update the buffer pointers */
+	prev = ((ptr->obuf_tail > ptr->obuf_head) ? ptr->obuf_size : 0) + ptr->obuf_head - ptr->obuf_tail;
+	ptr->obuf_tail += len;
+	if (ptr->obuf_tail >= ptr->obuf_size)
+		ptr->obuf_tail = 0;
 
 	/* write from output queue */
 	bleft = ((ptr->obuf_tail <= ptr->obuf_head) ? ptr->obuf_head : ptr->obuf_size) - ptr->obuf_tail;
 
 	/* start again if necessary */
 	if(bleft)
-	{
 		WriteFileEx(ptr->handle, ptr->outbuf + ptr->obuf_tail, bleft, &ptr->write_ov, COMM16_WriteComplete);
-		ptr->buf = TRUE;
+	SetEvent(ptr->writelock);
+}
+
+static DWORD WINAPI writeth(LPVOID cid)
+{
+	struct DosDeviceStruct *ptr = GetDeviceStruct(cid);
+
+	while (ptr->handle)
+	{
+		DWORD ret;
+		ret = WaitForSingleObjectEx(ptr->writeev, INFINITE, TRUE);
+		if ((ret == WAIT_ABANDONED) || ptr->exit)
+		{
+   		    CancelIo(ptr->handle);
+			break;
+		}
+		if (ret == WAIT_OBJECT_0)
+		{
+			WaitForSingleObject(ptr->writelock, INFINITE);
+			int bleft = ((ptr->obuf_tail <= ptr->obuf_head) ? ptr->obuf_head : ptr->obuf_size) - ptr->obuf_tail;
+			WriteFileEx(ptr->handle, ptr->outbuf + ptr->obuf_tail, bleft, &ptr->write_ov, COMM16_WriteComplete);
+			SetEvent(ptr->writelock);
+		}
 	}
-	else
-		ptr->xmit = FALSE;
+	return 0;
 }
 
 /*****************************************************************************
@@ -353,7 +380,6 @@ INT16 WINAPI OpenComm16(LPCSTR device,UINT16 cbInQueue,UINT16 cbOutQueue)
 			GetCommState16(port,&COM[port].dcb);
 			/* init priority characters */
 			COM[port].unget = -1;
-			COM[port].xmit = 0;
 			/* allocate buffers */
 			COM[port].obuf_size = cbOutQueue;
 			COM[port].obuf_head = COM[port].obuf_tail = 0;
@@ -369,10 +395,12 @@ INT16 WINAPI OpenComm16(LPCSTR device,UINT16 cbInQueue,UINT16 cbOutQueue)
             SetCommTimeouts(handle, &cto);
             
 			ZeroMemory(&COM[port].write_ov,sizeof (OVERLAPPED));
-			USER16_AlertableWait++;
 
 			COM[port].exit = FALSE;
             COM[port].eventth = CreateThread(NULL, 0, eventth, (LPVOID)port, 0, NULL);
+            COM[port].writeth = CreateThread(NULL, 0, writeth, (LPVOID)port, 0, NULL);
+			COM[port].writeev = CreateEventW(NULL, 0, 0, NULL);
+			COM[port].writelock = CreateEventW(NULL, 0, TRUE, NULL);
 			return port;
 		}
 	}
@@ -415,11 +443,14 @@ INT16 WINAPI CloseComm16(INT16 cid)
 		/* reset modem lines */
 		SetCommState16(&COM[cid].dcb);
 		HeapFree(GetProcessHeap(), 0, ptr->outbuf);
-        CancelIo(ptr->handle);
         ptr->exit = TRUE;
         SetCommMask(ptr->handle, 0);
-        WaitForSingleObject(ptr->eventth, 1000);
+ 		SetEvent(ptr->writeev);
+		WaitForSingleObject(ptr->eventth, 1000);
         GetOverlappedResult(ptr->handle, &ptr->write_ov, &count, TRUE);
+        WaitForSingleObject(ptr->writeth, 1000);
+		CloseHandle(ptr->writeev);
+		CloseHandle(ptr->writelock);
     }
 
 	if (!CloseHandle(ptr->handle)) {
@@ -864,22 +895,13 @@ INT16 WINAPI WriteComm16(INT16 cid, LPSTR lpvBuf, INT16 cbWrite)
 	{
 		int count;
 		length = 0;
-		if ((ptr->obuf_head == ptr->obuf_tail) && !ptr->xmit) {
-			/* no data queued, try to write directly */
-			DWORD error = ERROR_SUCCESS;
-			if (!WriteFileEx(ptr->handle, lpvBuf, cbWrite - length, &ptr->write_ov, COMM16_WriteComplete))
-				error = GetLastError();
-			if ((error == ERROR_SUCCESS) || (error == ERROR_IO_PENDING)) {
-				lpvBuf += count;
-				length += count;
-				ptr->xmit = TRUE;
-				ptr->buf = FALSE;
-			}
-			else
-				return length;
+		DWORD ret = WaitForSingleObject(ptr->writelock, 1000);
+		if (ret == WAIT_TIMEOUT)
+		{
+			ERR("Write lock timed out\n");
+			return 0;
 		}
 		while (length < cbWrite) {
-			/* can't write directly, put into transmit buffer */
 			count = ((ptr->obuf_tail > ptr->obuf_head) ?
 						(ptr->obuf_tail-1) : ptr->obuf_size) - ptr->obuf_head;
 			if (!count) break;
@@ -892,6 +914,8 @@ INT16 WINAPI WriteComm16(INT16 cid, LPSTR lpvBuf, INT16 cbWrite)
 			lpvBuf += count;
 			length += count;
 		}
+		SetEvent(ptr->writelock);
+		SetEvent(ptr->writeev);
 	}
 
 	return length;
