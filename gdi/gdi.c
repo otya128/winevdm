@@ -1471,13 +1471,17 @@ HBITMAP16 WINAPI CreateCompatibleBitmap16( HDC16 hdc, INT16 width, INT16 height 
     return HBITMAP_16( CreateCompatibleBitmap( HDC_32(hdc), width, height ) );
 }
 
-
+BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
+BYTE get_aflags(HMODULE16 hModule);
 /***********************************************************************
  *           CreateCompatibleDC    (GDI.52)
  */
 HDC16 WINAPI CreateCompatibleDC16( HDC16 hdc )
 {
-    return HDC_16( CreateCompatibleDC( HDC_32(hdc) ) );
+    HDC hdc32 = CreateCompatibleDC( HDC_32(hdc) );
+    if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (GetCurrentObject(hdc32, OBJ_FONT) == GetStockObject(SYSTEM_FONT)))
+        SelectObject(hdc32, GetStockObject(SYSTEM_FIXED_FONT));
+    return HDC_16(hdc32);
 }
 
 
@@ -2114,6 +2118,8 @@ INT16 WINAPI GetRelAbs16( HDC16 hdc )
  */
 HGDIOBJ16 WINAPI GetStockObject16( INT16 obj )
 {
+    if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (obj == SYSTEM_FONT))
+        obj = SYSTEM_FIXED_FONT;
     return HGDIOBJ_16( GetStockObject( obj ) );
 }
 

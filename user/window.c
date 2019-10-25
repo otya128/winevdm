@@ -60,6 +60,7 @@ BOOL is_reactos()
 
 void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
+BYTE get_aflags(HMODULE16 hModule);
 /* size of buffer needed to store an atom string */
 #define ATOM_BUFFER_SIZE 256
 
@@ -684,6 +685,8 @@ HDC16 WINAPI BeginPaint16( HWND16 hwnd, LPPAINTSTRUCT16 lps )
     lps->rcPaint.bottom = ps.rcPaint.bottom;
     lps->fRestore       = ps.fRestore;
     lps->fIncUpdate     = ps.fIncUpdate;
+    if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (GetCurrentObject(ps.hdc, OBJ_FONT) == GetStockObject(SYSTEM_FONT)))
+        SelectObject(ps.hdc, GetStockObject(SYSTEM_FIXED_FONT));
     return lps->hdc;
 }
 
@@ -1117,6 +1120,7 @@ HDC16 WINAPI GetDC16( HWND16 hwnd )
 {
     static BOOL DWMDesktopDCFix_init;
     static BOOL DWMDesktopDCFix;
+    HDC hdc;
     if (!DWMDesktopDCFix_init)
     {
         DWMDesktopDCFix_init = TRUE;
@@ -1134,9 +1138,13 @@ HDC16 WINAPI GetDC16( HWND16 hwnd )
         SetWindowOrgEx(dc, 0, 0, NULL);
         MoveToEx(dc, 0, 0, NULL);
         SelectClipRgn(dc, NULL);
-        return HDC_16(dc);
+        hdc = dc;
     }
-    return HDC_16(GetDC( WIN_Handle32(hwnd) ));
+    else
+        hdc = GetDC( WIN_Handle32(hwnd) );
+    if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (GetCurrentObject(hdc, OBJ_FONT) == GetStockObject(SYSTEM_FONT)))
+        SelectObject(hdc, GetStockObject(SYSTEM_FIXED_FONT));
+    return HDC_16(hdc);
 }
 
 

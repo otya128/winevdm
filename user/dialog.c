@@ -51,6 +51,7 @@ typedef struct
 } DLGPROCTHUNK;
 #include <poppack.h>
 void free_proc_thunk(DLGPROCTHUNK *thunk);
+BYTE get_aflags(HMODULE16 hModule);
 
 typedef struct
 {
@@ -228,6 +229,12 @@ static LPCSTR DIALOG_ParseTemplate16( LPCSTR p, DLG_TEMPLATE * result )
         result->faceName = p;
         p += strlen(p) + 1;
         TRACE(" FONT %d,'%s'\n", result->pointSize, result->faceName );
+    }
+    else if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE))
+    {
+        result->style |= DS_SETFONT;
+        result->pointSize = 10;
+        result->faceName = "FIXEDSYS";
     }
     return p;
 }
