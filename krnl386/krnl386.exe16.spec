@@ -788,3 +788,5 @@
 @ stdcall -arch=win32 TaskGetCSIP16(long)
 @ stdcall -arch=win32 TaskSwitch16(long long)
 @ stdcall -arch=win32 AllocDStoCSAlias16(long)
+@ cdecl -arch=win32 GLOBAL_GetOrig(long)
+@ cdecl -arch=win32 GLOBAL_SetOrig(long long)

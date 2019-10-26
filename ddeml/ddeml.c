@@ -34,6 +34,7 @@
 #include "wownt32.h"
 #include "dde.h"
 #include "ddeml.h"
+#include "winuser.h"
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(ddeml);
@@ -102,7 +103,7 @@ static HDDEDATA	CALLBACK WDML_InvokeCallback16(DWORD pfn16, UINT uType, UINT uFm
     DWORD               d1 = 0;
     HDDEDATA            ret;
     CONVCONTEXT16       cc16;
-    WORD args[16];
+    WORD args[14];
 
     switch (uType)
     {
@@ -118,10 +119,8 @@ static HDDEDATA	CALLBACK WDML_InvokeCallback16(DWORD pfn16, UINT uType, UINT uFm
         d1 = dwData1;
         break;
     }
-    args[15] = HIWORD(uType);
-    args[14] = LOWORD(uType);
-    args[13] = HIWORD(uFmt);
-    args[12] = LOWORD(uFmt);
+    args[13] = uType;
+    args[12] = uFmt;
     args[11] = HIWORD(hConv);
     args[10] = LOWORD(hConv);
     args[9]  = HIWORD(hsz1);
@@ -397,15 +396,18 @@ HDDEDATA WINAPI DdeCreateDataHandle16(DWORD idInst, LPBYTE pSrc, DWORD cb,
  */
 HSZ WINAPI DdeCreateStringHandle16(DWORD idInst, LPCSTR str, INT16 codepage)
 {
-    if  (codepage)
+    if (codepage != CP_WINANSI)
     {
-        return DdeCreateStringHandleA(idInst, str, codepage);
+        if (!codepage || (codepage == GetKBCodePage()))
+            WARN("Codepage %x supplied but only CP_WINANSI is supported\n", codepage);
+        else
+        {
+            ERR("Invalid codepage %x\n", codepage);
+            return DMLERR_INVALIDPARAMETER;
+        }
     }
-    else
-    {
-        TRACE("Default codepage supplied\n");
-        return DdeCreateStringHandleA(idInst, str, CP_WINANSI);
-    }
+  
+    return DdeCreateStringHandleA(idInst, str, CP_WINANSI);
 }
 
 /*****************************************************************
