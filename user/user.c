@@ -2481,7 +2481,7 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
         //OEMRESOURCE
         WORD n = (WORD)name;
         HINSTANCE hinst32 = NULL;
-        if (n == OBM_OLD_CLOSE)
+        if ((n == OBM_OLD_CLOSE) || (n == OBM_BTNCORNERS))
             hinst32 = GetModuleHandleA("user.exe16");
         HANDLE h = LoadImageA(hinst32, n, type, cx, cy, flags);
         if (!h)
