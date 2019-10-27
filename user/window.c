@@ -3025,13 +3025,21 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     cs.cx = (width == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)width;
     cs.cy = (height == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)height;
 
+    if (!(style & (WS_POPUP | WS_CHILD | WS_DLGFRAME)))
+        style |= WS_CAPTION;
+
     // make windows 1.0 programs appear in a usable window
-    if (IsOldWindowsTask(GetCurrentTask()) && !(style & WS_CHILD) && (!cs.cx || !cs.cy))
+    if ((GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x201) && !(style & WS_CHILD))
     {
-        cs.x = CW_USEDEFAULT;
-        cs.y = CW_USEDEFAULT;
-        cs.cx = CW_USEDEFAULT;
-        cs.cy = CW_USEDEFAULT;
+        if (!cs.cx || !cs.cy)
+        {
+            cs.x = CW_USEDEFAULT;
+            cs.y = CW_USEDEFAULT;
+            cs.cx = CW_USEDEFAULT;
+            cs.cy = CW_USEDEFAULT;
+        }
+        if ((style & (WS_CAPTION | WS_SIZEBOX)) == (WS_CAPTION | WS_SIZEBOX))
+            style |= WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
     }
 
     /* Create the window */
