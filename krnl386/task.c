@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
@@ -1869,9 +1870,9 @@ DWORD WINAPI GetAppCompatFlags16( HTASK16 hTask )
 
 const char *env_var_limitation[] =
 {
-    "COMSPEC", "TEMP", "TMP", "PATH"
+    "COMSPEC", "TEMP", "TMP"
 };
-BOOL env_var_limit(const char *v)
+static BOOL env_var_limit(const char *v)
 {
     static BOOL init;
     int i;
@@ -1882,14 +1883,108 @@ BOOL env_var_limit(const char *v)
     }
     if (!limit)
         return TRUE;
+    SIZE_T len = strchr(v, '=') ? strchr(v, '=') - v : strlen(v);
+    if ((len > 1) && (v[len - 1] == '\x16'))
+        return TRUE;
     for (i = 0; i < ARRAY_SIZE(env_var_limitation); i++)
     {
-        SIZE_T len = strchr(v, '=') ? strchr(v, '=') - v : strlen(v);
         if (strlen(env_var_limitation[i]) == len && !memicmp(v, env_var_limitation[i], len))
             return TRUE;
     }
     return FALSE;
 }
+
+static void parse_autoexec()
+{
+    BOOL pathfound = FALSE;
+    char autoexec_path[MAX_PATH];
+    int len = 0;
+    RedirectDriveRoot("C:\\AUTOEXEC.BAT", &autoexec_path, MAX_PATH, FALSE);
+    FILE *aeb = fopen(autoexec_path, "r");
+    if (aeb)
+    {
+        while (!feof(aeb))
+        {
+            char line[1024], name[128], var[256], newvar[512], *ptr;
+            int pos;
+            ptr = fgets(&line, 1024, aeb);
+            if (!ptr)
+                continue;
+            pos = strlen(line);
+            if (line[pos - 1] == '\n')
+                line[pos - 1] = '\0';
+            pos = strspn(line, " \t");
+            if (!strnicmp(line, "SET ", 4))
+            {
+                pos = strspn(line + pos + 4, " ") + pos + 4;
+                ptr = strchr(line + pos, '=');
+                if (!ptr)
+                    continue;
+                int namelen = (int)(ptr - line) - pos;
+                if (namelen >= 125)
+                    continue;
+                strncpy(name, line + pos, namelen);
+                strncpy(var, ptr + 1, 256);
+                name[namelen] = '\0';
+                if (!strlen(var))
+                    continue;
+            }
+            else if (!strnicmp(line, "PATH", 4))
+            {
+                pos = strspn(line + pos + 4, " ") + pos + 4;
+                if (line[pos] == '=')
+                {
+                    pos++;
+                    pos = strspn(line + pos, " ") + pos;
+                }
+                if (!strlen(line + pos))
+                    continue;
+                strcpy(name, "PATH");
+                strncpy(var, line + pos, 256);
+            }
+            else
+                continue;
+
+            // use host env var if it exists and will be copied
+            if (env_var_limit(name) && GetEnvironmentVariable(name, NULL, 0))
+                continue;
+
+            // special handling for path because we want to include path16 but exclude the host path
+            if (!strcmp(name, "PATH"))
+            {
+                char path[MAX_PATH];
+                if (ptr = strstr(var, "%PATH%"))
+                    strcpy(ptr, ptr + 6);
+                if (GetEnvironmentVariable("PATH\x16", path, MAX_PATH))
+                {
+                    strcat(var, ";");
+                    strcat(var, path);
+                }
+                if (GetEnvironmentVariable("PATH16", path, MAX_PATH) && !pathfound)
+                {
+                    strcat(var, ";");
+                    strcat(var, path);
+                }
+                pathfound = TRUE;
+            }
+            strcat(name, "\x16");
+            ExpandEnvironmentStringsA(var, newvar, 512);
+            SetEnvironmentVariable(name, newvar);
+        }
+        fclose(aeb);
+    }
+    // at least one program requires some kind of path
+    char path[MAX_PATH];
+    if (!pathfound)
+    {
+        if (!GetEnvironmentVariable("PATH16", path, MAX_PATH))
+            RedirectSystemDir("C:\\WINDOWS\\", path, MAX_PATH);
+        SetEnvironmentVariable("PATH\x16", path);
+    }
+    GetEnvironmentVariable("PATH\x16", path, MAX_PATH);
+    SetEnvironmentVariable("PATH16", path);
+}
+
 /***********************************************************************
  *           GetDOSEnvironment     (KERNEL.131)
  *
@@ -1913,6 +2008,8 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
     {
         DWORD size = 0;
         LPSTR p, env;
+
+        parse_autoexec();
 
         p = env = GetEnvironmentStringsA();
         while (*p)
@@ -1940,7 +2037,14 @@ SEGPTR WINAPI GetDOSEnvironment16(void)
                     for (i = 0; i < strlen(p) + 1; i++)
                     {
                         if (p[i] == '=')
+                        {
+                            if (i && (p[i - 1] == '\x16'))
+                            {
+                                i--;
+                                p++;
+                            }
                             break;
+                        }
                         env16p[i] = toupper(p[i]);
                     }
                     memcpy(env16p + i, p + i, strlen(p + i) + 1);
