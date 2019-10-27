@@ -1087,6 +1087,11 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
 
         strcpy( dllname, basename );
         q = strrchr( dllname, '.' );
+        if (q && !q[1])
+        {
+            *q = '\0';
+            q = NULL;
+        }
         if (!q) strcat( dllname, ".dll" );
         for (q = dllname; *q; q++) if (*q >= 'A' && *q <= 'Z') *q += 32;
 
@@ -1157,6 +1162,11 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
         char *q;
         strcpy( dllname, basename );
         q = strrchr( dllname, '.' );
+        if (q && !q[1])
+        {
+            *q = '\0';
+            q = NULL;
+        }
         if (!q) strcat( dllname, (GetExeVersion16() >= 0x0300) ? ".dll" : ".exe" );
         TRACE("Trying native dll '%s'\n", !q ? dllname : libname);
         hinst = NE_LoadModule(!q ? dllname : libname, lib_only);
