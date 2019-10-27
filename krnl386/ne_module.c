@@ -1852,6 +1852,12 @@ WORD WINAPI GetExpWinVer16( HMODULE16 hModule )
     return pModule->ne_expver;
 }
 
+BYTE get_aflags( HMODULE16 hModule )
+{
+    NE_MODULE *pModule = NE_GetPtr( hModule );
+    if ( !pModule ) return 0;
+    return pModule->ne_flagsothers;
+}  
 
 /***********************************************************************
  *           WinExec     (KERNEL.166)
