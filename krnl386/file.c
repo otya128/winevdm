@@ -447,13 +447,12 @@ BOOL16 WINAPI WriteProfileString16( LPCSTR section, LPCSTR entry,
            strlen( module ) + 1 +                           /* then module path */
            GetEnvironmentVariableA( "PATH16", NULL, 0 ) + 1); /* then look in PATH */
     if (!(ret = HeapAlloc( GetProcessHeap(), 0, len ))) return NULL;
-    p = ret;
+    strcpy(ret, ".;");
+    p = ret + 2;
     strcpy(p, vdmpath);
     p += strlen(vdmpath);
     *p++ = ';';
 
-    *p++ = '.';
-    *p++ = ';';
     GetSystemDirectory16( p, ret + len - p );
     p += strlen( p );
     *p++ = ';';
