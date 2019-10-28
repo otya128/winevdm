@@ -86,8 +86,42 @@ typedef struct
     LPCSTR     className;
     LPCSTR     caption;
     INT16      pointSize;
+    INT16      weight;
     LPCSTR     faceName;
 } DLG_TEMPLATE;
+#include "pshpack2.h"
+typedef struct
+{
+  WORD dlgVer;
+  WORD signature;
+  DWORD helpID;
+  DWORD exStyle;
+  DWORD style;
+  WORD cdit;
+  short x;
+  short y;
+  short cx;
+  short cy;
+} DLGTEMPLATEEX;
+
+typedef struct
+{
+  DWORD helpid;
+  DWORD exStyle;
+  DWORD style;
+  short x;
+  short y;
+  short cx;
+  short cy;
+  DWORD id;
+} DLGITEMTEMPLATEEX;
+#include "poppack.h"
+
+#define IS_ANY_DBCS_CHARSET( CharSet )                              \
+                   ( ((CharSet) == SHIFTJIS_CHARSET)    ? TRUE :    \
+                     ((CharSet) == HANGEUL_CHARSET)     ? TRUE :    \
+                     ((CharSet) == CHINESEBIG5_CHARSET) ? TRUE :    \
+                     ((CharSet) == GB2312_CHARSET)      ? TRUE : FALSE )
 
 #define DIALOG_CLASS_ATOM MAKEINTATOM(32770)
 
@@ -221,13 +255,18 @@ static LPCSTR DIALOG_ParseTemplate16( LPCSTR p, DLG_TEMPLATE * result )
 
     result->pointSize = 0;
     result->faceName = NULL;
+    result->weight = 0;
 
     if (result->style & DS_SETFONT)
     {
+        CHARSETINFO info;
+        if (!TranslateCharsetInfo((DWORD *)(GetACP()), &info, TCI_SRCCODEPAGE))
+            info.ciCharset = ANSI_CHARSET;
         result->pointSize = GET_WORD(p);
         p += sizeof(WORD);
         result->faceName = p;
         p += strlen(p) + 1;
+        result->weight = IS_ANY_DBCS_CHARSET(info.ciCharset) ? FW_NORMAL : FW_BOLD;
         TRACE(" FONT %d,'%s'\n", result->pointSize, result->faceName );
     }
     else if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE))
@@ -235,6 +274,7 @@ static LPCSTR DIALOG_ParseTemplate16( LPCSTR p, DLG_TEMPLATE * result )
         result->style |= DS_SETFONT;
         result->pointSize = 10;
         result->faceName = "FIXEDSYS";
+        result->weight = FW_NORMAL;
     }
     return p;
 }
@@ -401,7 +441,7 @@ void copy_widestr(LPCSTR name, LPWSTR *templatew)
 * Create the control windows for a dialog.
 */
 static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
-	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATE *dlgItemTemplate32, SEGPTR base16, SIZE_T base32)
+	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATEEX *dlgItemTemplate32, SEGPTR base16, SIZE_T base32)
 {
 	DLG_CONTROL_INFO info;
 	HWND hwndCtrl, hwndDefButton = 0;
@@ -413,8 +453,9 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 	{
 		paddingDWORD(&dlgItemTemplate32);
 		template = DIALOG_GetControl16(template, &info);
-        dlgItemTemplate32->style = info.style | WS_CHILD;
-		dlgItemTemplate32->dwExtendedStyle = 0;// WS_EX_NOPARENTNOTIFY;
+		dlgItemTemplate32->helpid = 0;
+		dlgItemTemplate32->style = info.style | WS_CHILD;
+		dlgItemTemplate32->exStyle = 0;// WS_EX_NOPARENTNOTIFY;
 		dlgItemTemplate32->x = info.x;
 		dlgItemTemplate32->y = info.y;
 		dlgItemTemplate32->cx = info.cx;
@@ -462,7 +503,7 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 	return TRUE;
 }
 static BOOL DIALOG_DumpControls32(HWND hwnd, LPCSTR template,
-	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATE *dlgItemTemplate32)
+	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATEEX *dlgItemTemplate32)
 {
 	DLG_CONTROL_INFO info;
 	HWND hwndCtrl, hwndDefButton = 0;
@@ -489,10 +530,10 @@ static BOOL DIALOG_DumpControls32(HWND hwnd, LPCSTR template,
 #include <stdio.h>
 
 /* internal API for COMMDLG hooks */
-DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, SEGPTR dlgTemplate16, DWORD *size, dialog_data *paramd)
+DLGTEMPLATEEX *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, SEGPTR dlgTemplate16, DWORD *size, dialog_data *paramd)
 {
     HINSTANCE hInst32 = HINSTANCE_32(hInst);
-    DLGTEMPLATE *template32;
+    DLGTEMPLATEEX *template32;
 	DLG_TEMPLATE template;
 	DWORD units = GetDialogBaseUnits();
 	HMENU16 hMenu = 0;
@@ -511,8 +552,11 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, SEGPTR dl
 	if (template.menuName) hMenu = LoadMenu16(hInst, template.menuName);
 	//FIXME:memory
 	template32 = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 + template.nbItems * 512);
+	template32->dlgVer = 1;
+	template32->signature = 0xffff;
 	template32->style = template.style;
-	template32->dwExtendedStyle = 0;
+	template32->exStyle = 0;
+	template32->helpID = 0;
 	template32->cdit = template.nbItems;
 	template32->x = template.x;
 	template32->y = template.y;
@@ -555,6 +599,8 @@ DLGTEMPLATE *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, SEGPTR dl
 	if (template.style & DS_SETFONT)
 	{
 		*templatew++ = template.pointSize;
+		*templatew++ = template.weight;
+		*templatew++ = (DEFAULT_CHARSET << 8) | FALSE;
 		len = MultiByteToWideChar(CP_ACP, NULL, template.faceName, -1, (LPWSTR)templatew, (1 + strlen(template.faceName)) * 4)
 			* 2;
 		if (len)
@@ -690,7 +736,7 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, SEGPTR dlgTemplate16,
     dialog_data *paramd = (dialog_data*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(dialog_data));
     HINSTANCE hInst32 = HINSTANCE_32(hInst);
     DWORD size;
-    DLGTEMPLATE *template32 = dialog_template16_to_template32(hInst32, dlgTemplate16, &size, paramd);
+    DLGTEMPLATEEX *template32 = dialog_template16_to_template32(hInst32, dlgTemplate16, &size, paramd);
     DWORD count;
     DLGPROC proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
     paramd->dlgProc = dlgProc;
