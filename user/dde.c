@@ -245,33 +245,52 @@ static void seticon(IShellLinkW *link, WCHAR *path, int iconidx)
         {
             GetIconInfo(icon, &iinfo);
             GetObject(iinfo.hbmMask, sizeof(BITMAP), &mbmap);
-            GetObject(iinfo.hbmColor, sizeof(BITMAP), &cbmap);
+            if (iinfo.hbmColor)
+            {
+                GetObject(iinfo.hbmColor, sizeof(BITMAP), &cbmap);
+                cbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * cbmap.bmWidthBytes);
+                GetBitmapBits(iinfo.hbmColor, cy * cbmap.bmWidthBytes, cbits);
+                DeleteObject(iinfo.hbmColor);
+                bmapi.biBitCount = 32;
+            }
+            else
+            {
+                cbits = NULL;
+                bmapi.biBitCount = 1;
+                header.colors = 2;
+                cbmap.bmWidthBytes = 0;
+                cy *= 2;
+            }
             mbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * mbmap.bmWidthBytes);
-            cbits = (char *)HeapAlloc(GetProcessHeap(), 0, cy * cbmap.bmWidthBytes);
             GetBitmapBits(iinfo.hbmMask, cy * mbmap.bmWidthBytes, mbits);
-            GetBitmapBits(iinfo.hbmColor, cy * cbmap.bmWidthBytes, cbits);
-            DeleteObject(iinfo.hbmColor);
             DeleteObject(iinfo.hbmMask);
 
             bmapi.biSize = sizeof(bmapi);
             bmapi.biWidth = cx;
-            bmapi.biHeight = cy * 2;
+            bmapi.biHeight = (cbits ? cy * 2 : cy);
             bmapi.biPlanes = 1;
-            bmapi.biBitCount = 32;
 
-            header.size = cy * (mbmap.bmWidthBytes + cbmap.bmWidthBytes) + sizeof(bmapi);
+            header.size = cy * (mbmap.bmWidthBytes + cbmap.bmWidthBytes) + sizeof(bmapi) + (cbits ? 0 : 8);
             header.off = sizeof(header);
 
             WriteFile(hicofile, &header, sizeof(header), &count, NULL);
             WriteFile(hicofile, &bmapi, sizeof(bmapi), &count, NULL);
-            for(i = cy - 1; i >= 0; i--)
+            if (cbits)
+            {
+                for(i = cy - 1; i >= 0; i--)
                     WriteFile(hicofile, cbits + (i * cbmap.bmWidthBytes), cbmap.bmWidthBytes, &count, NULL);
+                HeapFree(GetProcessHeap(), 0, cbits);
+            }
+            else
+            {
+                COLORREF pal[] = {0, 0xffffff};
+                WriteFile(hicofile, &pal, sizeof(COLORREF) * 2, &count, NULL);
+            }
             for(i = cy - 1; i >= 0; i--)
-                    WriteFile(hicofile, mbits + (i * mbmap.bmWidthBytes), mbmap.bmWidthBytes, &count, NULL);
+                WriteFile(hicofile, mbits + (i * mbmap.bmWidthBytes), mbmap.bmWidthBytes, &count, NULL);
             CloseHandle(hicofile);
 
             HeapFree(GetProcessHeap(), 0, mbits);
-            HeapFree(GetProcessHeap(), 0, cbits);
             path = icofile;
             iconidx = 0;
         }
