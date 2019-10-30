@@ -8961,6 +8961,7 @@ static HRESULT WINAPI ITypeInfo_fnAddressOfMember( ITypeInfo2 *iface,
     BSTR dll, entry;
     WORD ordinal;
     HMODULE module;
+    HMODULE16 module16;
 
     TRACE("(%p)->(0x%x, 0x%x, %p)\n", This, memid, invKind, ppv);
 
@@ -8985,6 +8986,17 @@ static HRESULT WINAPI ITypeInfo_fnAddressOfMember( ITypeInfo2 *iface,
     module = LoadLibraryW(dll);
     if (!module)
     {
+        LPSTR moduleA;
+        INT len = WideCharToMultiByte(CP_ACP, 0, dll, -1, NULL, 0, NULL, NULL);
+        moduleA = heap_alloc(len);
+        WideCharToMultiByte(CP_ACP, 0, dll, -1, moduleA, len, NULL, NULL);
+
+        module16 = LoadLibrary16(moduleA);
+
+        heap_free(moduleA);
+    }
+    if (!module16)
+    {
         ERR("couldn't load %s\n", debugstr_w(dll));
         SysFreeString(dll);
         SysFreeString(entry);
@@ -8999,7 +9011,14 @@ static HRESULT WINAPI ITypeInfo_fnAddressOfMember( ITypeInfo2 *iface,
         entryA = heap_alloc(len);
         WideCharToMultiByte(CP_ACP, 0, entry, -1, entryA, len, NULL, NULL);
 
-        *ppv = GetProcAddress(module, entryA);
+        if (module16)
+        {
+            *ppv = GetProcAddress16(module16, entryA);
+        }
+        else
+        {
+            *ppv = GetProcAddress(module, entryA);
+        }
         if (!*ppv)
             ERR("function not found %s\n", debugstr_a(entryA));
 
@@ -9007,7 +9026,14 @@ static HRESULT WINAPI ITypeInfo_fnAddressOfMember( ITypeInfo2 *iface,
     }
     else
     {
-        *ppv = GetProcAddress(module, MAKEINTRESOURCEA(ordinal));
+        if (module16)
+        {
+            *ppv = GetProcAddress16(module16, MAKEINTRESOURCEA(ordinal));
+        }
+        else
+        {
+            *ppv = GetProcAddress(module, MAKEINTRESOURCEA(ordinal));
+        }
         if (!*ppv)
             ERR("function not found %d\n", ordinal);
     }
