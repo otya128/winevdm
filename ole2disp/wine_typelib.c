@@ -8911,6 +8911,43 @@ end:
     return result;
 }
 
+static CRITICAL_SECTION app_obj_section;
+static CRITICAL_SECTION_DEBUG app_obj_section_debug =
+{
+    0, 0, &app_obj_section,
+    { &app_obj_section_debug.ProcessLocksList, &app_obj_section_debug.ProcessLocksList },
+      0, 0, { (DWORD_PTR)(__FILE__ ": typelib app obj") }
+};
+static CRITICAL_SECTION app_obj_section = { &app_obj_section_debug, -1, 0, 0, 0, 0 };
+
+struct app_obj
+{
+    struct list entry;
+    GUID guid;
+    void *data;
+};
+
+struct list app_obj_table = LIST_INIT(app_obj_table);
+void addressof_app_obj(GUID *guid, PVOID *ppv)
+{
+    struct app_obj *entry;
+    EnterCriticalSection(&app_obj_section);
+    LIST_FOR_EACH_ENTRY(entry, &app_obj_table, struct app_obj, entry)
+    {
+        if (IsEqualGUID(guid, &entry->guid))
+        {
+            *ppv = &entry->data;
+            LeaveCriticalSection(&app_obj_section);
+            return;
+        }
+    }
+    entry = (struct app_obj*)heap_alloc(sizeof(struct app_obj));
+    entry->guid = *guid;
+    entry->data = NULL;
+    list_add_tail(&app_obj_table, &entry->entry);
+    *ppv = &entry->data;
+    LeaveCriticalSection(&app_obj_section);
+}
 /* ITypeInfo::AddressOfMember
  *
  * Retrieves the addresses of static functions or variables, such as those
@@ -8926,6 +8963,20 @@ static HRESULT WINAPI ITypeInfo_fnAddressOfMember( ITypeInfo2 *iface,
     HMODULE module;
 
     TRACE("(%p)->(0x%x, 0x%x, %p)\n", This, memid, invKind, ppv);
+
+    if (memid == ID_DEFAULTINST)
+    {
+        if (This->typeattr.typekind == TKIND_COCLASS && This->typeattr.wTypeFlags & TYPEFLAG_FAPPOBJECT)
+        {
+            addressof_app_obj(&This->guid, ppv);
+            *ppv = MapLS(*ppv);
+            return S_OK;
+        }
+        else
+        {
+            return TYPE_E_ELEMENTNOTFOUND;
+        }
+    }
 
     hr = ITypeInfo2_GetDllEntry(iface, memid, invKind, &dll, &entry, &ordinal);
     if (FAILED(hr))
