@@ -976,6 +976,7 @@ HRESULT WINAPI VarI2FromR416(FLOAT fltIn, SHORT* psOut)
  */
 HRESULT WINAPI VarI2FromR816(double dblIn, SHORT* psOut)
 {
+  fix_double(&dblIn);
   if (dblIn < I2_MIN - 0.5 || dblIn >= I2_MAX + 0.5)
     return DISP_E_OVERFLOW;
   VARIANT_DutchRound(SHORT, dblIn, *psOut);
@@ -997,10 +998,8 @@ HRESULT WINAPI VarI2FromR816(double dblIn, SHORT* psOut)
  */
 HRESULT WINAPI VarI2FromCy16(CY cyIn, SHORT* psOut)
 {
-  LONG i = I2_MAX + 1;
-
-  VarI4FromCy(cyIn, &i);
-  return _VarI2FromI4(i, psOut);
+  fix_double(&cyIn);
+  return VarI2FromCy(cyIn, psOut);
 }
 
 /************************************************************************
@@ -1018,7 +1017,8 @@ HRESULT WINAPI VarI2FromCy16(CY cyIn, SHORT* psOut)
  */
 HRESULT WINAPI VarI2FromDate16(DATE dateIn, SHORT* psOut)
 {
-  return VarI2FromR8(dateIn, psOut);
+  fix_double(&dateIn);
+  return VarI2FromDate(dateIn, psOut);
 }
 
 /************************************************************************

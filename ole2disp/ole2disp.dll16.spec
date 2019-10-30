@@ -40,20 +40,20 @@
 40 pascal SafeArrayDestroyDescriptor(segptr) SafeArrayDestroyDescriptor16
 41 pascal SafeArrayDestroyData(ptr) SafeArrayDestroyData16
 42 stub SAFEARRAYREDIM
-43 stub VARI2FROMI4
-44 stub VARI2FROMR4
-45 stub VARI2FROMR8
-46 stub VARI2FROMCY
-47 stub VARI2FROMDATE
-48 stub VARI2FROMSTR
+43 pascal VarI2FromI4(long ptr) VarI2FromI416
+44 pascal VarI2FromR4(float ptr) VarI2FromR416
+45 pascal VarI2FromR8(double ptr) VarI2FromR816
+46 pascal VarI2FromCy(double ptr) VarI2FromCy16
+47 pascal VarI2FromDate(double ptr) VarI2FromDate16
+48 pascal VarI2FromStr(str long long ptr) VarI2FromStr16
 49 stub VARI2FROMDISP
-50 stub VARI2FROMBOOL
+50 pascal VarI2FromBool(word ptr) VarI2FromBool16
 51 stub VARI4FROMI2
 52 stub VARI4FROMR4
 53 stub VARI4FROMR8
 54 stub VARI4FROMCY
 55 stub VARI4FROMDATE
-56 stub VARI4FROMSTR
+56 pascal VarI4FromStr(str long long ptr) VarI4FromStr16
 57 stub VARI4FROMDISP
 58 stub VARI4FROMBOOL
 59 stub VARR4FROMI2
@@ -61,7 +61,7 @@
 61 stub VARR4FROMR8
 62 stub VARR4FROMCY
 63 stub VARR4FROMDATE
-64 stub VARR4FROMSTR
+64 pascal VarR4FromStr(str long long ptr) VarR4FromStr16
 65 stub VARR4FROMDISP
 66 stub VARR4FROMBOOL
 67 stub VARR8FROMI2
@@ -90,7 +90,7 @@
 90 stub VARCYFROMBOOL
 91 stub VARBSTRFROMI2
 92 stub VARBSTRFROMI4
-93 stub VARBSTRFROMR4
+93 pascal VarBstrFromR4(long long long ptr) VarBstrFromR416
 94 stub VARBSTRFROMR8
 95 stub VARBSTRFROMCY
 96 pascal VarBstrFromDate(double long long ptr) VarBstrFromDate16
@@ -122,7 +122,7 @@
 122 pascal VarUI1FromStr(str long long ptr) VarUI1FromStr16
 123 pascal VarUI1FromDisp(segptr long ptr) VarUI1FromDisp16
 124 pascal VarUI1FromBool(word ptr) VarUI1FromBool16
-125 stub VARI2FROMUI1
+125 pascal VarI2FromUI1(word ptr) VarI2FromUI116
 126 stub VARI4FROMUI1
 127 stub VARR4FROMUI1
 128 stub VARR8FROMUI1
