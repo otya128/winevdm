@@ -561,7 +561,7 @@ HRESULT WINAPI LoadRegTypeLib(
 
     if(SUCCEEDED(res))
     {
-        res= LoadTypeLib(bstr, ppTLib);
+        res= LoadTypeLib16Impl(bstr, ppTLib);
         SysFreeString(bstr);
 
         if ((wVerMajor!=0xffff || wVerMinor!=0xffff) && *ppTLib)
@@ -958,7 +958,7 @@ HRESULT WINAPI UnRegisterTypeLib(
     }
 
     /* Try and load the type library */
-    if (LoadTypeLibEx(tlibPath, REGKIND_NONE, &typeLib) != S_OK) {
+    if (LoadTypeLibEx16Impl(tlibPath, REGKIND_NONE, &typeLib) != S_OK) {
         result = TYPE_E_INVALIDSTATE;
         goto end;
     }
@@ -8689,7 +8689,7 @@ static BOOL CALLBACK search_res_tlb(HMODULE hModule, LPCWSTR lpszType, LPWSTR lp
     if (snprintfW(szPath + len, ARRAY_SIZE(szPath) - len, formatW, LOWORD(lpszName)) < 0)
         return TRUE;
 
-    ret = LoadTypeLibEx(szPath, REGKIND_NONE, &pTLib);
+    ret = LoadTypeLibEx16Impl(szPath, REGKIND_NONE, &pTLib);
     if (SUCCEEDED(ret))
     {
         ITypeLibImpl *impl = impl_from_ITypeLib(pTLib);
@@ -8885,7 +8885,7 @@ static HRESULT WINAPI ITypeInfo_fnGetRefTypeInfo(
                     if (FAILED(result))
                         libnam = SysAllocString(ref_type->pImpTLInfo->name);
 
-                    result = LoadTypeLib(libnam, &pTLib);
+                    result = LoadTypeLib16Impl(libnam, &pTLib);
                     SysFreeString(libnam);
                 }
 
@@ -11483,7 +11483,7 @@ static HRESULT WINAPI ICreateTypeInfo2_fnSetTypeFlags(ICreateTypeInfo2 *iface,
         HREFTYPE hreftype;
         HRESULT hres;
 
-        hres = LoadTypeLib(stdole2tlb, &stdole);
+        hres = LoadTypeLib16Impl(stdole2tlb, &stdole);
         if(FAILED(hres))
             return hres;
 
