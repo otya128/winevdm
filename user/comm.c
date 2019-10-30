@@ -860,7 +860,7 @@ INT16 WINAPI ReadComm16(INT16 cid,LPSTR lpvBuf,INT16 cbRead)
 	if (!ReadFile(ptr->handle, orgBuf, cbRead, &length, &ov))
 	{
 		if (GetLastError() == ERROR_IO_PENDING)
-			GetOverlappedResult(ptr->handle, &ov, &count, TRUE);
+			GetOverlappedResult(ptr->handle, &ov, &length, TRUE);
 	}
 
 	CloseHandle(ov.hEvent);
@@ -870,6 +870,9 @@ INT16 WINAPI ReadComm16(INT16 cid,LPSTR lpvBuf,INT16 cbRead)
 		ptr->unget = 0;
 		length++;
 	}
+
+	if (length)
+		TRACE("%d bytes read\n", length);
 
 	return length;
 }
@@ -907,7 +910,7 @@ INT16 WINAPI WriteComm16(INT16 cid, LPSTR lpvBuf, INT16 cbWrite)
 			if (!count) break;
 			if ((cbWrite - length) < count)
 				count = cbWrite - length;
-			memcpy(lpvBuf, ptr->outbuf + ptr->obuf_head, count);
+			memcpy(ptr->outbuf + ptr->obuf_head, lpvBuf, count);
 			ptr->obuf_head += count;
 			if (ptr->obuf_head >= ptr->obuf_size)
 				ptr->obuf_head = 0;
