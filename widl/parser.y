@@ -314,7 +314,7 @@ static struct namespace *current_namespace = &global_namespace;
 %right '!' '~' CAST PPTR POS NEG ADDRESSOF tSIZEOF
 %left '.' MEMBERPTR '[' ']'
 
-%error-verbose
+%define parse.error verbose
 
 %%
 
