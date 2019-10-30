@@ -88,14 +88,14 @@
 88 stub VARCYFROMSTR
 89 stub VARCYFROMDISP
 90 stub VARCYFROMBOOL
-91 stub VARBSTRFROMI2
-92 stub VARBSTRFROMI4
+91 pascal VarBstrFromI2(s_word long long ptr) VarBstrFromI216
+92 pascal VarBstrFromI4(long long long ptr) VarBstrFromI416
 93 pascal VarBstrFromR4(long long long ptr) VarBstrFromR416
-94 stub VARBSTRFROMR8
-95 stub VARBSTRFROMCY
+94 pascal VarBstrFromR8(double long long ptr) VarBstrFromR816
+95 pascal VarBstrFromCy(double long long ptr) VarBstrFromCy16
 96 pascal VarBstrFromDate(double long long ptr) VarBstrFromDate16
-97 stub VARBSTRFROMDISP
-98 stub VARBSTRFROMBOOL
+97 pascal VarBstrFromDisp(segptr long long ptr) VarBstrFromDisp16
+98 pascal VarBstrFromBool(word long long ptr) VarBstrFromBool16
 99 stub VARBOOLFROMI2
 100 stub VARBOOLFROMI4
 101 stub VARBOOLFROMR4
@@ -128,7 +128,7 @@
 128 stub VARR8FROMUI1
 129 stub VARDATEFROMUI1
 130 stub VARCYFROMUI1
-131 stub VARBSTRFROMUI1
+131 pascal VarBstrFromUI1(word long long ptr) VarBstrFromUI116
 132 stub VARBOOLFROMUI1
 133 stub DLLCANUNLOADNOW
 #134 stub WEP

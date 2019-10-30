@@ -6631,6 +6631,7 @@ HRESULT WINAPI VarBstrFromR416(FLOAT fltIn, LCID lcid, ULONG dwFlags, SEGBSTR16*
  */
 HRESULT WINAPI VarBstrFromR816(double dblIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
 {
+  fix_double(&dblIn);
   return VARIANT_BstrFromReal(dblIn, lcid, dwFlags, pbstrOut, szDoubleFormatW);
 }
 
@@ -6654,6 +6655,7 @@ HRESULT WINAPI VarBstrFromCy16(CY cyIn, LCID lcid, ULONG dwFlags, SEGBSTR16 *pbs
 {
   OLECHAR16 buff[256];
   VARIANT_DI decVal;
+  fix_double(&cyIn);
 
   if (!pbstrOut)
     return E_INVALIDARG;
