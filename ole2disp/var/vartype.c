@@ -58,9 +58,11 @@ static const OLECHAR16 szDoubleFormatW[] = { '%','.','1','5','G','\0' };
 
 static void fix_double(double *dbl)
 {
+#if 0
     ULARGE_INTEGER lng = *(ULARGE_INTEGER*)dbl;
     ULARGE_INTEGER swapped = { lng.u.HighPart, lng.u.LowPart };
     *dbl = *(double*)&swapped;
+#endif
 }
 /* Copy data from one variant to another. */
 static inline void VARIANT_CopyData(const VARIANT16 *srcVar, VARTYPE vt, void *pOut)

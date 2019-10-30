@@ -152,7 +152,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarI1FromDec16(&V_DECIMAL(ps), &V_I1(pd) );
 #endif
     case VT_DISPATCH: return VarI1FromDisp16(V_DISPATCH(ps), lcid, &V_I1(pd) );
-    case VT_BSTR:     return VarI1FromStr16(V_BSTR(ps), lcid, dwFlags, &V_I1(pd) );
+    case VT_BSTR:     return VarI1FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_I1(pd) );
     }
     break;
 
@@ -176,7 +176,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarI2FromDec16(&V_DECIMAL(ps), &V_I2(pd));
 #endif
     case VT_DISPATCH: return VarI2FromDisp16(V_DISPATCH(ps), lcid, &V_I2(pd));
-    case VT_BSTR:     return VarI2FromStr16(V_BSTR(ps), lcid, dwFlags, &V_I2(pd));
+    case VT_BSTR:     return VarI2FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_I2(pd));
     }
     break;
 
@@ -200,7 +200,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarI4FromDec16(&V_DECIMAL(ps), &V_I4(pd));
 #endif
     case VT_DISPATCH: return VarI4FromDisp16(V_DISPATCH(ps), lcid, &V_I4(pd));
-    case VT_BSTR:     return VarI4FromStr16(V_BSTR(ps), lcid, dwFlags, &V_I4(pd));
+    case VT_BSTR:     return VarI4FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_I4(pd));
     }
     break;
 
@@ -224,7 +224,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarUI1FromDec16(&V_DECIMAL(ps), &V_UI1(pd));
 #endif
     case VT_DISPATCH: return VarUI1FromDisp16(V_DISPATCH(ps), lcid, &V_UI1(pd));
-    case VT_BSTR:     return VarUI1FromStr16(V_BSTR(ps), lcid, dwFlags, &V_UI1(pd));
+    case VT_BSTR:     return VarUI1FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_UI1(pd));
     }
     break;
 
@@ -248,7 +248,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarUI2FromDec16(&V_DECIMAL(ps), &V_UI2(pd));
 #endif
     case VT_DISPATCH: return VarUI2FromDisp16(V_DISPATCH(ps), lcid, &V_UI2(pd));
-    case VT_BSTR:     return VarUI2FromStr16(V_BSTR(ps), lcid, dwFlags, &V_UI2(pd));
+    case VT_BSTR:     return VarUI2FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_UI2(pd));
     }
     break;
 
@@ -272,7 +272,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarUI4FromDec16(&V_DECIMAL(ps), &V_UI4(pd));
 #endif
     case VT_DISPATCH: return VarUI4FromDisp16(V_DISPATCH(ps), lcid, &V_UI4(pd));
-    case VT_BSTR:     return VarUI4FromStr16(V_BSTR(ps), lcid, dwFlags, &V_UI4(pd));
+    case VT_BSTR:     return VarUI4FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_UI4(pd));
     }
     break;
 
@@ -296,7 +296,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarUI8FromDec16(&V_DECIMAL(ps), &V_UI8(pd));
 #endif
     case VT_DISPATCH: return VarUI8FromDisp16(V_DISPATCH(ps), lcid, &V_UI8(pd));
-    case VT_BSTR:     return VarUI8FromStr16(V_BSTR(ps), lcid, dwFlags, &V_UI8(pd));
+    case VT_BSTR:     return VarUI8FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_UI8(pd));
     }
     break;
 
@@ -320,7 +320,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarI8FromDec16(&V_DECIMAL(ps), &V_I8(pd));
 #endif
     case VT_DISPATCH: return VarI8FromDisp16(V_DISPATCH(ps), lcid, &V_I8(pd));
-    case VT_BSTR:     return VarI8FromStr16(V_BSTR(ps), lcid, dwFlags, &V_I8(pd));
+    case VT_BSTR:     return VarI8FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_I8(pd));
     }
     break;
 
@@ -344,7 +344,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarR4FromDec16(&V_DECIMAL(ps), &V_R4(pd));
 #endif
     case VT_DISPATCH: return VarR4FromDisp16(V_DISPATCH(ps), lcid, &V_R4(pd));
-    case VT_BSTR:     return VarR4FromStr16(V_BSTR(ps), lcid, dwFlags, &V_R4(pd));
+    case VT_BSTR:     return VarR4FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_R4(pd));
     }
     break;
 
@@ -368,7 +368,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarR8FromDec16(&V_DECIMAL(ps), &V_R8(pd));
 #endif
     case VT_DISPATCH: return VarR8FromDisp16(V_DISPATCH(ps), lcid, &V_R8(pd));
-    case VT_BSTR:     return VarR8FromStr16(V_BSTR(ps), lcid, dwFlags, &V_R8(pd));
+    case VT_BSTR:     return VarR8FromStr16(V_BSTR16(ps), lcid, dwFlags, &V_R8(pd));
     }
     break;
 
@@ -392,7 +392,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarDateFromDec16(&V_DECIMAL(ps), &V_DATE(pd));
 #endif
     case VT_DISPATCH: return VarDateFromDisp16(V_DISPATCH(ps), lcid, &V_DATE(pd));
-    case VT_BSTR:     return VarDateFromStr16(V_BSTR(ps), lcid, dwFlags, &V_DATE(pd));
+    case VT_BSTR:     return VarDateFromStr16(V_BSTR16(ps), lcid, dwFlags, &V_DATE(pd));
     }
     break;
 
@@ -416,7 +416,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarBoolFromDec16(&V_DECIMAL(ps), &V_BOOL(pd));
 #endif
     case VT_DISPATCH: return VarBoolFromDisp16(V_DISPATCH(ps), lcid, &V_BOOL(pd));
-    case VT_BSTR:     return VarBoolFromStr16(V_BSTR(ps), lcid, dwFlags, &V_BOOL(pd));
+    case VT_BSTR:     return VarBoolFromStr16(V_BSTR16(ps), lcid, dwFlags, &V_BOOL(pd));
     }
     break;
 
@@ -469,7 +469,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DECIMAL:  return VarCyFromDec16(&V_DECIMAL(ps), &V_CY(pd));
 #endif
     case VT_DISPATCH: return VarCyFromDisp16(V_DISPATCH(ps), lcid, &V_CY(pd));
-    case VT_BSTR:     return VarCyFromStr16(V_BSTR(ps), lcid, dwFlags, &V_CY(pd));
+    case VT_BSTR:     return VarCyFromStr16(V_BSTR16(ps), lcid, dwFlags, &V_CY(pd));
     }
     break;
 #ifdef AVAIL_32BIT_VAR
@@ -499,7 +499,7 @@ static inline HRESULT VARIANT_Coerce(VARIANTARG16* pd, LCID lcid, USHORT wFlags,
     case VT_DATE:     return VarDecFromDate16(V_DATE(ps), &V_DECIMAL(pd));
     case VT_CY:       return VarDecFromCy16(V_CY(ps), &V_DECIMAL(pd));
     case VT_DISPATCH: return VarDecFromDisp16(V_DISPATCH(ps), lcid, &V_DECIMAL(pd));
-    case VT_BSTR:     return VarDecFromStr16(V_BSTR(ps), lcid, dwFlags, &V_DECIMAL(pd));
+    case VT_BSTR:     return VarDecFromStr16(V_BSTR16(ps), lcid, dwFlags, &V_DECIMAL(pd));
     }
     break;
 #endif
