@@ -2940,6 +2940,8 @@ HQUEUE16 WINAPI InitThreadInput16( WORD unknown, WORD flags )
 BOOL16 WINAPI InsertMenu16( HMENU16 hMenu, UINT16 pos, UINT16 flags,
                             UINT16 id, SEGPTR data )
 {
+    BOOL16 ret;
+    HMENU menu = HMENU_32(hMenu);
     UINT pos32 = (UINT)pos;
     if ((pos == (UINT16)-1) && (flags & MF_BYPOSITION)) pos32 = (UINT)-1;
     if (flags & MF_BITMAP)
@@ -2948,8 +2950,17 @@ BOOL16 WINAPI InsertMenu16( HMENU16 hMenu, UINT16 pos, UINT16 flags,
     if (flags & MF_POPUP)
         id32 = HMENU_32(id);
     if (IS_MENU_STRING_ITEM(flags) && data)
-        return InsertMenuA( HMENU_32(hMenu), pos32, flags, id32, MapSL(data) );
-    return InsertMenuA( HMENU_32(hMenu), pos32, flags, id32, (LPSTR)data );
+        return InsertMenuA( menu, pos32, flags, id32, MapSL(data) );
+    ret = InsertMenuA( menu, pos32, flags, id32, (LPSTR)data );
+    if ((flags & MF_BITMAP) && (flags & MF_POPUP) && !pos)
+    {
+        MENUITEMINFOA mii = {0};
+        mii.cbSize = sizeof(MENUITEMINFOA);
+        mii.hbmpItem = HBMMENU_SYSTEM;
+        mii.fMask = MIIM_BITMAP;
+        SetMenuItemInfoA(menu, 0, TRUE, &mii);
+    }
+    return ret;
 }
 
 
