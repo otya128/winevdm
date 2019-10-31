@@ -85,6 +85,58 @@ static HRESULT safearray_lock(SAFEARRAY16 *sa)
     return S_OK;
 }
 
+
+/* Free data items in an array */
+static HRESULT SAFEARRAY_DestroyData(SAFEARRAY *psa, ULONG ulStartCell)
+{
+  if (psa->pvData)
+  {
+    ULONG ulCellCount = safearray_getcellcount(psa);
+
+    if (ulStartCell > ulCellCount) {
+      FIXME("unexpted ulcellcount %d, start %d\n",ulCellCount,ulStartCell);
+      return E_UNEXPECTED;
+    }
+
+    ulCellCount -= ulStartCell;
+
+    if (psa->fFeatures & (FADF_UNKNOWN|FADF_DISPATCH))
+    {
+      SEGPTR *lpUnknown = (SEGPTR *)psa->pvData + ulStartCell;
+
+      while(ulCellCount--)
+      {
+        if (*lpUnknown)
+          IUnknown16_Release(*lpUnknown);
+        lpUnknown++;
+      }
+    }
+    else if (psa->fFeatures & FADF_BSTR)
+    {
+      SEGBSTR16* lpBstr = (SEGBSTR16*)psa->pvData + ulStartCell;
+
+      while(ulCellCount--)
+      {
+        SysFreeString16(*lpBstr);
+        lpBstr++;
+      }
+    }
+    else if (psa->fFeatures & FADF_VARIANT)
+    {
+      VARIANT16* lpVariant = (VARIANT16*)psa->pvData + ulStartCell;
+
+      while(ulCellCount--)
+      {
+        HRESULT hRet = VariantClear16(lpVariant);
+
+        if (FAILED(hRet)) FIXME("VariantClear of element failed!\n");
+        lpVariant++;
+      }
+    }
+  }
+  return S_OK;
+}
+
 /******************************************************************************
  *    SafeArrayGetDim [OLE2DISP.17]
  */
@@ -334,6 +386,44 @@ static DWORD SAFEARRAY_GetVTSize(VARTYPE vt)
   }
   return 0;
 }
+/*************************************************************************
+ *             SafeArrayAllocDescriptorEx (OLEAUT32.41)
+ *
+ * Allocate and initialise a descriptor for a SafeArray of a given type.
+ *
+ * PARAMS
+ *  vt      [I] The type of items to store in the array
+ *  cDims   [I] Number of dimensions of the array
+ *  ppsaOut [O] Destination for new descriptor
+ *
+ * RETURNS
+ *  Success: S_OK. ppsaOut is filled with a newly allocated descriptor.
+ *  Failure: An HRESULT error code indicating the error.
+ *
+ * NOTES
+ *  - This function does not check that vt is an allowed VARTYPE.
+ *  - Unlike SafeArrayAllocDescriptor(), vt is associated with the array.
+ *  See SafeArray.
+ */
+HRESULT WINAPI SafeArrayAllocDescriptorEx16(VARTYPE vt, UINT cDims, SEGPTR *ppsaOut)
+{
+  ULONG cbElements;
+  HRESULT hRet;
+
+  TRACE("(%d->%s,%d,%p)\n", vt, debugstr_vt(vt), cDims, ppsaOut);
+
+  cbElements = SAFEARRAY_GetVTSize(vt);
+  if (!cbElements)
+    WARN("Creating a descriptor with an invalid VARTYPE!\n");
+
+  hRet = SafeArrayAllocDescriptor16(cDims, ppsaOut);
+
+  if (SUCCEEDED(hRet))
+  {
+    ((SAFEARRAY16*)MapSL(*ppsaOut))->cbElements = cbElements;
+  }
+  return hRet;
+}
 /* Create an array */
 static SEGPTR SAFEARRAY_Create(VARTYPE vt, UINT cDims, const SAFEARRAYBOUND16 *rgsabound, ULONG ulSize)
 {
@@ -376,6 +466,84 @@ SEGPTR WINAPI SafeArrayCreate16(VARTYPE vt, UINT16 cDims, SAFEARRAYBOUND16 *rgsa
         return 0;
 
     return SAFEARRAY_Create(vt, cDims, rgsabound, 0);
+}
+
+/************************************************************************
+ *		SafeArrayRedim (OLEAUT32.40)
+ *
+ * Changes the characteristics of the last dimension of a SafeArray
+ *
+ * PARAMS
+ *  psa      [I] Array to change
+ *  psabound [I] New bound details for the last dimension
+ *
+ * RETURNS
+ *  Success: S_OK. psa is updated to reflect the new bounds.
+ *  Failure: An HRESULT error code indicating the error.
+ *
+ * NOTES
+ * See SafeArray.
+ */
+HRESULT WINAPI SafeArrayRedim16(SAFEARRAY16 *psa, SAFEARRAYBOUND16 *psabound)
+{
+  SAFEARRAYBOUND16 *oldBounds;
+  HRESULT hr;
+
+  TRACE("(%p,%p)\n", psa, psabound);
+  
+  if (!psa || psa->fFeatures & FADF_FIXEDSIZE || !psabound)
+    return E_INVALIDARG;
+
+  if (psa->cLocks > 0)
+    return DISP_E_ARRAYISLOCKED;
+
+  hr = SafeArrayLock16(psa);
+  if (FAILED(hr))
+    return hr;
+
+  oldBounds = psa->rgsabound;
+  oldBounds->lLbound = psabound->lLbound;
+
+  if (psabound->cElements != oldBounds->cElements)
+  {
+    if (psabound->cElements < oldBounds->cElements)
+    {
+      /* Shorten the final dimension. */
+      ULONG ulStartCell = psabound->cElements *
+                          (safearray_getcellcount(psa) / oldBounds->cElements);
+      SAFEARRAY_DestroyData(psa, ulStartCell);
+    }
+    else
+    {
+      /* Lengthen the final dimension */
+      ULONG ulOldSize, ulNewSize;
+      PVOID pvNewData;
+
+      ulOldSize = safearray_getcellcount(psa) * psa->cbElements;
+      if (ulOldSize)
+        ulNewSize = (ulOldSize / oldBounds->cElements) * psabound->cElements;
+      else {
+	int oldelems = oldBounds->cElements;
+	oldBounds->cElements = psabound->cElements;
+        ulNewSize = safearray_getcellcount(psa) * psa->cbElements;
+	oldBounds->cElements = oldelems;
+      }
+
+      if (!(pvNewData = safearray_alloc(ulNewSize)))
+      {
+        SafeArrayUnlock16(psa);
+        return E_OUTOFMEMORY;
+      }
+
+      memcpy(pvNewData, psa->pvData, ulOldSize);
+      safearray_free(psa->pvData);
+      psa->pvData = pvNewData;
+    }
+    oldBounds->cElements = psabound->cElements;
+  }
+
+  SafeArrayUnlock16(psa);
+  return S_OK;
 }
 
 /************************************************************************

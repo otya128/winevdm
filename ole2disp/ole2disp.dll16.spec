@@ -39,7 +39,7 @@
 39 pascal SafeArrayAllocData(ptr) SafeArrayAllocData16
 40 pascal SafeArrayDestroyDescriptor(segptr) SafeArrayDestroyDescriptor16
 41 pascal SafeArrayDestroyData(ptr) SafeArrayDestroyData16
-42 stub SAFEARRAYREDIM
+42 pascal SafeArrayRedim(ptr ptr) SafeArrayRedim16
 43 pascal VarI2FromI4(long ptr) VarI2FromI416
 44 pascal VarI2FromR4(float ptr) VarI2FromR416
 45 pascal VarI2FromR8(double ptr) VarI2FromR816
