@@ -42,10 +42,10 @@ WINE_DEFAULT_DEBUG_CHANNEL(relay);
 
 #include <pshpack1.h>
 typedef struct {
-    WORD pushw_bp;
-    BYTE pushl;
+    BYTE pushw_bp;
+    WORD pushl;
     DWORD funcptr;
-    WORD call_near;
+    BYTE call_near;
     short call_to;
     CALLFROM16 call;
     BOOL used;
@@ -400,9 +400,9 @@ static int relay_call_from_16_no_debug( void *entry_point, unsigned char *args16
 
     /* look for the ret instruction */
     for (j = 0; j < ARRAY_SIZE(call->ret); j++)
-        if (call->ret[j] == 0xca66 || call->ret[j] == 0xcb66) break;
+        if (call->ret[j] == 0xca || call->ret[j] == 0xcb) break;
 
-    if (call->ret[j] == 0xcb66)  /* cdecl */
+    if (call->ret[j] == 0xcb)  /* cdecl */
     {
         for (i = 0; i < 20; i++, nb_args++)
         {
@@ -520,9 +520,9 @@ int relay_call_from_16( void *entry_point, unsigned char *args16, CONTEXT *conte
 
     /* look for the ret instruction */
     for (j = 0; j < ARRAY_SIZE(call->ret); j++)
-        if (call->ret[j] == 0xca66 || call->ret[j] == 0xcb66) break;
+        if (call->ret[j] == 0xca || call->ret[j] == 0xcb) break;
 
-    if (call->ret[j] == 0xcb66)  /* cdecl */
+    if (call->ret[j] == 0xcb)  /* cdecl */
     {
         for (i = 0; i < 20; i++, nb_args++)
         {
@@ -866,9 +866,8 @@ static void init_template_func(CALLFROM16 *dest, const char *func)
     krnl = GetModuleHandle16("KERNEL");
     ret32 = (const unsigned char *)MapSL(GetProcAddress16(krnl, func));
     assert(
-        ret32[0] == 0x66 /* prefix */ && ret32[1] == 0x55 /* push bp */ &&
-        ret32[2] == 0x68 /* push */ &&
-        ret32[7] == 0x66 /* prefix */ && ret32[8] == 0xe8 /* call rel */);
+        ret32[0] == 0x55 /* prefix */ && ret32[1] == 0x66 /* push bp */ &&
+        ret32[2] == 0x68 /* push */ && ret32[7] == 0xe8 /* call rel */);
     *dest = *(CALLFROM16*)(ret32 + 11 + *(const short*)(ret32 + 9));
 }
 /*
@@ -887,7 +886,7 @@ SEGPTR make_thunk_32(void *funcptr, const char *arguments, const char *name, BOO
     assert(ret_32bit);
     if (!thunk32_relay_array)
     {
-        thunk32_relay_segment = GLOBAL_Alloc(GMEM_ZEROINIT, 0x10000, GetModuleHandle16("KERNEL"), WINE_LDT_FLAGS_32BIT | WINE_LDT_FLAGS_CODE);
+        thunk32_relay_segment = GLOBAL_Alloc(GMEM_ZEROINIT, 0x10000, GetModuleHandle16("KERNEL"), WINE_LDT_FLAGS_CODE);
         thunk32_relay_array = GlobalLock16(thunk32_relay_segment);
     }
     for (int i = 0; i < 0x10000 / sizeof(PROC16_RELAY); i++)
@@ -899,10 +898,10 @@ SEGPTR make_thunk_32(void *funcptr, const char *arguments, const char *name, BOO
         }
     }
     relay->used = TRUE;
-    relay->pushw_bp = 0x5566;
-    relay->pushl = 0x68;
+    relay->pushw_bp = 0x55;
+    relay->pushl = 0x6866;
     relay->funcptr = (DWORD)funcptr;
-    relay->call_near = 0xe866;
+    relay->call_near = 0xe8;
     relay->call_to = 0;
     relay->name = name;
     if (!init_template)

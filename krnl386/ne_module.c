@@ -93,9 +93,9 @@ static inline void patch_code_segment( NE_MODULE *pModule )
     call = GlobalLock16( pSeg->hSeg );
 
     /* patch glue code address and code selector */
-    for (i = 0; call[i].pushl == 0x68; i++)
+    for (i = 0; call[i].pushl == 0x6866; i++)
     {
-        if (call[i].ret[0] == 0xca66 || call[i].ret[0] == 0xcb66)  /* register entry point? */
+        if (call[i].ret[0] == 0xca || call[i].ret[0] == 0xcb)  /* register entry point? */
             call[i].glue = __wine_call_from_16_regs;
         else
             call[i].glue = __wine_call_from_16;
@@ -103,7 +103,7 @@ static inline void patch_code_segment( NE_MODULE *pModule )
     }
 
     if (TRACE_ON(relay))  /* patch relay functions to all point to relay_call_from_16 */
-        for (i = 0; call[i].pushl == 0x68; i++) call[i].relay = relay_call_from_16;
+        for (i = 0; call[i].pushl == 0x6866; i++) call[i].relay = relay_call_from_16;
 }
 
 
