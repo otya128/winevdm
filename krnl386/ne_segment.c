@@ -39,6 +39,7 @@
 #include "wine/library.h"
 #include "kernel16_private.h"
 #include "wine/debug.h"
+#include "../toolhelp/toolhelp.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(fixup);
 WINE_DECLARE_DEBUG_CHANNEL(dll);
@@ -715,6 +716,18 @@ static BOOL NE_InitDLL( NE_MODULE *pModule )
     context.Eip   = OFFSETOF(pModule->ne_csip);
     context.Ebp   = OFFSETOF(getWOW32Reserved()) + FIELD_OFFSET(STACK16FRAME,bp);
 
+    {
+        NFYSTARTDLL nf;
+        SEGPTR s = MapLS(&nf);
+        SEGPTR save = getWOW32Reserved();
+        nf.dwSize = sizeof(NFYSTARTDLL);
+        nf.hModule = pModule->self;
+        nf.wCS = context.SegCs;
+        nf.wIP = context.Eip;
+        TOOLHELP_CallNotify(NFY_STARTDLL, s);
+        UnMapLS(s);
+        setWOW32Reserved(save);
+    }
     pModule->ne_csip = 0;  /* Don't initialize it twice */
     TRACE_(dll)("Calling LibMain for %.*s, cs:ip=%04x:%04x ds=%04x di=%04x cx=%04x\n",
                 *((BYTE*)pModule + pModule->ne_restab),
@@ -1045,6 +1058,18 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
         selflags &= ~WINE_LDT_FLAGS_32BIT;
     pSeg->hSeg = GLOBAL_Alloc( NE_Ne2MemFlags(pSeg->flags), minsize, pModule->self, selflags );
     GLOBAL_SetSeg(pSeg->hSeg, segnum, (pSeg->flags & NE_SEGFLAGS_DATA) ? 2 : 3);
+    {
+        NFYLOADSEG nf;
+        SEGPTR s = MapLS(&nf);
+        nf.dwSize = sizeof(NFYSTARTDLL);
+        nf.wSelector = pSeg->hSeg | 1;
+        nf.wSegNum = segnum;
+        nf.wType = pSeg->flags & NE_SEGFLAGS_DATA;
+        nf.wcInstance = 0; /* FIXME */
+        nf.lpstrModuleName = 0xdeadbeef; /* FIXME */
+        TOOLHELP_CallNotify(NFY_LOADSEG, s);
+        UnMapLS(s);
+    }
     if (!pSeg->hSeg) return FALSE;
 
     pSeg->flags |= NE_SEGFLAGS_ALLOCATED;
