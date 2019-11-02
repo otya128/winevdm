@@ -1,4 +1,4 @@
-2  stub CREATETYPELIB
+2  pascal CreateTypeLib(word str ptr) CreateTypeLib16
 3  pascal LoadTypeLib(ptr ptr) LoadTypeLib16
 4  pascal LHashValOfNameSys(word long str) LHashValOfNameSys16
 5  variable _IID_ICreateTypeInfo(0x00020405 0x00000000 0x000000c0 0x46000000)

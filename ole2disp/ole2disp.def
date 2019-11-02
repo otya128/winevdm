@@ -9,3 +9,4 @@ EXPORTS
   LoadTypeLib16Impl @4
   SysStringLen16 @5
   SysAllocStringLen16 @6
+  CreateTypeLib2Impl @7

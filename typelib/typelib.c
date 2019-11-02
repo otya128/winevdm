@@ -245,3 +245,28 @@ HRESULT WINAPI LoadRegTypeLib16(REFGUID guid, unsigned short wVerMajor, unsigned
     *lplptlib = iface32_16(&IID_ITypeLib, ptlib);
     return hresult32_16(result);
 }
+
+HRESULT WINAPI CreateTypeLib2Impl(SYSKIND syskind, LPCOLESTR szFile,
+        ICreateTypeLib2** ppctlib);
+HRESULT WINAPI CreateTypeLib16(
+    SYSKIND syskind, LPCOLESTR16 szFile, SEGPTR* ppctlib
+) {
+    ICreateTypeLib2 *lib2;
+    ICreateTypeLib *lib1;
+    LPCOLESTR wszFile = strdupAtoW(szFile);
+    HRESULT result;
+    result = CreateTypeLib2Impl(syskind, wszFile, &lib2);
+    if (FAILED(result))
+    {
+        return hresult32_16(result);
+    }
+    HeapFree(GetProcessHeap(), 0, wszFile);
+    result = lib2->lpVtbl->QueryInterface(lib2, &IID_ICreateTypeLib, &lib1);
+    if (FAILED(result))
+    {
+        return hresult32_16(result);
+    }
+    lib2->lpVtbl->Release(lib2);
+    *ppctlib = iface32_16(&IID_ICreateTypeLib, lib1);
+    return hresult32_16(result);
+}

@@ -9914,8 +9914,8 @@ static const ITypeCompVtbl tcompvt =
     ITypeComp_fnBindType
 };
 
-#if 0
-HRESULT WINAPI CreateTypeLib2(SYSKIND syskind, LPCOLESTR szFile,
+#if 1
+HRESULT WINAPI CreateTypeLib2Impl(SYSKIND syskind, LPCOLESTR szFile,
         ICreateTypeLib2** ppctlib)
 {
     ITypeLibImpl *This;
@@ -11509,7 +11509,7 @@ static HRESULT WINAPI ICreateTypeInfo2_fnSetTypeFlags(ICreateTypeInfo2 *iface,
         HREFTYPE hreftype;
         HRESULT hres;
 
-        hres = LoadTypeLib16Impl(stdole2tlb, &stdole);
+        hres = LoadTypeLib(stdole2tlb, &stdole);
         if(FAILED(hres))
             return hres;
 
