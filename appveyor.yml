@@ -41,6 +41,7 @@ for:
      copy ..\winhlp32.exe .
      copy ..\libwine.dll .
      copy ..\..\install.inf .
+     copy ..\..\install.lnk .
      copy ..\..\uninstall.reg .
      copy ..\..\otvdm.ini .
      copy ..\..\LICENSE .
@@ -196,6 +197,7 @@ for:
       del vdmwrapper.exe
       del vdmwrapperexe.exe
       copy ..\install.inf .
+      copy ..\..\install.lnk .
       copy ..\uninstall.reg .
       copy ..\otvdm.ini .
       copy ..\LICENSE .
