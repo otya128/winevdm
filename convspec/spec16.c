@@ -640,7 +640,7 @@ static void output_module16( DLLSPEC *spec )
 
     output( "\t.short .L__wine_spec_code_segment-.L__wine_spec_dos_header\n" );         /* filepos */
     output( "\t.short .L__wine_spec_code_segment_end-.L__wine_spec_code_segment\n" );   /* size */
-    output( "\t.short 0x0000\n" );                                                      /* flags = NE_SEGFLAGS_32BIT */
+    output( "\t.short 0x0000\n" );                                                      /* flags  */
     output( "\t.short .L__wine_spec_code_segment_end-.L__wine_spec_code_segment\n" );   /* minsize */
 
     /* data segment entry */
@@ -952,7 +952,7 @@ void output_fake_module16( DLLSPEC *spec )
     /* segment table */
     put_word( codeseg );
     put_word( sizeof(code_segment) );
-    put_word( 0x2000 /* NE_SEGFLAGS_32BIT */ );
+    put_word( 0x0000 );
     put_word( sizeof(code_segment) );
     put_word( dataseg );
     put_word( sizeof(data_segment) );

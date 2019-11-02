@@ -868,7 +868,7 @@ static void init_template_func(CALLFROM16 *dest, const char *func)
     assert(
         ret32[0] == 0x55 /* prefix */ && ret32[1] == 0x66 /* push bp */ &&
         ret32[2] == 0x68 /* push */ && ret32[7] == 0xe8 /* call rel */);
-    *dest = *(CALLFROM16*)(ret32 + 11 + *(const short*)(ret32 + 9));
+    *dest = *(CALLFROM16*)(ret32 + 11 + *(const short*)(ret32 + 8));
 }
 /*
 w: word
