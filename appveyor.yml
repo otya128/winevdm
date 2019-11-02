@@ -197,7 +197,7 @@ for:
       del vdmwrapper.exe
       del vdmwrapperexe.exe
       copy ..\install.inf .
-      copy ..\..\install.lnk .
+      copy ..\install.lnk .
       copy ..\uninstall.reg .
       copy ..\otvdm.ini .
       copy ..\LICENSE .
