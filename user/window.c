@@ -1778,7 +1778,25 @@ BOOL16 WINAPI SetMenu16( HWND16 hwnd, HMENU16 hMenu )
  */
 void WINAPI DrawMenuBar16( HWND16 hwnd )
 {
-    DrawMenuBar( WIN_Handle32(hwnd) );
+    HWND hwnd32 = HWND_32(hwnd);
+    HMENU menu = GetMenu(hwnd32);
+    MENUITEMINFOA mii = {0};
+    mii.cbSize = sizeof(MENUITEMINFOA);
+    mii.fMask = MIIM_TYPE | MIIM_SUBMENU;
+    if (GetMenuItemInfoA(menu, 0, TRUE, &mii) && (mii.fType & MFT_BITMAP) && mii.hSubMenu)
+    {
+        mii.fMask = MIIM_BITMAP;
+        if (GetMenuItemInfoA(menu, 1, TRUE, &mii))
+        {
+            // if the second item is a bitmap, it's probably a buttonbar
+            if (!mii.hbmpItem)
+            {
+                mii.hbmpItem = HBMMENU_SYSTEM;
+                SetMenuItemInfoA(menu, 0, TRUE, &mii);
+            }
+        }
+    }
+    DrawMenuBar(hwnd32);
 }
 
 
