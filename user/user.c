@@ -2952,14 +2952,6 @@ BOOL16 WINAPI InsertMenu16( HMENU16 hMenu, UINT16 pos, UINT16 flags,
     if (IS_MENU_STRING_ITEM(flags) && data)
         return InsertMenuA( menu, pos32, flags, id32, MapSL(data) );
     ret = InsertMenuA( menu, pos32, flags, id32, (LPSTR)data );
-    if ((flags & MF_BITMAP) && (flags & MF_POPUP) && !pos)
-    {
-        MENUITEMINFOA mii = {0};
-        mii.cbSize = sizeof(MENUITEMINFOA);
-        mii.hbmpItem = HBMMENU_SYSTEM;
-        mii.fMask = MIIM_BITMAP;
-        SetMenuItemInfoA(menu, 0, TRUE, &mii);
-    }
     return ret;
 }
 
