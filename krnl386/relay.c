@@ -868,7 +868,7 @@ static void init_template_func(CALLFROM16 *dest, const char *func)
     assert(
         ret32[0] == 0x55 /* prefix */ && ret32[1] == 0x66 /* push bp */ &&
         ret32[2] == 0x68 /* push */ && ret32[7] == 0xe8 /* call rel */);
-    *dest = *(CALLFROM16*)(ret32 + 11 + *(const short*)(ret32 + 8));
+    *dest = *(CALLFROM16*)(ret32 + 10 + *(const short*)(ret32 + 8));
 }
 /*
 w: word
@@ -923,7 +923,7 @@ SEGPTR make_thunk_32(void *funcptr, const char *arguments, const char *name, BOO
         int i;
         for (i = 0; i < ARRAY_SIZE(relay->call.ret); i++)
         {
-            if (relay->call.ret[i] == 0xca66)
+            if (relay->call.ret[i] == 0xca)
             {
                 relay->call.ret[i + 1] = arg_size;
                 break;
