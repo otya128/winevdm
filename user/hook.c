@@ -80,6 +80,7 @@ static LRESULT CALLBACK task_call_WH_KEYBOARD( INT code, WPARAM wp, LPARAM lp );
 static LRESULT CALLBACK task_call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp );
 static LRESULT CALLBACK task_call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp );
 static LRESULT CALLBACK task_call_WH_CBT( INT code, WPARAM wp, LPARAM lp );
+static LRESULT CALLBACK task_call_WH_SYSMSGFILTER( INT code, WPARAM wp, LPARAM lp );
 static LRESULT CALLBACK task_call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp );
 static LRESULT CALLBACK task_call_WH_SHELL( INT code, WPARAM wp, LPARAM lp );
 
@@ -88,6 +89,7 @@ static LRESULT CALLBACK global_call_WH_KEYBOARD(INT code, WPARAM wp, LPARAM lp);
 static LRESULT CALLBACK global_call_WH_GETMESSAGE(INT code, WPARAM wp, LPARAM lp);
 static LRESULT CALLBACK global_call_WH_CALLWNDPROC(INT code, WPARAM wp, LPARAM lp);
 static LRESULT CALLBACK global_call_WH_CBT(INT code, WPARAM wp, LPARAM lp);
+static LRESULT CALLBACK global_call_WH_SYSMSGFILTER(INT code, WPARAM wp, LPARAM lp);
 static LRESULT CALLBACK global_call_WH_MOUSE(INT code, WPARAM wp, LPARAM lp);
 static LRESULT CALLBACK global_call_WH_SHELL(INT code, WPARAM wp, LPARAM lp);
 
@@ -103,7 +105,7 @@ static const HOOKPROC hook_procs[NB_HOOKS16] =
     task_call_WH_GETMESSAGE,  /* WH_GETMESSAGE */
     task_call_WH_CALLWNDPROC, /* WH_CALLWNDPROC */
     task_call_WH_CBT,         /* WH_CBT */
-    NULL,                /* WH_SYSMSGFILTER */
+    task_call_WH_SYSMSGFILTER, /* WH_SYSMSGFILTER */
     task_call_WH_MOUSE,       /* WH_MOUSE */
     NULL,                /* WH_HARDWARE */
     NULL,                /* WH_DEBUG */
@@ -120,7 +122,7 @@ static const HOOKPROC global_hook_procs[NB_HOOKS16] =
     global_call_WH_GETMESSAGE,  /* WH_GETMESSAGE */
     global_call_WH_CALLWNDPROC, /* WH_CALLWNDPROC */
     global_call_WH_CBT,         /* WH_CBT */
-    NULL,                /* WH_SYSMSGFILTER */
+    global_call_WH_SYSMSGFILTER, /* WH_SYSMSGFILTER */
     global_call_WH_MOUSE,       /* WH_MOUSE */
     NULL,                /* WH_HARDWARE */
     NULL,                /* WH_DEBUG */
@@ -663,6 +665,34 @@ static LRESULT CALLBACK global_call_WH_CBT(INT code, WPARAM wp, LPARAM lp)
 }
 
 /***********************************************************************
+ *		call_WH_SYSMSGFILTER
+ */
+static LRESULT CALLBACK call_WH_SYSMSGFILTER( INT code, WPARAM wp, LPARAM lp, BOOL global )
+{
+    MSG *msg32 = (MSG *)lp;
+    MSG16 msg16;
+    LRESULT ret;
+    CallNextHookEx(get_hhook(WH_SYSMSGFILTER, global), code, wp, lp);
+
+    map_msg_32_to_16( msg32, &msg16 );
+    lp = MapLS( &msg16 );
+    ret = call_hook_16( WH_SYSMSGFILTER, code, wp, lp, global);
+    UnMapLS( lp );
+    return ret;
+}
+
+static LRESULT CALLBACK task_call_WH_SYSMSGFILTER(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_SYSMSGFILTER(code, wp, lp, FALSE);
+}
+
+static LRESULT CALLBACK global_call_WH_SYSMSGFILTER(INT code, WPARAM wp, LPARAM lp)
+{
+    return call_WH_SYSMSGFILTER(code, wp, lp, TRUE);
+}
+
+
+/***********************************************************************
  *		call_WH_MOUSE
  */
 static LRESULT CALLBACK call_WH_MOUSE( INT code, WPARAM wp, LPARAM lp, BOOL global )
@@ -722,12 +752,15 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
     LPARAM lp;
     INPUT input;
     lp = MapLS( &emsg );
-    call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp, FALSE );
-    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0, FALSE );
+    call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp, TRUE );
+    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0, TRUE );
     UnMapLS( lp );
     TRACE("WH_JOURNALPLAYBACK message: %x paramL: %x paramH: %x\n", emsg.message, emsg.paramL, emsg.paramH);
     switch( emsg.message )
        {
+            case WM_QUEUESYNC:
+                PostThreadMessage(GetCurrentThreadId(), WM_QUEUESYNC, 0, NULL);
+                break;
             case WM_KEYDOWN:
                 input.type = 1;
                 input.ki.wVk = emsg.paramL;
@@ -782,7 +815,10 @@ void install_global_hook()
                 {
                     if (!info->global_hhook[index])
                     {
-                        info->global_hhook[index] = SetWindowsHookExA(id, global_hook_procs[index], 0, *(LPDWORD)((LPBYTE)tdb->teb + 0x24));
+                        if (id == WH_JOURNALPLAYBACK)
+                            info->hhook[index] = SetTimer(NULL, 0, 100, journal_playback_cb);
+                        else
+                            info->global_hhook[index] = SetWindowsHookExA(id, global_hook_procs[index], 0, *(LPDWORD)((LPBYTE)tdb->teb + 0x24));
                     }
                 }
             }
@@ -827,7 +863,8 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
         {
             if (id == WH_JOURNALPLAYBACK)
             {
-                info->hhook[index] = SetTimer(NULL, 0, 100, journal_playback_cb);
+                ERR("WH_JOURNALPLAYBACK is always global\n");
+                return 0;
             }
             else
             {
