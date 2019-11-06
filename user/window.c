@@ -3043,7 +3043,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     cs.cx = (width == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)width;
     cs.cy = (height == CW_USEDEFAULT16) ? CW_USEDEFAULT : (INT)height;
 
-    if (!(style & (WS_POPUP | WS_CHILD | WS_DLGFRAME)))
+    if (!(style & (WS_POPUP | WS_CHILD)))
         style |= WS_CAPTION;
 
     // make windows 1.0 programs appear in a usable window
