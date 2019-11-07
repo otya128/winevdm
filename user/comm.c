@@ -83,7 +83,8 @@ WINE_DEFAULT_DEBUG_CHANNEL(comm);
 
 struct DosDeviceStruct {
     HANDLE handle;
-    int unget;
+    BOOL unget;
+    int ungetchar;
     int evtchar;
     /* events */
     int commerror, eventmask;
@@ -93,7 +94,6 @@ struct DosDeviceStruct {
     /* notifications */
     HWND wnd;
     int n_read, n_write;
-    OVERLAPPED write_ov;
     /* save terminal states */
     DCB16 dcb;
     /* pointer to unknown(==undocumented) comm structure */
@@ -102,7 +102,7 @@ struct DosDeviceStruct {
     HANDLE eventth;
     HANDLE writeth;
     HANDLE writeev;
-    HANDLE writelock;
+    CRITICAL_SECTION writelock;
     BOOL exit;
 };
 
@@ -195,36 +195,56 @@ static DWORD WINAPI eventth(LPVOID cid)
 static DWORD WINAPI writeth(LPVOID cid)
 {
 	struct DosDeviceStruct *ptr = GetDeviceStruct(cid);
+	OVERLAPPED write_ov = {0};
+	write_ov.hEvent = CreateEventW(NULL, 0, TRUE, NULL);
+	HANDLE handles[] = {ptr->writeev, write_ov.hEvent};
 
 	while (ptr->handle)
 	{
 		DWORD ret;
 		ret = WaitForSingleObjectEx(ptr->writeev, INFINITE, TRUE);
 		if ((ret == WAIT_ABANDONED) || ptr->exit)
-		{
-   		    CancelIo(ptr->handle);
 			break;
-		}
 		if (ret == WAIT_OBJECT_0)
 		{
-			WaitForSingleObject(ptr->writelock, INFINITE);
+			EnterCriticalSection(&ptr->writelock);
 			int len, bleft = ((ptr->obuf_tail <= ptr->obuf_head) ? ptr->obuf_head : ptr->obuf_size) - ptr->obuf_tail;
 			while (bleft)
 			{
-				if (!WriteFile(ptr->handle, ptr->outbuf + ptr->obuf_tail, bleft, &len, &ptr->write_ov))
+				if (!WriteFile(ptr->handle, ptr->outbuf + ptr->obuf_tail, bleft, &len, &write_ov))
 				{
 					DWORD ret = 0, error = GetLastError();
 					if(error == ERROR_IO_PENDING)
 					{
-						SetEvent(ptr->writelock);
-						if (!(ret = GetOverlappedResult(ptr->handle, &ptr->write_ov, &len, TRUE)))
+						LeaveCriticalSection(&ptr->writelock);
+						while ((ret = WaitForMultipleObjects(2, handles, FALSE, INFINITE)) == WAIT_OBJECT_0)
+						{
+							if (ptr->exit)
+							{
+								CancelIo(ptr->handle);
+								return 0;
+							}
+						}
+						EnterCriticalSection(&ptr->writelock);
+						if (ret == (WAIT_OBJECT_0 + 1))
+						{
+							
+							if (!(ret = GetOverlappedResult(ptr->handle, &write_ov, &len, TRUE)))
+								error = GetLastError();
+						}
+						else if (ret == -1)
+						{
 							error = GetLastError();
-						WaitForSingleObject(ptr->writelock, INFINITE);
+							ret = 0;
+						}
+						else
+							ret = error;
 					}
 					if (!ret)
 					{
 						ERR("async write failed, error %d\n", error);
 						ptr->commerror = CE_RXOVER;
+						CancelIo(ptr->handle);
 						break;
 					}
 				}
@@ -239,7 +259,7 @@ static DWORD WINAPI writeth(LPVOID cid)
 				/* write from output queue */
 				bleft = ((ptr->obuf_tail <= ptr->obuf_head) ? ptr->obuf_head : ptr->obuf_size) - ptr->obuf_tail;
 			}
-			SetEvent(ptr->writelock);
+			LeaveCriticalSection(&ptr->writelock);
 		}
 	}
 	return 0;
@@ -355,6 +375,7 @@ INT16 WINAPI OpenComm16(LPCSTR device,UINT16 cbInQueue,UINT16 cbOutQueue)
 		handle = CreateFileA(device, GENERIC_READ|GENERIC_WRITE,
 			0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0 );
 		if (handle == INVALID_HANDLE_VALUE) {
+			ERR("Open %s failed Err %d", device, GetLastError());
 			return IE_HARDWARE;
 		} else {
 			memset(COM[port].unknown, 0, sizeof(COM[port].unknown));
@@ -366,7 +387,7 @@ INT16 WINAPI OpenComm16(LPCSTR device,UINT16 cbInQueue,UINT16 cbOutQueue)
 			/* save terminal state */
 			GetCommState16(port,&COM[port].dcb);
 			/* init priority characters */
-			COM[port].unget = -1;
+			COM[port].unget = FALSE;
 			/* allocate buffers */
 			COM[port].obuf_size = cbOutQueue;
 			COM[port].obuf_head = COM[port].obuf_tail = 0;
@@ -381,13 +402,12 @@ INT16 WINAPI OpenComm16(LPCSTR device,UINT16 cbInQueue,UINT16 cbOutQueue)
 			COMMTIMEOUTS cto = { MAXDWORD, 0, 0, 0, 1000 };
 			SetCommTimeouts(handle, &cto);
 
-			ZeroMemory(&COM[port].write_ov,sizeof (OVERLAPPED));
 
 			COM[port].exit = FALSE;
+			COM[port].writeev = CreateEventW(NULL, 0, 0, NULL);
+			InitializeCriticalSection(&COM[port].writelock);
 			COM[port].eventth = CreateThread(NULL, 0, eventth, (LPVOID)port, 0, NULL);
 			COM[port].writeth = CreateThread(NULL, 0, writeth, (LPVOID)port, 0, NULL);
-			COM[port].writeev = CreateEventW(NULL, 0, 0, NULL);
-			COM[port].writelock = CreateEventW(NULL, 0, TRUE, NULL);
 			return port;
 		}
 	}
@@ -431,13 +451,14 @@ INT16 WINAPI CloseComm16(INT16 cid)
 		SetCommState16(&COM[cid].dcb);
 		HeapFree(GetProcessHeap(), 0, ptr->outbuf);
 		ptr->exit = TRUE;
+		ptr->obuf_tail = ptr->obuf_head;
 		SetCommMask(ptr->handle, 0);
+		PurgeComm(ptr->handle, PURGE_TXABORT);
 		SetEvent(ptr->writeev);
 		WaitForSingleObject(ptr->eventth, 1000);
-		GetOverlappedResult(ptr->handle, &ptr->write_ov, &count, TRUE);
 		WaitForSingleObject(ptr->writeth, 1000);
 		CloseHandle(ptr->writeev);
-		CloseHandle(ptr->writelock);
+		DeleteCriticalSection(&ptr->writelock);
 	}
 
 	if (!CloseHandle(ptr->handle)) {
@@ -803,15 +824,15 @@ INT16 WINAPI UngetCommChar16(INT16 cid,CHAR chUnget)
 		return -1;
 	}
 
-	if (ptr->unget>=0) {
+	if (ptr->unget) {
 	  /* character already queued */
 	  /* FIXME: which error would Windows return? */
 	  ptr->commerror = CE_RXOVER;
 	  return -1;
 	}
 
-	ptr->unget = chUnget;
-
+	ptr->ungetchar = chUnget;
+	ptr->unget = TRUE;
 	ptr->commerror = 0;
 	return 0;
 }
@@ -839,7 +860,7 @@ INT16 WINAPI ReadComm16(INT16 cid,LPSTR lpvBuf,INT16 cbRead)
 	}
 	if (ptr->unget)
 	{
-		*orgBuf = ptr->unget;
+		*orgBuf = ptr->ungetchar;
 		orgBuf++;
 		cbRead--;
 	}
@@ -854,7 +875,7 @@ INT16 WINAPI ReadComm16(INT16 cid,LPSTR lpvBuf,INT16 cbRead)
 	
 	if (ptr->unget)
 	{
-		ptr->unget = 0;
+		ptr->unget = FALSE;
 		length++;
 	}
 
@@ -885,12 +906,7 @@ INT16 WINAPI WriteComm16(INT16 cid, LPSTR lpvBuf, INT16 cbWrite)
 	{
 		int count;
 		length = 0;
-		DWORD ret = WaitForSingleObject(ptr->writelock, 1000);
-		if (ret == WAIT_TIMEOUT)
-		{
-			ERR("Write lock timed out\n");
-			return 0;
-		}
+		EnterCriticalSection(&ptr->writelock);
 		while (length < cbWrite) {
 			count = ((ptr->obuf_tail > ptr->obuf_head) ?
 						(ptr->obuf_tail-1) : ptr->obuf_size) - ptr->obuf_head;
@@ -904,7 +920,7 @@ INT16 WINAPI WriteComm16(INT16 cid, LPSTR lpvBuf, INT16 cbWrite)
 			lpvBuf += count;
 			length += count;
 		}
-		SetEvent(ptr->writelock);
+		LeaveCriticalSection(&ptr->writelock);
 		SetEvent(ptr->writeev);
 	}
 
