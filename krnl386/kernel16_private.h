@@ -571,21 +571,21 @@ typedef struct
 
 typedef struct
 {
-    WORD   pushw_bp;               /* pushw %bp */
-    BYTE   pushl;                  /* pushl $target */
+    BYTE   pushw_bp;               /* pushw %bp */
+    WORD   pushl;                  /* pushl $target */
     void  *target;
-    WORD   call;                   /* call CALLFROM16 */
+    BYTE   call;                   /* call CALLFROM16 */
     short  callfrom16;
 } ENTRYPOINT16;
 
 typedef struct
 {
-    BYTE   pushl;                  /* pushl $relay */
+    WORD   pushl;                  /* pushl $relay */
     void  *relay;
-    BYTE   lcall;                  /* lcall __FLATCS__:glue */
+    WORD   lcall;                  /* lcall __FLATCS__:glue */
     void  *glue;
     WORD   flatcs;
-    WORD   ret[5];                 /* return sequence */
+    BYTE   ret[12];                 /* return sequence */
     WORD   movl;                   /* movl arg_types[1],arg_types[0](%esi) */
     DWORD  arg_types[2];           /* type of each argument */
 } CALLFROM16;

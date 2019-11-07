@@ -47,12 +47,13 @@ enum arg_types
 };
 
 /* sequences of nops to fill a certain number of words */
-static const char * const nop_sequence[4] =
+static const char * const nop_sequence[5] =
 {
     ".byte 0x89,0xf6",  /* mov %esi,%esi */
     ".byte 0x8d,0x74,0x26,0x00",  /* lea 0x00(%esi),%esi */
     ".byte 0x8d,0xb6,0x00,0x00,0x00,0x00",  /* lea 0x00000000(%esi),%esi */
-    ".byte 0x8d,0x74,0x26,0x00,0x8d,0x74,0x26,0x00" /* lea 0x00(%esi),%esi; lea 0x00(%esi),%esi */
+    ".byte 0x8d,0x74,0x26,0x00,0x8d,0x74,0x26,0x00", /* lea 0x00(%esi),%esi; lea 0x00(%esi),%esi */
+    ".byte 0x8d,0x74,0x26,0x00,0x8d,0xb6,0x00,0x00,0x00,0x00" /* lea 0x00(%esi),%esi; lea 0x00000000(%esi),%esi */
 };
 
 static inline int is_function( const ORDDEF *odp )
@@ -354,7 +355,7 @@ static void output_call16_function( ORDDEF *odp )
         stack_words++;
         if (UsePIC)
         {
-            output( "\tcall %s\n", asm_name("__wine_spec_get_pc_thunk_eax") );
+            output( "\tcalll %s\n", asm_name("__wine_spec_get_pc_thunk_eax") );
             output( "1:\tmovl wine_ldt_copy_ptr-1b(%%eax),%%esi\n" );
             needs_get_pc_thunk = 1;
         }
@@ -431,7 +432,7 @@ static void output_call16_function( ORDDEF *odp )
         }
     }
 
-    output( "\tcall *8(%%ebp)\n" );
+    output( "\tcalll *8(%%ebp)\n" );
 
     if (needs_ldt)
     {
@@ -639,7 +640,7 @@ static void output_module16( DLLSPEC *spec )
 
     output( "\t.short .L__wine_spec_code_segment-.L__wine_spec_dos_header\n" );         /* filepos */
     output( "\t.short .L__wine_spec_code_segment_end-.L__wine_spec_code_segment\n" );   /* size */
-    output( "\t.short 0x2000\n" );                                                      /* flags = NE_SEGFLAGS_32BIT */
+    output( "\t.short 0x0000\n" );                                                      /* flags  */
     output( "\t.short .L__wine_spec_code_segment_end-.L__wine_spec_code_segment\n" );   /* minsize */
 
     /* data segment entry */
@@ -683,6 +684,7 @@ static void output_module16( DLLSPEC *spec )
     /* code segment */
 
     output( "\n\t.align %d\n", get_alignment(2) );
+    output( ".code16\n" );
     output( ".L__wine_spec_code_segment:\n" );
 
     for ( i = 0; i < nb_funcs; i++ )
@@ -724,17 +726,16 @@ static void output_module16( DLLSPEC *spec )
 
         output( ".L__wine_spec_callfrom16_%s:\n", get_callfrom16_name(typelist[i]) );
         output( "\tpushl $.L__wine_spec_call16_%s\n", get_relay_name(typelist[i]) );
-        output( "\tlcall $0,$0\n" );
+        output( "\tlcalll $0,$0\n" );
 
         if (typelist[i]->flags & FLAG_REGISTER)
         {
-            nop_words = 4;
+            nop_words = 5;
         }
         else if (typelist[i]->flags & FLAG_RET16)
         {
             output( "\torw %%ax,%%ax\n" );
-            output( "\tnop\n" );  /* so that the lretw is aligned */
-            nop_words = 2;
+            nop_words = 4;
         }
         else
         {
@@ -750,6 +751,7 @@ static void output_module16( DLLSPEC *spec )
         }
         else output( "\tlretw\n" );
 
+        output( "\tnop\n" );  /* so that the lretw is aligned */
         if (nop_words) output( "\t%s\n", nop_sequence[nop_words-1] );
 
         /* the movl is here so that the code contains only valid instructions, */
@@ -808,6 +810,7 @@ static void output_module16( DLLSPEC *spec )
         output( "wine_ldt_copy_ptr:\n" );
         output( "\t.long %s\n", asm_name("_imp__wine_ldt_copy") );
     }
+    output( ".code32\n" );
 
     free( typelist );
 }
@@ -949,7 +952,7 @@ void output_fake_module16( DLLSPEC *spec )
     /* segment table */
     put_word( codeseg );
     put_word( sizeof(code_segment) );
-    put_word( 0x2000 /* NE_SEGFLAGS_32BIT */ );
+    put_word( 0x0000 );
     put_word( sizeof(code_segment) );
     put_word( dataseg );
     put_word( sizeof(data_segment) );
