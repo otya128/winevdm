@@ -2507,8 +2507,9 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
             char name[32] = {0};
             if (!((int)id & 0x8000))
             {
-                int len = restab[0] > 31 ? 31 : restab[0];
-                strncpy(name, restab + (int)id + 1, len);
+                LPBYTE pos = restab + (int)id;
+                int len = pos[0] > 31 ? 31 : pos[0];
+                strncpy(name, pos + 1, len);
                 id = name;
             }
             wc32.hIcon = get_icon_32(LoadIcon16(inst, id));
