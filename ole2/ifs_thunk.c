@@ -866,7 +866,10 @@ FUNCDESC16 *map_funcdesc16(const FUNCDESC *a32)
     int i;
     FUNCDESC16 *a16;
     ELEMDESC16 *elm16;
-    FUNCDESC16_WRAPPER *w = HeapAlloc(GetProcessHeap(), 0, sizeof(FUNCDESC16_WRAPPER) + sizeof(ELEMDESC16) * a32->cParams);
+    FUNCDESC16_WRAPPER *w;
+    if (!a32)
+        return NULL;
+    w = HeapAlloc(GetProcessHeap(), 0, sizeof(FUNCDESC16_WRAPPER) + sizeof(ELEMDESC16) * a32->cParams);
     w->magic = FUNCDESC16_WRAPPER_MAGIC;
     w->desc32 = a32;
     a16 = &w->desc16;
