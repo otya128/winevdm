@@ -4499,6 +4499,8 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
                 if (aero_diasble)
                 {
                     SetWindowTheme(pcwp->hwnd, L"", L"");
+                    if (GetMenu(pcwp->hwnd) && !(GetWindowLongA(pcwp->hwnd, GWL_STYLE) & WS_CHILD))
+                        SetWindowPos(pcwp->hwnd, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSIZE | SWP_NOMOVE);
                 }
             }
         }
