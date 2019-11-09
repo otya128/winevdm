@@ -866,9 +866,9 @@ static void init_template_func(CALLFROM16 *dest, const char *func)
     krnl = GetModuleHandle16("KERNEL");
     ret32 = (const unsigned char *)MapSL(GetProcAddress16(krnl, func));
     assert(
-        ret32[0] == 0x55 /* prefix */ && ret32[1] == 0x66 /* push bp */ &&
+        ret32[0] == 0x55 /* push bp */ && ret32[1] == 0x66 /* prefix */ &&
         ret32[2] == 0x68 /* push */ && ret32[7] == 0xe8 /* call rel */);
-    *dest = *(CALLFROM16*)(ret32 + 10 + *(const short*)(ret32 + 8));
+    *dest = *(CALLFROM16*)(ret32 + RTL_SIZEOF_THROUGH_FIELD(ENTRYPOINT16, callfrom16) + ((ENTRYPOINT16*)ret32)->callfrom16);
 }
 /*
 w: word
