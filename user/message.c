@@ -4472,9 +4472,9 @@ LRESULT CALLBACK WndProcRetHook(int code, WPARAM wParam, LPARAM lParam)
         }
         if ((pcwp->message == WM_CREATE) && IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE))
         {
-            char class[5];
-            if (GetClassName(pcwp->hwnd, class, 5) && !strcmp(class, "Edit") && !SendMessageA(pcwp->hwnd, WM_GETFONT, 0, 0))
-            	SendMessageA(pcwp->hwnd, WM_SETFONT, GetStockObject(SYSTEM_FIXED_FONT), FALSE);
+            char class[6];
+            if (GetClassNameA(pcwp->hwnd, class, ARRAY_SIZE(class)) && !strcmp(class, "Edit") && !SendMessageA(pcwp->hwnd, WM_GETFONT, 0, 0))
+                SendMessageA(pcwp->hwnd, WM_SETFONT, GetStockObject(SYSTEM_FIXED_FONT), FALSE);
         }
     }
 
