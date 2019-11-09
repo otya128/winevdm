@@ -64,3 +64,4 @@
 
 *.reg text eol=crlf
 *.ini text eol=crlf
+README.md text eol=crlf
