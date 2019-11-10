@@ -106,7 +106,79 @@ static  void	                MMSYSTDRV_Mixer_MapCB(DWORD uMsg, DWORD_PTR* dwUser
  */
 static  MMSYSTEM_MapType	MMSYSTDRV_MidiIn_Map16To32W  (UINT wMsg, DWORD_PTR* lpParam1, DWORD_PTR* lpParam2)
 {
-    return MMSYSTEM_MAP_MSGERROR;
+    MMSYSTEM_MapType	ret = MMSYSTEM_MAP_MSGERROR;
+
+    switch (wMsg) {
+    case MIDM_GETNUMDEVS:
+    case MIDM_RESET:
+	case MIDM_START:
+	case MIDM_STOP:
+	ret = MMSYSTEM_MAP_OK;
+	break;
+
+    case MIDM_OPEN:
+    case MIDM_CLOSE:
+	FIXME("Shouldn't be used: the corresponding 16 bit functions use the 32 bit interface\n");
+	break;
+
+    case MIDM_GETDEVCAPS:
+	{
+		LPMIDIINCAPSW	mic32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPMIDIINCAPS16) + sizeof(MIDIINCAPSW));
+		LPMIDIINCAPS16	mic16 = MapSL(*lpParam1);
+
+	    if (mic32) {
+		*(LPMIDIINCAPS16*)mic32 = mic16;
+		mic32 = (LPMIDIINCAPSW)((LPSTR)mic32 + sizeof(LPMIDIINCAPS16));
+		*lpParam1 = (DWORD)mic32;
+		*lpParam2 = sizeof(MIDIINCAPSW);
+
+		ret = MMSYSTEM_MAP_OKMEM;
+	    } else {
+		ret = MMSYSTEM_MAP_NOMEM;
+	    }
+	}
+	break;
+    case MIDM_PREPARE:
+	{
+	    LPMIDIHDR		mh32 = HeapAlloc(GetProcessHeap(), 0, sizeof(LPMIDIHDR) + sizeof(MIDIHDR));
+	    LPMIDIHDR16		mh16 = MapSL(*lpParam1);
+
+	    if (mh32) {
+		*(LPMIDIHDR*)mh32 = (LPMIDIHDR)*lpParam1;
+		mh32 = (LPMIDIHDR)((LPSTR)mh32 + sizeof(LPMIDIHDR));
+		mh32->lpData = MapSL((SEGPTR)mh16->lpData);
+		mh32->dwBufferLength = mh16->dwBufferLength;
+		mh32->dwBytesRecorded = mh16->dwBytesRecorded;
+		mh32->dwUser = mh16->dwUser;
+		mh32->dwFlags = mh16->dwFlags;
+		mh16->reserved = (MIDIHDR16*)mh32; /* for reuse in unprepare and write */
+		*lpParam1 = (DWORD)mh32;
+		*lpParam2 = offsetof(MIDIHDR,dwOffset); /* old size, without dwOffset */
+
+		ret = MMSYSTEM_MAP_OKMEM;
+	    } else {
+		ret = MMSYSTEM_MAP_NOMEM;
+	    }
+	}
+	break;
+	case MIDM_ADDBUFFER:
+    case MIDM_UNPREPARE:
+	{
+	    LPMIDIHDR16		mh16 = MapSL(*lpParam1);
+	    LPMIDIHDR		mh32 = (MIDIHDR*)mh16->reserved;
+
+	    *lpParam1 = (DWORD)mh32;
+	    *lpParam2 = offsetof(MIDIHDR,dwOffset);
+	    if (wMsg == MIDM_ADDBUFFER && mh32->dwBufferLength < mh16->dwBufferLength) {
+		ERR("Size of buffer has been increased from %d to %d, keeping initial value\n",
+		    mh32->dwBufferLength, mh16->dwBufferLength);
+	    } else
+			mh32->dwBufferLength = mh16->dwBufferLength;
+	    ret = MMSYSTEM_MAP_OKMEM;
+	}
+	break;
+    }
+    return ret;
 }
 
 /**************************************************************************
@@ -114,7 +186,55 @@ static  MMSYSTEM_MapType	MMSYSTDRV_MidiIn_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
  */
 static  MMSYSTEM_MapType	MMSYSTDRV_MidiIn_UnMap16To32W(UINT wMsg, DWORD_PTR* lpParam1, DWORD_PTR* lpParam2, MMRESULT fn_ret)
 {
-    return MMSYSTEM_MAP_MSGERROR;
+    MMSYSTEM_MapType	ret = MMSYSTEM_MAP_MSGERROR;
+
+    switch (wMsg) {
+    case MIDM_GETNUMDEVS:
+    case MIDM_RESET:
+	case MIDM_START:
+	case MIDM_STOP:
+	ret = MMSYSTEM_MAP_OK;
+	break;
+
+    case MIDM_OPEN:
+    case MIDM_CLOSE:
+	FIXME("Shouldn't be used: the corresponding 16 bit functions use the 32 bit interface\n");
+	break;
+
+    case MIDM_GETDEVCAPS:
+	{
+        LPMIDIINCAPSW		mic32 = (LPMIDIINCAPSW)(*lpParam1);
+	    LPMIDIINCAPS16		mic16 = *(LPMIDIINCAPS16*)((LPSTR)mic32 - sizeof(LPMIDIINCAPS16));
+
+	    mic16->wMid			= mic32->wMid;
+	    mic16->wPid			= mic32->wPid;
+	    mic16->vDriverVersion	= mic32->vDriverVersion;
+            WideCharToMultiByte( CP_ACP, 0, mic32->szPname, -1, mic16->szPname,
+                                 sizeof(mic16->szPname), NULL, NULL );
+	    mic16->dwSupport		= mic32->dwSupport;
+	    HeapFree(GetProcessHeap(), 0, (LPSTR)mic32 - sizeof(LPMIDIINCAPS16));
+	    ret = MMSYSTEM_MAP_OK;
+	}
+	break;
+    case MIDM_PREPARE:
+    case MIDM_UNPREPARE:
+    case MIDM_ADDBUFFER:
+	{
+	    LPMIDIHDR		mh32 = (LPMIDIHDR)(*lpParam1);
+	    LPMIDIHDR16		mh16 = MapSL(*(SEGPTR*)((LPSTR)mh32 - sizeof(LPMIDIHDR)));
+
+	    assert((MIDIHDR*)mh16->reserved == mh32);
+	    mh16->dwFlags = mh32->dwFlags;
+
+	    if (wMsg == MODM_UNPREPARE && fn_ret == MMSYSERR_NOERROR) {
+		HeapFree(GetProcessHeap(), 0, (LPSTR)mh32 - sizeof(LPMIDIHDR));
+		mh16->reserved = 0;
+	    }
+	    ret = MMSYSTEM_MAP_OK;
+	}
+	break;
+    }
+    return ret;
 }
 
 /**************************************************************************
