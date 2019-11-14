@@ -222,6 +222,7 @@ static DWORD WINAPI writeth(LPVOID cid)
 							if (ptr->exit)
 							{
 								CancelIo(ptr->handle);
+								CloseHandle(write_ov.hEvent);
 								return 0;
 							}
 						}
@@ -262,6 +263,7 @@ static DWORD WINAPI writeth(LPVOID cid)
 			LeaveCriticalSection(&ptr->writelock);
 		}
 	}
+	CloseHandle(write_ov.hEvent);
 	return 0;
 }
 
