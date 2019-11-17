@@ -498,6 +498,10 @@ static void I486OP(mov_cr_r32)()        // Opcode 0x0f 22
 	switch(cr)
 	{
 		case 0:
+#ifndef PAGING
+			if(data & 0x80000000)
+				fatalerror("paging disabled\n");
+#endif
 			CYCLES(CYCLES_MOV_REG_CR0);
 			if((oldcr ^ m_cr[cr]) & 0x80010000)
 				vtlb_flush_dynamic(m_vtlb);

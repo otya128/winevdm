@@ -695,6 +695,10 @@ static void I386OP(mov_cr_r32)()        // Opcode 0x0f 22
 	switch(cr)
 	{
 		case 0:
+#ifndef PAGING
+			if(data & 0x80000000)
+				fatalerror("paging disabled\n");
+#endif
 			data &= 0xfffeffff; // wp not supported on 386
 			CYCLES(CYCLES_MOV_REG_CR0);
 			break;
