@@ -228,7 +228,7 @@ void *read_ptr(offs_t byteaddress)
 // read accessors
 UINT8 read_byte(offs_t byteaddress)
 {
-#if defined(HAS_I386)
+#if 0// defined(HAS_I386)
 	if(byteaddress < MAX_MEM) {
 		return mem[byteaddress];
 //	} else if((byteaddress & 0xfffffff0) == 0xfffffff0) {
@@ -242,7 +242,7 @@ UINT8 read_byte(offs_t byteaddress)
 
 UINT16 read_word(offs_t byteaddress)
 {
-#if defined(HAS_I386)
+#if 0// defined(HAS_I386)
 	if(byteaddress < MAX_MEM - 1) {
 		return *(UINT16 *)(mem + byteaddress);
 //	} else if((byteaddress & 0xfffffff0) == 0xfffffff0) {
@@ -256,7 +256,7 @@ UINT16 read_word(offs_t byteaddress)
 
 UINT32 read_dword(offs_t byteaddress)
 {
-#if defined(HAS_I386)
+#if 0// defined(HAS_I386)
 	if(byteaddress < MAX_MEM - 3) {
 		return *(UINT32 *)(mem + byteaddress);
 //	} else if((byteaddress & 0xfffffff0) == 0xfffffff0) {

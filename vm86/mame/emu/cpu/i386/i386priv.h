@@ -685,6 +685,7 @@ static int i386_translate_address(int intention, offs_t *address, vtlb_entry *en
 
 INLINE int translate_address(int pl, int type, UINT32 *address, UINT32 *error)
 {
+#ifdef PAGING
 	if(!(m_cr[0] & 0x80000000)) // Some (very few) old OS's won't work with this
 		return TRUE;
 
@@ -721,6 +722,7 @@ INLINE int translate_address(int pl, int type, UINT32 *address, UINT32 *error)
 	int test_ret = i386_translate_address(type | TRANSLATE_DEBUG_MASK, &test_addr, NULL);
 	if(!test_ret || (test_addr != *address))
 		logerror("TLB-PTE mismatch! %06X %06X %06x\n", *address, test_addr, m_pc);
+#endif
 #endif
 	return TRUE;
 }
