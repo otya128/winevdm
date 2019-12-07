@@ -268,10 +268,10 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
 			  DWORD dwOpenFlags)
 {
     HMMIO 	ret;
+    struct mmio_thunk*      thunk = NULL;
 
     if (lpmmioinfo16) {
 	MMIOINFO	        mmioinfo;
-        struct mmio_thunk*      thunk = NULL;
 
 	memset(&mmioinfo, 0, sizeof(mmioinfo));
 
@@ -316,7 +316,19 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
 	lpmmioinfo16->wErrorRet = mmioinfo.wErrorRet;
         lpmmioinfo16->hmmio     = HMMIO_16(mmioinfo.hmmio);
     } else {
+        EnterCriticalSection(&mmio_cs);
+        if (!(thunk = MMIO_AddThunk(NULL, 0)))
+        {
+            LeaveCriticalSection(&mmio_cs);
+            return 0;
+        }
 	ret = mmioOpenA(szFileName, NULL, dwOpenFlags);
+        if (!ret || (dwOpenFlags & (MMIO_PARSE|MMIO_EXIST)))
+            thunk->hMmio = NULL;
+        else thunk->hMmio = ret;
+        thunk->segbuffer = 0;
+        thunk->allocbuf = NULL;
+        LeaveCriticalSection(&mmio_cs);
     }
     return HMMIO_16(ret);
 }
@@ -386,6 +398,8 @@ MMRESULT16 WINAPI mmioGetInfo16(HMMIO16 hmmio, MMIOINFO16* lpmmioinfo, UINT16 uF
         LeaveCriticalSection(&mmio_cs);
 	return MMSYSERR_INVALHANDLE;
     }
+    if (!thunk->segbuffer)
+        FIXME("NULL segbuffer\n");
 
     ret = mmioGetInfo(HMMIO_32(hmmio), &mmioinfo, uFlags);
     if (ret != MMSYSERR_NOERROR)
@@ -494,33 +508,21 @@ MMRESULT16 WINAPI mmioFlush16(HMMIO16 hmmio, UINT16 uFlags)
  */
 MMRESULT16 WINAPI mmioAdvance16(HMMIO16 hmmio, MMIOINFO16* lpmmioinfo, UINT16 uFlags)
 {
-    MMIOINFO    mmioinfo = { 0 };
     LRESULT     ret;
 
-    /* WARNING: this heavily relies on mmioAdvance implementation (for choosing which
-     * fields to init
-     */
     if (lpmmioinfo)
     {
-        mmioinfo.pchBuffer = MapSL((DWORD)lpmmioinfo->pchBuffer);
-        mmioinfo.pchNext = MapSL((DWORD)lpmmioinfo->pchNext);
-        mmioinfo.dwFlags = lpmmioinfo->dwFlags;
-        mmioinfo.lBufOffset = lpmmioinfo->lBufOffset;
-        ret = mmioAdvance(HMMIO_32(hmmio), &mmioinfo, uFlags);
+        ret = mmioSetInfo16(hmmio, lpmmioinfo, 0);
+        if (ret != MMSYSERR_NOERROR) return ret;
     }
-    else
-        ret = mmioAdvance(HMMIO_32(hmmio), NULL, uFlags);
-
+    
+    ret = mmioAdvance(HMMIO_32(hmmio), NULL, uFlags);
     if (ret != MMSYSERR_NOERROR) return ret;
 
     if (lpmmioinfo)
     {
-        lpmmioinfo->dwFlags = mmioinfo.dwFlags;
-        lpmmioinfo->pchNext     = (void*)(lpmmioinfo->pchBuffer + (mmioinfo.pchNext - mmioinfo.pchBuffer));
-        lpmmioinfo->pchEndRead  = (void*)(lpmmioinfo->pchBuffer + (mmioinfo.pchEndRead - mmioinfo.pchBuffer));
-        lpmmioinfo->pchEndWrite = (void*)(lpmmioinfo->pchBuffer + (mmioinfo.pchEndWrite - mmioinfo.pchBuffer));
-        lpmmioinfo->lBufOffset  = mmioinfo.lBufOffset;
-        lpmmioinfo->lDiskOffset = mmioinfo.lDiskOffset;
+        ret = mmioGetInfo16(hmmio, lpmmioinfo, 0);
+        if (ret != MMSYSERR_NOERROR) return ret;
     }
 
     return MMSYSERR_NOERROR;
