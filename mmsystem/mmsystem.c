@@ -1304,9 +1304,10 @@ UINT16 WINAPI waveOutOpen16(HWAVEOUT16* lphWaveOut, UINT16 uDeviceID,
     UINT		        ret;
     struct mmsystdrv_thunk*     thunk;
     WAVEFORMATEX             *wavefmt;
-    wavefmt = (WAVEFORMATEX *)HeapAlloc(GetProcessHeap(), 0, sizeof(WAVEFORMATEX) + lpFormat->cbSize);
+    WORD                        size = lpFormat->wFormatTag == WAVE_FORMAT_PCM ? 0 : lpFormat->cbSize;
+    wavefmt = (WAVEFORMATEX *)HeapAlloc(GetProcessHeap(), 0, sizeof(WAVEFORMATEX) + size);
 
-    memcpy(wavefmt, lpFormat, sizeof(WAVEFORMATEX) + lpFormat->cbSize);
+    memcpy(wavefmt, lpFormat, sizeof(WAVEFORMATEX) + size);
 
 
     if (!(thunk = MMSYSTDRV_AddThunk(dwCallback, dwFlags, MMSYSTDRV_WAVEOUT)))
