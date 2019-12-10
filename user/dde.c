@@ -127,7 +127,7 @@ static WCHAR *get_programs_path(const WCHAR *name)
     int len;
 
     wcsncpy(clnname, name, MAX_PATH);
-    PathCleanupSpec(NULL, clnname);;
+    PathCleanupSpec(NULL, clnname);
     SHGetFolderPathW(NULL, CSIDL_PROGRAMS, NULL, 0, &programs);
 
     len = lstrlenW(programs) + 1 + lstrlenW(name);
@@ -142,25 +142,29 @@ static WCHAR *get_programs_path(const WCHAR *name)
 static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
                                      HSZ hszItem)
 {
-    if (hszTopic == hszProgmanTopic && hszItem == hszGroups && uFmt == CF_TEXT)
+    if (hszTopic == hszProgmanTopic && (hszItem == hszGroups || hszItem == hszProgmanService) && uFmt == CF_TEXT)
     {
         static const WCHAR asteriskW[] = {'*',0};
         static const WCHAR newlineW[] = {'\r','\n',0};
         static const WCHAR dotW[] = {'.',0};
         static const WCHAR dotdotW[] = {'.','.',0};
+        static const WCHAR placeholdW[] = {'x',0};
         WCHAR *programs;
         WIN32_FIND_DATAW finddata;
         HANDLE hfind;
-        int len = 1;
+        int len;
         WCHAR *groups_data = heap_alloc(sizeof(WCHAR));
         char *groups_dataA;
         HDDEDATA ret;
 
         groups_data[0] = 0;
-        programs = get_programs_path(asteriskW);
+        programs = get_programs_path(placeholdW); // PathCleanupSpec will remove the * so use a placeholder
+        len = wcslen(programs);
+        programs[len - 1] = '*';
         hfind = FindFirstFileW(programs, &finddata);
-        if (hfind)
+        if (hfind != INVALID_HANDLE_VALUE)
         {
+            len = 1;
             do
             {
                 if ((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
@@ -178,20 +182,12 @@ static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
         len = WideCharToMultiByte(CP_ACP, 0, groups_data, -1, NULL, 0, NULL, NULL);
         groups_dataA = heap_alloc(len * sizeof(WCHAR));
         WideCharToMultiByte(CP_ACP, 0, groups_data, -1, groups_dataA, len, NULL, NULL);
-        ret = DdeCreateDataHandle(dwDDEInst, (BYTE *)groups_dataA, len, 0, hszGroups, uFmt, 0);
+        ret = DdeCreateDataHandle(dwDDEInst, (BYTE *)groups_dataA, len, 0, hszItem, uFmt, 0);
 
         heap_free(groups_dataA);
         heap_free(groups_data);
         heap_free(programs);
         return ret;
-    }
-    else if (hszTopic == hszProgmanTopic && hszItem == hszProgmanService && uFmt == CF_TEXT)
-    {
-        static BYTE groups_data[] = "\r\n";
-        FIXME( "returning empty groups list\n" );
-	/* This is a workaround for an application which expects some data
-	 * and cannot handle NULL. */
-        return DdeCreateDataHandle( dwDDEInst, groups_data, sizeof(groups_data), 0, hszProgmanService, uFmt, 0 );
     }
     FIXME( "%u %p %s %s: stub\n", uFmt, hconv, debugstr_hsz(hszTopic), debugstr_hsz(hszItem) );
     return NULL;

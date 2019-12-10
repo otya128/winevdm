@@ -406,6 +406,8 @@ HSZ WINAPI DdeCreateStringHandle16(DWORD idInst, LPCSTR str, INT16 codepage)
             return DMLERR_INVALIDPARAMETER;
         }
     }
+    if (!stricmp(str, "Progman"))
+        str = "Progman16";
   
     return DdeCreateStringHandleA(idInst, str, CP_WINANSI);
 }
