@@ -1972,6 +1972,18 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
         }
     }
     else if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;
+    if (krnl386_get_compat_mode("640X480") && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
+    {
+        switch (cap)
+        {
+            case HORZRES:
+                ret = 640;
+                break;
+            case VERTRES:
+                ret = 480;
+                break;
+        }
+    }
     return ret;
 }
 

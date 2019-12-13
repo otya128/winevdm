@@ -1417,6 +1417,17 @@ INT16 WINAPI GetSystemMetrics16( INT16 index )
             }
         }
     }
+    if (krnl386_get_compat_mode("640X480"))
+    {
+        switch (index)
+        {
+            case SM_CXSCREEN:
+                return 640;
+            case SM_CYSCREEN:
+                return 480;
+        }
+    }
+        
     return GetSystemMetrics( index );
 }
 
