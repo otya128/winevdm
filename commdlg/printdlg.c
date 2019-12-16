@@ -194,6 +194,9 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
         lppd->nMinPage    = pd32.nMinPage;
         lppd->nMaxPage    = pd32.nMaxPage;
         lppd->nCopies     = pd32.nCopies;
+        DEVMODEA *dm = GlobalLock16(lppd->hDevMode);
+        dm->dmDriverExtra = 0;
+        GlobalUnlock16(lppd->hDevMode);
     }
     GlobalFree( pd32.hDevNames );
     GlobalFree( pd32.hDevMode );
