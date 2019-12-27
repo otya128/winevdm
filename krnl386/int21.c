@@ -286,9 +286,6 @@ static struct magic_device magic_devices[] =
     { {'h','p','s','c','a','n',0},         NULL, { { 0, 0 } }, INT21_IoctlHPScanHandler },
 };
 
-LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL is_dir);
-LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
-
 /* Many calls translate a drive argument like this:
    drive number (00h = default, 01h = A:, etc)
    */

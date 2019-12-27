@@ -1904,7 +1904,7 @@ static void parse_autoexec()
     BOOL pathfound = FALSE;
     char autoexec_path[MAX_PATH];
     int len = 0;
-    RedirectDriveRoot("C:\\AUTOEXEC.BAT", &autoexec_path, MAX_PATH, FALSE);
+    RedirectDriveRoot("C:\\AUTOEXEC.BAT", &autoexec_path, MAX_PATH, TRUE);
     FILE *aeb = fopen(autoexec_path, "r");
     if (aeb)
     {

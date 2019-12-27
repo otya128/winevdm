@@ -977,4 +977,8 @@ BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16);
 #define GT_BURGERMASTER 10
 void GLOBAL_SetSeg(HGLOBAL16 hg, WORD wSeg, WORD type);
 WORD GLOBAL_GetSegNum(HGLOBAL16 hg);
+
+__declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL silence);
+__declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
+
 #endif  /* __WINE_KERNEL16_PRIVATE_H */

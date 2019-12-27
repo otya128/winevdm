@@ -104,7 +104,7 @@ BOOL is_readonly_directory(LPCSTR path)
         return TRUE;
     return (attr & FILE_ATTRIBUTE_READONLY) == FILE_ATTRIBUTE_READONLY;
 }
-__declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL is_dir)
+__declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max_len, BOOL silence)
 {
     LPCSTR path_old = path;
     enum WRITABLE_CACHE
@@ -163,7 +163,10 @@ __declspec(dllexport) LPCSTR RedirectDriveRoot(LPCSTR path, LPSTR to, size_t max
     PathCombineA(to, GetRedirectWindowsDir(), drive_buf);
     CreateDirectoryA(to, NULL);
     PathCombineA(to, to, path);
-    ERR("%s => %s\n", path_old, to);
+    if (!silence)
+    {
+        ERR("%s => %s\n", path_old, to);
+    }
     return to;
 }
 /* buf: X:\XXX\YYY\C\ZZZ => C:\ZZZ */
