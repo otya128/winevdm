@@ -21,6 +21,8 @@
 #include "wine/windef16.h"
 #include "wine/winbase16.h"
 #include "wine/debug.h"
+#include "wownt32.h"
+#include "../krnl386/dosexe.h"
 /*
 #define __asm__(xxx)
 #define __asm__
@@ -29,7 +31,6 @@
 WINE_DEFAULT_DEBUG_CHANNEL(int);
 
 //VM86.DLL
-
 typedef void(*fldcw_t)(WORD);
 typedef void(*fldsw_t)(WORD);
 typedef void(*wait_t)();
@@ -40,6 +41,7 @@ typedef void(*frndint_t)();
 typedef void(*fclex_t)();
 typedef void(*fsave_t)(char*);
 typedef void(*frstor_t)(const char*);
+typedef void(*fstenv32_t)(char*);
 typedef DWORD(*fistp_t)(WORD);
 
 void fldcw_stub(WORD a)
@@ -74,6 +76,10 @@ void fsave_stub(char* a)
 {
     FIXME("stub\n");
 }
+void fstenv32_stub(char* a)
+{
+    FIXME("stub\n");
+}
 void frstor_stub(const char* a)
 {
     FIXME("stub\n");
@@ -94,12 +100,18 @@ typedef struct
     fclex_t fclex;
     fsave_t fsave;
     frstor_t frstor;
+    fstenv32_t fstenv32;
     fistp_t fistp;
 } x87function;
 x87function x87;
+static INTPROC oldproc = 0;
+
 typedef void (*load_x87function_t)(x87function *func);
+static void WINAPI fpu_exception(CONTEXT *context);
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
+    if (fdwReason == DLL_PROCESS_DETACH)
+        DOSVM_SetBuiltinVector(2, oldproc);
     if (fdwReason != DLL_PROCESS_ATTACH)
         return TRUE;
     char dllname[MAX_PATH];
@@ -130,6 +142,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
         x87.frstor = frstor_stub;
     if (!x87.fistp)
         x87.fistp = fistp_stub;
+    if (!x87.fstenv32)
+        x87.fstenv32 = fstenv32_stub;
+    oldproc = DOSVM_SetBuiltinVector(2, fpu_exception);
     return TRUE;
 }
 #define USE_VM86_DLL 1
@@ -158,96 +173,171 @@ struct Win87EmInfoStruct
  */
 /* FIXME: Still rather skeletal implementation only */
 
-static BOOL Installed = TRUE; /* 8087 is installed */
 static WORD RefCount = 0;
 static WORD CtrlWord_1 = 0;
 static WORD CtrlWord_2 = 0;
 static WORD CtrlWord_Internal = 0;
 static WORD StatusWord_1 = 0x000b;
 static WORD StatusWord_2 = 0;
-static WORD StatusWord_3 = 0;
 static WORD StackTop = 175;
 static WORD StackBottom = 0;
 static WORD Inthandler02hVar = 1;
 
-static void WIN87_ClearCtrlWord( CONTEXT *context )
+// the fpe handler is documented as not needing to return
+// if a program longjmps out we don't want an extra stale context in the call stack 
+// so clean everything up and use a trampoline for the return
+void WINAPI fpe_return(CONTEXT *context)
+{
+    WORD *stkptr = (WORD *)MapSL(MAKESEGPTR(context->SegSs, LOWORD(context->Esp)));
+    context->SegDs = stkptr[0];
+    context->Eax = stkptr[3];
+    context->Ebp = stkptr[4] - 1;
+    context->Eip = stkptr[5];
+    context->SegCs = stkptr[6];
+    context->EFlags = stkptr[7];
+    context->Esp -= 16;
+}
+
+static void WINAPI fpu_exception(CONTEXT *context)
+{
+    UINT32 fpenv[7];
+
+    // check if program sets own nmi handler, maybe irq13 also
+    //FARPROC16 handler2 = DOSVM_GetPMHandler16(2);
+
+    // we need to use the 32bit fstenv because the pmode fpenv
+    // doesn't contain the fp code or data segments in later intel cpus
+    // so fstenv32 is the only way to get the exception opcode 
+    // and also makes it hard/impossible to fix errors with memory operands
+    x87.fstenv32((char *)&fpenv);
+    x87.fclex();
+    StatusWord_2 |= fpenv[1];
+    FARPROC16 handler3e = DOSVM_GetPMHandler16(0x3e);
+    if (!handler3e)
+    {
+        x87.fldcw(fpenv[0]);
+        return;
+    }
+    WORD opcode = fpenv[4] >> 16;
+    WORD unmasked = ~fpenv[0] & fpenv[1] & 0x3f;
+    int errcode = 0;
+    // we don't attempt to fix errors that the real win87em would
+    // currently, just check the error type for the first exception
+    if (unmasked & 1) // EM_INVALID
+    {
+        errcode = 0x81; // FPE_INVALID
+        if (fpenv[1] & 0x40)
+        {
+            if (fpenv[1] & 0x200)
+                errcode = 0x8a; // FPE_STACKOVERFLOW
+            else
+                errcode = 0x8b; // FPE_STACKUNDERFLOW
+        }
+        else if (opcode == 0x1fa)
+            errcode = 0x88; // FPE_SQRTNEG
+    }
+    else if (unmasked & 2) // EM_DENORMAL
+        errcode = 0x82;
+    else if (unmasked & 4) // EM_ZERODIVIDE
+        errcode = 0x83;
+    else if (unmasked & 8) // EM_OVERFLOW
+        errcode = 0x84;
+    else if (unmasked & 0x10) // EM_UNDERFLOW
+        errcode = 0x85;
+    else if (unmasked & 0x20) // EM_INEXACT
+        errcode = 0x86;
+    // Watcom expects ds to be on the stack above the ret addr
+    // VB3 expects bp to point to a previous bp which points to the fault context ax and bp
+    context->Esp -= 20;
+    DWORD new_sp = MAKESEGPTR(context->SegSs, LOWORD(context->Esp));
+    WORD *stack = (WORD *)MapSL(new_sp);
+    static FARPROC16 trampoline16 = 0;
+    if (!trampoline16)
+	trampoline16 = GetProcAddress16(GetModuleHandle16("WIN87EM"), "fpe_return");
+    stack[9] = context->EFlags;
+    stack[8] = context->SegCs;
+    stack[7] = context->Eip;
+    stack[6] = context->Ebp + 1;
+    stack[5] = context->Eax;
+    stack[4] = context->SegDs;
+    stack[3] = OFFSETOF(new_sp) + 12 + 1;
+    stack[2] = context->SegDs;
+    stack[1] = SELECTOROF(trampoline16);
+    stack[0] = OFFSETOF(trampoline16);
+    context->EFlags |= 0x200; // orig win87em unconditionally sets IF
+    context->SegCs = HIWORD(handler3e);
+    context->Eip = LOWORD(handler3e);
+    context->Eax = errcode;
+    context->Ebp = OFFSETOF(new_sp) + 6;
+    x87.fldcw(fpenv[0]);
+} 
+
+static void WIN87_ClearStatus( CONTEXT *context )
 {
     context->Eax &= ~0xffff;  /* set AX to 0 */
-	if (Installed)
-	{
 #if USE_VM86_DLL
-        x87.fclex();
+    x87.fclex();
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
-		__asm__("fclex");
+    __asm__("fclex");
 #else
-		__asm
-		{
-			fclex
-		}
+    __asm
+    {
+            fclex
+    }
 #endif
 #endif
 #endif/*USE_VM86_DLL*/
-	}
-    StatusWord_3 = StatusWord_2 = 0;
+    StatusWord_2 = 0;
 }
 
 static void WIN87_SetCtrlWord( CONTEXT *context )
 {
     CtrlWord_1 = LOWORD(context->Eax);
     context->Eax &= ~0x00c3;
-    if (Installed) {
-		CtrlWord_Internal = LOWORD(context->Eax);
+    CtrlWord_Internal = LOWORD(context->Eax);
 #if USE_VM86_DLL
-        x87.wait();
-        x87.fldcw(CtrlWord_Internal);
+    x87.fldcw(CtrlWord_Internal);
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
-        __asm__("wait;fldcw %0" : : "m" (CtrlWord_Internal));
+    __asm__("wait;fldcw %0" : : "m" (CtrlWord_Internal));
 #else
-		__asm
-		{
-			wait;
-			fldcw CtrlWord_Internal
-		}
+    __asm
+    {
+            wait;
+            fldcw CtrlWord_Internal
+    }
 #endif
 #endif/*USE_VM86_DLL*/
 #endif
-    }
     CtrlWord_2 = LOWORD(context->Eax);
 }
 
 static void WIN87_Init( CONTEXT *context )
 {
 #if USE_VM86_DLL
-	if (Installed)
-	{
         x87.fninit();
         x87.fninit();
-	}
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
-	if (Installed)
-	{
 #ifndef _MSC_VER
-		__asm__("fninit");
-		__asm__("fninit");
+        __asm__("fninit");
+        __asm__("fninit");
 #else
-		__asm
-		{
-			fninit
-			fninit
-		}
+        __asm
+        {
+                fninit
+                        fninit
+        }
 #endif
-	}
 #endif
 #endif/*USE_VM86_DLL*/
     StackBottom = StackTop;
     context->Eax = (context->Eax & ~0xffff) | 0x1332;
     WIN87_SetCtrlWord(context);
-    WIN87_ClearCtrlWord(context);
+    WIN87_ClearStatus(context);
 }
 
 /***********************************************************************
@@ -264,8 +354,7 @@ void WINAPI _fpMath( CONTEXT *context )
     case 0: /* install (increase instanceref) emulator, install NMI vector */
         RefCount++;
 #if 0
-        if (Installed)
-            InstallIntVecs02hAnd75h();
+        InstallIntVecs02hAnd75h();
 #endif
         WIN87_Init(context);
         context->Eax &= ~0xffff;  /* set AX to 0 */
@@ -281,14 +370,18 @@ void WINAPI _fpMath( CONTEXT *context )
         WIN87_Init(context);
 	RefCount--;
 #if 0
-        if (!RefCount && Installed)
+        if (!RefCount)
             RestoreInt02h();
 #endif
 
         break;
 
-    case 3:
-        /*INT_SetHandler(0x3E,MAKELONG(AX,DX));*/
+    case 3: /* The fpe handler is stored in int 3eh but the handler returns
+             * with a retf so it can't be called with an int instruction
+             * the old handler is saved and restored by the program
+             * the tdb contains a per-task int 3eh handler
+             */
+        DOSVM_SetPMHandler16(0x3e, (FARPROC16)MAKESEGPTR(context->Edx, context->Eax));
         break;
 
     case 4: /* set control word (& ~(CW_Denormal|CW_Invalid)) */
@@ -309,11 +402,8 @@ void WINAPI _fpMath( CONTEXT *context )
              */
 #if USE_VM86_DLL
 			x87.fstcw(&save);
-			x87.wait();
 			mask = (save & ~0xc00) | (context->Eax & 0xc00);
-			x87.wait();
 			x87.fldcw(mask);
-			x87.wait();
 			x87.frndint();
 			x87.fldcw(save);
 #else/*USE_VM86_DLL*/
@@ -360,39 +450,36 @@ void WINAPI _fpMath( CONTEXT *context )
 
     case 8: /* restore internal status words from emulator status word */
         context->Eax &= ~0xffff;  /* set AX to 0 */
-		if (Installed) {
 #if USE_VM86_DLL
-            x87.fstsw(&StatusWord_1);
-            x87.wait();
+      x87.fstsw(&StatusWord_1);
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
-			__asm__("fstsw %0;wait" : "=m" (StatusWord_1));
+        __asm__("fstsw %0;wait" : "=m" (StatusWord_1));
 #else
-			__asm
-			{
-				fstsw StatusWord_1
-				wait
-			}
+        __asm
+        {
+                fstsw StatusWord_1
+                wait
+        }
 #endif
 #endif
 #endif/*USE_VM86_DLL*/
-            context->Eax |= StatusWord_1 & 0x3f;
-        }
+        context->Eax |= StatusWord_1 & 0x3f;
         context->Eax = (context->Eax | StatusWord_2) & ~0xe000;
         StatusWord_2 = LOWORD(context->Eax);
         break;
 
-    case 9: /* clear emu control word and some other things */
-        WIN87_ClearCtrlWord(context);
+    case 9: /* clear fpu exceptions and some other things */
+        WIN87_ClearStatus(context);
         break;
 
     case 10: /* dunno. but looks like returning nr. of things on stack in AX */
     {
-        char fpustate[100];
+        UINT32 fpustate[7];
         WORD count = 0;
-        x87.fsave(fpustate);
-        WORD tagword = ((WORD *)fpustate)[2];
+        x87.fstenv32(&fpustate);
+        WORD tagword = fpustate[2];
         for (int i = 0; i < 8; i++)
             count += (((tagword >> (i * 2)) & 3) != 3);
         context->Eax = (context->Eax & ~0xffff) | count;
@@ -400,7 +487,7 @@ void WINAPI _fpMath( CONTEXT *context )
     }
     case 11: /* just returns the installed flag in DX:AX */
         context->Edx &= ~0xffff;  /* set DX to 0 */
-        context->Eax = (context->Eax & ~0xffff) | Installed;
+        context->Eax = (context->Eax & ~0xffff) | 1; // fpu is always available
         break;
 
     case 12: /* save AX in some internal state var */

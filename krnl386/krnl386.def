@@ -218,6 +218,8 @@ EXPORTS
   DOSVM_outport
   DOSVM_setportcb
   DOSVM_SetBuiltinVector
+  DOSVM_GetPMHandler16
+  DOSVM_SetPMHandler16
   krnl386_get_search_path
   krnl386_search_executable_file
   get_aflags

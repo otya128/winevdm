@@ -518,3 +518,8 @@ static void I486OP(mov_cr_r32)()        // Opcode 0x0f 22
 	}
 	m_cr[cr] = data;
 }
+
+void I486OP(wait)()
+{
+	x87_mf_fault();
+}

@@ -189,6 +189,7 @@ static const X86_OPCODE x86_opcode_table[] =
 	{ 0x99,     OP_I386,                    I386OP(cwd),                    I386OP(cdq),                false},
 	{ 0x9A,     OP_I386,                    I386OP(call_abs16),             I386OP(call_abs32),         false},
 	{ 0x9B,     OP_I386,                    I386OP(wait),                   I386OP(wait),               false},
+	{ 0x9B,     OP_I486,                    I486OP(wait),                   I486OP(wait),               false},
 	{ 0x9C,     OP_I386,                    I386OP(pushf),                  I386OP(pushfd),             false},
 	{ 0x9D,     OP_I386,                    I386OP(popf),                   I386OP(popfd),              false},
 	{ 0x9E,     OP_I386,                    I386OP(sahf),                   I386OP(sahf),               false},

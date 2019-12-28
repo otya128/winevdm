@@ -1509,6 +1509,8 @@ extern "C"
                         context.Eip = return_ip;
                         context.SegCs = return_cs;
                         context.EFlags = flags;
+                        if ((num == FAULT_MF) && (m_x87_sw & 0x80))
+                            num = 2;  // redirect fpu error to nmi
                         dynamic__wine_call_int_handler(&context, num);
                         mem = memory_base;
                         load_context(&context);
