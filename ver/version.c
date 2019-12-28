@@ -45,6 +45,8 @@ WINE_DEFAULT_DEBUG_CHANNEL(ver);
 #ifdef _MSC_VER
 #define strncasecmp _strnicmp
 #endif
+/* get dll search path */
+char *krnl386_get_search_path(void);
 
 /**********************************************************************
  *  find_entry_by_id
@@ -414,14 +416,17 @@ LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 char *krnl386_get_search_path(void);
 BOOL findfile(const char *file, char *out, int size)
 {
+    const char *path = krnl386_get_search_path();
     RedirectSystemDir(file, out, size);
     if (GetFileAttributesA(out) != INVALID_FILE_ATTRIBUTES)
         return TRUE;
-    if (SearchPathA(krnl386_get_search_path(), file, NULL, size, out, NULL))
+    if (SearchPathA(path, file, NULL, size, out, NULL))
         return TRUE;
+    HeapFree(GetProcessHeap(), 0, path);
     return FALSE;
 }
 
+LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin);
 /*************************************************************************
  * GetFileResourceSize                     [VER.2]
  */
@@ -431,10 +436,12 @@ DWORD WINAPI GetFileResourceSize16( LPCSTR lpszFileName, LPCSTR lpszResType,
     HFILE lzfd;
     OFSTRUCT ofs;
     DWORD reslen = 0;
+    char buf[MAX_PATH];
 
     TRACE("(%s,type=%p,id=%p,off=%p)\n",
           debugstr_a(lpszFileName), lpszResType, lpszResId, lpszResId );
 
+    lpszFileName = krnl386_search_executable_file(lpszFileName, buf, MAX_PATH, TRUE);
     lzfd = LZOpenFileA( (LPSTR)lpszFileName, &ofs, OF_READ );
     if (lzfd < 0)
     {
@@ -461,11 +468,13 @@ DWORD WINAPI GetFileResource16( LPCSTR lpszFileName, LPCSTR lpszResType,
     HFILE lzfd;
     OFSTRUCT ofs;
     DWORD reslen = dwResLen;
+    char buf[MAX_PATH];
 
     TRACE("(%s,type=%p,id=%p,off=%d,len=%d,data=%p)\n",
 		debugstr_a(lpszFileName), lpszResType, lpszResId,
                 dwFileOffset, dwResLen, lpvData );
 
+    lpszFileName = krnl386_search_executable_file(lpszFileName, buf, MAX_PATH, TRUE);
     lzfd = LZOpenFileA( (LPSTR)lpszFileName, &ofs, OF_READ );
     if (lzfd < 0)
     {
@@ -538,6 +547,8 @@ DWORD WINAPI VerFindFile16( UINT16 flags, LPSTR lpszFilename,
     UINT curDirLen, destDirLen;
     UINT *pcurDirLen = NULL, *pdestDirLen = NULL;
     DWORD retv;
+    char buf[MAX_PATH];
+    lpszFilename = krnl386_search_executable_file(lpszFilename, buf, MAX_PATH, TRUE);
 
     if (lpuCurDirLen) {
         curDirLen = *lpuCurDirLen;
