@@ -1034,6 +1034,8 @@ void WINAPI DirectedYield16( HTASK16 hTask )
     DWORD count;
     struct kernel_thread_data *chdthd;
     HTASK task;
+    BOOL failed = FALSE;
+    HTASK current = GetCurrentTask();
     if (!tdb->teb)
     {
         OldYield16();
@@ -1048,17 +1050,36 @@ void WINAPI DirectedYield16( HTASK16 hTask )
         OldYield16();
         return;
     }
+    task = hFirstTask;
     while (task)
     {
         tdb = TASK_GetPtr(task);
         struct kernel_thread_data *td = (struct kernel_thread_data *)TebTlsGetValue(tdb->teb, kernel_thread_data_tls);
+        if (td->yield_event)
+        {
+            if (td->htask16 == current)
+            {
+                DWORD count;
+                SetEvent(tls_get_kernel_thread_data()->idle_event);
+                ReleaseThunkLock(&count);
+                Sleep(10);
+                RestoreThunkLock(count);
+                return;
+            }
+            failed = TRUE;
+        }
         if (td->yield_wait_event)
         {
-            WARN("nested DirectedYield doesnt work.\n");
-            OldYield16();
+            failed = TRUE;
             return;
         }
         task = tdb->hNext;
+    }
+    if (failed)
+    {
+        WARN("nested DirectedYield doesnt work.\n");
+        OldYield16();
+        return;
     }
     chdthd->yield_event = CreateEventA(NULL, TRUE, FALSE, NULL);
     task = hFirstTask;
