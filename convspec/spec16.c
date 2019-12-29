@@ -222,12 +222,13 @@ static const char *get_callfrom16_name( const ORDDEF *odp )
     static char *buffer;
 
     free( buffer );
-    buffer = strmake( "%s_%s_%s",
+    buffer = strmake( "%s_%s_%s_%d",
                       (odp->type == TYPE_PASCAL) ? "p" :
                       (odp->type == TYPE_VARARGS) ? "v" : "c",
                       (odp->flags & FLAG_REGISTER) ? "regs" :
                       (odp->flags & FLAG_RET16) ? "word" : "long",
-                      get_args_str(odp) );
+                      get_args_str(odp),
+                      odp->ordinal );
     return buffer;
 }
 
@@ -263,6 +264,7 @@ static const char *get_relay_name( const ORDDEF *odp )
         else if (*p == 'T') *p = 'l';
     }
     if (odp->flags & FLAG_REGISTER) strcat( buffer, "_regs" );
+    snprintf(buffer, sizeof(buffer) - strlen(buffer), "_%d", odp->ordinal);
     return buffer;
 }
 
@@ -560,7 +562,7 @@ static void output_module16( DLLSPEC *spec )
         if (is_function( odp )) typelist[nb_funcs++] = odp;
     }
 
-    nb_funcs = sort_func_list( typelist, nb_funcs, callfrom16_type_compare );
+    /* nb_funcs = sort_func_list( typelist, nb_funcs, callfrom16_type_compare ); */
 
     /* Output the module structure */
 
