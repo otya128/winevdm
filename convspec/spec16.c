@@ -264,7 +264,7 @@ static const char *get_relay_name( const ORDDEF *odp )
         else if (*p == 'T') *p = 'l';
     }
     if (odp->flags & FLAG_REGISTER) strcat( buffer, "_regs" );
-    snprintf(buffer, sizeof(buffer) - strlen(buffer), "_%d", odp->ordinal);
+    snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), "_%d", odp->ordinal);
     return buffer;
 }
 
