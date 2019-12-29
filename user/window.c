@@ -1886,7 +1886,10 @@ UINT16 WINAPI ArrangeIconicWindows16( HWND16 parent)
  */
 void WINAPI SwitchToThisWindow16( HWND16 hwnd, BOOL16 restore )
 {
+    DWORD count;
+    ReleaseThunkLock(&count);
     SwitchToThisWindow( WIN_Handle32(hwnd), restore );
+    RestoreThunkLock(count);
 }
 
 
