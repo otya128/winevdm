@@ -1022,7 +1022,21 @@ static HMODULE16 NE_DoLoadBuiltinModule( const IMAGE_DOS_HEADER *mz_header, cons
     HMODULE16 hModule;
     HINSTANCE16 hInstance;
     SIZE_T mapping_size = ~0UL;  /* assume builtins don't contain invalid offsets... */
+    char abs_file_name[MAX_PATH];
 
+    if (strlen(file_name) < 2 || file_name[1] != ':')
+    {
+        char sys_dir[OFS_MAXPATHNAME];
+        GetSystemDirectory16(sys_dir, OFS_MAXPATHNAME);
+        PathCombineA(abs_file_name, sys_dir, file_name);
+        if (!*PathFindExtensionA(abs_file_name))
+            PathAddExtensionA(abs_file_name, ".DLL");
+        strupr(abs_file_name);
+        if (PathFileExistsA(abs_file_name))
+        {
+            file_name = abs_file_name;
+        }
+    }
     hModule = build_module( mz_header, mapping_size, file_name );
     if (hModule < 32) return hModule;
     pModule = GlobalLock16( hModule );
