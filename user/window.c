@@ -3133,7 +3133,8 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);
-    SetWindowHMenu16(hWnd16, menu);
+    if (!GetWindowHMenu16(hWnd16))
+        SetWindowHMenu16(hWnd16, menu);
 	return hWnd16;
 }
 void InitWndProc16(HWND hWnd, HWND16 hWnd16)
