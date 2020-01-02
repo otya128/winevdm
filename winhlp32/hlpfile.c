@@ -1314,7 +1314,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                            nc, ncol, GET_SHORT(format, nc*4),
                            GET_SHORT(format, nc*4+2));
                 pos += GET_SHORT(format, nc * 4) + GET_SHORT(format, nc * 4 + 2);
-                sprintf(tmp, "\\cellx%d",
+                sprintf(tmp, "\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\brdrcf2\\cellx%d",
                         MulDiv(HLPFILE_HalfPointsScale(page, pos), table_width, 32767));
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
             }
@@ -1323,7 +1323,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
         {
             WINE_TRACE("column(0/%d) gap=%d width=%d\n",
                        ncol, GET_SHORT(format, 0), GET_SHORT(format, 2));
-            sprintf(tmp, "\\trleft%d\\cellx%d ",
+            sprintf(tmp, "\\trleft%d\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\brdrcf2\\cellx%d ",
                     MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 2)), table_width, 32767) - 1,
                     MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 0)), table_width, 32767));
             if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
@@ -1506,7 +1506,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                     /* FIXME: colors are missing, at a minimum; also, the bold attribute loses information */
 
                     sprintf(tmp, "\\f%d\\cf%d\\fs%d%s%s%s%s",
-                            font + 1, font + 2, fs,
+                            font + 1, font + 3, fs,
                             page->file->fonts[font].LogFont.lfWeight > 400 ? "\\b" : "\\b0",
                             page->file->fonts[font].LogFont.lfItalic ? "\\i" : "\\i0",
                             page->file->fonts[font].LogFont.lfUnderline ? "\\ul" : "\\ul0",
@@ -1625,7 +1625,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                     case 2: fs = page->file->fonts[lastfont].LogFont.lfHeight + 4; break;
                 }
                 sprintf(tmp, "\\f%d\\cf%d\\fs%d%s%s%s%s",
-                            lastfont + 1, lastfont + 2, fs,
+                            lastfont + 1, lastfont + 3, fs,
                             page->file->fonts[lastfont].LogFont.lfWeight > 400 ? "\\b" : "\\b0",
                             page->file->fonts[lastfont].LogFont.lfItalic ? "\\i" : "\\i0",
                             page->file->fonts[lastfont].LogFont.lfUnderline ? "\\ul" : "\\ul0",
@@ -1846,7 +1846,7 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     }
     if (!HLPFILE_RtfAddControl(rd, "}")) return FALSE;
     /* generate color table */
-    if (!HLPFILE_RtfAddControl(rd, "{\\colortbl ;\\red0\\green128\\blue0;")) return FALSE;
+    if (!HLPFILE_RtfAddControl(rd, "{\\colortbl ;\\red0\\green128\\blue0;\\red255\\green255\\blue255;")) return FALSE;
     for (index = 0; index < hlpfile->numFonts; index++)
     {
         sprintf(tmp, "\\red%d\\green%d\\blue%d;",
