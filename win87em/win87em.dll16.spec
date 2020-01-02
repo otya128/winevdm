@@ -6,3 +6,4 @@
 4 pascal -ret16 __Win87EmRestore(ptr word) __WinEm87Restore
 5 pascal -ret16 __Win87EmSave(ptr word) __WinEm87Save
 
+100 pascal -register fpe_return() fpe_return

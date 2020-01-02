@@ -19,6 +19,7 @@
 #define SSEOP(XX)       sse_##XX
 
 extern int i386_dasm_one(char *buffer, UINT32 pc, const UINT8 *oprom, int mode);
+extern int x87_mf_fault();
 
 enum SREGS { ES, CS, SS, DS, FS, GS };
 
@@ -417,7 +418,9 @@ union XMM_REG {
 	UINT16 m_x87_cw;
 	UINT16 m_x87_sw;
 	UINT16 m_x87_tw;
+	UINT16 m_x87_ds;
 	UINT64 m_x87_data_ptr;
+	UINT16 m_x87_cs;
 	UINT64 m_x87_inst_ptr;
 	UINT16 m_x87_opcode;
 

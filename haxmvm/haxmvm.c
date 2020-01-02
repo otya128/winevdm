@@ -677,6 +677,7 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
 
 BOOL syscall_init = FALSE;
 LPBYTE syscall_trap = FALSE;
+void fstsw(WORD* a);
 #define dprintf(...)// printf(__VA_ARGS__)
 void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     void(*from16_reg)(void),
@@ -857,6 +858,13 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                             {
                                     HAXMVM_ERRF("SET_REGS");
                             }
+                            if (intvec == 0x10) // redirect fpu errors to int 13h
+                            {
+                                WORD sw;
+                                fstsw(&sw);
+                                if (sw & 0x80)
+                                    intvec = 2;
+                            }
                             dynamic__wine_call_int_handler(&ctx, intvec);
                             load_context_to_state(&ctx, &state2);
                             POP16(&state2);
@@ -1034,6 +1042,14 @@ void frstor(const char* a)
     char instr[] = { 0xdd, 0x20, 0xee }; /* frstor [eax] */
     callx87(instr, a);
 }
+void fstenv32(char* a, int d)
+{
+    const char instr32[] = { 0xd9, 0x30, 0xee }; /* fnstenv dword ptr [eax] */
+    const char instr16[] = { 0x66, 0xd9, 0x30, 0xee };
+    segment_desc_t seg;
+    load_seg(&seg, seg_cs);
+    callx87(seg.operand_size ? instr32 : instr16, a);
+}
 typedef void(*fldcw_t)(WORD);
 typedef void(*wait_t)();
 typedef void(*fninit_t)();
@@ -1042,6 +1058,7 @@ typedef void(*fstsw_t)(WORD*);
 typedef void(*frndint_t)();
 typedef void(*fclex_t)();
 typedef void(*fsave_t)(char*);
+typedef void(*fstenv32_t)(char*);
 typedef void(*frstor_t)(const char*);
 typedef struct
 {
@@ -1053,6 +1070,7 @@ typedef struct
     frndint_t frndint;
     fclex_t fclex;
     fsave_t fsave;
+    fstenv32_t fstenv32;
     frstor_t frstor;
 } x87function;
 __declspec(dllexport) void load_x87function(x87function *func)
@@ -1066,4 +1084,5 @@ __declspec(dllexport) void load_x87function(x87function *func)
     func->fstcw = fstcw;
     func->fstsw = fstsw;
     func->wait = wait;
+    func->fstenv32 = fstenv32;
 }

@@ -772,6 +772,8 @@
 @ cdecl -arch=win32 DOSVM_outport(long long long)
 @ cdecl -arch=win32 DOSVM_setportcb(ptr ptr long ptr ptr)
 @ cdecl -arch=win32 DOSVM_SetBuiltinVector(long ptr)
+@ cdecl -arch=win32 DOSVM_GetPMHandler16(long long)
+@ cdecl -arch=win32 DOSVM_SetPMHandler16(long long)
 @ cdecl -arch=win32 krnl386_get_search_path()
 @ cdecl -arch=win32 krnl386_search_executable_file(str ptr long long)
 @ stdcall -arch=win32 DibMapGlobalMemory(long ptr long)
