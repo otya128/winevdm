@@ -1985,8 +1985,15 @@ ATOM WINAPI GlobalFindAtom16(LPCSTR lpString)
 UINT16 WINAPI GlobalGetAtomName16(ATOM nAtom, LPSTR lpBuffer, INT16 nSize)
 {
     char buffer[256];
+    extern ATOM gatom_progman16;
     if (nSize == 0)
         return 0;
+    if (nAtom == gatom_progman16)
+    {
+        strncpy(lpBuffer, "PROGMAN", nSize);
+        lpBuffer[nSize - 1] = 0;
+        return nSize < 8 ? nSize - 1 : 7;
+    }
     /* win32 wow32:if specify a small buffer, GlobalGetAtomName returns 0 */
     /* win16      :if specify a small buffer, GlobalGetAtomName returns max(0, nSize - 1) */
     UINT len = GlobalGetAtomNameA(nAtom, buffer, 256);
