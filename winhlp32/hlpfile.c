@@ -1295,7 +1295,6 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
         {
             table_width = GET_SHORT(format, 0);
             format += 2;
-            if (!HLPFILE_RtfAddControl(rd, "\\trqc")) goto done;
         }
         else
             table_width = 32767;
