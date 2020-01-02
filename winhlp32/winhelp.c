@@ -808,7 +808,7 @@ HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_ContextSensitiveHelp  (IRichEditO
 }
 HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_GetClipboardData (IRichEditOleCallback *This, CHARRANGE FAR * lpchrg, DWORD reco, LPDATAOBJECT FAR * lplpdataobj)
 {
-    return S_OK;
+    return E_NOTIMPL;
 }
 HRESULT STDMETHODCALLTYPE WINHELP_OLE_Callback_GetDragDropEffect (IRichEditOleCallback *This, BOOL fDrag, DWORD grfKeyState,
     LPDWORD pdwEffect)
@@ -1604,7 +1604,9 @@ static LRESULT CALLBACK WINHELP_MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, 
 
             /* Context help */
         case MNID_CTXT_ANNOTATE:MACRO_Annotate();       break;
-        case MNID_CTXT_COPY:    MACRO_CopyDialog();     break;
+        case MNID_CTXT_COPY:
+            SendDlgItemMessageW(hWnd, CTL_ID_TEXT, WM_COPY, 0, 0);
+            break;
         case MNID_CTXT_PRINT:   MACRO_Print();          break;
         case MNID_OPTS_HISTORY: MACRO_History();        break;
         case MNID_OPTS_FONTS_SMALL:
