@@ -29,6 +29,7 @@
 #define SHADOW_DY               10
 #define BUTTON_CX               6
 #define BUTTON_CY               6
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #define RICHEDIT_CLASS20A	"RichEdit20A"
 # define strncasecmp _strnicmp

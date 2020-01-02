@@ -39,6 +39,7 @@
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
 
 struct lex_data {
+    YY_BUFFER_STATE state;
     LPCSTR   macroptr;
     LPSTR    strptr;
     int      quote_stack[32];
@@ -328,6 +329,8 @@ BOOL MACRO_ExecuteMacro(WINHELP_WINDOW* window, LPCSTR macro)
     memset(lex_data, 0, sizeof(*lex_data));
     lex_data->macroptr = macro;
     lex_data->window = WINHELP_GrabWindow(window);
+    lex_data->state = yy_create_buffer(NULL, YY_BUF_SIZE);
+    yy_switch_to_buffer(lex_data->state);
 
     while ((t = yylex()) != EMPTY)
     {
@@ -336,6 +339,7 @@ BOOL MACRO_ExecuteMacro(WINHELP_WINDOW* window, LPCSTR macro)
         case VOID_FUNCTION:
             WINE_TRACE("got type void func(%s)\n", debugstr_a(yylval.proto));
             MACRO_CallVoidFunc(yylval.function, yylval.proto);
+            yy_switch_to_buffer(lex_data->state);
             break;
         case BOOL_FUNCTION:
             WINE_WARN("got type bool func(%s)\n", debugstr_a(yylval.proto));
@@ -357,6 +361,7 @@ BOOL MACRO_ExecuteMacro(WINHELP_WINDOW* window, LPCSTR macro)
 done:
     for (t = 0; t < lex_data->cache_used; t++)
         HeapFree(GetProcessHeap(), 0, lex_data->cache_string[t]);
+        yy_delete_buffer(lex_data->state);
     lex_data = prev_lex_data;
     WINHELP_ReleaseWindow(window);
 
