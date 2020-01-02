@@ -1046,10 +1046,7 @@ static void WINHELP_DoLink(WINHELP_WINDOW* win, HLPFILE_LINK* link, DWORD pos)
             if ((hlpfile = WINHELP_LookupHelpFile(link->string)))
             {
                 if (link->window == -1)
-                {
-                    wi = win->info;
-                    if (wi->win_style & WS_POPUP) wi = Globals.active_win->info;
-                }
+                    wi = WINHELP_GetWindowInfo(hlpfile, "main");
                 else if (link->window < hlpfile->numWindows)
                     wi = &hlpfile->windows[link->window];
                 else
