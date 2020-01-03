@@ -119,7 +119,7 @@ static void WINHELP_SetupText(HWND hTextWnd, WINHELP_WINDOW* win, ULONG relative
         POINT           pt;
 
 
-        if (HLPFILE_BrowsePage(win->page, &rd, win->font_scale, relative))
+        if (HLPFILE_BrowsePage(win->page, &rd, win->font_scale, relative, win->info))
         {
             rd.where = rd.data;
             es.dwCookie = (DWORD_PTR)&rd;

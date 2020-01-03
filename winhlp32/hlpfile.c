@@ -1393,7 +1393,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             short       w;
             brdr = *format++;
             // richedit won't display any borders except as part of a table
-            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
+            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
 /*
             if ((brdr & 0x01) && !HLPFILE_RtfAddControl(rd, "\\box")) goto done;
             if ((brdr & 0x02) && !HLPFILE_RtfAddControl(rd, "\\brdrt")) goto done;
@@ -1738,7 +1738,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 WINE_FIXME("border in table\n");
             }
             else
-            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
+            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
         }
     }
     ret = TRUE;
@@ -1753,7 +1753,7 @@ done:
  *
  */
 BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
-                           unsigned font_scale, unsigned relative)
+                           unsigned font_scale, unsigned relative, HLPFILE_WINDOWINFO* info)
 {
     HLPFILE     *hlpfile = page->file;
     BYTE        *buf, *end;
@@ -1846,7 +1846,12 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     }
     if (!HLPFILE_RtfAddControl(rd, "}")) return FALSE;
     /* generate color table */
-    if (!HLPFILE_RtfAddControl(rd, "{\\colortbl ;\\red0\\green128\\blue0;\\red255\\green255\\blue255;")) return FALSE;
+    if (!HLPFILE_RtfAddControl(rd, "{\\colortbl ;\\red0\\green128\\blue0;")) return FALSE;
+    sprintf(tmp, "\\red%d\\green%d\\blue%d;",
+            GetRValue(info->sr_color),
+            GetGValue(info->sr_color),
+            GetBValue(info->sr_color));
+    if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     for (index = 0; index < hlpfile->numFonts; index++)
     {
         sprintf(tmp, "\\red%d\\green%d\\blue%d;",

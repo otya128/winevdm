@@ -209,7 +209,8 @@ struct RtfData {
 };
 
 BOOL          HLPFILE_BrowsePage(HLPFILE_PAGE*, struct RtfData* rd,
-                                 unsigned font_scale, unsigned relative);
+                                 unsigned font_scale, unsigned relative,
+				 HLPFILE_WINDOWINFO* info);
 
 #define HLP_DISPLAY30 0x01     /* version 3.0 displayable information */
 #define HLP_TOPICHDR  0x02     /* topic header information */
