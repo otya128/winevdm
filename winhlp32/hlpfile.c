@@ -1564,6 +1564,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
 	    case 0x87:
 	    case 0x88:
                 {
+                    BYTE    token = format[0];
                     BYTE    type = format[1];
 
                     /* FIXME: we don't use 'BYTE    pos = (*format - 0x86);' for the image position */
@@ -1602,6 +1603,8 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                         break;
                     }
                     format += size;
+                    if (token == 0x88)
+                        if (!HLPFILE_RtfAddControl(rd, "\\qr\\par\\pard")) goto done;
                 }
                 break;
 
