@@ -2952,6 +2952,7 @@ BOOL16 WINAPI PeekMessage16( MSG16 *msg, HWND16 hwnd,
     DWORD count;
     if (!(flags & PM_NOYIELD))
     {
+        SetEvent(kernel_get_thread_data()->idle_event);
         ReleaseThunkLock(&count);
         MsgWaitForMultipleObjects(0, NULL, FALSE, 0, QS_ALLINPUT);
         /* Sleep(1); /* yield thread */
