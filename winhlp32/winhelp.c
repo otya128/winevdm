@@ -1132,6 +1132,7 @@ static BOOL WINHELP_CheckPopup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             default:
                 return FALSE;
             }
+            break;
         }
     case WM_ACTIVATE:
         if (LOWORD(wParam) != WA_INACTIVE || (HWND)lParam == Globals.active_win->hMainWnd ||
@@ -1161,7 +1162,6 @@ static BOOL WINHELP_CheckPopup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
     default:
         return FALSE;
     }
-    Globals.active_popup = NULL;
     WINHELP_ReleaseWindow(popup);
     if (lret) *lret = 1;
     return ret;
