@@ -1391,12 +1391,17 @@ INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     {
     case WM_INITDIALOG:
     {
+        CHARSETINFO info;
+        wchar_t u16str[100];
         id = (struct index_data*)lParam;
+        if (!TranslateCharsetInfo(id->hlpfile->charset, &info, TCI_SRCCHARSET))
+            info.ciACP = GetACP();
         for (int i = 0; i < id->count; i++)
         {
             DWORD toffset = ((DWORD *)id->offset)[i];
-            BYTE* ptr = HLPFILE_BPTreeSearch(id->hlpfile->ttlbtree, toffset, comp_TTLBTree);
-            int idx = SendMessageA(hListWnd, LB_ADDSTRING, 0, (LPARAM)(ptr + 4));
+            BYTE* ptr = HLPFILE_BPTreeSearch(id->hlpfile->ttlbtree, toffset, comp_TTLBTree) + 4;
+            MultiByteToWideChar(info.ciACP, 0, ptr, -1, u16str, 100);
+            int idx = SendMessageW(hListWnd, LB_ADDSTRING, 0, (LPARAM)u16str);
             SendMessageW(hListWnd, LB_SETITEMDATA, idx, (LPARAM)toffset);
         }
         SendMessageW(hListWnd, LB_SETCURSEL, 0, 0);
@@ -1433,11 +1438,14 @@ INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
  */
 static void cb_KWBTree(void *p, void **next, void *cookie)
 {
-    HWND hListWnd = cookie;
+    HWND hListWnd = ((DWORD *)cookie)[0];
+    WORD cp = ((DWORD *)cookie)[1];
     int count;
+    wchar_t u16str[100];
 
     WINE_TRACE("Adding %s to search list\n", debugstr_a((char *)p));
-    SendMessageA(hListWnd, LB_INSERTSTRING, -1, (LPARAM)p);
+    MultiByteToWideChar(cp, 0, p, -1, u16str, 100);
+    SendMessageW(hListWnd, LB_INSERTSTRING, -1, (LPARAM)u16str);
     count = SendMessageW(hListWnd, LB_GETCOUNT, 0, 0);
     SendMessageW(hListWnd, LB_SETITEMDATA, count-1, (LPARAM)p);
     *next = (char*)p + strlen((char*)p) + 7;
@@ -1455,13 +1463,20 @@ static INT_PTR CALLBACK WINHELP_IndexDlgProc(HWND hWnd, UINT msg, WPARAM wParam,
     switch (msg)
     {
     case WM_INITDIALOG:
+    {
+        DWORD data[2];
         id = (struct index_data*)((PROPSHEETPAGEA*)lParam)->lParam;
-        HLPFILE_BPTreeEnum(id->hlpfile->kw[TREE], cb_KWBTree,
-                           GetDlgItem(hWnd, IDC_INDEXLIST));
+        CHARSETINFO info;
+        if (!TranslateCharsetInfo(id->hlpfile->charset, &info, TCI_SRCCHARSET))
+            info.ciACP = GetACP();
+        data[0] = GetDlgItem(hWnd, IDC_INDEXLIST);
+        data[1] = info.ciACP;
+        HLPFILE_BPTreeEnum(id->hlpfile->kw[TREE], cb_KWBTree, data);
         id->jump = FALSE;
         id->offset = 1;
         SendDlgItemMessageW(hWnd, IDC_INDEXLIST, LB_SETCURSEL, 0, 0);
         return TRUE;
+    }
     case WM_COMMAND:
         switch (HIWORD(wParam))
         {
@@ -1489,7 +1504,7 @@ static INT_PTR CALLBACK WINHELP_IndexDlgProc(HWND hWnd, UINT msg, WPARAM wParam,
                 {
                     if (id->hlpfile->ttlbtree)
                     {
-                        id->offset = DialogBoxParamA(NULL, MAKEINTRESOURCE(IDD_TOPIC), hWnd, WINHELP_TopicDlgProc, id);
+                        id->offset = DialogBoxParamW(NULL, MAKEINTRESOURCE(IDD_TOPIC), hWnd, WINHELP_TopicDlgProc, id);
                         if (id->offset == 0xFFFFFFFF)
                             return TRUE;
                     }
@@ -1806,11 +1821,15 @@ BOOL WINHELP_CreateIndexWindow(BOOL is_search)
     PROPSHEETHEADERA    psHead;
     struct index_data   id;
     char                buf[256];
-
+    wchar_t             u16buf[256];
+    CHARSETINFO         info;
     if (Globals.active_win && Globals.active_win->page && Globals.active_win->page->file)
         id.hlpfile = Globals.active_win->page->file;
     else
         return FALSE;
+
+    if (!TranslateCharsetInfo(id.hlpfile->charset, &info, TCI_SRCCHARSET))
+        info.ciACP = GetACP();
 
     if (id.hlpfile->kw[TREE] == NULL)
     {
@@ -1829,27 +1848,28 @@ BOOL WINHELP_CreateIndexWindow(BOOL is_search)
     psp.u.pszTemplate = MAKEINTRESOURCEA(IDD_INDEX);
     psp.lParam = (LPARAM)&id;
     psp.pfnDlgProc = WINHELP_IndexDlgProc;
-    psPage[0] = CreatePropertySheetPageA(&psp);
+    psPage[0] = CreatePropertySheetPageW(&psp);
 
     psp.u.pszTemplate = MAKEINTRESOURCEA(IDD_SEARCH);
     psp.lParam = (LPARAM)&id;
     psp.pfnDlgProc = WINHELP_SearchDlgProc;
-    psPage[1] = CreatePropertySheetPageA(&psp);
+    psPage[1] = CreatePropertySheetPageW(&psp);
 
     memset(&psHead, 0, sizeof(psHead));
     psHead.dwSize = sizeof(psHead);
 
     LoadStringA(Globals.hInstance, STID_PSH_INDEX, buf, sizeof(buf));
     strcat(buf, Globals.active_win->info->caption);
+    MultiByteToWideChar(info.ciACP, 0, buf, -1, u16buf, 256);
 
-    psHead.pszCaption = buf;
+    psHead.pszCaption = u16buf;
     psHead.nPages = 2;
     psHead.u2.nStartPage = is_search ? 1 : 0;
     psHead.hwndParent = Globals.active_win->hMainWnd;
     psHead.u3.phpage = psPage;
     psHead.dwFlags = PSH_NOAPPLYNOW;
 
-    PropertySheetA(&psHead);
+    PropertySheetW(&psHead);
     if (id.jump)
     {
         WINE_TRACE("got %d as an offset\n", id.offset);

@@ -2275,6 +2275,13 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
             WINE_WARN("Unsupported SystemRecord[%d]\n", GET_USHORT(ptr, 0));
 	}
     }
+    if (hlpfile->charset == DEFAULT_CHARSET)
+    {
+        BYTE *cbuf, *cend;
+        if (HLPFILE_FindSubFile(hlpfile, "|CHARSET", &cbuf, &cend) && ((cend - cbuf) >= 11))
+            hlpfile->charset = *(WORD *)(cbuf + 9);
+    }
+            
     if (!hlpfile->lpszTitle)
         hlpfile->lpszTitle = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1);
     return TRUE;
