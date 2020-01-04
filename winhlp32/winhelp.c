@@ -1399,6 +1399,7 @@ INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
             int idx = SendMessageA(hListWnd, LB_ADDSTRING, 0, (LPARAM)(ptr + 4));
             SendMessageW(hListWnd, LB_SETITEMDATA, idx, (LPARAM)toffset);
         }
+        SendMessageW(hListWnd, LB_SETCURSEL, 0, 0);
     }
     case WM_COMMAND:
     {
@@ -1459,6 +1460,7 @@ static INT_PTR CALLBACK WINHELP_IndexDlgProc(HWND hWnd, UINT msg, WPARAM wParam,
                            GetDlgItem(hWnd, IDC_INDEXLIST));
         id->jump = FALSE;
         id->offset = 1;
+        SendDlgItemMessageW(hWnd, IDC_INDEXLIST, LB_SETCURSEL, 0, 0);
         return TRUE;
     case WM_COMMAND:
         switch (HIWORD(wParam))
