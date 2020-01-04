@@ -820,7 +820,7 @@ static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
         case 0xC8:
         case 0xCC:
             hslink = (HLPFILE_HOTSPOTLINK*)
-                HLPFILE_AllocLink(rd, hlp_link_macro, str, -1, 0, FALSE, TRUE, -1);
+                HLPFILE_AllocLink(rd, hlp_link_macro, str, -1, 0, FALSE, TRUE, -2);
             break;
 
         case 0xE2:
@@ -830,7 +830,7 @@ static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
             hslink = (HLPFILE_HOTSPOTLINK*)
                 HLPFILE_AllocLink(rd, (start[7 + 15 * i + 0] & 1) ? hlp_link_link : hlp_link_popup,
                                   file->lpszPath, -1, HLPFILE_Hash(str),
-                                  FALSE, TRUE, -1);
+                                  FALSE, TRUE, -2);
             break;
 
         case 0xEE:
@@ -1608,7 +1608,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                             }
                             WINE_TRACE("button => %s\n", debugstr_a(curr));
                             HLPFILE_AllocLink(rd, hlp_link_macro, search + 1,
-                                        -1, 0, TRUE, FALSE, -1);
+                                        -1, 0, TRUE, FALSE, -2);
                             sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
                             if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                             if (curr == search)
@@ -1689,7 +1689,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             case 0xCC:
                 WINE_TRACE("macro => %s\n", debugstr_a((char *)format + 3));
                 HLPFILE_AllocLink(rd, hlp_link_macro, (const char*)format + 3,
-                                  GET_USHORT(format, 1), 0, !(*format & 4), FALSE, -1);
+                                  GET_USHORT(format, 1), 0, !(*format & 4), FALSE, -2);
                 sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 3 + GET_USHORT(format, 1);
@@ -1699,7 +1699,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             case 0xE1:
                 WINE_WARN("jump topic 1 => %u\n", GET_UINT(format, 1));
                 HLPFILE_AllocLink(rd, (*format & 1) ? hlp_link_link : hlp_link_popup,
-                                  page->file->lpszPath, -1, GET_UINT(format, 1), TRUE, FALSE, -1);
+                                  page->file->lpszPath, -1, GET_UINT(format, 1), TRUE, FALSE, -2);
                 sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 5;
@@ -1712,7 +1712,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 WINE_WARN("jump topic 1 => %u\n", GET_UINT(format, 1));
                 HLPFILE_AllocLink(rd, (*format & 1) ? hlp_link_link : hlp_link_popup,
                                   page->file->lpszPath, -1, GET_UINT(format, 1),
-                                  !(*format & 4), FALSE, -1);
+                                  !(*format & 4), FALSE, -2);
                 sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 5;
