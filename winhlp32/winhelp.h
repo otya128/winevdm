@@ -167,6 +167,14 @@ extern const struct winhelp_callbacks
     LONG      (WINAPI *API)(LPSTR,WORD,DWORD);
 } Callbacks;
 
+struct index_data
+{
+    HLPFILE*    hlpfile;
+    BOOL        jump;
+    ULONG       offset;
+    WORD        count;
+};
+
 extern WINHELP_GLOBALS Globals;
 
 BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE*, int, BOOL);
@@ -180,6 +188,8 @@ HLPFILE_WINDOWINFO* WINHELP_GetWindowInfo(HLPFILE* hlpfile, LPCSTR name);
 void WINHELP_LayoutMainWindow(WINHELP_WINDOW* win);
 WINHELP_WINDOW* WINHELP_GrabWindow(WINHELP_WINDOW*);
 BOOL WINHELP_ReleaseWindow(WINHELP_WINDOW*);
+void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next);
+INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 extern const char MAIN_WIN_CLASS_NAME[];
 extern const char BUTTON_BOX_WIN_CLASS_NAME[];

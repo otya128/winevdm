@@ -1596,7 +1596,36 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                         }
                         break;
                     case 0x05:
-                        WINE_FIXME("Got an embedded element %s\n", debugstr_a((char *)format + 6));
+                        if (format[6] == '!')
+                        {
+                            char *curr = (char *)format + 7;
+                            char *search = curr;
+                            while (*search && (*search != ',')) search++;
+                            if (!*search)
+                            {
+                                WINE_FIXME("Button parse error %s", curr);
+                                break;
+                            }
+                            WINE_TRACE("button => %s\n", debugstr_a(curr));
+                            HLPFILE_AllocLink(rd, hlp_link_macro, search + 1,
+                                        -1, 0, TRUE, FALSE, -1);
+                            sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
+                            if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
+                            if (curr == search)
+                            {
+                                if (!HLPFILE_RtfAddControl(rd, "\\u9744}}}")) goto done;
+                            }
+                            else
+                            {
+                                int len = search - curr;
+                                memcpy(tmp, curr, len);
+                                tmp[len] = 0;
+                                strcat(tmp, "}}}");
+                                if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
+                            }
+                        }
+                        else
+                            WINE_FIXME("Got an embedded element %s\n", debugstr_a((char *)format + 6));
                         break;
                     default:
                         WINE_FIXME("Got a type %d picture\n", type);
@@ -2273,36 +2302,51 @@ static BOOL HLPFILE_GetContext(HLPFILE *hlpfile)
 
 /***********************************************************************
  *
- *           HLPFILE_GetKeywords
+ *           HLPFILE_GetTreeData
  */
-static BOOL HLPFILE_GetKeywords(HLPFILE *hlpfile)
+static BOOL HLPFILE_GetTreeData(HLPFILE *hlpfile, BYTE **addr, char *tree, char *data)
 {
     BYTE                *cbuf, *cend;
     unsigned            clen;
 
-    if (!HLPFILE_FindSubFile(hlpfile, "|KWBTREE", &cbuf, &cend)) return FALSE;
+    if (!HLPFILE_FindSubFile(hlpfile, tree, &cbuf, &cend)) return FALSE;
     clen = cend - cbuf;
-    hlpfile->kwbtree = HeapAlloc(GetProcessHeap(), 0, clen);
-    if (!hlpfile->kwbtree) return FALSE;
-    memcpy(hlpfile->kwbtree, cbuf, clen);
+    addr[TREE] = HeapAlloc(GetProcessHeap(), 0, clen);
+    if (!addr[TREE]) return FALSE;
+    memcpy(addr[TREE], cbuf, clen);
 
-    if (!HLPFILE_FindSubFile(hlpfile, "|KWDATA", &cbuf, &cend))
+    if (!HLPFILE_FindSubFile(hlpfile, data, &cbuf, &cend))
     {
-        WINE_ERR("corrupted help file: kwbtree present but kwdata absent\n");
-        HeapFree(GetProcessHeap(), 0, hlpfile->kwbtree);
+        WINE_ERR("corrupted help file: %s present but %s absent\n", tree, data);
+        HeapFree(GetProcessHeap(), 0, addr[TREE]);
+        addr[TREE] = NULL;
         return FALSE;
     }
     clen = cend - cbuf;
-    hlpfile->kwdata = HeapAlloc(GetProcessHeap(), 0, clen);
-    if (!hlpfile->kwdata)
+    addr[DATA] = HeapAlloc(GetProcessHeap(), 0, clen);
+    if (!addr[DATA])
     {
-        HeapFree(GetProcessHeap(), 0, hlpfile->kwdata);
+        HeapFree(GetProcessHeap(), 0, addr[DATA]);
+        HeapFree(GetProcessHeap(), 0, addr[TREE]);
+        addr[TREE] = NULL;
         return FALSE;
     }
-    memcpy(hlpfile->kwdata, cbuf, clen);
+    memcpy(addr[DATA], cbuf, clen);
 
     return TRUE;
 }
+/***********************************************************************
+ *
+ *           HLPFILE_GetKeywords
+ */
+static BOOL HLPFILE_GetKeywords (HLPFILE *hlpfile)
+{
+    BOOL ret;
+    ret = HLPFILE_GetTreeData(hlpfile, hlpfile->kw, "|KWBTREE", "|KWDATA");
+    HLPFILE_GetTreeData(hlpfile, hlpfile->aw, "|AWBTREE", "|AWDATA");
+    return ret;
+}
+
 
 /***********************************************************************
  *
@@ -2447,12 +2491,17 @@ void HLPFILE_FreeHlpFile(HLPFILE* hlpfile)
     HeapFree(GetProcessHeap(), 0, hlpfile->phrases_buffer);
     HeapFree(GetProcessHeap(), 0, hlpfile->topic_map);
     HeapFree(GetProcessHeap(), 0, hlpfile->help_on_file);
-    HeapFree(GetProcessHeap(), 0, hlpfile->kwbtree);
-    HeapFree(GetProcessHeap(), 0, hlpfile->kwdata);
+    HeapFree(GetProcessHeap(), 0, hlpfile->kw[TREE]);
+    HeapFree(GetProcessHeap(), 0, hlpfile->kw[DATA]);
     if (hlpfile->TOMap)
 	    HeapFree(GetProcessHeap(), 0, hlpfile->TOMap);
     if (hlpfile->ttlbtree)
 	    HeapFree(GetProcessHeap(), 0, hlpfile->ttlbtree);
+    if (hlpfile->aw[TREE])
+    {
+        HeapFree(GetProcessHeap(), 0, hlpfile->aw[TREE]);
+        HeapFree(GetProcessHeap(), 0, hlpfile->aw[DATA]);
+    }        
     HeapFree(GetProcessHeap(), 0, hlpfile);
 }
 

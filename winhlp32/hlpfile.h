@@ -99,6 +99,12 @@ typedef struct
     COLORREF                    color;
 } HLPFILE_FONT;
 
+enum
+{
+    TREE,
+    DATA
+};
+
 typedef struct tagHlpFileFile
 {
     BYTE*                       file_buffer;
@@ -110,8 +116,8 @@ typedef struct tagHlpFileFile
     HLPFILE_PAGE*               last_page;
     HLPFILE_MACRO*              first_macro;
     BYTE*                       Context;
-    BYTE*                       kwbtree;
-    BYTE*                       kwdata;
+    BYTE*                       kw[2];
+    BYTE*                       aw[2];
     unsigned                    wMapLen;
     HLPFILE_MAP*                Map;
     unsigned                    wTOMapLen;
