@@ -71,8 +71,8 @@ static void MACRO_SearchKey(BYTE **tree, LPCSTR keywords, LONG type, LPCSTR topi
 {
     DWORD ids[20], t;
     int idn = 0;
-    struct index_data idx;
     char *key;
+    HLPFILE_PAGE *page = MACRO_CurrentWindow()->page;
     if ((type > 1) || !tree[TREE]) return;
     key = strtok(keywords, ";");
     while (key)
@@ -84,7 +84,9 @@ static void MACRO_SearchKey(BYTE **tree, LPCSTR keywords, LONG type, LPCSTR topi
             int offset = *(ULONG *)(key + strlen(key) + 3);
             for (int i = 0; i < count; i++)
             {
-                ids[idn++] = *(DWORD *)(tree[DATA] + offset + 9 + (4 * i));
+                DWORD ref = *(DWORD *)(tree[DATA] + offset + 9 + (4 * i));
+                if (ref == page->offset) continue;
+                ids[idn++] = ref;
                 if (idn == 20) break;
             }
             if (idn == 20) break;
@@ -92,14 +94,20 @@ static void MACRO_SearchKey(BYTE **tree, LPCSTR keywords, LONG type, LPCSTR topi
         key = strtok(NULL, ";");
     }
     if (!idn) return;
-    idx.hlpfile = MACRO_CurrentWindow()->page->file;
-    idx.jump = FALSE;
-    idx.offset = (ULONG)ids;
-    idx.count = idn;
-    t = DialogBoxParamA(NULL, MAKEINTRESOURCE(IDD_TOPIC), MACRO_CurrentWindow()->hMainWnd, WINHELP_TopicDlgProc, &idx);
-    if (t == 0xFFFFFFFF) return;
-    HLPFILE_WINDOWINFO* win = window ? WINHELP_GetWindowInfo(idx.hlpfile, window) : MACRO_CurrentWindow()->info;
-    WINHELP_OpenHelpWindow(HLPFILE_PageByOffset, idx.hlpfile, t, win, SW_NORMAL);
+    if ((type != 1) || (idn > 1))
+    {
+        struct index_data idx;
+        idx.hlpfile = page->file;
+        idx.jump = FALSE;
+        idx.offset = (ULONG)ids;
+        idx.count = idn;
+        t = DialogBoxParamA(NULL, MAKEINTRESOURCE(IDD_TOPIC), MACRO_CurrentWindow()->hMainWnd, WINHELP_TopicDlgProc, &idx);
+        if (t == 0xFFFFFFFF) return;
+    }
+    else
+        t = ids[0];
+    HLPFILE_WINDOWINFO* win = window ? WINHELP_GetWindowInfo(page->file, window) : MACRO_CurrentWindow()->info;
+    WINHELP_OpenHelpWindow(HLPFILE_PageByOffset, page->file, t, win, SW_NORMAL);
 }
 
 /******* some forward declarations *******/
