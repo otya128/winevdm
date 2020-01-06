@@ -951,7 +951,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
     {
         int codepage = wpage->page ? wpage->page->file->codepage : GetACP();
         MultiByteToWideChar(codepage, 0, WINHELP_GetCaption(wpage), -1, caption, 60);
-        win->hMainWnd = CreateWindowExW((bPopup) ? WS_EX_TOOLWINDOW : 0, MAIN_WIN_CLASS_NAME,
+        win->hMainWnd = CreateWindowExW((bPopup) ? WS_EX_TOOLWINDOW : WS_EX_CLIENTEDGE, MAIN_WIN_CLASS_NAME,
                                        caption,
                                        bPrimary ? WS_OVERLAPPEDWINDOW : wpage->wininfo->win_style,
                                        wpage->wininfo->origin.x, wpage->wininfo->origin.y,
