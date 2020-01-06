@@ -191,12 +191,12 @@ BOOL WINHELP_ReleaseWindow(WINHELP_WINDOW*);
 void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next);
 INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-extern const char MAIN_WIN_CLASS_NAME[];
-extern const char BUTTON_BOX_WIN_CLASS_NAME[];
-extern const char TEXT_WIN_CLASS_NAME[];
-extern const char SHADOW_WIN_CLASS_NAME[];
-extern const char HISTORY_WIN_CLASS_NAME[];
-extern const char STRING_BUTTON[];
+extern const WCHAR MAIN_WIN_CLASS_NAME[];
+extern const WCHAR BUTTON_BOX_WIN_CLASS_NAME[];
+extern const char  TEXT_WIN_CLASS_NAME[];
+extern const char  SHADOW_WIN_CLASS_NAME[];
+extern const WCHAR HISTORY_WIN_CLASS_NAME[];
+extern const WCHAR STRING_BUTTON[];
 extern const char STRING_MENU_Xx[];
 extern const char STRING_DIALOG_TEST[];
 #endif

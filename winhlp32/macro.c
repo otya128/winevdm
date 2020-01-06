@@ -646,7 +646,8 @@ void CALLBACK MACRO_History(void)
 
     if (Globals.active_win && !Globals.active_win->hHistoryWnd)
     {
-        HWND hWnd = CreateWindowA(HISTORY_WIN_CLASS_NAME, "History", WS_OVERLAPPEDWINDOW,
+        const WCHAR name[] = {'H','i','s','t','o','r','y',0};
+        HWND hWnd = CreateWindowW(HISTORY_WIN_CLASS_NAME, name, WS_OVERLAPPEDWINDOW,
                                  0, 0, 0, 0, 0, 0, Globals.hInstance, Globals.active_win);
         ShowWindow(hWnd, SW_NORMAL);
     }

@@ -846,6 +846,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
     BOOL                bPrimary, bPopup, bReUsed = FALSE;
     HICON               hIcon;
     HWND                hTextWnd = NULL;
+    WCHAR               caption[60];
 
     bPrimary = !lstrcmpiA(wpage->wininfo->name, "main");
     bPopup = !bPrimary && (wpage->wininfo->win_style & WS_POPUP);
@@ -866,7 +867,9 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
                 }
                 WINHELP_DeleteButtons(win);
                 bReUsed = TRUE;
-                SetWindowTextA(win->hMainWnd, WINHELP_GetCaption(wpage));
+                int codepage = wpage->page ? wpage->page->file->codepage : GetACP();
+                MultiByteToWideChar(codepage, 0, WINHELP_GetCaption(wpage), -1, caption, 60);
+                SetWindowTextW(win->hMainWnd, caption);
                 if (win->info != wpage->wininfo)
                 {
                     POINT   pt = {0, 0};
@@ -946,8 +949,10 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
 
     if (!bReUsed)
     {
-        win->hMainWnd = CreateWindowExA((bPopup) ? WS_EX_TOOLWINDOW : 0, MAIN_WIN_CLASS_NAME,
-                                       WINHELP_GetCaption(wpage),
+        int codepage = wpage->page ? wpage->page->file->codepage : GetACP();
+        MultiByteToWideChar(codepage, 0, WINHELP_GetCaption(wpage), -1, caption, 60);
+        win->hMainWnd = CreateWindowExW((bPopup) ? WS_EX_TOOLWINDOW : 0, MAIN_WIN_CLASS_NAME,
+                                       caption,
                                        bPrimary ? WS_OVERLAPPEDWINDOW : wpage->wininfo->win_style,
                                        wpage->wininfo->origin.x, wpage->wininfo->origin.y,
                                        wpage->wininfo->size.cx, wpage->wininfo->size.cy,
@@ -956,7 +961,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
                                        Globals.hInstance, win);
         if (!bPopup)
             /* Create button box and text Window */
-            CreateWindowA(BUTTON_BOX_WIN_CLASS_NAME, "", WS_CHILD | WS_VISIBLE,
+            CreateWindowW(BUTTON_BOX_WIN_CLASS_NAME, "", WS_CHILD | WS_VISIBLE,
                          0, 0, 0, 0, win->hMainWnd, (HMENU)CTL_ID_BUTTON, Globals.hInstance, NULL);
     }
 
@@ -1223,9 +1228,12 @@ static LRESULT CALLBACK WINHELP_ButtonBoxWndProc(HWND hWnd, UINT msg, WPARAM wPa
 	{
             HDC  hDc;
             SIZE textsize;
+            WCHAR u16str[21];
+            u16str[20] = 0;
+            MultiByteToWideChar(win->page->file->codepage, 0, button->lpszName, -1, u16str, 20);
             if (!button->hWnd)
             {
-                button->hWnd = CreateWindowA(STRING_BUTTON, button->lpszName,
+                button->hWnd = CreateWindowW(STRING_BUTTON, u16str,
                                             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                                             0, 0, 0, 0,
                                             hWnd, (HMENU) button->wParam,
@@ -1235,20 +1243,20 @@ static LRESULT CALLBACK WINHELP_ButtonBoxWndProc(HWND hWnd, UINT msg, WPARAM wPa
                     if (Globals.button_proc == NULL)
                     {
                         NONCLIENTMETRICSW ncm;
-                        Globals.button_proc = (WNDPROC) GetWindowLongPtrA(button->hWnd, GWLP_WNDPROC);
+                        Globals.button_proc = (WNDPROC) GetWindowLongPtrW(button->hWnd, GWLP_WNDPROC);
 
                         ncm.cbSize = sizeof(NONCLIENTMETRICSW);
                         SystemParametersInfoW(SPI_GETNONCLIENTMETRICS,
                                               sizeof(NONCLIENTMETRICSW), &ncm, 0);
                         Globals.hButtonFont = CreateFontIndirectW(&ncm.lfMenuFont);
                     }
-                    SetWindowLongPtrA(button->hWnd, GWLP_WNDPROC, (LONG_PTR) WINHELP_ButtonWndProc);
+                    SetWindowLongPtrW(button->hWnd, GWLP_WNDPROC, (LONG_PTR) WINHELP_ButtonWndProc);
                     if (Globals.hButtonFont)
                         SendMessageW(button->hWnd, WM_SETFONT, (WPARAM)Globals.hButtonFont, TRUE);
                 }
             }
             hDc = GetDC(button->hWnd);
-            GetTextExtentPointA(hDc, button->lpszName, strlen(button->lpszName), &textsize);
+            GetTextExtentPointW(hDc, u16str, wcslen(u16str), &textsize);
             ReleaseDC(button->hWnd, hDc);
 
             button_size.cx = max(button_size.cx, textsize.cx + BUTTON_CX);
@@ -1286,7 +1294,7 @@ static LRESULT CALLBACK WINHELP_ButtonBoxWndProc(HWND hWnd, UINT msg, WPARAM wPa
         break;
     }
 
-    return DefWindowProcA(hWnd, msg, wParam, lParam);
+    return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
 /******************************************************************
@@ -1306,12 +1314,13 @@ static LRESULT CALLBACK WINHELP_HistoryWndProc(HWND hWnd, UINT msg, WPARAM wPara
     switch (msg)
     {
     case WM_NCCREATE:
-        win = (WINHELP_WINDOW*)((LPCREATESTRUCTA)lParam)->lpCreateParams;
+        win = (WINHELP_WINDOW*)((LPCREATESTRUCTW)lParam)->lpCreateParams;
         SetWindowLongPtrW(hWnd, 0, (ULONG_PTR)win);
         win->hHistoryWnd = hWnd;
         break;
     case WM_CREATE:
         hDc = GetDC(hWnd);
+        SelectObject(hDc, GetStockObject(DEFAULT_GUI_FONT));
         GetTextMetricsW(hDc, &tm);
         GetWindowRect(hWnd, &r);
 
@@ -1326,6 +1335,7 @@ static LRESULT CALLBACK WINHELP_HistoryWndProc(HWND hWnd, UINT msg, WPARAM wPara
         break;
     case WM_LBUTTONDOWN:
         hDc = GetDC(hWnd);
+        SelectObject(hDc, GetStockObject(DEFAULT_GUI_FONT));
         GetTextMetricsW(hDc, &tm);
         i = HIWORD(lParam) / tm.tmHeight;
         if (i < Globals.history.index)
@@ -1334,19 +1344,21 @@ static LRESULT CALLBACK WINHELP_HistoryWndProc(HWND hWnd, UINT msg, WPARAM wPara
         break;
     case WM_PAINT:
         hDc = BeginPaint(hWnd, &ps);
+        SelectObject(hDc, GetStockObject(DEFAULT_GUI_FONT));
         GetTextMetricsW(hDc, &tm);
 
         for (i = 0; i < Globals.history.index; i++)
         {
             if (Globals.history.set[i].page->file == Globals.active_win->page->file)
             {
-                TextOutA(hDc, 0, i * tm.tmHeight,
+                TextOutW(hDc, 0, i * tm.tmHeight,
                         Globals.history.set[i].page->lpszTitle,
-                        strlen(Globals.history.set[i].page->lpszTitle));
+                        wcslen(Globals.history.set[i].page->lpszTitle));
             }
             else
             {
-                char        buffer[1024];
+                char        buffer[50];
+                WCHAR       title[101];
                 const char* ptr1;
                 const char* ptr2;
                 unsigned    len;
@@ -1359,8 +1371,11 @@ static LRESULT CALLBACK WINHELP_HistoryWndProc(HWND hWnd, UINT msg, WPARAM wPara
                 if (len > sizeof(buffer)) len = sizeof(buffer);
                 memcpy(buffer, ptr1, len);
                 if (len < sizeof(buffer)) buffer[len++] = ':';
-                lstrcpynA(&buffer[len], Globals.history.set[i].page->lpszTitle, sizeof(buffer) - len);
-                TextOutA(hDc, 0, i * tm.tmHeight, buffer, strlen(buffer));
+                buffer[len] = '\0';
+                MultiByteToWideChar(GetACP(), 0, buffer, -1, title, 100);
+                wcsncat(title, Globals.history.set[i].page->lpszTitle, 100);
+                title[100] = 0;
+                TextOutW(hDc, 0, i * tm.tmHeight, title, wcslen(title));
             }
         }
         EndPaint(hWnd, &ps);
@@ -1371,7 +1386,7 @@ static LRESULT CALLBACK WINHELP_HistoryWndProc(HWND hWnd, UINT msg, WPARAM wPara
             win->hHistoryWnd = 0;
         break;
     }
-    return DefWindowProcA(hWnd, msg, wParam, lParam);
+    return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
 static void comp_TTLBTree(void *p, const void *key, int leaf, void **next)
@@ -1391,16 +1406,13 @@ INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     {
     case WM_INITDIALOG:
     {
-        CHARSETINFO info;
-        wchar_t u16str[100];
+        WCHAR u16str[100];
         id = (struct index_data*)lParam;
-        if (!TranslateCharsetInfo(id->hlpfile->charset, &info, TCI_SRCCHARSET))
-            info.ciACP = GetACP();
         for (int i = 0; i < id->count; i++)
         {
             DWORD toffset = ((DWORD *)id->offset)[i];
             BYTE* ptr = HLPFILE_BPTreeSearch(id->hlpfile->ttlbtree, toffset, comp_TTLBTree) + 4;
-            MultiByteToWideChar(info.ciACP, 0, ptr, -1, u16str, 100);
+            MultiByteToWideChar(id->hlpfile->codepage, 0, ptr, -1, u16str, 100);
             int idx = SendMessageW(hListWnd, LB_ADDSTRING, 0, (LPARAM)u16str);
             SendMessageW(hListWnd, LB_SETITEMDATA, idx, (LPARAM)toffset);
         }
@@ -1441,7 +1453,7 @@ static void cb_KWBTree(void *p, void **next, void *cookie)
     HWND hListWnd = ((DWORD *)cookie)[0];
     WORD cp = ((DWORD *)cookie)[1];
     int count;
-    wchar_t u16str[100];
+    WCHAR u16str[100];
 
     WINE_TRACE("Adding %s to search list\n", debugstr_a((char *)p));
     MultiByteToWideChar(cp, 0, p, -1, u16str, 100);
@@ -1466,11 +1478,8 @@ static INT_PTR CALLBACK WINHELP_IndexDlgProc(HWND hWnd, UINT msg, WPARAM wParam,
     {
         DWORD data[2];
         id = (struct index_data*)((PROPSHEETPAGEA*)lParam)->lParam;
-        CHARSETINFO info;
-        if (!TranslateCharsetInfo(id->hlpfile->charset, &info, TCI_SRCCHARSET))
-            info.ciACP = GetACP();
         data[0] = GetDlgItem(hWnd, IDC_INDEXLIST);
-        data[1] = info.ciACP;
+        data[1] = id->hlpfile->codepage;
         HLPFILE_BPTreeEnum(id->hlpfile->kw[TREE], cb_KWBTree, data);
         id->jump = FALSE;
         id->offset = 1;
@@ -1579,7 +1588,7 @@ static LRESULT CALLBACK WINHELP_MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, 
     switch (msg)
     {
     case WM_NCCREATE:
-        win = (WINHELP_WINDOW*) ((LPCREATESTRUCTA) lParam)->lpCreateParams;
+        win = (WINHELP_WINDOW*) ((LPCREATESTRUCTW) lParam)->lpCreateParams;
         SetWindowLongPtrW(hWnd, 0, (ULONG_PTR) win);
         if (!win->page && Globals.isBook)
             PostMessageW(hWnd, WM_COMMAND, MNID_FILE_OPEN, 0);
@@ -1805,7 +1814,7 @@ static LRESULT CALLBACK WINHELP_MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, 
         WINHELP_DeleteWindow(win);
         break;
     }
-    return DefWindowProcA(hWnd, msg, wParam, lParam);
+    return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
 /**************************************************************************
@@ -1821,15 +1830,11 @@ BOOL WINHELP_CreateIndexWindow(BOOL is_search)
     PROPSHEETHEADERA    psHead;
     struct index_data   id;
     char                buf[256];
-    wchar_t             u16buf[256];
-    CHARSETINFO         info;
+    WCHAR               u16buf[256];
     if (Globals.active_win && Globals.active_win->page && Globals.active_win->page->file)
         id.hlpfile = Globals.active_win->page->file;
     else
         return FALSE;
-
-    if (!TranslateCharsetInfo(id.hlpfile->charset, &info, TCI_SRCCHARSET))
-        info.ciACP = GetACP();
 
     if (id.hlpfile->kw[TREE] == NULL)
     {
@@ -1860,7 +1865,7 @@ BOOL WINHELP_CreateIndexWindow(BOOL is_search)
 
     LoadStringA(Globals.hInstance, STID_PSH_INDEX, buf, sizeof(buf));
     strcat(buf, Globals.active_win->info->caption);
-    MultiByteToWideChar(info.ciACP, 0, buf, -1, u16buf, 256);
+    MultiByteToWideChar(id.hlpfile->codepage, 0, buf, -1, u16buf, 256);
 
     psHead.pszCaption = u16buf;
     psHead.nPages = 2;
@@ -1912,9 +1917,9 @@ static BOOL WINHELP_RegisterWinClasses(void)
     class_history.lpfnWndProc      = WINHELP_HistoryWndProc;
     class_history.lpszClassName    = HISTORY_WIN_CLASS_NAME;
 
-    return (RegisterClassExA(&class_main) &&
-            RegisterClassExA(&class_button_box) &&
-            RegisterClassExA(&class_history));
+    return (RegisterClassExW(&class_main) &&
+            RegisterClassExW(&class_button_box) &&
+            RegisterClassExW(&class_history));
 }
 
 /***********************************************************************

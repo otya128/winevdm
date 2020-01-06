@@ -2112,7 +2112,7 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
     BYTE *buf, *ptr, *end;
     HLPFILE_MACRO *macro, **m;
     LPSTR p;
-    unsigned short magic, minor, major, flags;
+    unsigned short magic, minor, major, flags, lcid = 0;
 
     hlpfile->lpszTitle = NULL;
 
@@ -2156,6 +2156,7 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
     hlpfile->version = minor;
     hlpfile->flags = flags;
     hlpfile->charset = DEFAULT_CHARSET;
+    hlpfile->codepage = GetACP();
 
     if (hlpfile->version <= 16)
     {
@@ -2267,6 +2268,9 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
         case 8:
             WINE_WARN("Citation: %s\n", debugstr_a((char *)ptr + 4));
             break;
+        case 9:
+            lcid = GET_USHORT(ptr, 12);
+            break;
         case 11:
             hlpfile->charset = ptr[4];
             WINE_TRACE("Charset: %d\n", hlpfile->charset);
@@ -2281,9 +2285,22 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
         if (HLPFILE_FindSubFile(hlpfile, "|CHARSET", &cbuf, &cend) && ((cend - cbuf) >= 11))
             hlpfile->charset = *(WORD *)(cbuf + 9);
     }
-            
-    if (!hlpfile->lpszTitle)
-        hlpfile->lpszTitle = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1);
+    if ((hlpfile->charset != DEFAULT_CHARSET) && (hlpfile->charset != ANSI_CHARSET))
+    {
+        CHARSETINFO info;
+        TranslateCharsetInfo(hlpfile->charset, &info, TCI_SRCCHARSET);
+        hlpfile->codepage = info.ciACP;
+    }
+    else if (lcid)
+    {
+        CHARSETINFO info;
+        if (TranslateCharsetInfo(lcid, &info, TCI_SRCLOCALE))
+        {
+            hlpfile->codepage = info.ciACP;
+            hlpfile->charset = info.ciCharset;
+        }
+    }
+
     return TRUE;
 }
 
@@ -2709,6 +2726,7 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
     const BYTE*   title;
     UINT          titlesize, blocksize, datalen;
     char*         ptr;
+    char*         temp;
     HLPFILE_MACRO*macro;
 
     blocksize = GET_UINT(buf, 0);
@@ -2717,28 +2735,30 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
     if (title > end) {WINE_WARN("page2\n"); return FALSE;};
 
     titlesize = GET_UINT(buf, 4);
-    page = HeapAlloc(GetProcessHeap(), 0, sizeof(HLPFILE_PAGE) + titlesize + 1);
+    page = HeapAlloc(GetProcessHeap(), 0, sizeof(HLPFILE_PAGE) + titlesize * 2 + 2);
     if (!page) return FALSE;
     page->lpszTitle = (char*)page + sizeof(HLPFILE_PAGE);
+    temp = HeapAlloc(GetProcessHeap(), 0, titlesize + 1);
 
     if (titlesize > blocksize - datalen)
     {
         /* need to decompress */
         if (hlpfile->hasPhrases)
-            HLPFILE_Uncompress2(hlpfile, title, end, (BYTE*)page->lpszTitle, (BYTE*)page->lpszTitle + titlesize);
+            HLPFILE_Uncompress2(hlpfile, title, end, (BYTE*)temp, (BYTE*)temp + titlesize);
         else if (hlpfile->hasPhrases40)
-            HLPFILE_Uncompress3(hlpfile, page->lpszTitle, page->lpszTitle + titlesize, title, end);
+            HLPFILE_Uncompress3(hlpfile, temp, temp + titlesize, title, end);
         else
         {
             WINE_FIXME("Text size is too long, splitting\n");
             titlesize = blocksize - datalen;
-            memcpy(page->lpszTitle, title, titlesize);
+            memcpy(temp, title, titlesize);
         }
     }
     else
-        memcpy(page->lpszTitle, title, titlesize);
+        memcpy(temp, title, titlesize);
 
-    page->lpszTitle[titlesize] = '\0';
+    temp[titlesize] = '\0';
+    MultiByteToWideChar(hlpfile->codepage, 0, temp, -1, page->lpszTitle, titlesize + 1);
 
     if (hlpfile->first_page)
     {
@@ -2782,8 +2802,8 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
                page->browse_bwd, page->offset, page->browse_fwd);
 
     /* now load macros */
-    ptr = page->lpszTitle + strlen(page->lpszTitle) + 1;
-    while (ptr < page->lpszTitle + titlesize)
+    ptr = temp + strlen(temp) + 1;
+    while (ptr < temp + titlesize)
     {
         unsigned len = strlen(ptr);
         char*    macro_str;
@@ -2799,6 +2819,7 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
         page->first_macro = macro;
         ptr += len + 1;
     }
+    HeapFree(GetProcessHeap(), 0, temp);
 
     return TRUE;
 }

@@ -68,7 +68,7 @@ typedef struct tagHlpFileMacro
 
 typedef struct tagHlpFilePage
 {
-    LPSTR                       lpszTitle;
+    WCHAR*                      lpszTitle;
     HLPFILE_MACRO*              first_macro;
 
     HLPFILE_LINK*               first_link;
@@ -133,6 +133,7 @@ typedef struct tagHlpFileFile
     unsigned short              version;
     unsigned short              flags;
     unsigned short              charset;
+    unsigned short              codepage;
     unsigned short              tbsize;     /* topic block size */
     unsigned short              dsize;      /* decompress size */
     BOOL                        compressed;
