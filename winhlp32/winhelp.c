@@ -41,9 +41,17 @@
 #include "richole.h"
 #include "commctrl.h"
 
+#ifdef _DEBUG
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
+#else
+#define WINE_TRACE(...)
+#define WINE_WARN(...)
+#define WINE_FIXME(...)
+#define WINE_ERR(...)
+#define debugstr_a(...)
+#endif
 
 WINHELP_GLOBALS Globals = {3, NULL, TRUE, NULL, NULL, NULL, NULL, NULL, {{{NULL,NULL}},0}, NULL};
 

@@ -28,11 +28,18 @@
 #include "shellapi.h"
 #include "winhelp.h"
 
+#ifdef _DEBUG
 #include "wine/debug.h"
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
+#else
+#define WINE_TRACE(...)
+#define WINE_WARN(...)
+#define WINE_FIXME(...)
+#define WINE_ERR(...)
+#define debugstr_a(...)
+#endif
+
 
 /**************************************************/
 /*               Macro table                      */
