@@ -2336,47 +2336,63 @@ static BOOL HLPFILE_GetContext(HLPFILE *hlpfile)
  *
  *           HLPFILE_GetTreeData
  */
-static BOOL HLPFILE_GetTreeData(HLPFILE *hlpfile, BYTE **addr, char *tree, char *data)
+HLPFILE_XW *HLPFILE_GetTreeData(HLPFILE *hlpfile, char keyfile)
 {
     BYTE                *cbuf, *cend;
     unsigned            clen;
+    char                tree[] = "|xWBTREE";
+    char                data[] = "|xWDATA";
+    HLPFILE_XW          *xw = NULL;
+
+    keyfile = toupper(keyfile);
+
+    for (int i = 0; i < 5; i++)
+    {
+        if (hlpfile->xw[i].id == keyfile)
+            return &hlpfile->xw[i];
+        if (!hlpfile->xw[i].id)
+        {
+            xw = &hlpfile->xw[i];
+            break;
+        }
+    }
+    if (!xw)
+        return NULL;
+    tree[1] = keyfile;
+    data[1] = keyfile;
 
     if (!HLPFILE_FindSubFile(hlpfile, tree, &cbuf, &cend)) return FALSE;
     clen = cend - cbuf;
-    addr[TREE] = HeapAlloc(GetProcessHeap(), 0, clen);
-    if (!addr[TREE]) return FALSE;
-    memcpy(addr[TREE], cbuf, clen);
+    xw->tree = HeapAlloc(GetProcessHeap(), 0, clen);
+    if (!xw->tree) return FALSE;
+    memcpy(xw->tree, cbuf, clen);
 
     if (!HLPFILE_FindSubFile(hlpfile, data, &cbuf, &cend))
     {
         WINE_ERR("corrupted help file: %s present but %s absent\n", tree, data);
-        HeapFree(GetProcessHeap(), 0, addr[TREE]);
-        addr[TREE] = NULL;
-        return FALSE;
+        HeapFree(GetProcessHeap(), 0, xw->tree);
+        return NULL;
     }
     clen = cend - cbuf;
-    addr[DATA] = HeapAlloc(GetProcessHeap(), 0, clen);
-    if (!addr[DATA])
+    xw->data = HeapAlloc(GetProcessHeap(), 0, clen);
+    if (!xw->data)
     {
-        HeapFree(GetProcessHeap(), 0, addr[DATA]);
-        HeapFree(GetProcessHeap(), 0, addr[TREE]);
-        addr[TREE] = NULL;
-        return FALSE;
+        HeapFree(GetProcessHeap(), 0, xw->data);
+        HeapFree(GetProcessHeap(), 0, xw->tree);
+        return NULL;
     }
-    memcpy(addr[DATA], cbuf, clen);
+    memcpy(xw->data, cbuf, clen);
+    xw->id = keyfile;
 
-    return TRUE;
+    return xw;
 }
 /***********************************************************************
  *
  *           HLPFILE_GetKeywords
  */
-static BOOL HLPFILE_GetKeywords (HLPFILE *hlpfile)
+static BOOL HLPFILE_GetKeywords(HLPFILE *hlpfile)
 {
-    BOOL ret;
-    ret = HLPFILE_GetTreeData(hlpfile, hlpfile->kw, "|KWBTREE", "|KWDATA");
-    HLPFILE_GetTreeData(hlpfile, hlpfile->aw, "|AWBTREE", "|AWDATA");
-    return ret;
+    return HLPFILE_GetTreeData(hlpfile, 'K') ? TRUE : FALSE;
 }
 
 
@@ -2523,17 +2539,18 @@ void HLPFILE_FreeHlpFile(HLPFILE* hlpfile)
     HeapFree(GetProcessHeap(), 0, hlpfile->phrases_buffer);
     HeapFree(GetProcessHeap(), 0, hlpfile->topic_map);
     HeapFree(GetProcessHeap(), 0, hlpfile->help_on_file);
-    HeapFree(GetProcessHeap(), 0, hlpfile->kw[TREE]);
-    HeapFree(GetProcessHeap(), 0, hlpfile->kw[DATA]);
+    for (int i = 0; i < 5; i++)
+    {
+        if (hlpfile->xw[i].id)
+        {
+            HeapFree(GetProcessHeap(), 0, hlpfile->xw[i].tree);
+            HeapFree(GetProcessHeap(), 0, hlpfile->xw[i].data);
+        }
+    }
     if (hlpfile->TOMap)
 	    HeapFree(GetProcessHeap(), 0, hlpfile->TOMap);
     if (hlpfile->ttlbtree)
 	    HeapFree(GetProcessHeap(), 0, hlpfile->ttlbtree);
-    if (hlpfile->aw[TREE])
-    {
-        HeapFree(GetProcessHeap(), 0, hlpfile->aw[TREE]);
-        HeapFree(GetProcessHeap(), 0, hlpfile->aw[DATA]);
-    }        
     HeapFree(GetProcessHeap(), 0, hlpfile);
 }
 

@@ -250,7 +250,7 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
         }
     }
     *success_exec = TRUE;
-    MULTIKEYHELPA multikey32;
+    MULTIKEYHELPA *multikey32 = NULL;
     HELPWININFOA info32;
     switch (wCommand)
     {
@@ -274,11 +274,13 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
         //this conversion is not tested.
         MESSAGE("HELP_MULTIKEY\n");
         LPMULTIKEYHELP16 multikey16 = (LPMULTIKEYHELP16)dwData;
-        multikey32.mkKeylist = multikey16->mkKeylist;
-        multikey32.mkSize = multikey16->mkSize - (sizeof(MULTIKEYHELPA) - sizeof(MULTIKEYHELP16));
-        memcpy(&multikey32.szKeyphrase, multikey16->szKeyphrase, sizeof(MULTIKEYHELP16) - offsetof(MULTIKEYHELP16, szKeyphrase));
-        dwData = &multikey32;
-        dsize = ((LPMULTIKEYHELPA)dwData)->mkSize;
+        size = multikey16->mkSize + (sizeof(MULTIKEYHELPA) - sizeof(MULTIKEYHELP16));
+        multikey32 = HeapAlloc(GetProcessHeap(), 0, size);
+        multikey32->mkKeylist = multikey16->mkKeylist;
+        multikey32->mkSize = size;
+        memcpy(&multikey32->szKeyphrase, multikey16->szKeyphrase, multikey16->mkSize - offsetof(MULTIKEYHELP16, szKeyphrase));
+        dwData = multikey32;
+        dsize = size;
     }
     break;
     case HELP_SETWINPOS:
@@ -360,6 +362,8 @@ BOOL WINAPI wine_WinHelp32A(HWND hWnd, LPCSTR lpHelpFile, UINT wCommand, ULONG_P
     ret = SendMessageA(hDest, WM_COPYDATA, (WPARAM)hWnd, (LPARAM)&cds);
     RestoreThunkLock(mutex_count);
     HeapFree(GetProcessHeap(), 0, lpwh);
+    if (multikey32)
+        HeapFree(GetProcessHeap(), 0, multikey32);
     return ret;
 }
 

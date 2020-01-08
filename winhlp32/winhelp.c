@@ -58,6 +58,9 @@ WINHELP_GLOBALS Globals = {3, NULL, TRUE, NULL, NULL, NULL, NULL, NULL, {{{NULL,
 #define CTL_ID_BUTTON   0x700
 #define CTL_ID_TEXT     0x701
 
+static void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next);
+static INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 
 /***********************************************************************
  *
@@ -106,6 +109,52 @@ static DWORD CALLBACK WINHELP_RtfStreamIn(DWORD_PTR cookie, BYTE* buff,
     rd->where += cb;
     *pcb = cb;
     return 0;
+}
+
+BOOL WINHELP_SearchKey(char keyfile, LPCSTR keywords, LONG type, LPCSTR topic, LPCSTR window, WINHELP_WINDOW *currwin, HLPFILE* hlpfile)
+{
+    DWORD ids[20], t;
+    int idn = 0;
+    char *key;
+    HLPFILE_PAGE *page = currwin->page;
+    HLPFILE_XW *tree;
+    if (type > 1) return FALSE;
+    if (!(tree = HLPFILE_GetTreeData(hlpfile, keyfile))) return FALSE;
+    key = strtok(keywords, ";");
+    while (key)
+    {
+        key = HLPFILE_BPTreeSearch(tree->tree, key, comp_xWBTreeKey);
+        if (key)
+        {
+            int count = *(SHORT *)(key + strlen(key) + 1);
+            int offset = *(ULONG *)(key + strlen(key) + 3);
+            for (int i = 0; i < count; i++)
+            {
+                DWORD ref = *(DWORD *)(tree->data + offset + 9 + (4 * i));
+                if (page && (ref == page->offset)) continue;
+                ids[idn++] = ref;
+                if (idn == 20) break;
+            }
+            if (idn == 20) break;
+        }
+        key = strtok(NULL, ";");
+    }
+    if (!idn) return FALSE;
+    if ((type != 1) || (idn > 1))
+    {
+        struct index_data idx;
+        idx.hlpfile = page->file;
+        idx.jump = FALSE;
+        idx.offset = (ULONG)ids;
+        idx.count = idn;
+        t = DialogBoxParamA(NULL, MAKEINTRESOURCE(IDD_TOPIC), currwin->hMainWnd, WINHELP_TopicDlgProc, &idx);
+        if (t == 0xFFFFFFFF) return FALSE;
+    }
+    else
+        t = ids[0];
+    HLPFILE_WINDOWINFO* win = window ? WINHELP_GetWindowInfo(hlpfile, window) : currwin->info;
+    WINHELP_OpenHelpWindow(HLPFILE_PageByOffset, hlpfile, t, win, SW_NORMAL);
+    return TRUE;
 }
 
 static void WINHELP_SetupText(HWND hTextWnd, WINHELP_WINDOW* win, ULONG relative)
@@ -384,7 +433,7 @@ static BOOL WINHELP_HasWorkingWindow(void)
     return Globals.active_win->page != NULL && Globals.active_win->page->file != NULL;
 }
 
-void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next)
+static void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next)
 {
     *next = (char*)p + strlen((char*)p) + (leaf?7:3);
     return stricmp(p, key);
@@ -399,7 +448,7 @@ void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next)
 static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
 {
     COPYDATASTRUCT*     cds = (COPYDATASTRUCT*)lParam;
-    WINEHELP*            wh;
+    WINEHELP*           wh;
 
     if (cds->dwData != 0xA1DE505)
     {
@@ -471,17 +520,13 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
                 if (!WINHELP_HasWorkingWindow()) MACRO_Exit();
                 break;
             }
-            char *key = ((char *)wh + wh->ofsData);
-            key = HLPFILE_BPTreeSearch(hlpfile->kw[TREE], key, comp_xWBTreeKey);
-            if (!key)
+            char *keywords = ((char *)wh + wh->ofsData);
+            if (!WINHELP_SearchKey('K', keywords, 1, NULL, NULL, Globals.active_win, hlpfile))
             {
                 HLPFILE_FreeHlpFile(hlpfile);
                 if (!WINHELP_HasWorkingWindow()) MACRO_Exit();
                 break;
             }
-            int offset = *(ULONG*)(key + strlen(key) + 3);
-            offset = *(long*)(hlpfile->kw[DATA] + offset + 9);
-            WINHELP_OpenHelpWindow(HLPFILE_PageByOffset, hlpfile, offset, WINHELP_GetWindowInfo(hlpfile, "main"), SW_NORMAL);
             break;
         }
         case HELP_COMMAND:
@@ -493,10 +538,27 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
             }
             break;
         }
+        case HELP_MULTIKEY:
+        {
+            HLPFILE *hlpfile = WINHELP_LookupHelpFile(ptr);
+            if (!hlpfile)
+            {
+                if (!WINHELP_HasWorkingWindow()) MACRO_Exit();
+                break;
+            }
+            MULTIKEYHELPA *mkhelp = (MULTIKEYHELPA *)((char *)wh + wh->ofsData);
+            if (!WINHELP_SearchKey(mkhelp->mkKeylist, mkhelp->szKeyphrase, 1, NULL, NULL, Globals.active_win, hlpfile))
+            {
+                HLPFILE_FreeHlpFile(hlpfile);
+                if (!WINHELP_HasWorkingWindow()) MACRO_Exit();
+                break;
+            }
+            break;
+        }
+
         /* case HELP_WM_HELP: */
         /* case HELP_SETPOPUP_POS: */
         /* case HELP_PARTIALKEY: */
-        /* case HELP_MULTIKEY: */
         /* case HELP_SETWINPOS: */
         default:
             WINE_FIXME("Unhandled command (%x) for remote winhelp control\n", wh->command);
@@ -1405,7 +1467,7 @@ static void comp_TTLBTree(void *p, const void *key, int leaf, void **next)
     return *(DWORD *)p - (DWORD)key;
 }
 
-INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     static struct index_data* id;
     HWND hListWnd = GetDlgItem(hWnd, IDC_TOPICS);
@@ -1488,7 +1550,7 @@ static INT_PTR CALLBACK WINHELP_IndexDlgProc(HWND hWnd, UINT msg, WPARAM wParam,
         id = (struct index_data*)((PROPSHEETPAGEA*)lParam)->lParam;
         data[0] = GetDlgItem(hWnd, IDC_INDEXLIST);
         data[1] = id->hlpfile->codepage;
-        HLPFILE_BPTreeEnum(id->hlpfile->kw[TREE], cb_KWBTree, data);
+        HLPFILE_BPTreeEnum(id->hlpfile->xw[0].tree, cb_KWBTree, data);
         id->jump = FALSE;
         id->offset = 1;
         SendDlgItemMessageW(hWnd, IDC_INDEXLIST, LB_SETCURSEL, 0, 0);
@@ -1516,7 +1578,7 @@ static INT_PTR CALLBACK WINHELP_IndexDlgProc(HWND hWnd, UINT msg, WPARAM wParam,
                 p += strlen((char *)p);
                 id->count = *(short*)((char *)p + 1);
                 id->offset = *(ULONG*)((char *)p + 3);
-                id->offset = (DWORD)(id->hlpfile->kw[DATA] + id->offset + 9);
+                id->offset = (DWORD)(id->hlpfile->xw[0].data + id->offset + 9);
                 if (id->count > 1)
                 {
                     if (id->hlpfile->ttlbtree)
@@ -1844,9 +1906,9 @@ BOOL WINHELP_CreateIndexWindow(BOOL is_search)
     else
         return FALSE;
 
-    if (id.hlpfile->kw[TREE] == NULL)
+    if (id.hlpfile->xw[0].id != 'K')
     {
-        WINE_TRACE("No index provided\n");
+        WINE_TRACE("Missing Keyword File\n");
         return FALSE;
     }
 

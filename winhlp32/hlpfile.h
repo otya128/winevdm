@@ -99,11 +99,12 @@ typedef struct
     COLORREF                    color;
 } HLPFILE_FONT;
 
-enum
+typedef struct
 {
-    TREE,
-    DATA
-};
+    char id;
+    BYTE *tree;
+    BYTE *data;
+} HLPFILE_XW;
 
 typedef struct tagHlpFileFile
 {
@@ -116,8 +117,7 @@ typedef struct tagHlpFileFile
     HLPFILE_PAGE*               last_page;
     HLPFILE_MACRO*              first_macro;
     BYTE*                       Context;
-    BYTE*                       kw[2];
-    BYTE*                       aw[2];
+    HLPFILE_XW                  xw[5];
     unsigned                    wMapLen;
     HLPFILE_MAP*                Map;
     unsigned                    wTOMapLen;
@@ -194,7 +194,7 @@ HLPFILE_PAGE* HLPFILE_PageByMap(HLPFILE* hlpfile, LONG lMap, ULONG* relative);
 HLPFILE_PAGE* HLPFILE_PageByOffset(HLPFILE* hlpfile, LONG offset, ULONG* relative);
 LONG          HLPFILE_Hash(LPCSTR lpszContext);
 void          HLPFILE_FreeHlpFile(HLPFILE*);
-
+HLPFILE_XW *HLPFILE_GetTreeData(HLPFILE *hlpfile, char keyfile);
 void  HLPFILE_BPTreeEnum(BYTE*, HLPFILE_BPTreeCallback cb, void *cookie);
 
 struct RtfData {

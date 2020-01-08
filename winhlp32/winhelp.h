@@ -188,8 +188,7 @@ HLPFILE_WINDOWINFO* WINHELP_GetWindowInfo(HLPFILE* hlpfile, LPCSTR name);
 void WINHELP_LayoutMainWindow(WINHELP_WINDOW* win);
 WINHELP_WINDOW* WINHELP_GrabWindow(WINHELP_WINDOW*);
 BOOL WINHELP_ReleaseWindow(WINHELP_WINDOW*);
-void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next);
-INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+BOOL WINHELP_SearchKey(char keyfile, LPCSTR keywords, LONG type, LPCSTR topic, LPCSTR window, WINHELP_WINDOW *currwin, HLPFILE* hlpfile);
 
 extern const WCHAR MAIN_WIN_CLASS_NAME[];
 extern const WCHAR BUTTON_BOX_WIN_CLASS_NAME[];

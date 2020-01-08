@@ -74,49 +74,6 @@ static WINHELP_BUTTON**        MACRO_LookupButton(WINHELP_WINDOW* win, LPCSTR na
     return b;
 }
 
-static void MACRO_SearchKey(BYTE **tree, LPCSTR keywords, LONG type, LPCSTR topic, LPCSTR window)
-{
-    DWORD ids[20], t;
-    int idn = 0;
-    char *key;
-    HLPFILE_PAGE *page = MACRO_CurrentWindow()->page;
-    if ((type > 1) || !tree[TREE]) return;
-    key = strtok(keywords, ";");
-    while (key)
-    {
-        key = HLPFILE_BPTreeSearch(tree[TREE], key, comp_xWBTreeKey);
-        if (key)
-        {
-            int count = *(SHORT *)(key + strlen(key) + 1);
-            int offset = *(ULONG *)(key + strlen(key) + 3);
-            for (int i = 0; i < count; i++)
-            {
-                DWORD ref = *(DWORD *)(tree[DATA] + offset + 9 + (4 * i));
-                if (ref == page->offset) continue;
-                ids[idn++] = ref;
-                if (idn == 20) break;
-            }
-            if (idn == 20) break;
-        }
-        key = strtok(NULL, ";");
-    }
-    if (!idn) return;
-    if ((type != 1) || (idn > 1))
-    {
-        struct index_data idx;
-        idx.hlpfile = page->file;
-        idx.jump = FALSE;
-        idx.offset = (ULONG)ids;
-        idx.count = idn;
-        t = DialogBoxParamA(NULL, MAKEINTRESOURCE(IDD_TOPIC), MACRO_CurrentWindow()->hMainWnd, WINHELP_TopicDlgProc, &idx);
-        if (t == 0xFFFFFFFF) return;
-    }
-    else
-        t = ids[0];
-    HLPFILE_WINDOWINFO* win = window ? WINHELP_GetWindowInfo(page->file, window) : MACRO_CurrentWindow()->info;
-    WINHELP_OpenHelpWindow(HLPFILE_PageByOffset, page->file, t, win, SW_NORMAL);
-}
-
 static BOOL MACRO_Load(struct MacroDesc *macro)
 {
     void               *fn = NULL;
@@ -299,7 +256,7 @@ static void CALLBACK MACRO_AddAccelerator(LONG u1, LONG u2, LPCSTR str)
 static void CALLBACK MACRO_ALink(LPCSTR keywords, LONG type, LPCSTR topic, LPCSTR window)
 {
     WINE_TRACE("(%s, %u, %s, %s)\n", debugstr_a(keywords), type, debugstr_a(topic), debugstr_a(window));
-    MACRO_SearchKey(MACRO_CurrentWindow()->page->file->aw, keywords, type, topic, window);
+    WINHELP_SearchKey('A', keywords, type, topic, window, MACRO_CurrentWindow(), MACRO_CurrentWindow()->page->file);
 }
 
 void CALLBACK MACRO_Annotate(void)
@@ -775,7 +732,7 @@ static void CALLBACK MACRO_JumpKeyword(LPCSTR lpszPath, LPCSTR lpszWindow, LPCST
 static void CALLBACK MACRO_KLink(LPCSTR keywords, LONG type, LPCSTR topic, LPCSTR window)
 {
     WINE_TRACE("(%s, %u, %s, %s)\n", debugstr_a(keywords), type, debugstr_a(topic), debugstr_a(window));
-    MACRO_SearchKey(MACRO_CurrentWindow()->page->file->kw, keywords, type, topic, window);
+    WINHELP_SearchKey('K', keywords, type, topic, window, MACRO_CurrentWindow(), MACRO_CurrentWindow()->page->file);
 }
 
 static void CALLBACK MACRO_Menu(void)
