@@ -210,6 +210,8 @@ DWORD WINAPI OaBuildVersion16(void)
     case 0x00000105:  /* WXP */
 		return MAKELONG(3029, 10); /* WXP SP2 */
     case 0x00000006:  /* Vista */
+    case 0x00000106:
+    case 0x00000206:  /* W10 */
 		return MAKELONG(3029, 10); /* Vista */
     default:
 	FIXME("Version value not known yet. Please investigate it!\n");
