@@ -19,11 +19,12 @@
  */
 
 /* Class names */
+#include "windef.h"
 
-const char MAIN_WIN_CLASS_NAME[]       = "MS_WINHELP";
-const char BUTTON_BOX_WIN_CLASS_NAME[] = "WHButtonBox";
-const char HISTORY_WIN_CLASS_NAME[]    = "WHHistory";
-const char STRING_BUTTON[]             = "BUTTON";
+const WCHAR MAIN_WIN_CLASS_NAME[]       = {'M','S','_','W','I','N','H','E','L','P',0};
+const WCHAR BUTTON_BOX_WIN_CLASS_NAME[] = {'W','H','B','u','t','t','o','n','B','o','x',0};
+const WCHAR HISTORY_WIN_CLASS_NAME[]    = {'W','H','H','i','s','t','o','r','y',0};
+const WCHAR STRING_BUTTON[]             = {'B','U','T','T','O','N',0};
 
 /* Resource names */
 const char STRING_DIALOG_TEST[]        = "DIALOG_TEST";

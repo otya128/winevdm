@@ -68,7 +68,7 @@ typedef struct tagHlpFileMacro
 
 typedef struct tagHlpFilePage
 {
-    LPSTR                       lpszTitle;
+    WCHAR*                      lpszTitle;
     HLPFILE_MACRO*              first_macro;
 
     HLPFILE_LINK*               first_link;
@@ -99,6 +99,13 @@ typedef struct
     COLORREF                    color;
 } HLPFILE_FONT;
 
+typedef struct
+{
+    char id;
+    BYTE *tree;
+    BYTE *data;
+} HLPFILE_XW;
+
 typedef struct tagHlpFileFile
 {
     BYTE*                       file_buffer;
@@ -110,8 +117,7 @@ typedef struct tagHlpFileFile
     HLPFILE_PAGE*               last_page;
     HLPFILE_MACRO*              first_macro;
     BYTE*                       Context;
-    BYTE*                       kwbtree;
-    BYTE*                       kwdata;
+    HLPFILE_XW                  xw[5];
     unsigned                    wMapLen;
     HLPFILE_MAP*                Map;
     unsigned                    wTOMapLen;
@@ -127,6 +133,7 @@ typedef struct tagHlpFileFile
     unsigned short              version;
     unsigned short              flags;
     unsigned short              charset;
+    unsigned short              codepage;
     unsigned short              tbsize;     /* topic block size */
     unsigned short              dsize;      /* decompress size */
     BOOL                        compressed;
@@ -187,7 +194,7 @@ HLPFILE_PAGE* HLPFILE_PageByMap(HLPFILE* hlpfile, LONG lMap, ULONG* relative);
 HLPFILE_PAGE* HLPFILE_PageByOffset(HLPFILE* hlpfile, LONG offset, ULONG* relative);
 LONG          HLPFILE_Hash(LPCSTR lpszContext);
 void          HLPFILE_FreeHlpFile(HLPFILE*);
-
+HLPFILE_XW *HLPFILE_GetTreeData(HLPFILE *hlpfile, char keyfile);
 void  HLPFILE_BPTreeEnum(BYTE*, HLPFILE_BPTreeCallback cb, void *cookie);
 
 struct RtfData {
@@ -209,7 +216,8 @@ struct RtfData {
 };
 
 BOOL          HLPFILE_BrowsePage(HLPFILE_PAGE*, struct RtfData* rd,
-                                 unsigned font_scale, unsigned relative);
+                                 unsigned font_scale, unsigned relative,
+				 HLPFILE_WINDOWINFO* info);
 
 #define HLP_DISPLAY30 0x01     /* version 3.0 displayable information */
 #define HLP_TOPICHDR  0x02     /* topic header information */

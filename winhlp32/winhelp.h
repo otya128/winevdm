@@ -29,6 +29,7 @@
 #define SHADOW_DY               10
 #define BUTTON_CX               6
 #define BUTTON_CY               6
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #define RICHEDIT_CLASS20A	"RichEdit20A"
 # define strncasecmp _strnicmp
@@ -166,6 +167,14 @@ extern const struct winhelp_callbacks
     LONG      (WINAPI *API)(LPSTR,WORD,DWORD);
 } Callbacks;
 
+struct index_data
+{
+    HLPFILE*    hlpfile;
+    BOOL        jump;
+    ULONG       offset;
+    WORD        count;
+};
+
 extern WINHELP_GLOBALS Globals;
 
 BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE*, int, BOOL);
@@ -179,13 +188,14 @@ HLPFILE_WINDOWINFO* WINHELP_GetWindowInfo(HLPFILE* hlpfile, LPCSTR name);
 void WINHELP_LayoutMainWindow(WINHELP_WINDOW* win);
 WINHELP_WINDOW* WINHELP_GrabWindow(WINHELP_WINDOW*);
 BOOL WINHELP_ReleaseWindow(WINHELP_WINDOW*);
+BOOL WINHELP_SearchKey(char keyfile, LPCSTR keywords, LONG type, LPCSTR topic, LPCSTR window, WINHELP_WINDOW *currwin, HLPFILE* hlpfile);
 
-extern const char MAIN_WIN_CLASS_NAME[];
-extern const char BUTTON_BOX_WIN_CLASS_NAME[];
-extern const char TEXT_WIN_CLASS_NAME[];
-extern const char SHADOW_WIN_CLASS_NAME[];
-extern const char HISTORY_WIN_CLASS_NAME[];
-extern const char STRING_BUTTON[];
+extern const WCHAR MAIN_WIN_CLASS_NAME[];
+extern const WCHAR BUTTON_BOX_WIN_CLASS_NAME[];
+extern const char  TEXT_WIN_CLASS_NAME[];
+extern const char  SHADOW_WIN_CLASS_NAME[];
+extern const WCHAR HISTORY_WIN_CLASS_NAME[];
+extern const WCHAR STRING_BUTTON[];
 extern const char STRING_MENU_Xx[];
 extern const char STRING_DIALOG_TEST[];
 #endif

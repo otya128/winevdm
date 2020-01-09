@@ -25,9 +25,17 @@
 #include "windows.h"
 #include "winhelp.h"
 
+#ifdef _DEBUG
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
+#else
+#define WINE_TRACE(...)
+#define WINE_WARN(...)
+#define WINE_FIXME(...)
+#define WINE_ERR(...)
+#define debugstr_a(...)
+#endif
 
 static WORD CALLBACK WHD_GetFSError(void)
 {

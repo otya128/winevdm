@@ -31,9 +31,17 @@
 #include "winuser.h"
 #include "winhelp.h"
 
+#ifdef _DEBUG
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
+#else
+#define WINE_TRACE(...)
+#define WINE_WARN(...)
+#define WINE_FIXME(...)
+#define WINE_ERR(...)
+#define debugstr_a(...)
+#endif
 
 static inline unsigned short GET_USHORT(const BYTE* buffer, unsigned i)
 {
@@ -820,7 +828,7 @@ static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
         case 0xC8:
         case 0xCC:
             hslink = (HLPFILE_HOTSPOTLINK*)
-                HLPFILE_AllocLink(rd, hlp_link_macro, str, -1, 0, FALSE, TRUE, -1);
+                HLPFILE_AllocLink(rd, hlp_link_macro, str, -1, 0, FALSE, TRUE, -2);
             break;
 
         case 0xE2:
@@ -830,7 +838,7 @@ static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
             hslink = (HLPFILE_HOTSPOTLINK*)
                 HLPFILE_AllocLink(rd, (start[7 + 15 * i + 0] & 1) ? hlp_link_link : hlp_link_popup,
                                   file->lpszPath, -1, HLPFILE_Hash(str),
-                                  FALSE, TRUE, -1);
+                                  FALSE, TRUE, -2);
             break;
 
         case 0xEE:
@@ -1295,7 +1303,6 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
         {
             table_width = GET_SHORT(format, 0);
             format += 2;
-            if (!HLPFILE_RtfAddControl(rd, "\\trqc")) goto done;
         }
         else
             table_width = 32767;
@@ -1315,7 +1322,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                            nc, ncol, GET_SHORT(format, nc*4),
                            GET_SHORT(format, nc*4+2));
                 pos += GET_SHORT(format, nc * 4) + GET_SHORT(format, nc * 4 + 2);
-                sprintf(tmp, "\\cellx%d",
+                sprintf(tmp, "\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\brdrcf2\\cellx%d",
                         MulDiv(HLPFILE_HalfPointsScale(page, pos), table_width, 32767));
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
             }
@@ -1324,7 +1331,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
         {
             WINE_TRACE("column(0/%d) gap=%d width=%d\n",
                        ncol, GET_SHORT(format, 0), GET_SHORT(format, 2));
-            sprintf(tmp, "\\trleft%d\\cellx%d ",
+            sprintf(tmp, "\\trleft%d\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\brdrcf2\\cellx%d ",
                     MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 2)), table_width, 32767) - 1,
                     MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 0)), table_width, 32767));
             if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
@@ -1394,7 +1401,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             short       w;
             brdr = *format++;
             // richedit won't display any borders except as part of a table
-            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
+            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
 /*
             if ((brdr & 0x01) && !HLPFILE_RtfAddControl(rd, "\\box")) goto done;
             if ((brdr & 0x02) && !HLPFILE_RtfAddControl(rd, "\\brdrt")) goto done;
@@ -1507,7 +1514,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                     /* FIXME: colors are missing, at a minimum; also, the bold attribute loses information */
 
                     sprintf(tmp, "\\f%d\\cf%d\\fs%d%s%s%s%s",
-                            font + 1, font + 2, fs,
+                            font + 1, font + 3, fs,
                             page->file->fonts[font].LogFont.lfWeight > 400 ? "\\b" : "\\b0",
                             page->file->fonts[font].LogFont.lfItalic ? "\\i" : "\\i0",
                             page->file->fonts[font].LogFont.lfUnderline ? "\\ul" : "\\ul0",
@@ -1565,6 +1572,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
 	    case 0x87:
 	    case 0x88:
                 {
+                    BYTE    token = format[0];
                     BYTE    type = format[1];
 
                     /* FIXME: we don't use 'BYTE    pos = (*format - 0x86);' for the image position */
@@ -1596,13 +1604,44 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                         }
                         break;
                     case 0x05:
-                        WINE_FIXME("Got an embedded element %s\n", debugstr_a((char *)format + 6));
+                        if (format[6] == '!')
+                        {
+                            char *curr = (char *)format + 7;
+                            char *search = curr;
+                            while (*search && (*search != ',')) search++;
+                            if (!*search)
+                            {
+                                WINE_FIXME("Button parse error %s", curr);
+                                break;
+                            }
+                            WINE_TRACE("button => %s\n", debugstr_a(curr));
+                            HLPFILE_AllocLink(rd, hlp_link_macro, search + 1,
+                                        -1, 0, TRUE, FALSE, -2);
+                            sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
+                            if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
+                            if (curr == search)
+                            {
+                                if (!HLPFILE_RtfAddControl(rd, "\\u9744}}}")) goto done;
+                            }
+                            else
+                            {
+                                int len = search - curr;
+                                memcpy(tmp, curr, len);
+                                tmp[len] = 0;
+                                strcat(tmp, "}}}");
+                                if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
+                            }
+                        }
+                        else
+                            WINE_FIXME("Got an embedded element %s\n", debugstr_a((char *)format + 6));
                         break;
                     default:
                         WINE_FIXME("Got a type %d picture\n", type);
                         break;
                     }
                     format += size;
+                    if (token == 0x88)
+                        if (!HLPFILE_RtfAddControl(rd, "\\qr\\par\\pard")) goto done;
                 }
                 break;
 
@@ -1626,7 +1665,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                     case 2: fs = page->file->fonts[lastfont].LogFont.lfHeight + 4; break;
                 }
                 sprintf(tmp, "\\f%d\\cf%d\\fs%d%s%s%s%s",
-                            lastfont + 1, lastfont + 2, fs,
+                            lastfont + 1, lastfont + 3, fs,
                             page->file->fonts[lastfont].LogFont.lfWeight > 400 ? "\\b" : "\\b0",
                             page->file->fonts[lastfont].LogFont.lfItalic ? "\\i" : "\\i0",
                             page->file->fonts[lastfont].LogFont.lfUnderline ? "\\ul" : "\\ul0",
@@ -1658,7 +1697,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             case 0xCC:
                 WINE_TRACE("macro => %s\n", debugstr_a((char *)format + 3));
                 HLPFILE_AllocLink(rd, hlp_link_macro, (const char*)format + 3,
-                                  GET_USHORT(format, 1), 0, !(*format & 4), FALSE, -1);
+                                  GET_USHORT(format, 1), 0, !(*format & 4), FALSE, -2);
                 sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 3 + GET_USHORT(format, 1);
@@ -1668,7 +1707,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             case 0xE1:
                 WINE_WARN("jump topic 1 => %u\n", GET_UINT(format, 1));
                 HLPFILE_AllocLink(rd, (*format & 1) ? hlp_link_link : hlp_link_popup,
-                                  page->file->lpszPath, -1, GET_UINT(format, 1), TRUE, FALSE, -1);
+                                  page->file->lpszPath, -1, GET_UINT(format, 1), TRUE, FALSE, -2);
                 sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 5;
@@ -1681,7 +1720,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 WINE_WARN("jump topic 1 => %u\n", GET_UINT(format, 1));
                 HLPFILE_AllocLink(rd, (*format & 1) ? hlp_link_link : hlp_link_popup,
                                   page->file->lpszPath, -1, GET_UINT(format, 1),
-                                  !(*format & 4), FALSE, -1);
+                                  !(*format & 4), FALSE, -2);
                 sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd->current_link);
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
                 format += 5;
@@ -1739,7 +1778,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                 WINE_FIXME("border in table\n");
             }
             else
-            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
+            if ((brdr & 0x09) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
         }
     }
     ret = TRUE;
@@ -1754,7 +1793,7 @@ done:
  *
  */
 BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
-                           unsigned font_scale, unsigned relative)
+                           unsigned font_scale, unsigned relative, HLPFILE_WINDOWINFO* info)
 {
     HLPFILE     *hlpfile = page->file;
     BYTE        *buf, *end;
@@ -1848,6 +1887,11 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     if (!HLPFILE_RtfAddControl(rd, "}")) return FALSE;
     /* generate color table */
     if (!HLPFILE_RtfAddControl(rd, "{\\colortbl ;\\red0\\green128\\blue0;")) return FALSE;
+    sprintf(tmp, "\\red%d\\green%d\\blue%d;",
+            GetRValue(info->sr_color),
+            GetGValue(info->sr_color),
+            GetBValue(info->sr_color));
+    if (!HLPFILE_RtfAddControl(rd, tmp)) return FALSE;
     for (index = 0; index < hlpfile->numFonts; index++)
     {
         sprintf(tmp, "\\red%d\\green%d\\blue%d;",
@@ -2076,7 +2120,7 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
     BYTE *buf, *ptr, *end;
     HLPFILE_MACRO *macro, **m;
     LPSTR p;
-    unsigned short magic, minor, major, flags;
+    unsigned short magic, minor, major, flags, lcid = 0;
 
     hlpfile->lpszTitle = NULL;
 
@@ -2120,6 +2164,7 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
     hlpfile->version = minor;
     hlpfile->flags = flags;
     hlpfile->charset = DEFAULT_CHARSET;
+    hlpfile->codepage = GetACP();
 
     if (hlpfile->version <= 16)
     {
@@ -2231,6 +2276,9 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
         case 8:
             WINE_WARN("Citation: %s\n", debugstr_a((char *)ptr + 4));
             break;
+        case 9:
+            lcid = GET_USHORT(ptr, 12);
+            break;
         case 11:
             hlpfile->charset = ptr[4];
             WINE_TRACE("Charset: %d\n", hlpfile->charset);
@@ -2239,8 +2287,28 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
             WINE_WARN("Unsupported SystemRecord[%d]\n", GET_USHORT(ptr, 0));
 	}
     }
-    if (!hlpfile->lpszTitle)
-        hlpfile->lpszTitle = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1);
+    if (hlpfile->charset == DEFAULT_CHARSET)
+    {
+        BYTE *cbuf, *cend;
+        if (HLPFILE_FindSubFile(hlpfile, "|CHARSET", &cbuf, &cend) && ((cend - cbuf) >= 11))
+            hlpfile->charset = *(WORD *)(cbuf + 9);
+    }
+    if ((hlpfile->charset != DEFAULT_CHARSET) && (hlpfile->charset != ANSI_CHARSET))
+    {
+        CHARSETINFO info;
+        TranslateCharsetInfo(hlpfile->charset, &info, TCI_SRCCHARSET);
+        hlpfile->codepage = info.ciACP;
+    }
+    else if (lcid)
+    {
+        CHARSETINFO info;
+        if (TranslateCharsetInfo(lcid, &info, TCI_SRCLOCALE))
+        {
+            hlpfile->codepage = info.ciACP;
+            hlpfile->charset = info.ciCharset;
+        }
+    }
+
     return TRUE;
 }
 
@@ -2266,36 +2334,67 @@ static BOOL HLPFILE_GetContext(HLPFILE *hlpfile)
 
 /***********************************************************************
  *
+ *           HLPFILE_GetTreeData
+ */
+HLPFILE_XW *HLPFILE_GetTreeData(HLPFILE *hlpfile, char keyfile)
+{
+    BYTE                *cbuf, *cend;
+    unsigned            clen;
+    char                tree[] = "|xWBTREE";
+    char                data[] = "|xWDATA";
+    HLPFILE_XW          *xw = NULL;
+
+    keyfile = toupper(keyfile);
+
+    for (int i = 0; i < 5; i++)
+    {
+        if (hlpfile->xw[i].id == keyfile)
+            return &hlpfile->xw[i];
+        if (!hlpfile->xw[i].id)
+        {
+            xw = &hlpfile->xw[i];
+            break;
+        }
+    }
+    if (!xw)
+        return NULL;
+    tree[1] = keyfile;
+    data[1] = keyfile;
+
+    if (!HLPFILE_FindSubFile(hlpfile, tree, &cbuf, &cend)) return FALSE;
+    clen = cend - cbuf;
+    xw->tree = HeapAlloc(GetProcessHeap(), 0, clen);
+    if (!xw->tree) return FALSE;
+    memcpy(xw->tree, cbuf, clen);
+
+    if (!HLPFILE_FindSubFile(hlpfile, data, &cbuf, &cend))
+    {
+        WINE_ERR("corrupted help file: %s present but %s absent\n", tree, data);
+        HeapFree(GetProcessHeap(), 0, xw->tree);
+        return NULL;
+    }
+    clen = cend - cbuf;
+    xw->data = HeapAlloc(GetProcessHeap(), 0, clen);
+    if (!xw->data)
+    {
+        HeapFree(GetProcessHeap(), 0, xw->data);
+        HeapFree(GetProcessHeap(), 0, xw->tree);
+        return NULL;
+    }
+    memcpy(xw->data, cbuf, clen);
+    xw->id = keyfile;
+
+    return xw;
+}
+/***********************************************************************
+ *
  *           HLPFILE_GetKeywords
  */
 static BOOL HLPFILE_GetKeywords(HLPFILE *hlpfile)
 {
-    BYTE                *cbuf, *cend;
-    unsigned            clen;
-
-    if (!HLPFILE_FindSubFile(hlpfile, "|KWBTREE", &cbuf, &cend)) return FALSE;
-    clen = cend - cbuf;
-    hlpfile->kwbtree = HeapAlloc(GetProcessHeap(), 0, clen);
-    if (!hlpfile->kwbtree) return FALSE;
-    memcpy(hlpfile->kwbtree, cbuf, clen);
-
-    if (!HLPFILE_FindSubFile(hlpfile, "|KWDATA", &cbuf, &cend))
-    {
-        WINE_ERR("corrupted help file: kwbtree present but kwdata absent\n");
-        HeapFree(GetProcessHeap(), 0, hlpfile->kwbtree);
-        return FALSE;
-    }
-    clen = cend - cbuf;
-    hlpfile->kwdata = HeapAlloc(GetProcessHeap(), 0, clen);
-    if (!hlpfile->kwdata)
-    {
-        HeapFree(GetProcessHeap(), 0, hlpfile->kwdata);
-        return FALSE;
-    }
-    memcpy(hlpfile->kwdata, cbuf, clen);
-
-    return TRUE;
+    return HLPFILE_GetTreeData(hlpfile, 'K') ? TRUE : FALSE;
 }
+
 
 /***********************************************************************
  *
@@ -2440,8 +2539,14 @@ void HLPFILE_FreeHlpFile(HLPFILE* hlpfile)
     HeapFree(GetProcessHeap(), 0, hlpfile->phrases_buffer);
     HeapFree(GetProcessHeap(), 0, hlpfile->topic_map);
     HeapFree(GetProcessHeap(), 0, hlpfile->help_on_file);
-    HeapFree(GetProcessHeap(), 0, hlpfile->kwbtree);
-    HeapFree(GetProcessHeap(), 0, hlpfile->kwdata);
+    for (int i = 0; i < 5; i++)
+    {
+        if (hlpfile->xw[i].id)
+        {
+            HeapFree(GetProcessHeap(), 0, hlpfile->xw[i].tree);
+            HeapFree(GetProcessHeap(), 0, hlpfile->xw[i].data);
+        }
+    }
     if (hlpfile->TOMap)
 	    HeapFree(GetProcessHeap(), 0, hlpfile->TOMap);
     if (hlpfile->ttlbtree)
@@ -2646,6 +2751,7 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
     const BYTE*   title;
     UINT          titlesize, blocksize, datalen;
     char*         ptr;
+    char*         temp;
     HLPFILE_MACRO*macro;
 
     blocksize = GET_UINT(buf, 0);
@@ -2654,28 +2760,30 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
     if (title > end) {WINE_WARN("page2\n"); return FALSE;};
 
     titlesize = GET_UINT(buf, 4);
-    page = HeapAlloc(GetProcessHeap(), 0, sizeof(HLPFILE_PAGE) + titlesize + 1);
+    page = HeapAlloc(GetProcessHeap(), 0, sizeof(HLPFILE_PAGE) + titlesize * 2 + 2);
     if (!page) return FALSE;
     page->lpszTitle = (char*)page + sizeof(HLPFILE_PAGE);
+    temp = HeapAlloc(GetProcessHeap(), 0, titlesize + 1);
 
     if (titlesize > blocksize - datalen)
     {
         /* need to decompress */
         if (hlpfile->hasPhrases)
-            HLPFILE_Uncompress2(hlpfile, title, end, (BYTE*)page->lpszTitle, (BYTE*)page->lpszTitle + titlesize);
+            HLPFILE_Uncompress2(hlpfile, title, end, (BYTE*)temp, (BYTE*)temp + titlesize);
         else if (hlpfile->hasPhrases40)
-            HLPFILE_Uncompress3(hlpfile, page->lpszTitle, page->lpszTitle + titlesize, title, end);
+            HLPFILE_Uncompress3(hlpfile, temp, temp + titlesize, title, end);
         else
         {
             WINE_FIXME("Text size is too long, splitting\n");
             titlesize = blocksize - datalen;
-            memcpy(page->lpszTitle, title, titlesize);
+            memcpy(temp, title, titlesize);
         }
     }
     else
-        memcpy(page->lpszTitle, title, titlesize);
+        memcpy(temp, title, titlesize);
 
-    page->lpszTitle[titlesize] = '\0';
+    temp[titlesize] = '\0';
+    MultiByteToWideChar(hlpfile->codepage, 0, temp, -1, page->lpszTitle, titlesize + 1);
 
     if (hlpfile->first_page)
     {
@@ -2719,8 +2827,8 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
                page->browse_bwd, page->offset, page->browse_fwd);
 
     /* now load macros */
-    ptr = page->lpszTitle + strlen(page->lpszTitle) + 1;
-    while (ptr < page->lpszTitle + titlesize)
+    ptr = temp + strlen(temp) + 1;
+    while (ptr < temp + titlesize)
     {
         unsigned len = strlen(ptr);
         char*    macro_str;
@@ -2736,6 +2844,7 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
         page->first_macro = macro;
         ptr += len + 1;
     }
+    HeapFree(GetProcessHeap(), 0, temp);
 
     return TRUE;
 }

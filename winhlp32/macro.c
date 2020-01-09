@@ -28,11 +28,18 @@
 #include "shellapi.h"
 #include "winhelp.h"
 
+#ifdef _DEBUG
 #include "wine/debug.h"
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
 WINE_DEFAULT_DEBUG_CHANNEL(winhelp);
+#else
+#define WINE_TRACE(...)
+#define WINE_WARN(...)
+#define WINE_FIXME(...)
+#define WINE_ERR(...)
+#define debugstr_a(...)
+#endif
+
 
 /**************************************************/
 /*               Macro table                      */
@@ -65,6 +72,87 @@ static WINHELP_BUTTON**        MACRO_LookupButton(WINHELP_WINDOW* win, LPCSTR na
     for (b = &win->first_button; *b; b = &(*b)->next)
         if (!lstrcmpiA(name, (*b)->lpszID)) break;
     return b;
+}
+
+static BOOL MACRO_Load(struct MacroDesc *macro)
+{
+    void               *fn = NULL;
+    WINHELP_DLL*        dll;
+    char *              dll_name = macro->alias;
+    BOOL                ret = TRUE;
+
+    if (!dll_name)
+        return FALSE;
+
+    /* FIXME: are the registered DLLs global or linked to the current file ???
+     * We assume globals (as we did for macros, but is this really the case ???)
+     */
+    for (dll = Globals.dlls; dll; dll = dll->next)
+    {
+        if (!strcmp(dll->name, dll_name)) break;
+    }
+    if (!dll)
+    {
+        HANDLE hLib = LoadLibraryA(dll_name);
+
+        /* FIXME: the library will not be unloaded until exit of program 
+         * We don't send the DW_TERM message
+         */
+        WINE_TRACE("Loading %s\n", debugstr_a(dll_name));
+        /* FIXME: should look in the directory where current hlpfile
+         * is loaded from
+         */
+        if (hLib == NULL)
+        {
+            /* FIXME: internationalisation for error messages */
+            WINE_FIXME("Cannot find dll %s\n", debugstr_a(dll_name));
+            ret = FALSE;
+        }
+        else if ((dll = HeapAlloc(GetProcessHeap(), 0, sizeof(*dll))))
+        {
+            dll->hLib = hLib;
+            dll->name = StrDup(dll_name); /* FIXME: never freed */
+            dll->next = Globals.dlls;
+            Globals.dlls = dll;
+            dll->handler = (WINHELP_LDLLHandler)GetProcAddress(dll->hLib, "LDLLHandler");
+            dll->class = dll->handler ? (dll->handler)(DW_WHATMSG, 0, 0) : DC_NOMSG;
+            WINE_TRACE("Got class %x for DLL %s\n", dll->class, debugstr_a(dll_name));
+            if (dll->class & DC_INITTERM) dll->handler(DW_INIT, 0, 0);
+            if (dll->class & DC_CALLBACKS) dll->handler(DW_CALLBACKS, (LONG_PTR)&Callbacks, 0);
+        }
+        else WINE_WARN("OOM\n");
+    }
+    if (dll && !(fn = GetProcAddress(dll->hLib, macro->name)))
+    {
+        /* FIXME: internationalisation for error messages */
+        WINE_FIXME("Cannot find proc %s in dll %s\n", debugstr_a(dll_name), debugstr_a(macro->name));
+        ret == FALSE;
+    }
+    HeapFree(GetProcessHeap(),0,dll_name);
+    macro->alias = NULL;
+    macro->fn = fn;
+    return ret;
+}
+
+static int MACRO_DoLookUp(struct MacroDesc* start, const char* name, struct lexret* lr, unsigned len)
+{
+    struct MacroDesc*   md;
+
+    for (md = start; md->name && len != 0; md++, len--)
+    {
+        if (strcasecmp(md->name, name) == 0 || (md->alias != NULL && strcasecmp(md->alias, name) == 0))
+        {
+            if (lr)
+            {
+                lr->proto = md->arguments;
+                lr->function = md->fn;
+                if (!md->fn)
+                    MACRO_Load(md);
+            }
+            return md->isBool ? BOOL_FUNCTION : VOID_FUNCTION;
+        }
+    }
+    return EMPTY;
 }
 
 /******* some forward declarations *******/
@@ -165,9 +253,10 @@ static void CALLBACK MACRO_AddAccelerator(LONG u1, LONG u2, LPCSTR str)
     WINE_FIXME("(%u, %u, %s)\n", u1, u2, debugstr_a(str));
 }
 
-static void CALLBACK MACRO_ALink(LPCSTR str1, LONG u, LPCSTR str2)
+static void CALLBACK MACRO_ALink(LPCSTR keywords, LONG type, LPCSTR topic, LPCSTR window)
 {
-    WINE_FIXME("(%s, %u, %s)\n", debugstr_a(str1), u, debugstr_a(str2));
+    WINE_TRACE("(%s, %u, %s, %s)\n", debugstr_a(keywords), type, debugstr_a(topic), debugstr_a(window));
+    WINHELP_SearchKey('A', keywords, type, topic, window, MACRO_CurrentWindow(), MACRO_CurrentWindow()->page->file);
 }
 
 void CALLBACK MACRO_Annotate(void)
@@ -521,7 +610,8 @@ void CALLBACK MACRO_History(void)
 
     if (Globals.active_win && !Globals.active_win->hHistoryWnd)
     {
-        HWND hWnd = CreateWindowA(HISTORY_WIN_CLASS_NAME, "History", WS_OVERLAPPEDWINDOW,
+        const WCHAR name[] = {'H','i','s','t','o','r','y',0};
+        HWND hWnd = CreateWindowW(HISTORY_WIN_CLASS_NAME, name, WS_OVERLAPPEDWINDOW,
                                  0, 0, 0, 0, 0, 0, Globals.hInstance, Globals.active_win);
         ShowWindow(hWnd, SW_NORMAL);
     }
@@ -639,9 +729,10 @@ static void CALLBACK MACRO_JumpKeyword(LPCSTR lpszPath, LPCSTR lpszWindow, LPCST
     WINE_FIXME("(%s, %s, %s)\n", debugstr_a(lpszPath), debugstr_a(lpszWindow), debugstr_a(keyword));
 }
 
-static void CALLBACK MACRO_KLink(LPCSTR str1, LONG u, LPCSTR str2, LPCSTR str3)
+static void CALLBACK MACRO_KLink(LPCSTR keywords, LONG type, LPCSTR topic, LPCSTR window)
 {
-    WINE_FIXME("(%s, %u, %s, %s)\n", debugstr_a(str1), u, debugstr_a(str2), debugstr_a(str3));
+    WINE_TRACE("(%s, %u, %s, %s)\n", debugstr_a(keywords), type, debugstr_a(topic), debugstr_a(window));
+    WINHELP_SearchKey('K', keywords, type, topic, window, MACRO_CurrentWindow(), MACRO_CurrentWindow()->page->file);
 }
 
 static void CALLBACK MACRO_Menu(void)
@@ -752,64 +843,22 @@ void CALLBACK MACRO_PrinterSetup(void)
 
 static void CALLBACK MACRO_RegisterRoutine(LPCSTR dll_name, LPCSTR proc, LPCSTR args)
 {
-    void               *fn = NULL;
     int                 size;
-    WINHELP_DLL*        dll;
 
     WINE_TRACE("(%s, %s, %s)\n", debugstr_a(dll_name), debugstr_a(proc), debugstr_a(args));
 
-    /* FIXME: are the registered DLLs global or linked to the current file ???
-     * We assume globals (as we did for macros, but is this really the case ???)
-     */
-    for (dll = Globals.dlls; dll; dll = dll->next)
-    {
-        if (!strcmp(dll->name, dll_name)) break;
-    }
-    if (!dll)
-    {
-        HANDLE hLib = LoadLibraryA(dll_name);
-
-        /* FIXME: the library will not be unloaded until exit of program 
-         * We don't send the DW_TERM message
-         */
-        WINE_TRACE("Loading %s\n", debugstr_a(dll_name));
-        /* FIXME: should look in the directory where current hlpfile
-         * is loaded from
-         */
-        if (hLib == NULL)
-        {
-            /* FIXME: internationalisation for error messages */
-            WINE_FIXME("Cannot find dll %s\n", debugstr_a(dll_name));
-        }
-        else if ((dll = HeapAlloc(GetProcessHeap(), 0, sizeof(*dll))))
-        {
-            dll->hLib = hLib;
-            dll->name = StrDup(dll_name); /* FIXME: never freed */
-            dll->next = Globals.dlls;
-            Globals.dlls = dll;
-            dll->handler = (WINHELP_LDLLHandler)GetProcAddress(dll->hLib, "LDLLHandler");
-            dll->class = dll->handler ? (dll->handler)(DW_WHATMSG, 0, 0) : DC_NOMSG;
-            WINE_TRACE("Got class %x for DLL %s\n", dll->class, debugstr_a(dll_name));
-            if (dll->class & DC_INITTERM) dll->handler(DW_INIT, 0, 0);
-            if (dll->class & DC_CALLBACKS) dll->handler(DW_CALLBACKS, (LONG_PTR)&Callbacks, 0);
-        }
-        else WINE_WARN("OOM\n");
-    }
-    if (dll && !(fn = GetProcAddress(dll->hLib, proc)))
-    {
-        /* FIXME: internationalisation for error messages */
-        WINE_FIXME("Cannot find proc %s in dll %s\n", debugstr_a(dll_name), debugstr_a(proc));
-    }
+    if (MACRO_Loaded && MACRO_DoLookUp(MACRO_Loaded, proc, NULL, MACRO_NumLoaded) != EMPTY)
+        return;
 
     size = ++MACRO_NumLoaded * sizeof(struct MacroDesc);
     if (!MACRO_Loaded) MACRO_Loaded = HeapAlloc(GetProcessHeap(), 0, size);
     else MACRO_Loaded = HeapReAlloc(GetProcessHeap(), 0, MACRO_Loaded, size);
     MACRO_Loaded[MACRO_NumLoaded - 1].name      = StrDup(proc); /* FIXME: never freed */
-    MACRO_Loaded[MACRO_NumLoaded - 1].alias     = NULL;
+    MACRO_Loaded[MACRO_NumLoaded - 1].alias     = StrDup(dll_name);
     MACRO_Loaded[MACRO_NumLoaded - 1].isBool    = FALSE;
     MACRO_Loaded[MACRO_NumLoaded - 1].arguments = StrDup(args); /* FIXME: never freed */
-    MACRO_Loaded[MACRO_NumLoaded - 1].fn        = fn;
-    WINE_TRACE("Added %s(%s) at %p\n", debugstr_a(proc), debugstr_a(args), fn);
+    MACRO_Loaded[MACRO_NumLoaded - 1].fn        = NULL;
+    WINE_TRACE("Added %s(%s)\n", debugstr_a(proc), debugstr_a(args));
 }
 
 static void CALLBACK MACRO_RemoveAccelerator(LONG u1, LONG u2)
@@ -915,7 +964,7 @@ static void CALLBACK MACRO_UpdateWindow(LPCSTR str1, LPCSTR str2)
 static struct MacroDesc MACRO_Builtins[] = {
     {"About",               NULL, 0, "",       MACRO_About},
     {"AddAccelerator",      "AA", 0, "UUS",    MACRO_AddAccelerator},
-    {"ALink",               "AL", 0, "SUS",    MACRO_ALink},
+    {"ALink",               "AL", 0, "SUSS",   MACRO_ALink},
     {"Annotate",            NULL, 0, "",       MACRO_Annotate},
     {"AppendItem",          NULL, 0, "SSSS",   MACRO_AppendItem},
     {"Back",                NULL, 0, "",       MACRO_Back},
@@ -1006,22 +1055,6 @@ static struct MacroDesc MACRO_Builtins[] = {
     {"UpdateWindow",        "UW", 0, "SS",     MACRO_UpdateWindow},
     {NULL,                  NULL, 0, NULL,     NULL}
 };
-
-static int MACRO_DoLookUp(struct MacroDesc* start, const char* name, struct lexret* lr, unsigned len)
-{
-    struct MacroDesc*   md;
-
-    for (md = start; md->name && len != 0; md++, len--)
-    {
-        if (strcasecmp(md->name, name) == 0 || (md->alias != NULL && strcasecmp(md->alias, name) == 0))
-        {
-            lr->proto = md->arguments;
-            lr->function = md->fn;
-            return md->isBool ? BOOL_FUNCTION : VOID_FUNCTION;
-        }
-    }
-    return EMPTY;
-}
 
 int MACRO_Lookup(const char* name, struct lexret* lr)
 {
