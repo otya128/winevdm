@@ -535,7 +535,7 @@ HRESULT WINAPI SafeArrayRedim16(SAFEARRAY16 *psa, SAFEARRAYBOUND16 *psabound)
         return E_OUTOFMEMORY;
       }
 
-      memcpy(pvNewData, psa->pvData, ulOldSize);
+      memcpy(MapSL(pvNewData), MapSL(psa->pvData), ulOldSize);
       safearray_free(psa->pvData);
       psa->pvData = pvNewData;
     }
