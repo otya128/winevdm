@@ -948,7 +948,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
                 }
                 WINHELP_DeleteButtons(win);
                 bReUsed = TRUE;
-                int codepage = wpage->page ? wpage->page->file->codepage : GetACP();
+                int codepage = wpage->page ? wpage->page->file->codepage : CP_ACP;
                 MultiByteToWideChar(codepage, 0, WINHELP_GetCaption(wpage), -1, caption, 60);
                 SetWindowTextW(win->hMainWnd, caption);
                 if (win->info != wpage->wininfo)
@@ -1030,7 +1030,7 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
 
     if (!bReUsed)
     {
-        int codepage = wpage->page ? wpage->page->file->codepage : GetACP();
+        int codepage = wpage->page ? wpage->page->file->codepage : CP_ACP;
         MultiByteToWideChar(codepage, 0, WINHELP_GetCaption(wpage), -1, caption, 60);
         win->hMainWnd = CreateWindowExW((bPopup) ? WS_EX_TOOLWINDOW : WS_EX_CLIENTEDGE, MAIN_WIN_CLASS_NAME,
                                        caption,
@@ -1453,7 +1453,7 @@ static LRESULT CALLBACK WINHELP_HistoryWndProc(HWND hWnd, UINT msg, WPARAM wPara
                 memcpy(buffer, ptr1, len);
                 if (len < sizeof(buffer)) buffer[len++] = ':';
                 buffer[len] = '\0';
-                MultiByteToWideChar(GetACP(), 0, buffer, -1, title, 100);
+                MultiByteToWideChar(CP_ACP, 0, buffer, -1, title, 100);
                 wcsncat(title, Globals.history.set[i].page->lpszTitle, 100);
                 title[100] = 0;
                 TextOutW(hDc, 0, i * tm.tmHeight, title, wcslen(title));

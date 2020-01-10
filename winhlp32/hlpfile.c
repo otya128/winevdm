@@ -852,7 +852,7 @@ static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
                 {
                     for (wnd = file->numWindows - 1; wnd >= 0; wnd--)
                     {
-                        if (!strcmp(win + 1, file->windows[wnd].name)) break;
+                        if (!stricmp(win + 1, file->windows[wnd].name)) break;
                     }
                     if (wnd == -1)
                         WINE_WARN("Couldn't find window info for %s\n", debugstr_a(win));
@@ -1746,7 +1746,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                     case 6:
                         for (wnd = page->file->numWindows - 1; wnd >= 0; wnd--)
                         {
-                            if (!strcmp(ptr, page->file->windows[wnd].name)) break;
+                            if (!stricmp(ptr, page->file->windows[wnd].name)) break;
                         }
                         if (wnd == -1)
                             WINE_WARN("Couldn't find window info for %s\n", debugstr_a(ptr));
@@ -2442,20 +2442,20 @@ static BOOL HLPFILE_GetTOMap(HLPFILE *hlpfile)
 
 /***********************************************************************
  *
- *           HLPFILE_GetTTLBtree
+ *           HLPFILE_GetTree
  */
-static BOOL HLPFILE_GetTTLBtree(HLPFILE *hlpfile)
+static BOOL HLPFILE_GetTree(HLPFILE *hlpfile, char *name, BYTE **buf)
 {
     BYTE                *cbuf, *cend;
     unsigned            clen;
 
-    if (!HLPFILE_FindSubFile(hlpfile, "|TTLBTREE",  &cbuf, &cend))
-    {WINE_WARN("no ttlbtree section\n"); return FALSE;}
+    if (!HLPFILE_FindSubFile(hlpfile, name,  &cbuf, &cend))
+    {WINE_WARN("no %s section\n", name); return FALSE;}
 
     clen = cend - cbuf;
-    hlpfile->ttlbtree = HeapAlloc(GetProcessHeap(), 0, clen);
-    if (!hlpfile->ttlbtree) return FALSE;
-    memcpy(hlpfile->ttlbtree, cbuf, clen);
+    *buf = HeapAlloc(GetProcessHeap(), 0, clen);
+    if (!*buf) return FALSE;
+    memcpy(*buf, cbuf, clen);
     return TRUE;
 }
 
@@ -2551,6 +2551,10 @@ void HLPFILE_FreeHlpFile(HLPFILE* hlpfile)
 	    HeapFree(GetProcessHeap(), 0, hlpfile->TOMap);
     if (hlpfile->ttlbtree)
 	    HeapFree(GetProcessHeap(), 0, hlpfile->ttlbtree);
+    if (hlpfile->viola)
+	    HeapFree(GetProcessHeap(), 0, hlpfile->viola);
+    if (hlpfile->rose)
+	    HeapFree(GetProcessHeap(), 0, hlpfile->rose);
     HeapFree(GetProcessHeap(), 0, hlpfile);
 }
 
@@ -2967,7 +2971,9 @@ static BOOL HLPFILE_DoReadHlpFile(HLPFILE *hlpfile, LPCSTR lpszPath)
 
     HLPFILE_GetKeywords(hlpfile);
     HLPFILE_GetMap(hlpfile);
-    HLPFILE_GetTTLBtree(hlpfile);
+    HLPFILE_GetTree(hlpfile, "|TTLBTREE", &hlpfile->ttlbtree);
+    HLPFILE_GetTree(hlpfile, "|Viola", &hlpfile->viola);
+    HLPFILE_GetTree(hlpfile, "|Rose", &hlpfile->rose);
     if (hlpfile->version <= 16) return TRUE;
     return HLPFILE_GetContext(hlpfile);
 }
