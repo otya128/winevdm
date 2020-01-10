@@ -40,6 +40,7 @@
 #include "richedit.h"
 #include "richole.h"
 #include "commctrl.h"
+#include "psapi.h"
 
 #ifdef _DEBUG
 #include "wine/debug.h"
@@ -445,24 +446,34 @@ static void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next)
  *
  *
  */
-static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, LPARAM lParam)
+static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, WINEHELP *wh, BOOL w32)
 {
-    COPYDATASTRUCT*     cds = (COPYDATASTRUCT*)lParam;
-    WINEHELP*           wh;
-
-    if (cds->dwData != 0xA1DE505)
-    {
-        WINE_FIXME("Wrong magic number (%08lx)\n", cds->dwData);
-        return 0;
-    }
-
-    wh = cds->lpData;
-
     if (wh)
     {
         char*   ptr = (wh->ofsFilename) ? (LPSTR)wh + wh->ofsFilename : NULL;
-        if (wh->ofsPath)
+        if (!w32 && wh->ofsPath)
             SetCurrentDirectoryA((LPSTR)wh + wh->ofsPath);
+        else if (w32)
+        {
+            DWORD pid;
+            HANDLE proc;
+            GetWindowThreadProcessId(hSrcWnd, &pid);
+            proc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+            if (proc)
+            {
+                WCHAR path[MAX_PATH];
+                WCHAR *sep;
+                path[0] = 0;
+                GetModuleFileNameExW(proc, NULL, path, MAX_PATH);
+                sep = wcsrchr(path, '\\');
+                if (sep)
+                {
+                    sep[0] = 0;
+                    SetCurrentDirectoryW(path);
+                }
+                CloseHandle(proc);
+            }
+        }
 
         WINE_TRACE("Got[%u]: cmd=%u data=%08x fn=%s\n",
                    wh->size, wh->command, wh->data, debugstr_a(ptr));
@@ -1744,7 +1755,21 @@ static LRESULT CALLBACK WINHELP_MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, 
 /* EPP         if (Globals.hPopupWnd) DestroyWindow(Globals.hPopupWnd); */
 /* EPP         break; */
     case WM_COPYDATA:
-        return WINHELP_HandleCommand((HWND)wParam, lParam);
+    {
+        COPYDATASTRUCT*     cds = (COPYDATASTRUCT*)lParam;
+        WINEHELP*           wh;
+
+        if (cds->dwData != 0xA1DE505)
+        {
+            WINE_FIXME("Wrong magic number (%08lx)\n", cds->dwData);
+            return 0;
+        }
+            
+        return WINHELP_HandleCommand((HWND)wParam, cds->lpData, FALSE);
+    }
+
+    case 0x38: //WH_WINHELP
+        return WINHELP_HandleCommand((HWND)wParam, (WINEHELP *)lParam, TRUE);
 
     case WM_CHAR:
         if (wParam == 3)
