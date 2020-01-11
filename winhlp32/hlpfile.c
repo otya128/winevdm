@@ -792,7 +792,7 @@ static HLPFILE_LINK*       HLPFILE_AllocLink(struct RtfData* rd, int cookie,
  *
  */
 static void HLPFILE_AddHotSpotLinks(struct RtfData* rd, HLPFILE* file,
-                                    const BYTE* start, ULONG hs_size, ULONG hs_offset, int coorddiv)
+                                    const BYTE* start, ULONG hs_size, ULONG hs_offset, float coorddiv)
 {
     unsigned    i, hs_num;
     ULONG       hs_macro;
@@ -1105,7 +1105,7 @@ static BOOL     HLPFILE_RtfAddMetaFile(struct RtfData* rd, HLPFILE* file, const 
     ptr += 8;
 
     // WMF type uses MM_HIMETRIC units for size
-    HLPFILE_AddHotSpotLinks(rd, file, beg, hs_size, hs_offset, mm == 8 ? 27 : 1);
+    HLPFILE_AddHotSpotLinks(rd, file, beg, hs_size, hs_offset, mm == 8 ? 26.2f : 1);
 
     WINE_TRACE("sz=%u csz=%u offs=%u/%u,%u/%u\n",
                size, csize, off, (ULONG)(ptr - beg), hs_size, hs_offset);
