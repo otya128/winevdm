@@ -381,6 +381,12 @@ HRESULT WINAPI VarI1FromR416(FLOAT fltIn, signed char* pcOut)
  * NOTES
  *  See VarI8FromR8() for details concerning rounding.
  */
+HRESULT WINAPI VarI1FromR816_conv(DWORD dblIn1, DWORD dblIn2, signed char* pcOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarI1FromR816(*(double *)&dbl, pcOut);
+}
+
 HRESULT WINAPI VarI1FromR816(double dblIn, signed char* pcOut)
 {
   if (dblIn < I1_MIN - 0.5 || dblIn >= I1_MAX + 0.5)
@@ -671,6 +677,12 @@ HRESULT WINAPI VarUI1FromR416(FLOAT fltIn, BYTE* pbOut)
  * NOTES
  *  See VarI8FromR8() for details concerning rounding.
  */
+HRESULT WINAPI VarUI1FromR816_conv(DWORD dblIn1, DWORD dblIn2, BYTE* pbOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarUI1FromR816(*(double *)&dbl, pbOut);
+}
+
 HRESULT WINAPI VarUI1FromR816(double dblIn, BYTE* pbOut)
 {
   fix_double(&dblIn);
@@ -697,6 +709,12 @@ HRESULT WINAPI VarUI1FromR816(double dblIn, BYTE* pbOut)
  * NOTES
  *  Negative values >= -5000 will be converted to 0.
  */
+HRESULT WINAPI VarUI1FromCy16_conv(DWORD dblIn1, DWORD dblIn2, BYTE* pbOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarUI1FromCy16(*(CY *)&dbl, pbOut);
+}
+
 HRESULT WINAPI VarUI1FromCy16(CY cyIn, BYTE* pbOut)
 {
   fix_double(&cyIn);
@@ -717,6 +735,11 @@ HRESULT WINAPI VarUI1FromCy16(CY cyIn, BYTE* pbOut)
  *  Failure: E_INVALIDARG, if the source value is invalid
  *           DISP_E_OVERFLOW, if the value will not fit in the destination
  */
+HRESULT WINAPI VarUI1FromDate16_conv(DWORD dblIn1, DWORD dblIn2, BYTE* pbOut)
+{
+  return VarUI1FromR816_conv(dblIn1, dblIn2, pbOut);
+}
+
 HRESULT WINAPI VarUI1FromDate16(DATE dateIn, BYTE* pbOut)
 {
   return VarUI1FromR816(dateIn, pbOut);
@@ -957,7 +980,7 @@ HRESULT WINAPI VarI2FromI416(LONG iIn, SHORT* psOut)
  */
 HRESULT WINAPI VarI2FromR416(FLOAT fltIn, SHORT* psOut)
 {
-  return VarI2FromR8(fltIn, psOut);
+  return VarI2FromR4(fltIn, psOut);
 }
 
 /************************************************************************
@@ -976,6 +999,12 @@ HRESULT WINAPI VarI2FromR416(FLOAT fltIn, SHORT* psOut)
  * NOTES
  *  See VarI8FromR8() for details concerning rounding.
  */
+HRESULT WINAPI VarI2FromR816_conv(DWORD dblIn1, DWORD dblIn2, signed char* pcOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarI2FromR816(*(double *)&dbl, pcOut);
+}
+
 HRESULT WINAPI VarI2FromR816(double dblIn, SHORT* psOut)
 {
   fix_double(&dblIn);
@@ -998,6 +1027,12 @@ HRESULT WINAPI VarI2FromR816(double dblIn, SHORT* psOut)
  *  Success: S_OK.
  *  Failure: DISP_E_OVERFLOW, if the value will not fit in the destination
  */
+HRESULT WINAPI VarI2FromCy16_conv(DWORD dblIn1, DWORD dblIn2, signed char* pcOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarI2FromCy16(*(CY *)&dbl, pcOut);
+}
+
 HRESULT WINAPI VarI2FromCy16(CY cyIn, SHORT* psOut)
 {
   fix_double(&cyIn);
@@ -1017,6 +1052,12 @@ HRESULT WINAPI VarI2FromCy16(CY cyIn, SHORT* psOut)
  *  Success: S_OK.
  *  Failure: DISP_E_OVERFLOW, if the value will not fit in the destination
  */
+HRESULT WINAPI VarI2FromDate16_conv(DWORD dblIn1, DWORD dblIn2, signed char* pcOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarI2FromDate16(*(DATE *)&dbl, pcOut);
+}
+
 HRESULT WINAPI VarI2FromDate16(DATE dateIn, SHORT* psOut)
 {
   fix_double(&dateIn);
@@ -2793,6 +2834,12 @@ HRESULT WINAPI VarR4FromI416(LONG lIn, float *pFltOut)
  *  Success: S_OK.
  *  Failure: DISP_E_OVERFLOW, if the value will not fit in the destination.
  */
+HRESULT WINAPI VarR4FromR816_conv(DWORD dblIn1, DWORD dblIn2, signed char* pcOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarR4FromR816(*(double *)&dbl, pcOut);
+}
+
 HRESULT WINAPI VarR4FromR816(double dblIn, float *pFltOut)
 {
   double d = dblIn < 0.0 ? -dblIn : dblIn;
@@ -6631,6 +6678,12 @@ HRESULT WINAPI VarBstrFromR416(FLOAT fltIn, LCID lcid, ULONG dwFlags, SEGBSTR16*
  *  Failure: E_INVALIDARG, if pbstrOut is invalid.
  *           E_OUTOFMEMORY, if memory allocation fails.
  */
+HRESULT WINAPI VarBstrFromR816_conv(DWORD dblIn1, DWORD dblIn2, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarBstrFromR816(*(double *)&dbl, lcid, dwFlags, pbstrOut);
+}
+
 HRESULT WINAPI VarBstrFromR816(double dblIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
 {
   fix_double(&dblIn);
@@ -6653,6 +6706,12 @@ HRESULT WINAPI VarBstrFromR816(double dblIn, LCID lcid, ULONG dwFlags, SEGBSTR16
  *  Failure: E_INVALIDARG, if pbstrOut is invalid.
  *           E_OUTOFMEMORY, if memory allocation fails.
  */
+HRESULT WINAPI VarBstrFromCy16_conv(DWORD dblIn1, DWORD dblIn2, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarBstrFromCy16(*(CY *)&dbl, lcid, dwFlags, pbstrOut);
+}
+
 HRESULT WINAPI VarBstrFromCy16(CY cyIn, LCID lcid, ULONG dwFlags, SEGBSTR16 *pbstrOut)
 {
   OLECHAR16 buff[256];
@@ -6825,6 +6884,12 @@ void map_bstr32_16(SEGPTR *a16, const BSTR *a32);
  *  Failure: E_INVALIDARG, if pbstrOut or dateIn is invalid.
  *           E_OUTOFMEMORY, if memory allocation fails.
  */
+HRESULT WINAPI VarBstrFromDate16_conv(DWORD dblIn1, DWORD dblIn2, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
+{
+  UINT64 dbl = (UINT64)dblIn1 << 32 | dblIn2;
+  return VarBstrFromDate16(*(DATE *)&dbl, lcid, dwFlags, pbstrOut);
+}
+
 HRESULT WINAPI VarBstrFromDate16(DATE dateIn, LCID lcid, ULONG dwFlags, SEGBSTR16* pbstrOut)
 {
     BSTR bstr32;
@@ -8003,7 +8068,7 @@ HRESULT WINAPI VarDateFromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, DATE
   }
 
   for (i = 0; i < ARRAY_SIZE(tokens); i++)
-    SysFreeString(tokens[i]);
+    SysFreeString16(tokens[i]);
   return hRet;
 }
 
