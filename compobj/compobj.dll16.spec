@@ -220,3 +220,4 @@
 @ stdcall -arch=win32 get_task_imalloc16(ptr)
 @ stdcall -arch=win32 CoInitialize16(long)
 @ stdcall -arch=win32 CoUninitialize16()
+@ stdcall -arch=win32 StringFromGUID216(ptr ptr long)

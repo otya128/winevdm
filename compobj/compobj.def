@@ -7,3 +7,4 @@ EXPORTS
   get_task_imalloc16 @2
   CoInitialize16 @3
   CoUninitialize16 @4
+  StringFromGUID216 @5
