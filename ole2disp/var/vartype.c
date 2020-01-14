@@ -7786,7 +7786,7 @@ HRESULT WINAPI VarDateFromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, DATE
     buff[0] = '\0';
     GetLocaleInfoA(lcid, lctype, buff, ARRAY_SIZE(buff));
     tokens[i] = SysAllocString16(buff);
-    TRACE("token %d is %s\n", i, debugstr_a(tokens[i]));
+    TRACE("token %d is %s\n", i, debugstr_a((OLECHAR16*)MapSL(tokens[i])));
   }
 
   /* Parse the string into our structure */
@@ -7809,8 +7809,9 @@ HRESULT WINAPI VarDateFromStr16(OLECHAR16* strIn, LCID lcid, ULONG dwFlags, DATE
 
       for (i = 0; i < ARRAY_SIZE(tokens); i++)
       {
-        DWORD dwLen = strlenA(tokens[i]);
-        if (dwLen && !strncmpiA(strIn, tokens[i], dwLen))
+        OLECHAR16 *token = (OLECHAR16*)MapSL(tokens[i]);
+        DWORD dwLen = strlenA(token);
+        if (dwLen && !strncmpiA(strIn, token, dwLen))
         {
           if (i <= 25)
           {
