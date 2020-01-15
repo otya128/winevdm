@@ -124,6 +124,8 @@ typedef struct tagHlpFileFile
     unsigned*                   TOMap;
     unsigned long               contents_start;
     BYTE*                       ttlbtree;
+    BYTE*                       rose;
+    BYTE*                       viola;
 
     struct tagHlpFileFile*      prev;
     struct tagHlpFileFile*      next;
