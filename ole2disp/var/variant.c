@@ -951,7 +951,7 @@ HRESULT WINAPI VariantCopyInd16(VARIANT16* pvargDest, VARIANTARG16* pvargSrc)
   else if (V_VT(pSrc) == (VT_BSTR|VT_BYREF))
   {
     /* Native doesn't check that *V_BSTRREF(pSrc) is valid */
-    V_BSTR(pvargDest) = SysAllocStringByteLen16((char*)*V_BSTRREF16(pSrc), SysStringByteLen16(*V_BSTRREF16(pSrc)));
+    V_BSTR(pvargDest) = SysAllocStringByteLen16((char*)MapSL(*V_BSTRREF16(pSrc)), SysStringByteLen16(*V_BSTRREF16(pSrc)));
   }
 #ifdef AVAIL_32BIT_VAR
   else if (V_VT(pSrc) == (VT_RECORD|VT_BYREF))

@@ -42,9 +42,9 @@
 42 pascal SafeArrayRedim(ptr ptr) SafeArrayRedim16
 43 pascal VarI2FromI4(long ptr) VarI2FromI416
 44 pascal VarI2FromR4(float ptr) VarI2FromR416
-45 pascal VarI2FromR8(double ptr) VarI2FromR816
-46 pascal VarI2FromCy(double ptr) VarI2FromCy16
-47 pascal VarI2FromDate(double ptr) VarI2FromDate16
+45 pascal VarI2FromR8(long long ptr) VarI2FromR816_conv
+46 pascal VarI2FromCy(long long ptr) VarI2FromCy16_conv
+47 pascal VarI2FromDate(long long ptr) VarI2FromDate16_conv
 48 pascal VarI2FromStr(str long long ptr) VarI2FromStr16
 49 stub VARI2FROMDISP
 50 pascal VarI2FromBool(word ptr) VarI2FromBool16
@@ -58,7 +58,7 @@
 58 stub VARI4FROMBOOL
 59 stub VARR4FROMI2
 60 stub VARR4FROMI4
-61 stub VARR4FROMR8
+61 pascal VarR4FromR8(long long ptr) VarR4FromR816_conv
 62 stub VARR4FROMCY
 63 stub VARR4FROMDATE
 64 pascal VarR4FromStr(str long long ptr) VarR4FromStr16
@@ -69,7 +69,7 @@
 69 stub VARR8FROMR4
 70 stub VARR8FROMCY
 71 stub VARR8FROMDATE
-72 stub VARR8FROMSTR
+72 pascal VarR8FromStr(str long long ptr) VarR8FromStr16
 73 stub VARR8FROMDISP
 74 stub VARR8FROMBOOL
 75 stub VARDATEFROMI2
@@ -77,7 +77,7 @@
 77 stub VARDATEFROMR4
 78 stub VARDATEFROMR8
 79 stub VARDATEFROMCY
-80 stub VARDATEFROMSTR
+80 pascal VarDateFromStr(str long long ptr) VarDateFromStr16
 81 stub VARDATEFROMDISP
 82 stub VARDATEFROMBOOL
 83 stub VARCYFROMI2
@@ -91,9 +91,9 @@
 91 pascal VarBstrFromI2(s_word long long ptr) VarBstrFromI216
 92 pascal VarBstrFromI4(long long long ptr) VarBstrFromI416
 93 pascal VarBstrFromR4(long long long ptr) VarBstrFromR416
-94 pascal VarBstrFromR8(double long long ptr) VarBstrFromR816
-95 pascal VarBstrFromCy(double long long ptr) VarBstrFromCy16
-96 pascal VarBstrFromDate(double long long ptr) VarBstrFromDate16
+94 pascal VarBstrFromR8(long long long long ptr) VarBstrFromR816_conv
+95 pascal VarBstrFromCy(long long long long ptr) VarBstrFromCy16_conv
+96 pascal VarBstrFromDate(long long long long ptr) VarBstrFromDate16_conv
 97 pascal VarBstrFromDisp(segptr long long ptr) VarBstrFromDisp16
 98 pascal VarBstrFromBool(word long long ptr) VarBstrFromBool16
 99 stub VARBOOLFROMI2
@@ -116,9 +116,9 @@
 116 pascal VarUI1FromI2(word ptr) VarUI1FromI216
 117 pascal VarUI1FromI4(long ptr) VarUI1FromI416
 118 pascal VarUI1FromR4(long ptr) VarUI1FromR416
-119 pascal VarUI1FromR8(double ptr) VarUI1FromR816
-120 pascal VarUI1FromCy(int64 ptr) VarUI1FromCy16
-121 pascal VarUI1FromDate(double ptr) VarUI1FromDate16
+119 pascal VarUI1FromR8(long long ptr) VarUI1FromR816_conv
+120 pascal VarUI1FromCy(long long ptr) VarUI1FromCy16_conv
+121 pascal VarUI1FromDate(long long ptr) VarUI1FromDate16_conv
 122 pascal VarUI1FromStr(str long long ptr) VarUI1FromStr16
 123 pascal VarUI1FromDisp(segptr long ptr) VarUI1FromDisp16
 124 pascal VarUI1FromBool(word ptr) VarUI1FromBool16
