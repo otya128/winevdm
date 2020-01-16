@@ -2439,39 +2439,6 @@ DWORD WINAPI LoadLibraryEx32W16( LPCSTR lpszLibFile, DWORD hFile, DWORD dwFlags 
 {
     HMODULE hModule;
     DWORD mutex_count;
-    OFSTRUCT ofs;
-    const char *p;
-
-    if (!lpszLibFile)
-    {
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return 0;
-    }
-
-    /* if the file cannot be found, call LoadLibraryExA anyway, since it might be
-       a builtin module. This case is handled in MODULE_LoadLibraryExA */
-
-    if ((p = strrchr( lpszLibFile, '.' )) && !strchr( p, '\\' ))  /* got an extension */
-    {
-        if (OpenFile16( lpszLibFile, &ofs, OF_EXIST ) != HFILE_ERROR16)
-            lpszLibFile = ofs.szPathName;
-        else
-        {
-            return 0;
-        }
-    }
-    else
-    {
-        char buffer[MAX_PATH + 4];
-        strcpy(buffer, lpszLibFile);
-        strcat(buffer, ".dll");
-        if (OpenFile16(buffer, &ofs, OF_EXIST) != HFILE_ERROR16)
-            lpszLibFile = ofs.szPathName;
-        else
-        {
-            return 0;
-        }
-    }
 
     ReleaseThunkLock( &mutex_count );
     hModule = LoadLibraryExA( lpszLibFile, (HANDLE)hFile, dwFlags );
