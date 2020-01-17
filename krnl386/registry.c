@@ -171,14 +171,32 @@ DWORD WINAPI RegCreateKey16( HKEY hkey, LPCSTR name, PHKEY retkey )
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
     DWORD result;
+    TRACE("%x %s\n", hkey, name);
     if (is_redir_root_key(hkey) && is_empty(name))
     {
         *retkey = hkey;
         fix_redir_key(retkey, &result);
         return ERROR_SUCCESS;
     }
-    result = pRegCreateKeyA(hkey, name, retkey);
+    // try to create with write access
+    result = RegCreateKeyExA(hkey, name, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, retkey, NULL);
+    // try to redirect to HKEY_CURRENT_USER if possible
+    if (!enable_registry_redirection && (result != ERROR_SUCCESS) && (hkey == HKEY_CLASSES_ROOT))
+    {
+        const char softclass[] = "Software\\Classes\\";
+        char *hkcukey = HeapAlloc(GetProcessHeap(), 0, 17 + strlen(name) + 1);
+        strcpy(hkcukey, softclass);
+        strcat(hkcukey, name);
+        result = RegCreateKeyExA(HKEY_CURRENT_USER, hkcukey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, retkey, NULL);
+        if (result == ERROR_SUCCESS)
+            WARN("HKCR CreateKey redirected to HKCU\n");
+        HeapFree(GetProcessHeap(), 0, hkcukey);
+    }
+    // failed, try to open for reading
+    if (result != ERROR_SUCCESS)
+        result = RegOpenKeyA(hkey, name, retkey);
     fix_redir_key(retkey, &result);
+    TRACE("%x, %x\n", result, *retkey);
     return result;
 }
 
@@ -201,6 +219,7 @@ DWORD WINAPI RegDeleteKey16( HKEY hkey, LPCSTR name )
 DWORD WINAPI RegCloseKey16( HKEY hkey )
 {
     if (!advapi32) init_func_ptrs();
+    TRACE("%x\n", hkey);
     fix_win16_hkey( &hkey );
     if (is_redir_root_key(hkey))
         return ERROR_SUCCESS;
@@ -213,9 +232,16 @@ DWORD WINAPI RegCloseKey16( HKEY hkey )
  */
 DWORD WINAPI RegSetValue16( HKEY hkey, LPCSTR name, DWORD type, LPCSTR data, DWORD count )
 {
+    HKEY subkey;
+    DWORD result;
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    DWORD result = pRegSetValueA( hkey, name, type, data, count );
+    result = RegCreateKey16(hkey, name, &subkey);
+    if (result == ERROR_SUCCESS)
+    {
+        result = RegSetValueEx16(subkey, NULL, 0, type, data, count);
+        RegCloseKey16(subkey);
+    }
     return result;
 }
 
