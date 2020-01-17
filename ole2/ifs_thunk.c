@@ -801,7 +801,7 @@ typedef struct
     FUNCDESC16 desc16;
 } FUNCDESC16_WRAPPER;
 void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32);
-void map_typedesc16_32(TYPEDESC16 *a32, const TYPEDESC *a16);
+void map_typedesc16_32(TYPEDESC *a32, const TYPEDESC16 *a16);
 void map_arraydesc32_16(ARRAYDESC16 *a16, const ARRAYDESC *a32)
 {
     int i;
