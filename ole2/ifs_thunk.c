@@ -793,12 +793,6 @@ HRESULT STDMETHODCALLTYPE ITypeLib_32_16_IsName(ITypeLib *This, LPOLESTR szNameB
     return result32__;
 }
 #endif
-
-FUNCDESC *map_funcdesc32(const FUNCDESC16 *a16)
-{
-    FIXME("\n");
-    return NULL;
-}
 #define FUNCDESC16_WRAPPER_MAGIC 'FDSC'
 typedef struct
 {
@@ -807,6 +801,7 @@ typedef struct
     FUNCDESC16 desc16;
 } FUNCDESC16_WRAPPER;
 void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32);
+void map_typedesc16_32(TYPEDESC16 *a32, const TYPEDESC *a16);
 void map_arraydesc32_16(ARRAYDESC16 *a16, const ARRAYDESC *a32)
 {
     int i;
@@ -818,11 +813,28 @@ void map_arraydesc32_16(ARRAYDESC16 *a16, const ARRAYDESC *a32)
         a16->rgbounds[i].lLbound = a32->rgbounds[i].lLbound;
     }
 }
+void map_arraydesc16_32(ARRAYDESC16 *a32, const ARRAYDESC *a16)
+{
+    int i;
+    a32->cDims = a16->cDims;
+    map_typedesc16_32(&a32->tdescElem, &a16->tdescElem);
+    for (i = 0; i < a32->cDims; i++)
+    {
+        a32->rgbounds[i].cElements = a16->rgbounds[i].cElements;
+        a32->rgbounds[i].lLbound = a16->rgbounds[i].lLbound;
+    }
+}
 void map_idldesc32_16(IDLDESC16 *a16, const IDLDESC *a32)
 {
     map_bstr32_16(&a16->bstrIDLInfo, a32);
     a16->wIDLFlags = a32->wIDLFlags;
     TRACE("(%04x)\n", a16->wIDLFlags);
+}
+void map_idldesc16_32(IDLDESC16 *a32, const IDLDESC *a16)
+{
+    map_bstr16_32(&a32->bstrIDLInfo, a16);
+    a32->wIDLFlags = a16->wIDLFlags;
+    TRACE("(%04x)\n", a32->wIDLFlags);
 }
 void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32)
 {
@@ -855,12 +867,76 @@ void map_typedesc32_16(TYPEDESC16 *a16, const TYPEDESC *a32)
         break;
     }
 }
+void map_typedesc16_32(TYPEDESC *a32, const TYPEDESC16 *a16)
+{
+    a32->vt = a16->vt;
+    switch (a16->vt)
+    {
+    case VT_PTR:
+    {
+        TYPEDESC *typ = (TYPEDESC*)HeapAlloc(GetProcessHeap(), 0, sizeof(TYPEDESC));
+        map_typedesc16_32(typ, MapSL(a16->lptdesc));
+        a32->lptdesc = typ;
+        TRACE("VT_PTR\n");
+        break;
+    }
+    case VT_CARRAY:
+    {
+        ARRAYDESC16 *ary16 = MapSL(a16->lpadesc);
+        ARRAYDESC *ary = (ARRAYDESC*)HeapAlloc(GetProcessHeap(), 0, sizeof(ARRAYDESC) - sizeof(SAFEARRAYBOUND) * (ary16->cDims - 1));
+        map_arraydesc16_32(ary, ary16);
+        a32->lpadesc = ary;
+        TRACE("VT_CARRAY\n");
+        break;
+    }
+    case VT_USERDEFINED:
+        a32->hreftype = a16->hreftype;
+        TRACE("VT_USERDEFINED hreftype:%08x\n", a32->hreftype);
+        break;
+    default:
+        a32->hreftype = 0xdeadbeef;
+        TRACE("%s\n", debugstr_vt(a32->vt));
+        break;
+    }
+}
 void map_elemdesc32_16(ELEMDESC16 *a16, const ELEMDESC *a32)
 {
     map_typedesc32_16(&a16->tdesc, &a32->tdesc);
     map_idldesc32_16(&a16->idldesc, &a32->idldesc);
     TRACE("\n");
 }
+void map_elemdesc16_32(ELEMDESC *a32, const ELEMDESC16 *a16)
+{
+    map_typedesc16_32(&a32->tdesc, &a16->tdesc);
+    if (a32->tdesc.vt != VT_EMPTY)
+        map_idldesc16_32(&a32->idldesc, &a16->idldesc);
+    TRACE("\n");
+}
+
+FUNCDESC *map_funcdesc32(const FUNCDESC16 *a16)
+{
+    ELEMDESC *elm32;
+    FUNCDESC *a32 = HeapAlloc(GetProcessHeap(), 0, sizeof(FUNCDESC) + sizeof(ELEMDESC) * a16->cParams);
+    elm32 = (ELEMDESC*)(a32 + 1);
+    a32->memid = a16->memid;
+    a32->lprgscode = MapSL(a16->lprgscode);
+    a32->lprgelemdescParam = elm32;
+    for (int i = 0; i < a16->cParams; i++)
+    {
+        map_elemdesc16_32(elm32 + i, (ELEMDESC16 *)MapSL(a16->lprgelemdescParam) + i);
+    }
+    a32->funckind = a16->funckind;
+    a32->invkind = a16->invkind;
+    a32->callconv = a16->callconv;
+    a32->cParams = a16->cParams;
+    a32->cParamsOpt = a16->cParamsOpt;
+    a32->oVft = a16->oVft;
+    a32->cScodes = a16->cScodes;
+    map_elemdesc16_32(&a32->elemdescFunc, &a16->elemdescFunc);
+    a32->wFuncFlags = a16->wFuncFlags;
+    return a32;
+}
+
 FUNCDESC16 *map_funcdesc16(const FUNCDESC *a32)
 {
     int i;
@@ -1049,8 +1125,25 @@ void STDMETHODCALLTYPE ITypeInfo_32_16_ReleaseTypeAttr(ITypeInfo *This, TYPEATTR
 
 VARDESC *map_vardesc32(const VARDESC16 *a16)
 {
-    FIXME("\n");
-    return NULL;
+    VARDESC *a32 = (VARDESC*)HeapAlloc(GetProcessHeap(), 0, sizeof(VARDESC));
+    a16 = (VARDESC16 *)MapSL(a16);
+    a32->memid = a16->memid;
+    a32->lpstrSchema = a16->lpstrSchema;
+    map_elemdesc16_32(&a32->elemdescVar, &a16->elemdescVar);
+    a32->wVarFlags = a16->wVarFlags;
+    a32->varkind = a16->varkind;
+    a32->lpvarValue = 0xcafebabe;
+    if (a16->varkind == VAR_CONST)
+    {
+        FIXME("VAR_CONST\n");
+        a32->lpvarValue = MapSL(a16->lpvarValue);
+    }
+    if (a32->varkind == VAR_PERINSTANCE)
+    {
+        a32->oInst = a16->oInst;
+    }
+    TRACE("{memid:0x%08x,lpstrSchema:%d,wVarFlags:0x%04x,varkind:%d,lpvarValue:0x%08x}\n", a32->memid, a32->lpstrSchema, a32->wVarFlags, a32->varkind, a32->lpvarValue);
+    return a32;
 }
 
 #define VARDESC16_WRAPPER_MAGIC 'Vmag'
@@ -1076,7 +1169,7 @@ VARDESC16 *map_vardesc16(const VARDESC *a32)
     if (a16->varkind == VAR_CONST)
     {
         FIXME("VAR_CONST\n");
-        a16->lpvarValue = 0xdeadbeef;
+        a16->lpvarValue = MapLS(a32->lpvarValue);
     }
     if (a16->varkind == VAR_PERINSTANCE)
     {
