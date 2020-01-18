@@ -1042,13 +1042,10 @@ void frstor(const char* a)
     char instr[] = { 0xdd, 0x20, 0xee }; /* frstor [eax] */
     callx87(instr, a);
 }
-void fstenv32(char* a, int d)
+void fstenv32(char* a)
 {
-    const char instr32[] = { 0xd9, 0x30, 0xee }; /* fnstenv dword ptr [eax] */
-    const char instr16[] = { 0x66, 0xd9, 0x30, 0xee };
-    segment_desc_t seg;
-    load_seg(&seg, seg_cs);
-    callx87(seg.operand_size ? instr32 : instr16, a);
+    const char instr[] = { 0xd9, 0x30, 0xee }; /* fnstenv dword ptr [eax] */
+    callx87(instr, a);
 }
 typedef void(*fldcw_t)(WORD);
 typedef void(*wait_t)();
@@ -1060,6 +1057,7 @@ typedef void(*fclex_t)();
 typedef void(*fsave_t)(char*);
 typedef void(*fstenv32_t)(char*);
 typedef void(*frstor_t)(const char*);
+typedef DWORD(*fistp_t)(WORD);
 typedef struct
 {
     fldcw_t fldcw;
@@ -1070,8 +1068,9 @@ typedef struct
     frndint_t frndint;
     fclex_t fclex;
     fsave_t fsave;
-    fstenv32_t fstenv32;
     frstor_t frstor;
+    fstenv32_t fstenv32;
+    fistp_t fistp;
 } x87function;
 __declspec(dllexport) void load_x87function(x87function *func)
 {
