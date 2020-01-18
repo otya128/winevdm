@@ -206,7 +206,7 @@ static BOOL find_typelib_key( REFGUID guid, WORD *wMaj, WORD *wMin )
     HKEY hkey;
 
     memcpy( buffer, typelib, sizeof(typelib) );
-    StringFromGUID2( guid, buffer + strlenW(buffer), 40 );
+    StringFromGUID216( guid, buffer + strlen(buffer), 40 );
 
     if (RegOpenKey16( HKEY_CLASSES_ROOT, buffer, &hkey ) != ERROR_SUCCESS)
         return FALSE;
@@ -219,7 +219,7 @@ static BOOL find_typelib_key( REFGUID guid, WORD *wMaj, WORD *wMin )
 
         if (sscanf(key_name, "%x.%x", &v_maj, &v_min) == 2)
         {
-            TRACE("found %s: %x.%x\n", debugstr_w(buffer), v_maj, v_min);
+            TRACE("found %s: %x.%x\n", debugstr_a(buffer), v_maj, v_min);
 
             if (*wMaj == 0xffff && *wMin == 0xffff)
             {
@@ -327,7 +327,7 @@ struct tlibredirect_data
 
 /* Get the path to a registered type library. Helper for QueryPathOfRegTypeLib. */
 static HRESULT query_typelib_path( REFGUID guid, WORD wMaj, WORD wMin,
-                                   SYSKIND syskind, LCID lcid, BSTR16 *path, BOOL redir )
+                                   SYSKIND syskind, LCID lcid, char **path, BOOL redir )
 {
     HRESULT hr = TYPE_E_LIBNOTREGISTERED;
     LCID myLCID = lcid;
@@ -359,9 +359,7 @@ static HRESULT query_typelib_path( REFGUID guid, WORD wMaj, WORD wMin,
             if (!len) return TYPE_E_LIBNOTREGISTERED;
 
             TRACE_(typelib)("got path from context %s\n", debugstr_w(Path));
-            PathWA = strdupWtoA(Path);
-            *path = SysAllocString16(PathWA);
-            HeapFree(GetProcessHeap(), 0, PathWA);
+            *path = strdupWtoA(Path);
             return S_OK;
         }
     }
@@ -408,8 +406,8 @@ static HRESULT query_typelib_path( REFGUID guid, WORD wMaj, WORD wMin,
         }
         else
         {
-
-            *path = SysAllocString16( Patha );
+            *path = HeapAlloc(GetProcessHeap(), 0, strlen(Patha + 1));
+            strcpy(*path, Patha);
             hr = S_OK;
         }
     }
@@ -904,6 +902,7 @@ HRESULT WINAPI UnRegisterTypeLib(
 	SYSKIND syskind)
 {
     BSTR16 tlibPath = NULL;
+    BSTR tlibPathW;
     DWORD tmpLength;
     char keyName[60];
     char subKeyName[50];
@@ -942,6 +941,7 @@ HRESULT WINAPI UnRegisterTypeLib(
     }
 
     /* Try and load the type library */
+    tlibPathW = strdupAtoW(tlibPath);
     if (LoadTypeLibEx16Impl(tlibPath, REGKIND_NONE, &typeLib) != S_OK) {
         result = TYPE_E_INVALIDSTATE;
         goto end;
@@ -1022,7 +1022,8 @@ enddeleteloop:
     }
 
 end:
-    SysFreeString(tlibPath);
+    HeapFree(GetProcessHeap(), 0, tlibPath);
+    HeapFree(GetProcessHeap(), 0, tlibPathW);
     if (typeLib) ITypeLib_Release(typeLib);
     if (key) RegCloseKey(key);
     return result;
@@ -2960,6 +2961,7 @@ static HRESULT TLB_PEFile_Open(LPCWSTR path, INT index, LPVOID *ppBase, DWORD *p
 {
     TLB_PEFile *This;
     HRESULT hr = TYPE_E_CANTLOADLIBRARY;
+    index = -1 ? 1 : index;
 
     This = heap_alloc(sizeof(TLB_PEFile));
     if (!This)
@@ -3169,7 +3171,7 @@ static BOOL find_ne_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
     {
         WORD id = LOWORD(resid) | 0x8000;
         for (count = typeInfo->count; count > 0; count--, nameInfo++)
-            if (nameInfo->id == id) goto found_name;
+            if (nameInfo->id == id || id == 0xffff) goto found_name;
     }
     TRACE("No resid entry found for %p\n", typeid );
     heap_free( resTab );
@@ -3364,7 +3366,7 @@ static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath
 {
     ITypeLibImpl *entry;
     HRESULT ret;
-    INT index = 1;
+    INT index = -1;
     LPWSTR index_str, file = (LPWSTR)pszFileName;
     LPVOID pBase = NULL;
     DWORD dwTLBLength = 0;
@@ -4065,7 +4067,7 @@ static sltg_ref_lookup_t *SLTG_DoRefs(SLTG_RefInfo *pRef, ITypeLibImpl *pTL,
 }
 
 static char *SLTG_DoImpls(char *pBlk, ITypeInfoImpl *pTI,
-			  BOOL OneOnly, const sltg_ref_lookup_t *ref_lookup)
+			  BOOL OneOnly, const sltg_ref_lookup_t *ref_lookup, int startidx)
 {
     SLTG_ImplInfo *info;
     TLBImplType *pImplType;
@@ -4088,7 +4090,7 @@ static char *SLTG_DoImpls(char *pBlk, ITypeInfoImpl *pTI,
     pTI->impltypes = TLBImplType_Alloc(pTI->typeattr.cImplTypes);
     pImplType = pTI->impltypes;
     while(1) {
-	sltg_get_typelib_ref(ref_lookup, info->ref, &pImplType->hRef);
+	sltg_get_typelib_ref(ref_lookup, info->ref - startidx, &pImplType->hRef);
 	pImplType->implflags = info->impltypeflags;
 	++pImplType;
 
@@ -4339,7 +4341,7 @@ static void SLTG_ProcessCoClass(char *pBlk, ITypeInfoImpl *pTI,
     pFirstItem = pBlk;
 
     if(*(WORD*)pFirstItem == SLTG_IMPL_MAGIC) {
-        SLTG_DoImpls(pFirstItem, pTI, FALSE, ref_lookup);
+        SLTG_DoImpls(pFirstItem, pTI, FALSE, ref_lookup, 0);
     }
     heap_free(ref_lookup);
 }
@@ -4360,7 +4362,7 @@ static void SLTG_ProcessInterface(char *pBlk, ITypeInfoImpl *pTI,
     pFirstItem = pBlk;
 
     if(*(WORD*)pFirstItem == SLTG_IMPL_MAGIC) {
-        SLTG_DoImpls(pFirstItem, pTI, TRUE, ref_lookup);
+        SLTG_DoImpls(pFirstItem, pTI, TRUE, ref_lookup, 0);
     }
 
     if (pTITail->funcs_off != 0xffff)
@@ -4423,7 +4425,7 @@ static void SLTG_ProcessDispatch(char *pBlk, ITypeInfoImpl *pTI,
     SLTG_DoFuncs(pBlk, pBlk + pTITail->funcs_off, pTI, pTITail->cFuncs, pNameTable, ref_lookup);
 
   if (pTITail->impls_off != 0xffff)
-    SLTG_DoImpls(pBlk + pTITail->impls_off, pTI, FALSE, ref_lookup);
+    SLTG_DoImpls(pBlk + pTITail->impls_off, pTI, FALSE, ref_lookup, pTITail->cVars);
 
   /* this is necessary to cope with MSFT typelibs that set cFuncs to the number
    * of dispinterface functions including the IDispatch ones, so
@@ -8847,7 +8849,6 @@ static HRESULT WINAPI ITypeInfo_fnGetRefTypeInfo(
             } else {
                 static const WCHAR TYPELIBW[] = {'T','Y','P','E','L','I','B',0};
                 struct search_res_tlb_params params;
-                BSTR libnam;
 
                 TRACE("typeinfo in imported typelib that isn't already loaded\n");
 
@@ -8860,6 +8861,8 @@ static HRESULT WINAPI ITypeInfo_fnGetRefTypeInfo(
 
                 if (!pTLib)
                 {
+                    WCHAR *libnamW;
+                    char *libnam;
                     /* Search on disk */
                     result = query_typelib_path(TLB_get_guid_null(ref_type->pImpTLInfo->guid),
                             ref_type->pImpTLInfo->wVersionMajor,
@@ -8867,10 +8870,15 @@ static HRESULT WINAPI ITypeInfo_fnGetRefTypeInfo(
                             This->pTypeLib->syskind,
                             ref_type->pImpTLInfo->lcid, &libnam, TRUE);
                     if (FAILED(result))
-                        libnam = SysAllocString(ref_type->pImpTLInfo->name);
+                    {
+                        libnamW = HeapAlloc(GetProcessHeap(), 0, wcslen(ref_type->pImpTLInfo->name + 1) * sizeof(WCHAR));
+                        wcscpy(libnamW, ref_type->pImpTLInfo->name);
+                    }
+                    else
+                        libnamW = strdupAtoW(libnam);
 
-                    result = LoadTypeLib16Impl(libnam, &pTLib);
-                    SysFreeString(libnam);
+                    result = LoadTypeLib16Impl(libnamW, &pTLib);
+                    HeapFree(GetProcessHeap(), 0, libnamW);
                 }
 
                 if(SUCCEEDED(result)) {

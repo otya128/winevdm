@@ -117,7 +117,7 @@ static HRESULT SAFEARRAY_DestroyData(SAFEARRAY *psa, ULONG ulStartCell)
 
       while(ulCellCount--)
       {
-        SysFreeString16(*lpBstr);
+        SysFreeString16(*(SEGPTR *)MapSL(lpBstr));
         lpBstr++;
       }
     }
