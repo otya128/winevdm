@@ -997,10 +997,36 @@ void callx87(SIZE_T addr, LPVOID eax)
     }
 }
 /* x87 service functions */
+static BOOL get_fpu_regs(struct fx_layout *fx)
+{
+    if (!DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_GET_FPU, NULL, 0, fx, sizeof(*fx), NULL, NULL))
+    {
+        HAXMVM_ERRF("HAX_VCPU_IOCTL_GET_FPU");
+        return FALSE;
+    }
+    return TRUE;
+}
+static BOOL set_fpu_regs(struct fx_layout *fx)
+{
+    if (!DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_SET_FPU, fx, sizeof(*fx), NULL, 0, NULL, NULL))
+    {
+        HAXMVM_ERRF("HAX_VCPU_IOCTL_SET_FPU");
+        return FALSE;
+    }
+    return TRUE;
+}
 void fldcw(WORD a)
 {
-    char instr[] = { 0xd9, 0x28, 0xee }; /* fldcw word ptr [eax] */
-    callx87(instr, &a);
+    struct fx_layout fx;
+    if (!get_fpu_regs(&fx))
+    {
+        return;
+    }
+    fx.fcw = a;
+    if (!set_fpu_regs(&fx))
+    {
+        return;
+    }
 }
 void wait()
 {
@@ -1014,13 +1040,21 @@ void fninit()
 }
 void fstcw(WORD* a)
 {
-    char instr[] = { 0xd9, 0x38, 0xee }; /* fnstcw word ptr [eax] */
-    callx87(instr, a);
+    struct fx_layout fx;
+    if (!get_fpu_regs(&fx))
+    {
+        return;
+    }
+    *a = fx.fcw;
 }
 void fstsw(WORD* a)
 {
-    char instr[] = { 0xdd, 0x38, 0xee }; /* fnstsw word ptr [eax] */
-    callx87(instr, a);
+    struct fx_layout fx;
+    if (!get_fpu_regs(&fx))
+    {
+        return;
+    }
+    *a = fx.fsw;
 }
 void frndint()
 {
