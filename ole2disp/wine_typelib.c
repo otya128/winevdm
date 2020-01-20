@@ -4123,7 +4123,10 @@ static void SLTG_DoVars(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI, unsign
       if (pItem->magic != SLTG_VAR_MAGIC &&
           pItem->magic != SLTG_VAR_WITH_FLAGS_MAGIC) {
 	  FIXME_(typelib)("var magic = %02x\n", pItem->magic);
-	  return;
+      if (pItem->magic != SLTG_VAR_UNK)
+          return;
+      else
+          continue;
       }
 
       if (pItem->name == 0xfffe)

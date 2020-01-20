@@ -589,6 +589,7 @@ typedef struct {
 
 #define SLTG_VAR_MAGIC 0x0a
 #define SLTG_VAR_WITH_FLAGS_MAGIC 0x2a
+#define SLTG_VAR_UNK 0x3a // hidden?
 
 
 /* CARRAYs look like this

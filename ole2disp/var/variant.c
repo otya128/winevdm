@@ -973,7 +973,7 @@ HRESULT WINAPI VariantCopyInd16(VARIANT16* pvargDest, VARIANTARG16* pvargSrc)
     if (V_VT(V_VARIANTREF16(pSrc)) == (VT_VARIANT|VT_BYREF))
       hres = E_INVALIDARG; /* Don't dereference more than one level */
     else
-      hres = VariantCopyInd16(pvargDest, V_VARIANTREF(pSrc));
+      hres = VariantCopyInd16(pvargDest, (VARIANTARG16 *)MapSL((SEGPTR)V_VARIANTREF(pSrc)));
 
     /* Use the dereferenced variants type value, not VT_VARIANT16 */
     goto VariantCopy16Ind_Return;
