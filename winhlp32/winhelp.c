@@ -532,7 +532,7 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, WINEHELP *wh, BOOL w32)
                 break;
             }
             char *keywords = ((char *)wh + wh->ofsData);
-            if (!WINHELP_SearchKey('K', keywords, 1, NULL, NULL, Globals.active_win, hlpfile))
+            if (!WINHELP_SearchKey('K', keywords, 0, NULL, NULL, Globals.active_win, hlpfile))
             {
                 HLPFILE_FreeHlpFile(hlpfile);
                 if (!WINHELP_HasWorkingWindow()) MACRO_Exit();
