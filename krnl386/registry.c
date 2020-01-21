@@ -28,8 +28,11 @@
 #include "winreg.h"
 #include "wine/debug.h"
 #include "wine/winbase16.h"
+#include "kernel16_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(reg);
+
+NTSYSAPI NTSTATUS  WINAPI NtCreateKey(PHANDLE,ACCESS_MASK,const OBJECT_ATTRIBUTES*,ULONG,const UNICODE_STRING*,ULONG,PULONG);
 
 static DWORD (WINAPI *pRegCloseKey)(HKEY);
 static DWORD (WINAPI *pRegCreateKeyA)(HKEY,LPCSTR,PHKEY);
@@ -163,6 +166,18 @@ DWORD WINAPI RegOpenKey16( HKEY hkey, LPCSTR name, PHKEY retkey )
     return result;
 }
 
+static LPWSTR strdupAtoW(LPCSTR str)
+{
+    LPWSTR ret;
+    INT len;
+
+    if (!str) return NULL;
+    len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
+    ret = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
+    if (ret) MultiByteToWideChar(CP_ACP, 0, str, -1, ret, len);
+    return ret;
+}
+
 /******************************************************************************
  *           RegCreateKey   [KERNEL.218]
  */
@@ -181,16 +196,33 @@ DWORD WINAPI RegCreateKey16( HKEY hkey, LPCSTR name, PHKEY retkey )
     // try to create with write access
     result = RegCreateKeyExA(hkey, name, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, retkey, NULL);
     // try to redirect to HKEY_CURRENT_USER if possible
-    if (!enable_registry_redirection && (result != ERROR_SUCCESS) && (hkey == HKEY_CLASSES_ROOT))
+    if (!enable_registry_redirection && (result != ERROR_SUCCESS))
     {
-        const char softclass[] = "Software\\Classes\\";
-        char *hkcukey = HeapAlloc(GetProcessHeap(), 0, 17 + strlen(name) + 1);
-        strcpy(hkcukey, softclass);
-        strcat(hkcukey, name);
-        result = RegCreateKeyExA(HKEY_CURRENT_USER, hkcukey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, retkey, NULL);
-        if (result == ERROR_SUCCESS)
-            WARN("HKCR CreateKey redirected to HKCU\n");
-        HeapFree(GetProcessHeap(), 0, hkcukey);
+        if (hkey == HKEY_CLASSES_ROOT)
+        {
+            const char softclass[] = "Software\\Classes\\";
+            char *hkcukey = HeapAlloc(GetProcessHeap(), 0, 17 + strlen(name) + 1);
+            strcpy(hkcukey, softclass);
+            strcat(hkcukey, name);
+            result = RegCreateKeyExA(HKEY_CURRENT_USER, hkcukey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, retkey, NULL);
+            if (result == ERROR_SUCCESS)
+                WARN("HKCR CreateKey redirected to HKCU\n");
+            HeapFree(GetProcessHeap(), 0, hkcukey);
+        }
+        else if(hkey < 0x80000000)
+        {
+            // regcreatekeyex will convert hkcu\software\classes subkeys into hkcr so try ntcreatekey
+            UNICODE_STRING nameU;
+            OBJECT_ATTRIBUTES objattr;
+            WCHAR *nameW = strdupAtoW(name);
+            DWORD dis, ret;
+            RtlCreateUnicodeString(&nameU, nameW);
+            HeapFree(GetProcessHeap(), 0, nameW);
+            InitializeObjectAttributes(&objattr, &nameU, 0, hkey, NULL);
+            ret = NtCreateKey(retkey, KEY_ALL_ACCESS, &objattr, 0, NULL, REG_OPTION_NON_VOLATILE, &dis);
+            result = RtlNtStatusToDosError(ret);
+            RtlFreeUnicodeString(&nameU);
+        }
     }
     // failed, try to open for reading
     if (result != ERROR_SUCCESS)
@@ -236,6 +268,9 @@ DWORD WINAPI RegSetValue16( HKEY hkey, LPCSTR name, DWORD type, LPCSTR data, DWO
     DWORD result;
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
+    if (!name)
+        return RegSetValueEx16(hkey, NULL, 0, type, data, count);
+
     result = RegCreateKey16(hkey, name, &subkey);
     if (result == ERROR_SUCCESS)
     {
