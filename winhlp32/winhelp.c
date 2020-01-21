@@ -141,7 +141,7 @@ BOOL WINHELP_SearchKey(char keyfile, LPCSTR keywords, LONG type, LPCSTR topic, L
         key = strtok(NULL, ";");
     }
     if (!idn) return FALSE;
-    if ((type != 1) || (idn > 1))
+    if (type && ((type != 1) || (idn > 1)))
     {
         struct index_data idx;
         idx.hlpfile = page->file;
@@ -558,7 +558,7 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, WINEHELP *wh, BOOL w32)
                 break;
             }
             MULTIKEYHELPA *mkhelp = (MULTIKEYHELPA *)((char *)wh + wh->ofsData);
-            if (!WINHELP_SearchKey(mkhelp->mkKeylist, mkhelp->szKeyphrase, 1, NULL, NULL, Globals.active_win, hlpfile))
+            if (!WINHELP_SearchKey(mkhelp->mkKeylist, mkhelp->szKeyphrase, 0, NULL, NULL, Globals.active_win, hlpfile))
             {
                 HLPFILE_FreeHlpFile(hlpfile);
                 if (!WINHELP_HasWorkingWindow()) MACRO_Exit();

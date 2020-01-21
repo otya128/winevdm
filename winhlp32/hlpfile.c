@@ -411,7 +411,10 @@ static HLPFILE_PAGE* HLPFILE_Contents(HLPFILE *hlpfile, ULONG* relative)
 
     if (!hlpfile) return NULL;
 
-    page = HLPFILE_PageByOffset(hlpfile, hlpfile->contents_start, relative);
+    if (hlpfile->version <= 16)
+        page = HLPFILE_PageByOffset(hlpfile, hlpfile->TOMap[0], relative);
+    else
+        page = HLPFILE_PageByOffset(hlpfile, hlpfile->contents_start, relative);
     if (!page)
     {
         page = hlpfile->first_page;
