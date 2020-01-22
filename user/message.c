@@ -2869,7 +2869,7 @@ static void check_scrollable(enum_scrollbar_data *d, HWND hwnd)
     {
         if (GetScrollInfo(hwnd, SB_CTL, &si))
         {
-            if (GetWindowLongW(hwnd, GWL_STYLE) & SBS_VERT)
+            if ((GetWindowLongW(hwnd, GWL_STYLE) & (SBS_VERT | WS_VISIBLE)) == (SBS_VERT | WS_VISIBLE))
             {
                 d->found = TRUE;
                 if ((d->down && si.nMax > si.nPos) || (!d->down && si.nMin < si.nPos))
