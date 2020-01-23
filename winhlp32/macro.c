@@ -1084,7 +1084,16 @@ int MACRO_Lookup(const char* name, struct lexret* lr)
             (LONG_PTR)Globals.active_win->hMainWnd : 0;
         return INTEGER;
     }
-    if (!strcmp(name, "qchPath") || !strcmp(name, "qError") || !strcmp(name, "lTopicNo") ||
+    if (!strcmp(name, "qchPath"))
+    {
+        if (Globals.active_win && Globals.active_win->page)
+        {
+            lr->string = Globals.active_win->page->file->lpszPath;
+            return STRING;
+        }
+        return EMPTY;
+    }
+    if (!strcmp(name, "qError") || !strcmp(name, "lTopicNo") ||
         !strcmp(name, "hfs") || !strcmp(name, "coForeground") || !strcmp(name, "coBackground"))
     {
         WINE_FIXME("keyword %s not substituted in macro parsing\n", debugstr_a(name));
