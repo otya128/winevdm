@@ -85,7 +85,7 @@
 85 stub VARCYFROMR4
 86 stub VARCYFROMR8
 87 stub VARCYFROMDATE
-88 stub VARCYFROMSTR
+88 pascal VarCyFromStr(str long long ptr) VarCyFromStr16
 89 stub VARCYFROMDISP
 90 stub VARCYFROMBOOL
 91 pascal VarBstrFromI2(s_word long long ptr) VarBstrFromI216

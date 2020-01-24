@@ -277,7 +277,7 @@ static char *get_typelib_key( REFGUID guid, WORD wMaj, WORD wMin, char *buffer )
 
 /* get the path of an interface key, in the form "Interface\\<guid>" */
 /* buffer must be at least 50 characters long */
-static WCHAR *get_interface_key( REFGUID guid, char *buffer )
+static char *get_interface_key( REFGUID guid, char *buffer )
 {
     static const char Interface[] = "Interface\\";
 
@@ -1733,6 +1733,18 @@ static inline TLBFuncDesc *TLB_get_funcdesc_by_memberid(TLBFuncDesc *funcdescs,
 {
     while(n){
         if(funcdescs->funcdesc.memid == memid)
+            return funcdescs;
+        ++funcdescs;
+        --n;
+    }
+    return NULL;
+}
+
+static inline TLBFuncDesc *TLB_get_funcdesc_by_memberid_and_invkind(TLBFuncDesc *funcdescs,
+        UINT n, MEMBERID memid, INVOKEKIND invkind)
+{
+    while(n){
+        if((funcdescs->funcdesc.memid == memid) && (funcdescs->funcdesc.invkind == invkind))
             return funcdescs;
         ++funcdescs;
         --n;
@@ -6381,7 +6393,7 @@ static HRESULT WINAPI ITypeInfo_fnGetNames( ITypeInfo2 *iface, MEMBERID memid,
  */
 static HRESULT WINAPI ITypeInfo_fnGetRefTypeOfImplType(
 	ITypeInfo2 *iface,
-        UINT index,
+        UINT16 index,
 	HREFTYPE  *pRefType)
 {
     ITypeInfoImpl *This = impl_from_ITypeInfo2(iface);
@@ -6390,7 +6402,7 @@ static HRESULT WINAPI ITypeInfo_fnGetRefTypeOfImplType(
     TRACE("(%p) index %d\n", This, index);
     if (TRACE_ON(ole)) dump_TypeInfo(This);
 
-    if(index==(UINT)-1)
+    if(index==0xffff)
     {
       /* only valid on dual interfaces;
          retrieve the associated TKIND_INTERFACE handle for the current TKIND_DISPATCH
@@ -8594,7 +8606,7 @@ static HRESULT WINAPI ITypeInfo_fnGetDllEntry( ITypeInfo2 *iface, MEMBERID memid
     if (This->typeattr.typekind != TKIND_MODULE)
         return TYPE_E_BADMODULEKIND;
 
-    pFDesc = TLB_get_funcdesc_by_memberid(This->funcdescs, This->typeattr.cFuncs, memid);
+    pFDesc = TLB_get_funcdesc_by_memberid_and_invkind(This->funcdescs, This->typeattr.cFuncs, memid, invKind);
     if(pFDesc){
 	    dump_TypeInfo(This);
 	    if (TRACE_ON(ole))
