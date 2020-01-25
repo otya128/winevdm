@@ -1758,6 +1758,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_NCUAHDRAWFRAME: /* undocumented wparam: hdc */
         ret = callback(hwnd32, msg, (WPARAM)HDC_32(wParam), lParam, result, arg);
         break;
+    case WM_PAINT:
+        ret = callback(hwnd32, msg, (WPARAM)HDC_32(wParam), lParam, result, arg);
+        break;
     default:
     {
         if (msg != WM_NULL && msg == drag_list_message)
@@ -2157,7 +2160,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         if (IsIconic( hwnd ) && GetClassLongPtrW( hwnd, GCLP_HICON ))
             ret = callback( HWND_16(hwnd), WM_PAINTICON, 1, lParam, result, arg );
         else
-            ret = callback( HWND_16(hwnd), WM_PAINT, wParam, lParam, result, arg );
+            ret = callback( HWND_16(hwnd), WM_PAINT, HDC_16(wParam), lParam, result, arg );
         break;
 	case WM_NCPAINT:
         ret = callback(HWND_16(hwnd), WM_NCPAINT, HRGN_16((HRGN)wParam), lParam, result, arg);
