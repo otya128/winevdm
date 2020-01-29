@@ -218,6 +218,7 @@ static void WINHELP_SetupText(HWND hTextWnd, WINHELP_WINDOW* win, ULONG relative
                     hs = hs->next;
                 }
             }
+            reole->lpVtbl->Release(reole);
          }
     }
     SendMessageW(hTextWnd, WM_SETREDRAW, TRUE, 0);
