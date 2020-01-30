@@ -4175,7 +4175,7 @@ static void SLTG_DoVars(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI, unsign
         TRACE_(typelib)("VAR_CONST\n");
         pVarDesc->vardesc.varkind = VAR_CONST;
         pVarDesc->vardesc.u.lpvarValue = heap_alloc(sizeof(VARIANT));
-        V_VT(pVarDesc->vardesc.u.lpvarValue) = VT_INT;
+        V_VT(pVarDesc->vardesc.u.lpvarValue) = pVarDesc->vardesc.elemdescVar.tdesc.vt;
         if (pItem->flags & 0x08)
           V_INT(pVarDesc->vardesc.u.lpvarValue) = pItem->byte_offs;
         else {
@@ -4308,7 +4308,7 @@ static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
 	        paramName = NULL;
 		HaveOffs = TRUE;
 	    }
-	    else if(paramName[-1] && !isalnum(paramName[-1]))
+	    else if(paramName[-1] && !isalnum(paramName[-1]) && (paramName[-1] != '_'))
 	        HaveOffs = TRUE;
 
 	    pArg++;
