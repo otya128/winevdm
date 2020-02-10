@@ -697,6 +697,9 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
     if (!(pModule->ne_flags & NE_FFLAGS_LIBMODULE) && (pModule->ne_stack < 0x1400))
         pModule->ne_stack = 0x1400;
 
+    if (pModule->ne_heap && (pModule->ne_heap < 0x800))
+        pModule->ne_heap = 0x800;
+
     pModule->self         = hModule;
     pModule->mapping      = mapping;
     pModule->mapping_size = mapping_size;
