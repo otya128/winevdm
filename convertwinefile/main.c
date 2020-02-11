@@ -7,6 +7,8 @@
 #include <shlwapi.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
+#include <assert.h>
 const char * getdirname(const char *path)
 {
 	const char *a = strpbrk(path, "\\/");
@@ -20,11 +22,76 @@ const char * getdirname(const char *path)
 		if (!a) return path;
 	}
 }
+inline static size_t memcount(const char* begin, char c, size_t n) {
+    size_t r = 0;
+    for (size_t i = 0; i < n; i++)
+        if (begin[i] == c)
+            r++;
+    return r;
+}
+/** Escape for cmd and xcopy MSVCRT command-line
+ * JS: `"${arg.replace(/(\\*)($|")/g, '$1$1$2').replace(/"/g, '""')}"`;
+ */
+char * escape(const char* op)
+{
+    // estimate size
+    size_t l = strlen(op);
+    size_t bufsz = 2 + l + memcount(op, '\\', l) + memcount(op, '"', l) + 1;
+    char* ret = malloc(bufsz);
+    if (!ret) return ret;
+
+    size_t spos = 0, tpos = 0;
+    ret[tpos++]='"';
+
+    // find quotes or end
+    const char* quote = NULL;
+    while ((quote = memchr(&op[spos], '"', l)) || 
+           (quote = op + l)) {
+        // Count consec backslash
+        const char* k;
+        for (k = quote - 1; *k == '\\'; k--) {
+            /* PASS */
+        }
+
+        // Copy up to and including k
+        size_t stertch = (k - op) - spos + 1;
+        memcpy(&ret[tpos], &op[spos], stertch);
+        spos += stertch;
+        tpos += stertch;
+
+        // Double backslashes
+        for (const char* s = k + 1; s < quote; s++) {
+            ret[tpos++]='\\';
+            ret[tpos++]='\\';
+            spos++;
+        }
+        assert(&op[spos] == quote);
+
+        // Double the quote
+        if (spos != l) {
+            ret[tpos++] = '"';
+            ret[tpos++] = '"';
+            spos++;
+        } else {
+          break;
+        }
+    }
+    ret[tpos++] = '"';
+    ret[tpos] = '\0';
+    return ret;
+}
+
+#define ESCAPE(Var) const char* e ## Var = escape(Var)
+#define E(Var)      (e ## Var)
+#define FESC(Var)   free(e ## Var)
+
 void copy(const char * src, const char *dst)
 {
 	char buf[512];
-	//TODO:command injection
-	snprintf(buf, sizeof(buf), "xcopy \"%s\" \"%s\" /I", src, dst);
+    ESCAPE(src); ESCAPE(dst);
+	int c = snprintf(buf, sizeof(buf), "xcopy %s %s /I", E(src), E(dst));
+    FESC(src); FESC(dst);
+    assert(c < sizeof(buf) - 1);
 	system(buf);
 }
 typedef struct
@@ -342,21 +409,27 @@ void generateVCproject(makein *in, FILE *out)
 }
 void generateDEF(makein *makedata, const char *spec, const char *path)
 {
-	char commandline[512];
-	sprintf(commandline, "convspec %s -DEF > \"%s\"", spec, path);
-	system(commandline);
+	char buf[512];
+    ESCAPE(spec);
+	int c = snprintf(buf, sizeof(buf), "convspec %s -DEF > \"%s\"", E(spec), path);
+    FESC(spec);
+    assert(c < sizeof(buf) - 1);
+	system(buf);
 }
 void generateASM(makein *makedata, const char *spec, const char *path, const char *mod)
 {
-	char commandline[512];
-	sprintf(commandline, "convspec \"%s\" \"%s\" > \"%s\"", spec, mod, path);
-	system(commandline);
+	char buf[512];
+    ESCAPE(spec); ESCAPE(mod);
+	int c = snprintf(buf, sizeof(buf), "convspec %s %s > \"%s\"", E(spec), E(mod), path);
+    FESC(spec); FESC(mod);
+    assert(c < sizeof(buf) - 1);
+	system(buf);
 }
 int main(int argc, char **argv)
 {
 	if (argc != 3)
 	{
-        puts("Converts wine DLL source Makefiles to MSVC projects.")
+        puts("Converts wine DLL source Makefiles to MSVC projects.");
 		puts("usage: convertwinefile <dll directory> <2>");
 		return 0;
 	}
