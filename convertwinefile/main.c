@@ -1,3 +1,8 @@
+/*
+ * Converts wine DLL source Makefiles to MSVC projects.
+ * 
+ * Copyright (C) 2017 otya
+ */
 #include <stdio.h>
 #include <shlwapi.h>
 #include <ctype.h>
@@ -351,7 +356,8 @@ int main(int argc, char **argv)
 {
 	if (argc != 3)
 	{
-		printf("usage: convertwinefile <dll directory> <2>");
+        puts("Converts wine DLL source Makefiles to MSVC projects.")
+		puts("usage: convertwinefile <dll directory> <2>");
 		return 0;
 	}
 	char *dir = argv[1];
