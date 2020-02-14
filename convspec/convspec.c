@@ -1,4 +1,9 @@
+// -*- tab-width: 4 -*-
+// # vim: set expandtab: ts=4 
+// Converts Win32 wine spec files to Win16 specs. Based on winebuild.
+// otya 2018
 #include <stdio.h>
+/* Stubs */
 static char *optarg;
 static int optind;
 static int opterr;

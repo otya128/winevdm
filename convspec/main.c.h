@@ -1,5 +1,5 @@
 /*
- * Main function
+ * winebuild main function
  *
  * Copyright 1993 Robert J. Amstadt
  * Copyright 1995 Martin von Loewis
