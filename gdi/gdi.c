@@ -416,6 +416,64 @@ static void newtextmetricex_A_to_16( const NEWTEXTMETRICEXA *ptmA,
     ptm16->ntmFontSig = ptmA->ntmFontSig;
 }
 
+static const char *font_list[] =
+{
+    "\x82\x6c\x82\x72 \x83\x53\x83\x56\x83\x62\x83\x4e", /* MS Gothic (Japanese font) */
+    "\x82\x6c\x82\x72 \x96\xbe\x92\xa9", /* MS Mincho (Japanese font) */
+
+    "Arial",
+    "Courier New",
+    "Times New Roman",
+    "Wingdings",
+    "Symbol",
+    "CenturyOldst",
+    "Arial Narrow",
+    "Book Antiqua",
+    "Bookman Old Style",
+    "Century Gothic",
+    "Century Schoolbook",
+    "Monotype Corsiva",
+    "Monotype Sorts",
+    "Fences",
+    "MT Extra",
+    "Monotype Sorts",
+    "System",
+    "FixedSys",
+    "Modern",
+    "Script",
+    "Terminal",
+    "Roman",
+    "Small Fonts",
+    "MS Serif",
+    "MS Dialog",
+    "MS Sans Serif",
+    "MS LineDraw",
+    "Century",
+    "Algerian",
+    "Arial Rounded MT Bold",
+    "Braggadocio",
+    "Britannic Bold",
+    "Brush Script MT",
+    "Colonna MT",
+    "Desdemona",
+    "Footlight MT Light",
+    "Impact",
+    "Kino MT",
+    "Wide Latin",
+    "Matura MT Script Capitals",
+    "Playbill",
+    "Courier",
+    "Helvetica",
+    "Helv",
+    "Times",
+    "ITC Avant Garde Gothic",
+    "ITC Bookman",
+    "New Century Schoolbook",
+    "Palatino",
+    "ITC Zapf Chancery",
+    "ITC Zapf Dingbats",
+    NULL
+};
 /*
  * callback for EnumFontFamiliesEx16
  * Note: plf is really an ENUMLOGFONTEXA, and ptm is a NEWTEXTMETRICEXA.
@@ -446,61 +504,17 @@ static INT CALLBACK enum_font_callback( const LOGFONTA *plf,
     if (enum_font_limitation)
     {
         /* TODO: configurable */
-        if (
-            /* Japanese font */
-            stricmp(elfe16.elfLogFont.lfFaceName, "‚l‚r ƒSƒVƒbƒN") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "‚l‚r –¾’©") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "@‚l‚r ƒSƒVƒbƒN") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "@‚l‚r –¾’©") &&
-            /* */
-            stricmp(elfe16.elfLogFont.lfFaceName, "Arial") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Courier New") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Times New Roman") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Wingdings") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Symbol") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "CenturyOldst") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "&CenturyOldst") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "%CenturyOldst") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Arial Narrow") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Book Antiqua") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Bookman Old Style") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Century Gothic") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Century Schoolbook") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Monotype Corsiva") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Monotype Sorts") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Fences") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "MT Extra") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Monotype Sorts") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "System") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "@System") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "FixedSys") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "@FixedSys") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Modern") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Script") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Terminal") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "@Terminal") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Roman") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Small Fonts") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "@Small Fonts") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "MS Serif") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "MS Dialog") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "MS Sans Serif") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "MS LineDraw") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Century") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Algerian") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Arial Rounded MT Bold") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Braggadocio") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Britannic Bold") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Brush Script MT") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Colonna MT") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Desdemona") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Footlight MT Light") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Impact") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Kino MT") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Wide Latin") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Matura MT Script Capitals") &&
-            stricmp(elfe16.elfLogFont.lfFaceName, "Playbill") &&
-            TRUE)
+        int i;
+        BOOL found = FALSE;
+        for (i = 0; font_list[i]; i++)
+        {
+            if (!stricmp(elfe16.elfLogFont.lfFaceName, font_list[i]))
+            {
+                found = TRUE;
+                break;
+            }
+        }
+        if (!found)
         {
             TRACE("font %s skipped.\n", elfe16.elfLogFont.lfFaceName);
             return info->result;
