@@ -737,6 +737,16 @@ HRESULT WINAPI RegisterTypeLib(
             res = E_FAIL;
 
         /* create the helpdir subkey */
+        if (res == S_OK && RegOpenKey16(key, HELPDIR, &subKey) == ERROR_SUCCESS)
+        {
+            disposition = REG_OPENED_EXISTING_KEY;
+            RegCloseKey16(subKey);
+        }
+        else
+        {
+            disposition = REG_CREATED_NEW_KEY;
+        }
+
         if (res == S_OK && RegCreateKey16(key, HELPDIR, &subKey) == ERROR_SUCCESS)
         {
             BOOL freeHelpDir = FALSE;
