@@ -847,7 +847,7 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state, DWORD ret_ad
         mov esp, old
     }
 #else
-    fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
+    fret = ((int(*)(void *entry_point, unsigned char *args16, CONTEXT *context))relay_func)((void*)entry, (unsigned char*)args, &context);
 #endif
     if (!reg)
     {
