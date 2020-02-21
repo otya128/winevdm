@@ -289,13 +289,15 @@ __attribute__ ((aligned(4096)))
 WORD seg_cs;
 WORD seg_ds;
 
-static BOOL set_ram(struct hax_set_ram_info *ram)
+static BOOL set_ram(struct hax_set_ram_info *pram)
 {
     DWORD bytes;
-    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, ram, sizeof(struct hax_set_ram_info), NULL, 0, &bytes, NULL))
+    struct hax_set_ram_info ram = *pram;
+    ram.flags = HAX_RAM_INFO_STANDALONE;
+    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(struct hax_set_ram_info), NULL, 0, &bytes, NULL))
         return FALSE;
-    DWORD physaddr = ram->pa_start / 4096;
-    for (DWORD i = 0; i < (ram->size / 4096); i++)
+    DWORD physaddr = ram.pa_start / 4096;
+    for (DWORD i = 0; i < (ram.size / 4096); i++)
     {
         DWORD pte = physaddr + i;
         guestpt[pte] = (pte << 12) | 7;
@@ -447,26 +449,12 @@ BOOL init_vm86(BOOL vm86)
     }
     memset(trap_int, 0xF4, 256); /* hlt */
     ((char *)trap_int)[256] = 0xcf; /* iret */
-    alloc_ram.size = 4096;
-    alloc_ram.va = (uint64_t)&idt;
-    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-    {
-        HAXMVM_ERRF("ALLOC_RAM");
-        return FALSE;
-    }
     ram.pa_start =  (uint64_t)&idt;
     ram.size = 4096;
     ram.va =  (uint64_t)&idt;
     if (!set_ram(&ram))
     {
         HAXMVM_ERRF("SET_RAM\n");
-        return FALSE;
-    }
-    alloc_ram.size = 65536 + 4096;
-    alloc_ram.va = (uint64_t)&wine_ldt & ~0xfff;
-    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-    {
-        HAXMVM_ERRF("ALLOC_RAM");
         return FALSE;
     }
     ram.pa_start =  (uint64_t)&wine_ldt & ~0xfff;
@@ -477,26 +465,12 @@ BOOL init_vm86(BOOL vm86)
         HAXMVM_ERRF("SET_RAM\n");
         return FALSE;
     }
-    alloc_ram.size = 0x10000;
-    alloc_ram.va = (uint64_t)trap_int;
-    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-    {
-        HAXMVM_ERRF("ALLOC_RAM");
-        return FALSE;
-    }
     ram.pa_start = (uint64_t)trap_int;
     ram.size = 0x10000;
     ram.va = (uint64_t)trap_int;
     if (!set_ram(&ram))
     {
         HAXMVM_ERRF("SET_RAM");
-        return FALSE;
-    }
-    alloc_ram.size = 0x1000;
-    alloc_ram.va = (uint64_t)&gdt;
-    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-    {
-        HAXMVM_ERRF("ALLOC_RAM");
         return FALSE;
     }
     ram.pa_start = (uint64_t)&gdt;
@@ -823,12 +797,6 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                     state2._eip = 256;
                     if (intvec == 0x0e)
                     {
-                        alloc_ram.size = 4096;
-                        alloc_ram.va = state2._cr2 & ~0xfff;
-                        if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-                        {
-                            HAXMVM_ERRF("ALLOC_RAM");
-                        }
                         ram.pa_start = state2._cr2 & ~0xfff;
                         ram.size = 4096;
                         ram.va = state2._cr2 & ~0xfff;
