@@ -1003,6 +1003,31 @@ static void trace(struct vcpu_state_t *state, uint16 cs, uint32 eip, uint16 ss, 
         );
     }
 }
+BOOL has_x86_exception_err(WORD num)
+{
+    switch (num)
+    {
+    case 0:case 1:case 2:case 3:case 4:case 5:case 6:case 7:
+        return FALSE;
+    case 8:
+        return TRUE;
+    case 9:
+        return FALSE;
+    case 10:case 11:case 12:case 13:case 14:
+        return TRUE;
+    case 15:case 16:
+        return FALSE;
+    case 17:
+        return TRUE;
+    case 18:case 19:case 20:case 21:case 22:case 23:case 24:case 25:case 26:case 27:case 28:case 29:
+        return FALSE;
+    case 30:
+        return TRUE;
+    case 31:
+        return FALSE;
+    }
+    return FALSE;
+}
 BOOL syscall_init = FALSE;
 LPBYTE syscall_trap = FALSE;
 void fstsw(WORD* a);
@@ -1143,11 +1168,37 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                         break;
                     }
 	            }
+                else if (tunnel->io._direction == HAX_IO_IN)
+                {
+                    printf("");
+                }
                 break;
             case HAX_EXIT_HLT:
                 if (((DWORD)ptr >= (DWORD)trap_int) && ((DWORD)ptr <= ((DWORD)trap_int + 256)))
                 {
                     int intvec = ((DWORD)ptr & 0xff) - 1;
+                    BOOL has_err = has_x86_exception_err(intvec);
+                    DWORD err = has_err ? PEEK32(&state2, 0) : 0;
+                    DWORD eip = PEEK32(&state2, (has_err ? 1 : 0) + 0);
+                    DWORD cs = PEEK32(&state2, (has_err ? 1 : 0) + 1);
+                    DWORD flags = PEEK32(&state2, (has_err ? 1 : 0) + 2);
+                    DWORD old_esp = PEEK32(&state2, (has_err ? 1 : 0) + 3);
+                    DWORD old_ss = PEEK32(&state2, (has_err ? 1 : 0) + 4);
+                    const char *name = NULL;
+                    switch (intvec)
+                    {
+                    case 0: name = "#DE"; break;
+                    case 2: name = "int 2h"; break;
+                    case 4: name = "#OF"; break;
+                    case 6: name = "#UD"; break;
+                    case 7: name = "#NM"; break;
+                    case 8: name = "#DF"; break;
+                    case 10: name = "#TS"; break;
+                    case 11: name = "#NP"; break;
+                    case 12: name = "#SS"; break;
+                    case 13: name = "#GP"; break;
+                    case 14: name = "#PF"; break;
+                    }
                     state2._eip = 256;
                     if (intvec == 1 && (state2._dr6 & 15 || is_single_step))
                     {
@@ -1195,9 +1246,54 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                             HAXMVM_ERRF("SET_RAM");
                         }
                         state2._esp += 4;
+                        if (kani)
+                        {
+                            DWORD d;
+                            //VirtualProtect(alloc_ram.va, 4096, op, &d);
+                        }
                     }
-                    else if (intvec < 0x10)
+                    else if (name)
                     {
+                        if (intvec == 0x0d)
+                        {
+                            if (err == 0x40)
+                            {
+                                /* many startups access the BDA directly */
+                                static WORD dosmem_0040H = 0;
+                                if (!dosmem_0040H)
+                                {
+                                    DWORD(WINAPI *GetProcAddress16)(HMODULE16, LPCSTR);
+                                    HMODULE16(WINAPI *GetModuleHandle16)(LPCSTR);
+                                    static HMODULE krnl386;
+                                    if (!krnl386)
+                                        krnl386 = LoadLibraryA(KRNL386);
+                                    GetProcAddress16 = (DWORD(WINAPI *)(HMODULE16, LPCSTR))GetProcAddress(krnl386, "GetProcAddress16");
+                                    GetModuleHandle16 = (HMODULE16(WINAPI *)(LPCSTR))GetProcAddress(krnl386, "GetModuleHandle16");
+                                    dosmem_0040H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)193);
+                                    (void(*)(void))GetProcAddress(krnl386, "DOSVM_start_bios_timer")();
+                                }
+                                err = POP32(&state2);
+                                eip = POP32(&state2);
+                                cs = POP32(&state2);
+                                flags = POP32(&state2);
+                                old_esp = POP32(&state2);
+                                old_ss = POP32(&state2);
+                                /* allocate segment 40h */
+                                LPLDT_ENTRY entry = wine_ldt + (dosmem_0040H >> __AHSHIFT);
+                                gdt[0x40 >> __AHSHIFT] = *entry;
+                                load_seg(&state2._cs, cs);
+                                state2._eip = eip;
+                                set_eflags(&state2, flags & ~0x10000);
+                                load_seg(&state2._ss, old_ss);
+                                state2._esp = old_esp;
+                                break;
+                            }
+                        }
+                        trace(&state2, cs, eip, old_ss, old_esp, flags);
+                        HAXMVM_ERRF("%s %02x %04x %04x:%04x %04x:%04x", name, intvec, err, cs, eip, old_ss, old_esp);
+                        HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp);
+                        HAXMVM_ERRF("exception");
+                        haxmvm_panic("exception %s", name);
                         pih(intvec, MAKESEGPTR(state2._cs.selector, state2._eip & 0xffff));
                     }
                     else
@@ -1211,9 +1307,6 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                             state2._eip = eip;
                             load_seg(&state2._ss, (WORD)ss);
                             state2._esp = esp;
-                            PUSH16(&state2, (WORD)eflags);
-                            PUSH16(&state2, (WORD)cs);
-                            PUSH16(&state2, (WORD)eip);
                             CONTEXT ctx;
                             save_context_from_state(&ctx, &state2);
                             if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
@@ -1229,9 +1322,6 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                             }
                             dynamic__wine_call_int_handler(&ctx, intvec);
                             load_context_to_state(&ctx, &state2);
-                            POP16(&state2);
-                            POP16(&state2);
-                            POP16(&state2);
                      }
                 }
                 break;
