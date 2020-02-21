@@ -6,7 +6,7 @@ BOOL initflag;
 UINT8 *mem;
 #define KRNL386 "krnl386.exe16"
 BOOL is_single_step = FALSE;
-DWORD WINAPI panic_msgbox(LPCVOID data)
+DWORD WINAPI panic_msgbox(LPVOID data)
 {
     MessageBoxA(NULL, (LPCSTR)data, "Hypervisor error", MB_OK | MB_ICONERROR);
     HeapFree(GetProcessHeap(), 0, data);
@@ -127,16 +127,20 @@ guestpt[0x80400] = {0}
 
 ;
 
+LDT_ENTRY gdt[];
 void load_seg(segment_desc_t *segment, WORD sel)
 {
+    const LDT_ENTRY *entry = (sel & 0x4 || (sel >> 3) >= 512) ? wine_ldt : gdt;
     segment->selector = sel;
-    segment->base = (uint64)wine_ldt_get_base(wine_ldt + (sel >> 3));
-    segment->limit = 0xffffffff;// (uint64)wine_ldt_get_limit(wine_ldt + (sel >> 3));
-    segment->type = wine_ldt[sel >> 3].HighWord.Bits.Type;
-    segment->present = wine_ldt[sel >> 3].HighWord.Bits.Pres;
-    segment->operand_size = wine_ldt[sel >> 3].HighWord.Bits.Default_Big;
-    segment->dpl = wine_ldt[sel >> 3].HighWord.Bits.Dpl;
-    segment->granularity = wine_ldt[sel >> 3].HighWord.Bits.Granularity;
+    segment->base = (uint64)wine_ldt_get_base(entry + (sel >> 3));
+    segment->limit =  (uint64)wine_ldt_get_limit(entry + (sel >> 3));
+    segment->type = entry[sel >> 3].HighWord.Bits.Type;
+    segment->present = entry[sel >> 3].HighWord.Bits.Pres;
+    segment->operand_size = entry[sel >> 3].HighWord.Bits.Default_Big;
+    segment->dpl = entry[sel >> 3].HighWord.Bits.Dpl;
+    segment->granularity = entry[sel >> 3].HighWord.Bits.Granularity;
+    segment->null = 0;
+    segment->desc = entry[sel >> 3].HighWord.Bits.Type >> 4;
     if (!sel || !segment->type || !segment->present)
         segment->ar = 0;
 }
