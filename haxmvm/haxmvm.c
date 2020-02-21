@@ -305,10 +305,61 @@ static BOOL set_ram(struct hax_set_ram_info *pram)
     return TRUE;
 }
 
+#define dprintf(...) //fprintf(stderr, __VA_ARGS__)
+
+static CRITICAL_SECTION crst;
+static CRITICAL_SECTION_DEBUG critsect_debug =
+{
+    0, 0, &crst,
+    { &critsect_debug.ProcessLocksList, &critsect_debug.ProcessLocksList },
+      0, 0, { (DWORD_PTR)(__FILE__ ": crst") }
+};
+static CRITICAL_SECTION crst = { &critsect_debug, -1, 0, 0, 0, 0 };
+static void intel_vt_x_workaround_update_entry(int sel, const LDT_ENTRY *entry)
+{
+    MEMORY_BASIC_INFORMATION mbi;
+    struct hax_alloc_ram_info alloc_ram = { 0 };
+    struct hax_set_ram_info ram = { 0 };
+    DWORD bytes;
+    uint32 start = ((uint32)wine_ldt_get_base(entry) & ~0xfff);
+    uint32 size = 0;
+    EnterCriticalSection(&crst);
+    for (uint32 i = start; i <= ((uint32)wine_ldt_get_base(entry) + wine_ldt_get_limit(entry)); i += 4096)
+    {
+        BOOL protect = 0;
+        DWORD old = 0;
+        if (!i || guestpt[i / 4096])
+        {
+            continue;
+        }
+        alloc_ram.size = 4096;
+        alloc_ram.va = i;
+        if (VirtualQuery(alloc_ram.va, &mbi, sizeof(MEMORY_BASIC_INFORMATION)))
+        {
+            if (!(mbi.Protect & PAGE_EXECUTE_READWRITE) && !(mbi.Protect & PAGE_READWRITE))
+            {
+                protect = VirtualProtect(alloc_ram.va, 4096, PAGE_EXECUTE_READWRITE, &old);
+            }
+        }
+        dprintf("alloc = %08x\n", alloc_ram.va);
+        ram.pa_start = i;
+        ram.size = 4096;
+        ram.va = i;
+        if (!set_ram(&ram))
+        {
+            HAXMVM_ERRF("SET_RAM");
+        }
+        if (protect && 0)
+        {
+            VirtualProtect(alloc_ram.va, 4096, old, &old);
+        }
+    }
+    LeaveCriticalSection(&crst);
+}
+
 
 BOOL init_vm86(BOOL vm86)
 {
-    ((void(*)())GetProcAddress(GetModuleHandleA("libwine"), "set_intel_vt_x_workaround"))();
 #ifdef _MSC_VER
     __asm
     {
@@ -486,6 +537,7 @@ BOOL init_vm86(BOOL vm86)
         HAXMVM_ERRF("SET_REGS");
         return FALSE;
     }
+    ((void(*)(void(*intel_vt_x_workaround_update_entry)(const LDT_ENTRY *entry)))GetProcAddress(GetModuleHandleA("libwine"), "set_intel_vt_x_workaround"))(intel_vt_x_workaround_update_entry);
     return TRUE;
 }
 
