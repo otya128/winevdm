@@ -315,44 +315,46 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
       0, 0, { (DWORD_PTR)(__FILE__ ": crst") }
 };
 static CRITICAL_SECTION crst = { &critsect_debug, -1, 0, 0, 0, 0 };
-static void intel_vt_x_workaround_update_entry(int sel, const LDT_ENTRY *entry)
+void alloc_ram(uint32_t addr, uint32_t size)
 {
     MEMORY_BASIC_INFORMATION mbi;
-    struct hax_alloc_ram_info alloc_ram = { 0 };
     struct hax_set_ram_info ram = { 0 };
+    BOOL protect = 0;
+    DWORD old = 0;
+    ram.pa_start = addr;
+    ram.size = size;
+    ram.va = addr;
+    if (VirtualQuery(ram.va, &mbi, sizeof(MEMORY_BASIC_INFORMATION)))
+    {
+        if (!(mbi.Protect & PAGE_EXECUTE_READWRITE) && !(mbi.Protect & PAGE_READWRITE))
+        {
+            protect = VirtualProtect(ram.va, 4096, PAGE_EXECUTE_READWRITE, &old);
+        }
+    }
+    dprintf("alloc = %08x\n", ram.va);
+    if (!set_ram(&ram))
+    {
+        HAXMVM_ERRF("SET_RAM");
+    }
+    if (protect && 0)
+    {
+        VirtualProtect(ram.va, 4096, old, &old);
+    }
+}
+
+static void intel_vt_x_workaround_update_entry(int sel, const LDT_ENTRY *entry)
+{
     DWORD bytes;
     uint32 start = ((uint32)wine_ldt_get_base(entry) & ~0xfff);
     uint32 size = 0;
     EnterCriticalSection(&crst);
     for (uint32 i = start; i <= ((uint32)wine_ldt_get_base(entry) + wine_ldt_get_limit(entry)); i += 4096)
     {
-        BOOL protect = 0;
-        DWORD old = 0;
         if (!i || guestpt[i / 4096])
         {
             continue;
         }
-        alloc_ram.size = 4096;
-        alloc_ram.va = i;
-        if (VirtualQuery(alloc_ram.va, &mbi, sizeof(MEMORY_BASIC_INFORMATION)))
-        {
-            if (!(mbi.Protect & PAGE_EXECUTE_READWRITE) && !(mbi.Protect & PAGE_READWRITE))
-            {
-                protect = VirtualProtect(alloc_ram.va, 4096, PAGE_EXECUTE_READWRITE, &old);
-            }
-        }
-        dprintf("alloc = %08x\n", alloc_ram.va);
-        ram.pa_start = i;
-        ram.size = 4096;
-        ram.va = i;
-        if (!set_ram(&ram))
-        {
-            HAXMVM_ERRF("SET_RAM");
-        }
-        if (protect && 0)
-        {
-            VirtualProtect(alloc_ram.va, 4096, old, &old);
-        }
+        alloc_ram(i, 4096);
     }
     LeaveCriticalSection(&crst);
 }
@@ -1113,8 +1115,6 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         ret_addr = (*(LPDWORD)stack) + 1;
     }
 
-    struct hax_alloc_ram_info alloc_ram = { 0 };
-    struct hax_set_ram_info ram = { 0 };
     struct vcpu_state_t state2;
     DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state2, sizeof(state2), &bytes, NULL);
     if (is_single_step)
@@ -1238,27 +1238,8 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                     dprintf("err:%X flg:%08X %04X:%04X\n", err, flags, cs, eip);
                     if (intvec == 0x0e)
                     {
-                        BOOL protect = 0;
-                        DWORD old;
-                        if (VirtualQuery(alloc_ram.va, &mbi, sizeof(MEMORY_BASIC_INFORMATION)))
-                        {
-                            if (!(mbi.Protect & PAGE_EXECUTE_READWRITE) && !(mbi.Protect & PAGE_READWRITE))
-                            {
-                                protect = VirtualProtect(alloc_ram.va, 4096, PAGE_READWRITE, &old);
-                            }
-                        }
-                        ram.pa_start = state2._cr2 & ~0xfff;
-                        ram.size = 4096;
-                        ram.va = state2._cr2 & ~0xfff;
-                        if (!set_ram(&ram))
-                        {
-                            HAXMVM_ERRF("SET_RAM");
-                        }
+                        alloc_ram(state2._cr2 & ~0xfff, 4096);
                         state2._esp += 4;
-                        if (protect && 0)
-                        {
-                            VirtualProtect(alloc_ram.va, 4096, old, &old);
-                        }
                     }
                     else if (name)
                     {
@@ -1396,7 +1377,7 @@ __declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbA
 
 SIZE_T base = 0;
 SIZE_T x87func = 0x200 - 0x10;
-void callx87(SIZE_T addr, LPVOID eax)
+void callx87(const char *addr, LPCVOID eax)
 {
     DWORD bytes;
     struct vcpu_state_t state;
@@ -1416,8 +1397,6 @@ void callx87(SIZE_T addr, LPVOID eax)
         if (tunnel->_exit_status == HAX_EXIT_HLT)
         {
             struct vcpu_state_t state2 = state;
-            struct hax_alloc_ram_info alloc_ram = { 0 };
-            struct hax_set_ram_info ram = { 0 };
             LPVOID ptr = (LPBYTE)state2._cs.base + state2._eip;
             if (((DWORD)ptr >= (DWORD)trap_int) && ((DWORD)ptr <= ((DWORD)trap_int + 256)))
             {
@@ -1425,19 +1404,7 @@ void callx87(SIZE_T addr, LPVOID eax)
                 state2._eip = 256;
                 if (intvec == 0x0e)
                 {
-                    alloc_ram.size = 4096;
-                    alloc_ram.va = state2._cr2 & ~0xfff;
-                    if (!DeviceIoControl(hVM, HAX_VM_IOCTL_ALLOC_RAM, &alloc_ram, sizeof(alloc_ram), NULL, 0, &bytes, NULL))
-                    {
-                        HAXMVM_ERRF("ALLOC_RAM");
-                    }
-                    ram.pa_start = state2._cr2 & ~0xfff;
-                    ram.size = 4096;
-                    ram.va = state2._cr2 & ~0xfff;
-                    if (!set_ram(&ram))
-                    {
-                        HAXMVM_ERRF("SET_RAM");
-                    }
+                    alloc_ram(state2._cr2 & ~0xfff, 4096);
                     state2._esp += 4;
                 }
                 else
