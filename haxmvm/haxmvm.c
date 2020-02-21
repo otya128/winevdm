@@ -1056,14 +1056,15 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     MEMORY_BASIC_INFORMATION mbi;
     DWORD bytes;
     DWORD ret_addr;
+    struct vcpu_state_t state_ini;
     {
 
         DWORD bytes;
         struct vcpu_state_t state;
         if (!DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL))
             HAXMVM_ERRF("GET_REGS");
-        load_seg(&state._gs, (WORD)context->SegGs);
-        load_seg(&state._fs, (WORD)context->SegFs);
+        load_seg(&state._gs, (WORD)0);
+        load_seg(&state._fs, (WORD)0);
         load_seg(&state._es, (WORD)context->SegEs);
         load_seg(&state._ds, (WORD)context->SegDs);
         load_seg(&state._cs, (WORD)context->SegCs);
