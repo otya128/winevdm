@@ -297,8 +297,9 @@ enum run_flag {
     HAX_RESUME = 1
 };
 
-#define HAX_RAM_INFO_ROM     0x01
-#define HAX_RAM_INFO_INVALID 0x80
+#define HAX_RAM_INFO_ROM (1 << 0)
+#define HAX_RAM_INFO_STANDALONE (1 << 6)
+#define HAX_RAM_INFO_INVALID (1 << 7)
 #include <poppack.h>
 struct hax_vcpu_mem {
     uint32_t size;
@@ -338,6 +339,47 @@ struct fx_layout {
     uint8   pad[96];
 };
 #include <poppack.h>
+
+
+#define HAX_CAP_STATUS_WORKING     (1 << 0)
+#define HAX_CAP_MEMQUOTA           (1 << 1)
+#define HAX_CAP_WORKSTATUS_MASK    0x01
+
+#define HAX_CAP_FAILREASON_VT      (1 << 0)
+#define HAX_CAP_FAILREASON_NX      (1 << 1)
+
+#define HAX_CAP_EPT                (1 << 0)
+#define HAX_CAP_FASTMMIO           (1 << 1)
+#define HAX_CAP_UG                 (1 << 2)
+#define HAX_CAP_64BIT_RAMBLOCK     (1 << 3)
+#define HAX_CAP_64BIT_SETRAM       (1 << 4)
+#define HAX_CAP_TUNNEL_PAGE        (1 << 5)
+#define HAX_CAP_RAM_PROTECTION     (1 << 6)
+#define HAX_CAP_DEBUG              (1 << 7)
+#define HAX_CAP_IMPLICIT_RAMBLOCK  (1 << 8)
+#include <pshpack1.h>
+struct hax_capabilityinfo {
+    /*
+     * bit 0: 1 - working, 0 - not working, possibly because NT/NX disabled
+     * bit 1: 1 - memory limitation working, 0 - no memory limitation
+     */
+    uint16_t wstatus;
+    /*
+     * valid when not working
+     * bit0: VT not enabeld
+     * bit1: NX not enabled
+     */
+     /*
+      * valid when working
+      * bit0: EPT enabled
+      * bit1: fastMMIO
+      */
+    uint16_t winfo;
+    uint32_t win_refcount;
+    uint64_t mem_quota;
+};
+#include <poppack.h>
+
 #define HAX_DEVICE_TYPE 0x4000
 
 #define HAX_IOCTL_VERSION \
