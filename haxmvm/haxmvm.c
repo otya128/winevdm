@@ -1365,7 +1365,7 @@ __declspec(dllexport) DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEX
     context.SegCs = target >> 16;
     context.Eip = target & 0xFFFF;//i386_jmp_far(target >> 16, target & 0xFFFF);
     vm86main(&context, cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih);
-    return context.Eax | context.Edx << 16;
+    return (context.Eax & 0xffff) | context.Edx << 16;
 }
 __declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     void(*from16_reg)(void),
