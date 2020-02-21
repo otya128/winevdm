@@ -720,9 +720,9 @@ DWORD PEEK32(struct vcpu_state_t *state, int i)
         return stack[i];
     }
 }
-void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
+void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state, DWORD ret_addr, DWORD cbArgs, PEXCEPTION_HANDLER handler, DWORD old_frame16)
 {
-    unsigned char *stack1 = (unsigned char*)(state->_ss.base + state->_esp);
+    unsigned char *stack1 = (unsigned char*)(state->_ss.base + state->_sp);
     unsigned char *stack = stack1;
     /*
     * (sp+24) word   first 16-bit arg
@@ -779,6 +779,10 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
     } STACK16FRAME;
 #include <poppack.h>
     CONTEXT context;
+    STACK32FRAME dummy_stack32 = { 0 };
+    dummy_stack32.retaddr = ret_addr;
+    dummy_stack32.nb_args = cbArgs;
+    dummy_stack32.frame.Handler = handler;
     DWORD osp = state->_esp;
     PUSH16(state, state->_gs.selector);
     PUSH16(state, state->_fs.selector);
@@ -791,38 +795,82 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
     save_context_from_state(&context, state);
     STACK16FRAME *oa = (STACK16FRAME*)wine_ldt_get_ptr((WORD)context.SegSs, context.Esp);
     DWORD ooo = (WORD)context.Esp;
+    int off = 0;
+    if (reg)
+    {
+        context.Esp = osp + (SIZE_T)stack - (SIZE_T)stack1 - 4;
+        off = ooo - context.Esp;
+        context.Ebp = bp;
+        context.Eip = ip19;
+        context.SegCs = cs16;
+    }
     int fret;
-    DWORD bytes;
-    /*if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, state, sizeof(*state), NULL, 0, &bytes, NULL))
-        HAXMVM_ERRF("SET_REGS");*/
-    /*
-    typedef void(*vm_debug_get_entry_point_t)(char *module, char *func, WORD *ordinal);
-    static vm_debug_get_entry_point_t vm_debug_get_entry_point;
-    if (!vm_debug_get_entry_point)
+    LPVOID old;
+    PCONTEXT pctx = NULL;
+#if _MSC_VER
+    __asm
     {
-        vm_debug_get_entry_point = (vm_debug_get_entry_point_t)GetProcAddress(LoadLibraryA(KRNL386), "vm_debug_get_entry_point");
+        mov old, esp
+        push cbArgs
+        push old /* target(esp) */
+        push retaddr /* retaddr */
+        push ebp
+        push ebx
+        push esi
+        push edi
+        push old_frame16 /* frame16 */
+        /* set up exception handler */
+        push handler
+        mov  eax, fs:[0]
+        push eax
+        mov dummy_stack32.frame.Next, eax
+        mov  fs : [0], esp
+        push cs
+        push 0
+        mov eax, [oa]
+        mov[eax], esp
+        lea eax, [context]
+        push eax
+        push args
+        push entry
+        call relay_func
+        add esp, 12 + 8
+        mov fret, eax
+        pop dword ptr fs : [0]
+        pop eax
+        jmp skip
+        retaddr :
+        mov pctx, ecx
+        skip:
+        mov esp, old
     }
-    char module[100], func[100];
-    WORD ordinal = 0;
-    vm_debug_get_entry_point(module, func, &ordinal);
-    fprintf(stderr, "call built-in func %s.%d: %s ESP %04X\n", module, ordinal, func, context.Esp);
-    */
-    if ((DWORD)relay_func != relay)
-    {
-        fret = ((int(*)(void *entry_point, unsigned char *args16, CONTEXT *context))relay_func)((void*)entry, (unsigned char*)args, &context);
-    }
-    else
-        fret = ((int(*)(void *, unsigned char *, CONTEXT *))relay)((void*)entry, (unsigned char*)args, &context);
+#else
+    fret = relay_call_from_16((void*)entry, (unsigned char*)args, &context);
+#endif
     if (!reg)
     {
         state->_eax = fret;
     }
-    oa = (STACK16FRAME*)wine_ldt_get_ptr((WORD)context.SegSs, context.Esp);
-    if (reg)
-        state->_eax = (DWORD)context.Eax;
+    if (pctx)
+    {
+        /* Throw16 */
+        context = *pctx;
+        reg = TRUE;
+    }
+    if (!reg)
+    {
+        state->_eax = fret;
+        context.SegSs = ((size_t)dynamic_getWOW32Reserved() >> 16) & 0xFFFF;
+        context.Esp = ((size_t)dynamic_getWOW32Reserved()) & 0xFFFF;
+        oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp);
+    }
+    else
+    {
+        oa = (STACK16FRAME*)wine_ldt_get_ptr(context.SegSs, context.Esp + off);
+    }
+    if (reg) state->_eax = (DWORD)context.Eax;
     state->_ecx = reg ? (DWORD)context.Ecx : (DWORD)oa->ecx;
-    if (reg)
-        state->_edx = (DWORD)context.Edx;
+    if (reg) state->_edx = (DWORD)context.Edx;
     else
         state->_edx = (DWORD)oa->edx;
     state->_ebx = (DWORD)context.Ebx;
@@ -830,15 +878,39 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
     state->_ebp = (DWORD)context.Ebp;
     state->_esi = (DWORD)context.Esi;
     state->_edi = (DWORD)context.Edi;
-    state->_esp = osp + 18 + 2;
-    state->_esp -= (ooo - context.Esp);
-    state->_bp = bp;
-    set_eflags(state, context.EFlags);
     load_seg(&state->_es, reg ? (WORD)context.SegEs : (WORD)oa->es);
     load_seg(&state->_ss, (WORD)context.SegSs);
     load_seg(&state->_ds, reg ? (WORD)context.SegDs : (WORD)oa->ds);
-    load_seg(&state->_fs, (WORD)context.SegFs);
-    load_seg(&state->_gs, (WORD)context.SegGs);
+    //ES, CS, SS, DS, FS, GS
+    /* Some programs expect that gs is not a valid selector! */
+    /* Some programs expect that fs is not a valid selector! */
+    /* win16 sets 0? */
+    load_seg(&state->_fs, 0);//(WORD)context.SegFs == reg_fs ? 0 : context.SegFs;
+    load_seg(&state->_gs, 0);//(WORD)context.SegGs == reg_gs ? 0 : context.SegGs;
+    if (reg)
+    {
+        if (!(ip19 != context.Eip || cs16 != context.SegCs))
+        {
+            context.Eip = oa->callfrom_ip;
+            context.SegCs = oa->module_cs;
+        }
+        else
+        {
+            /* CS:IP changed! */
+            context.Eip = context.Eip;
+        }
+        state->_esp = context.Esp;
+        state->_ebp = context.Ebp;
+    }
+    else
+    {
+        state->_esp = osp + 18 + 2;
+        state->_esp -= (ooo - context.Esp);
+        WORD bpp = state->_esp;
+        state->_esp = context.Esp + 0x2c;
+        state->_ebp = bp;
+    }
+    set_eflags(state, context.EFlags);
     state->_eip = context.Eip;
     load_seg(&state->_cs, (WORD)context.SegCs);
 }
@@ -846,7 +918,6 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
 BOOL syscall_init = FALSE;
 LPBYTE syscall_trap = FALSE;
 void fstsw(WORD* a);
-#define dprintf(...)// printf(__VA_ARGS__)
 void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     void(*from16_reg)(void),
     LONG(*__wine_call_from_16)(void),
@@ -856,6 +927,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     pm_interrupt_handler pih
 )
 {
+    DWORD old_frame16 = PtrToUlong(dynamic_getWOW32Reserved());
     if (!initflag)
     {
         haxmvm_panic("Could not initialize the hypervisor.\nHAXM may not be installed.\n");
@@ -971,7 +1043,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                     BOOL is_reg = ptr2 == from16_reg;
                     if (is_reg || ptr2 == __wine_call_from_16)
                     {
-                        relay(relay_call_from_16, is_reg, &state2);
+                        relay(relay_call_from_16, is_reg, &state2, ret_addr, cbArgs, handler, old_frame16);
                         if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
                         {
                             HAXMVM_ERRF("SET_REGS");
