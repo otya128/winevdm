@@ -633,39 +633,92 @@ BOOL vm_exit()
     CloseHandle(hSystem);
     return TRUE;
 }
+
 void PUSH16(struct vcpu_state_t *state, WORD val)
 {
-    state->_esp -= 2;
-    unsigned char *stack = (unsigned char*)(state->_ss.base + state->_esp);
-    *(LPWORD)stack = val;
+    if (state->_ss.operand_size)
+    {
+        state->_esp -= 2;
+        unsigned char *stack = (unsigned char*)(state->_ss.base + state->_esp);
+        *(LPWORD)stack = val;
+    }
+    else
+    {
+        state->_sp -= 2;
+        unsigned char *stack = (unsigned char*)(state->_ss.base + state->_sp);
+        *(LPWORD)stack = val;
+    }
 }
 void PUSH32(struct vcpu_state_t *state, DWORD val)
 {
-    state->_esp -= 4;
-    unsigned char *stack = (unsigned char*)(state->_ss.base + state->_esp);
-    *(LPDWORD)stack = val;
+    if (state->_ss.operand_size)
+    {
+        state->_esp -= 4;
+        unsigned char *stack = (unsigned char*)(state->_ss.base + state->_esp);
+        *(LPDWORD)stack = val;
+    }
+    else
+    {
+        state->_sp -= 4;
+        unsigned char *stack = (unsigned char*)(state->_ss.base + state->_sp);
+        *(LPDWORD)stack = val;
+    }
 }
 WORD POP16(struct vcpu_state_t *state)
 {
-    LPWORD stack = (LPWORD)(state->_ss.base + state->_esp);
-    state->_esp += 2;
-    return *stack;
+    if (state->_ss.operand_size)
+    {
+        LPWORD stack = (LPWORD)(state->_ss.base + state->_esp);
+        state->_esp += 2;
+        return *stack;
+    }
+    else
+    {
+        LPWORD stack = (LPWORD)(state->_ss.base + state->_sp);
+        state->_sp += 2;
+        return *stack;
+    }
 }
 DWORD POP32(struct vcpu_state_t *state)
 {
-    LPDWORD stack = (LPDWORD)(state->_ss.base + state->_esp);
-    state->_esp += 4;
-    return *stack;
+    if (state->_ss.operand_size)
+    {
+        LPDWORD stack = (LPDWORD)(state->_ss.base + state->_esp);
+        state->_esp += 4;
+        return *stack;
+    }
+    else
+    {
+        LPDWORD stack = (LPDWORD)(state->_ss.base + state->_sp);
+        state->_sp += 4;
+        return *stack;
+    }
 }
 WORD PEEK16(struct vcpu_state_t *state, int i)
 {
-    LPWORD stack = (LPWORD)(state->_ss.base + state->_esp);
-    return stack[i];
+    if (state->_ss.operand_size)
+    {
+        LPWORD stack = (LPWORD)(state->_ss.base + state->_esp);
+        return stack[i];
+    }
+    else
+    {
+        LPWORD stack = (LPWORD)(state->_ss.base + state->_sp);
+        return stack[i];
+    }
 }
 DWORD PEEK32(struct vcpu_state_t *state, int i)
 {
-    LPDWORD stack = (LPDWORD)(state->_ss.base + state->_esp);
-    return stack[i];
+    if (state->_ss.operand_size)
+    {
+        LPDWORD stack = (LPDWORD)(state->_ss.base + state->_esp);
+        return stack[i];
+    }
+    else
+    {
+        LPDWORD stack = (LPDWORD)(state->_ss.base + state->_sp);
+        return stack[i];
+    }
 }
 void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state)
 {
