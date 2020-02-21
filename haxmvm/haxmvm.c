@@ -915,6 +915,94 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state, DWORD ret_ad
     load_seg(&state->_cs, (WORD)context.SegCs);
 }
 
+LPBYTE get_base_addr(WORD sel)
+{
+    return wine_ldt_get_base(wine_ldt + (sel >> 3));
+}
+static uint64 dr7;
+void set_break_point(struct vcpu_state_t *state, WORD sel, DWORD addr, int breakpoint)
+{
+    LPBYTE base = get_base_addr(sel);
+    if (!base)
+        return;
+    if (wine_ldt_get_limit(wine_ldt + (sel >> 3)) < addr)
+        return;
+    uint64 linear = (uint64)base + addr;
+    switch (breakpoint)
+    {
+    case 0:
+        state->_dr0 = linear;
+        break;
+    case 1:
+        state->_dr1 = linear;
+        break;
+    case 2:
+        state->_dr2 = linear;
+        break;
+    case 3:
+        state->_dr3 = linear;
+        break;
+    default:
+        return;
+    }
+    state->_dr7 |= (1 << (2 * breakpoint + 1)) | (0 << (18 + 4 * breakpoint));
+    state->_dr6 = 0;
+}
+typedef int disassemble_debug_t(char *buffer, UINT8 *oprom, BOOL op_size, UINT64 eip);
+static disassemble_debug_t *disassemble_debug;
+static void trace(struct vcpu_state_t *state, uint16 cs, uint32 eip, uint16 ss, uint32 esp, uint32 eflags)
+{
+    char buf[512];
+    UINT8 *d = get_base_addr(cs) + eip;
+
+    if (!disassemble_debug)
+    {
+        disassemble_debug = (disassemble_debug_t*)GetProcAddress(LoadLibraryA("vm86.dll"), "disassemble_debug");
+    }
+    int len = disassemble_debug(buf, d, (wine_ldt_get_flags(wine_ldt + (cs >> 3)) & WINE_LDT_FLAGS_32BIT) == WINE_LDT_FLAGS_32BIT, eip);
+    int i;
+    fprintf(stderr, "%04x:%04x\t", cs, eip);
+    for (i = 0; i < len; i++)
+    {
+        fprintf(stderr, "%02x", d[i]);
+    }
+    fprintf(stderr, "\t%s\n", buf);
+    eflags &= ~2;
+    eflags &= ~0x100;
+    eflags |= 0x200;
+    if (state->_fs.selector || state->_gs.selector)
+    {
+        fprintf(stderr,
+            "EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X,"
+            "ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X,"
+            "ES:%04X,CS:%04X,SS:%04X,DS:%04X,FS:%04x,GS:%04x,"
+            "IP:%04X,stack:%08X,"
+            "EFLAGS:%08X"
+            "\n",
+            state->_eax, state->_ecx, state->_edx, state->_ebx,
+            esp, state->_ebp, state->_esi, state->_edi,
+            state->_es.selector, cs, ss, state->_ds.selector, state->_fs.selector, state->_gs.selector,
+            eip, *(LPDWORD)(get_base_addr(ss) + esp),
+            eflags
+        );
+    }
+    else
+    {
+        fprintf(stderr,
+            "EAX:%04X,ECX:%04X,EDX:%04X,EBX:%04X,"
+            "ESP:%04X,EBP:%04X,ESI:%04X,EDI:%04X,"
+            "ES:%04X,CS:%04X,SS:%04X,DS:%04X,"
+            "IP:%04X,stack:%08X,"
+            "EFLAGS:%08X"
+            "\n",
+            state->_eax, state->_ecx, state->_edx, state->_ebx,
+            esp, state->_ebp, state->_esi, state->_edi,
+            state->_es.selector, cs, ss, state->_ds.selector,
+            eip, *(LPDWORD)(get_base_addr(ss) + esp),
+            eflags
+        );
+    }
+}
 BOOL syscall_init = FALSE;
 LPBYTE syscall_trap = FALSE;
 void fstsw(WORD* a);
@@ -964,7 +1052,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         guestpt[page3 >> 12] = (DWORD)trap | 7;
         syscall_init = TRUE;
     }
-    //is_single_step = TRUE;
+    is_single_step = dasm;
     MEMORY_BASIC_INFORMATION mbi;
     DWORD bytes;
     DWORD ret_addr;
@@ -1003,10 +1091,13 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     struct hax_set_ram_info ram = { 0 };
     struct vcpu_state_t state2;
     DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state2, sizeof(state2), &bytes, NULL);
+    if (is_single_step)
+    {
+        trace(&state2, state2._cs.selector, state2._eip, state2._ss.selector, state2._esp, state2._eflags);
+    }
     while (TRUE)
     {
-        //DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state2, sizeof(state2), &bytes, NULL);
-        dprintf("%04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
+        dprintf("run %04X:%04X(base:%04llX) ESP:%08X F:%08X CS:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags, state2._cs.ar);
         if (state2._cs.selector == (ret_addr >> 16) && state2._eip == (ret_addr & 0xFFFF))
         {
             if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
@@ -1024,7 +1115,7 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
         if (!DeviceIoControl(hVCPU, HAX_VCPU_IOCTL_RUN, NULL, 0, NULL, 0, &bytes, NULL))
             return;
         DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state2, sizeof(state2), &bytes, NULL);
-        dprintf("%04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
+        dprintf("end %04X:%04X(base:%04llX) ESP:%08X F:%08X\n", state2._cs.selector, state2._eip, state2._cs.base, state2._esp, state2._eflags);
         if (state2._cs.selector == (ret_addr >> 16) && state2._eip == (ret_addr & 0xFFFF))
         {
             if (!DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state2, sizeof(state2), NULL, 0, &bytes, NULL))
@@ -1057,6 +1148,42 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                 {
                     int intvec = ((DWORD)ptr & 0xff) - 1;
                     state2._eip = 256;
+                    if (intvec == 1 && (state2._dr6 & 15 || is_single_step))
+                    {
+                        if (state2._dr6 & 15)
+                        {
+                            if (state2._dr6 & 1)
+                            {
+                                fprintf(stderr, "breakpoint 0\n");
+                            }
+                            if (state2._dr6 & 2)
+                            {
+                                fprintf(stderr, "breakpoint 1\n");
+                            }
+                            if (state2._dr6 & 4)
+                            {
+                                fprintf(stderr, "breakpoint 2\n");
+                            }
+                            if (state2._dr6 & 8)
+                            {
+                                fprintf(stderr, "breakpoint 3\n");
+                            }
+                            state2._dr6 = 0;
+                            flags |= 0x100;
+                            dr7 = state2._dr7;
+                            state2._dr7 = 0;
+                            /* breakpoint -> disable -> step -> enable */
+                        }
+                        else if (!is_single_step)
+                        {
+                            flags &= ~0x100;
+                            state2._dr7 = dr7;
+                        }
+                        trace(&state2, cs, eip, old_ss, old_esp, flags);
+                        state2._eip = 256;
+                        break;
+                    }
+                    dprintf("err:%X flg:%08X %04X:%04X\n", err, flags, cs, eip);
                     if (intvec == 0x0e)
                     {
                         ram.pa_start = state2._cr2 & ~0xfff;
