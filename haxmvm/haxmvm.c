@@ -1238,6 +1238,15 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                     dprintf("err:%X flg:%08X %04X:%04X\n", err, flags, cs, eip);
                     if (intvec == 0x0e)
                     {
+                        BOOL protect = 0;
+                        DWORD old;
+                        if (VirtualQuery(alloc_ram.va, &mbi, sizeof(MEMORY_BASIC_INFORMATION)))
+                        {
+                            if (!(mbi.Protect & PAGE_EXECUTE_READWRITE) && !(mbi.Protect & PAGE_READWRITE))
+                            {
+                                protect = VirtualProtect(alloc_ram.va, 4096, PAGE_READWRITE, &old);
+                            }
+                        }
                         ram.pa_start = state2._cr2 & ~0xfff;
                         ram.size = 4096;
                         ram.va = state2._cr2 & ~0xfff;
@@ -1246,10 +1255,9 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                             HAXMVM_ERRF("SET_RAM");
                         }
                         state2._esp += 4;
-                        if (kani)
+                        if (protect && 0)
                         {
-                            DWORD d;
-                            //VirtualProtect(alloc_ram.va, 4096, op, &d);
+                            VirtualProtect(alloc_ram.va, 4096, old, &old);
                         }
                     }
                     else if (name)
