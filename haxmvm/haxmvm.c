@@ -357,9 +357,94 @@ static void intel_vt_x_workaround_update_entry(int sel, const LDT_ENTRY *entry)
     LeaveCriticalSection(&crst);
 }
 
+/*
+ * WOW64 syscall entry:
+ * B8 XX XX XX XX mov eax,XXXXX
+ * BA XX XX XX XX mov edx,_Wow64SystemServiceCall@0
+ * FF D2          call edx
+ * C2 XX XX       ret xx
+ * 90             nop
+ */
+#include <pshpack1.h>
+struct wow64_syscall
+{
+    BYTE mov_eax;
+    DWORD num;
+    BYTE mov_edx;
+    DWORD Wow64SystemServiceCall;
+    WORD call_edx;
+    BYTE ret;
+    WORD ret_n;
+    BYTE nop;
+};
+struct hooked_syscall
+{
+    BYTE jmp_rel;
+    DWORD address;
+};
+#include <poppack.h>
+BOOL hook_nt_syscall(struct wow64_syscall **old_syscall, LPVOID hook_func, LPCSTR hook_dll, LPCSTR hook_func_name)
+{
+    HMODULE dll = GetModuleHandleA(hook_dll);
+    LPVOID func = (LPVOID)GetProcAddress(dll, hook_func_name);
+    struct wow64_syscall *syscall = (struct wow64_syscall*)func;
+    MEMORY_BASIC_INFORMATION mbi;
+    DWORD old;
+    if (!func)
+    {
+        return FALSE;
+    }
+    if (syscall->mov_eax != 0xb8 || syscall->mov_edx != 0xba || syscall->call_edx != 0xd2ff || syscall->ret != 0xc2 || syscall->nop != 0x90)
+    {
+        return FALSE;
+    }
+    if (!VirtualQuery(syscall, &mbi, sizeof(mbi)))
+    {
+        return FALSE;
+    }
+    VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_EXECUTE_READWRITE, &old);
+    *old_syscall = VirtualAlloc(NULL, 4096, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    **old_syscall = *syscall;
+    ((struct hooked_syscall*)syscall)->jmp_rel = 0xe9;
+    ((struct hooked_syscall*)syscall)->address = (char*)hook_func - (char*)(&((struct hooked_syscall*)syscall)->address + 1);
+    VirtualProtect(mbi.BaseAddress, mbi.RegionSize, old, &old);
+    return TRUE;
+}
+struct wow64_syscall *old_NtFreeVirtualMemory;
+NTSTATUS NTAPI hook_NtFreeVirtualMemory(HANDLE ProcessHandle, PVOID *BaseAddress, PULONG RegionSize, ULONG FreeType)
+{
+    NTSTATUS result = ((NTSTATUS(NTAPI*)(HANDLE, PVOID*, PULONG, ULONG))old_NtFreeVirtualMemory)(ProcessHandle, BaseAddress, RegionSize, FreeType);
+    if (NT_SUCCESS(result))
+    {
+        DWORD bytes;
+        DWORD physaddr = (DWORD)*BaseAddress / 4096;
+        for (DWORD i = 0; i < (*RegionSize / 4096); i++)
+        {
+            DWORD pte = physaddr + i;
+            if (sizeof(guestpt) / sizeof(guestpt[0]) <= pte)
+                *(int*)0 = 0;
+            if (guestpt[pte])
+            {
+                struct hax_set_ram_info ram = { pte * 4096, 4096, HAX_RAM_INFO_INVALID };
+
+                if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
+                {
+                    HAXMVM_ERRF("Failed to discard memory %p", pte);
+                }
+                guestpt[pte] = 0;
+            }
+        }
+    }
+    return result;
+}
+
 
 BOOL init_vm86(BOOL vm86)
 {
+    if (!hook_nt_syscall(&old_NtFreeVirtualMemory, hook_NtFreeVirtualMemory, "ntdll", "NtFreeVirtualMemory"))
+    {
+        HAXMVM_ERRF("Failed to hook NtFreeVirtualMemory.");
+    }
 #ifdef _MSC_VER
     __asm
     {
