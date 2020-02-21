@@ -1238,6 +1238,38 @@ extern "C"
         __ENDTRY
     }
 
+
+    __declspec(dllexport) int disassemble_debug(char *buffer, UINT8 *oprom, BOOL op_size, UINT64 eip)
+    {
+        int old_m_operand_size = m_operand_size;
+        int old_m_eip = m_eip;
+        int r = 0;
+        __TRY
+        {
+            m_operand_size = op_size;
+            m_eip = eip;
+#if defined(HAS_I386)
+            if (op_size)
+            {
+                r = CPU_DISASSEMBLE_CALL(x86_32) & 0xff;
+            }
+            else
+#endif
+            {
+                r = i386_dasm_one_ex(buffer, m_eip, oprom, 16) & 0xff;//CPU_DISASSEMBLE_CALL(x86_16);
+            }
+        }
+        __EXCEPT_PAGE_FAULT
+        {
+            *buffer = 0;
+            r = 0;
+        }
+        __ENDTRY
+        m_eip = old_m_eip;
+        m_operand_size = old_m_operand_size;
+        return r;
+    }
+
     void protected_mode_exception_handler(WORD num, const char *name, pm_interrupt_handler pih)
     {
         WORD err = has_x86_exception_err(num) ? POP16() : num;
