@@ -910,7 +910,7 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state, DWORD ret_ad
         state->_esp -= (ooo - context.Esp);
         WORD bpp = state->_esp;
         state->_esp = context.Esp + 0x2c;
-        state->_ebp = bp;
+        state->_bp = bp;
     }
     set_eflags(state, context.EFlags);
     state->_eip = context.Eip;
