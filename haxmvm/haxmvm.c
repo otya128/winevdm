@@ -1030,6 +1030,42 @@ BOOL has_x86_exception_err(WORD num)
     }
     return FALSE;
 }
+
+BOOL workaround_watcom(struct vcpu_state_t *state, uint16 cs, uint32 eip)
+{
+    /* workaround for Watcom C 8.5 win386 startup */
+    const unsigned char startup[] = {
+        0xbf, 0x02, 0x00,
+        0x26, 0x8a, 0x2f,
+        0x26, 0x8a, 0x0f,
+        0x3a, 0xe9,
+        0x74, 0xf9,
+        0x26, 0x8a, 0x0f,
+        0x26, 0x3a, 0x0f,
+        0x75, 0x10,
+        0x2d, 0x01, 0x00,
+        0x83, 0xda, 0x00,
+        0x8a, 0xec,
+        0x0a, 0xe8,
+        0x0a, 0xee,
+        0x0a, 0xea,
+        0x75, 0xeb,
+        0x4f,
+        0x75, 0xe5,
+        0xf7, 0xda,
+        0xf7, 0xd8,
+        0x83, 0xda, 0x00,
+        0xb9, 0x6e, 0x00,
+    };
+    const unsigned char *code = get_base_addr(cs) + eip;
+    if (!memcmp(code - sizeof(startup), startup, sizeof(startup)) && code[0] == 0xf7 && code[1] == 0xf1) /* div ax, cx */
+    {
+        state->_dx = 0;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 BOOL syscall_init = FALSE;
 LPBYTE syscall_trap = FALSE;
 void fstsw(WORD* a);
@@ -1243,6 +1279,13 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                     }
                     else if (name)
                     {
+                        if (intvec == 0)
+                        {
+                            if (workaround_watcom(&state2, cs, eip))
+                            {
+                                break;
+                            }
+                        }
                         if (intvec == 0x0d)
                         {
                             if (err == 0x40)
