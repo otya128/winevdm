@@ -412,30 +412,56 @@ BOOL hook_nt_syscall(struct wow64_syscall **old_syscall, LPVOID hook_func, LPCST
     VirtualProtect(mbi.BaseAddress, mbi.RegionSize, old, &old);
     return TRUE;
 }
+
+static void discard_memory(PVOID BaseAddress, ULONG RegionSize)
+{
+    DWORD physaddr = (DWORD)BaseAddress / 4096;
+    for (DWORD i = 0; i < (RegionSize / 4096); i++)
+    {
+        DWORD pte = physaddr + i;
+        if (sizeof(guestpt) / sizeof(guestpt[0]) <= pte)
+            *(int*)0 = 0;
+        if (guestpt[pte])
+        {
+            struct hax_set_ram_info ram = { pte * 4096, 4096, HAX_RAM_INFO_INVALID };
+
+            if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, NULL, NULL))
+            {
+                HAXMVM_ERRF("Failed to discard memory %p", pte);
+            }
+            guestpt[pte] = 0;
+        }
+    }
+}
+
 struct wow64_syscall *old_NtFreeVirtualMemory;
 NTSTATUS NTAPI hook_NtFreeVirtualMemory(HANDLE ProcessHandle, PVOID *BaseAddress, PULONG RegionSize, ULONG FreeType)
 {
     NTSTATUS result = ((NTSTATUS(NTAPI*)(HANDLE, PVOID*, PULONG, ULONG))old_NtFreeVirtualMemory)(ProcessHandle, BaseAddress, RegionSize, FreeType);
     if (NT_SUCCESS(result))
     {
-        DWORD bytes;
-        DWORD physaddr = (DWORD)*BaseAddress / 4096;
-        for (DWORD i = 0; i < (*RegionSize / 4096); i++)
-        {
-            DWORD pte = physaddr + i;
-            if (sizeof(guestpt) / sizeof(guestpt[0]) <= pte)
-                *(int*)0 = 0;
-            if (guestpt[pte])
-            {
-                struct hax_set_ram_info ram = { pte * 4096, 4096, HAX_RAM_INFO_INVALID };
+        discard_memory(*BaseAddress, *RegionSize);
+    }
+    return result;
+}
 
-                if (!DeviceIoControl(hVM, HAX_VM_IOCTL_SET_RAM, &ram, sizeof(ram), NULL, 0, &bytes, NULL))
-                {
-                    HAXMVM_ERRF("Failed to discard memory %p", pte);
-                }
-                guestpt[pte] = 0;
-            }
+__declspec(dllexport) BOOL haxmvm_DeleteObject(HANDLE hobj)
+{
+    DIBSECTION dib;
+    BOOL discard = FALSE;
+    MEMORY_BASIC_INFORMATION mbi;
+    BOOL result;
+    if (GetObjectType(hobj) == OBJ_BITMAP && GetObjectW(hobj, sizeof(dib), &dib) == sizeof(dib))
+    {
+        if (VirtualQuery(dib.dsBm.bmBits, &mbi, sizeof(mbi)))
+        {
+            discard = mbi.State == MEM_COMMIT;
         }
+    }
+    result = DeleteObject(hobj);
+    if (result && discard)
+    {
+        discard_memory(mbi.BaseAddress, mbi.RegionSize);
     }
     return result;
 }

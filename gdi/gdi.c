@@ -1831,13 +1831,29 @@ BOOL16 WINAPI DeleteDC16( HDC16 hdc )
 BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
 {
     HANDLE object = HGDIOBJ_32(obj);
+    BOOL result;
+    static BOOL (*haxmvm_DeleteObject)(HGDIOBJ);
+    static BOOL init;
+    if (!init)
+    {
+        HMODULE haxmvm = GetModuleHandleW(L"haxmvm");
+        haxmvm_DeleteObject = (BOOL(*)(HGDIOBJ))GetProcAddress(haxmvm, "haxmvm_DeleteObject");
+        init = TRUE;
+    }
     if (GetObjectType( object ) == OBJ_BITMAP) free_segptr_bits( obj );
     if ((GetObjectType(object) == OBJ_PAL) && GetPtr16(object, 1))
     {
         HeapFree(GetProcessHeap(), 0, GetPtr16(object, 1));
         SetPtr16(object, NULL, 1);
     }
-    BOOL result = DeleteObject( object );
+    if (haxmvm_DeleteObject)
+    {
+        result = haxmvm_DeleteObject(object);
+    }
+    else
+    {
+        result = DeleteObject( object );
+    }
     if (result)
     {
         K32WOWHandle16DestroyHint(object, WOW_TYPE_HDC /* GDIOBJ */);
