@@ -578,12 +578,8 @@ BOOL init_vm86(BOOL vm86)
     gdt[2].LimitLow = 0xffff;
     gdt[2].HighWord.Bytes.Flags1 = 0x93;
     gdt[2].HighWord.Bytes.Flags2 = 0x40;
-    gdt[4].BaseLow = 0;
-    gdt[4].HighWord.Bytes.BaseMid = 0;
-    gdt[4].HighWord.Bytes.BaseHi = 0;
-    gdt[4].LimitLow = 0xffff;
-    gdt[4].HighWord.Bytes.Flags1 = 0xfb;
-    gdt[4].HighWord.Bytes.Flags2 = 0xcf;
+    GetThreadSelectorEntry(GetCurrentThread(), seg_cs, gdt + (seg_cs >> 3));
+    GetThreadSelectorEntry(GetCurrentThread(), seg_ds, gdt + (seg_ds >> 3));
 
     state._ldt.selector = 0x18;
     state._ldt.base = (uint64)&wine_ldt[0];
@@ -1453,10 +1449,8 @@ void callx87(const char *addr, LPCVOID eax)
     DeviceIoControl(hVCPU, HAX_VCPU_GET_REGS, NULL, 0, &state, sizeof(state), &bytes, NULL);
     state._rip = addr;
     state._eax = eax;
-    state._ds.selector = seg_ds;
-    state._ds.base = 0;
-    state._cs.selector = seg_cs;
-    state._cs.base = 0;
+    load_seg(&state._cs, seg_cs);
+    load_seg(&state._ds, seg_ds);
     while (TRUE)
     {
         DeviceIoControl(hVCPU, HAX_VCPU_SET_REGS, &state, sizeof(state), NULL, 0, &bytes, NULL);
