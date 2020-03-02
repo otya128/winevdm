@@ -474,6 +474,53 @@ static const char *font_list[] =
     "ITC Zapf Dingbats",
     NULL
 };
+
+static struct list font_allowed_list = LIST_INIT(font_allowed_list);
+
+static struct list font_disallowed_list = LIST_INIT(font_disallowed_list);
+
+struct font_entry
+{
+    struct list entry;
+    const char *font_name;
+};
+
+static void construct_allowed_font_list()
+{
+    int buf_size = 2048;
+    LPSTR font = HeapAlloc(GetProcessHeap(), 0, buf_size);
+    while (TRUE)
+    {
+        DWORD size = krnl386_get_config_string("EnumFontLimitation", NULL, "", font, buf_size);
+        if (size < buf_size)
+        {
+            break;
+        }
+        buf_size *= 2;
+        font = HeapReAlloc(GetProcessHeap(), 0, font, buf_size);
+    }
+    while (TRUE)
+    {
+        size_t len = strlen(font);
+        struct font_entry *elem;
+        BOOL allowed;
+        if (len == 0)
+            break;
+        elem = (struct font_entry*)HeapAlloc(GetProcessHeap(), 0, sizeof(*elem));
+        allowed = krnl386_get_config_int("EnumFontLimitation", font, 1);
+        elem->font_name = font;
+        if (allowed)
+        {
+            list_add_tail(&font_allowed_list, &elem->entry);
+        }
+        else
+        {
+            list_add_tail(&font_disallowed_list, &elem->entry);
+        }
+        font += len + 1;
+    }
+}
+
 /*
  * callback for EnumFontFamiliesEx16
  * Note: plf is really an ENUMLOGFONTEXA, and ptm is a NEWTEXTMETRICEXA.
@@ -500,18 +547,47 @@ static INT CALLBACK enum_font_callback( const LOGFONTA *plf,
     {
         enum_font_limitation_init = TRUE;
         enum_font_limitation = krnl386_get_config_int("otvdm", "EnumFontLimitation", FALSE);
+        if (enum_font_limitation)
+        {
+            construct_allowed_font_list();
+        }
     }
     if (enum_font_limitation)
     {
         /* TODO: configurable */
         int i;
         BOOL found = FALSE;
-        for (i = 0; font_list[i]; i++)
+        struct font_entry *font;
+        BOOL disallow = FALSE;
+
+        LIST_FOR_EACH_ENTRY(font, &font_disallowed_list, struct font_entry, entry)
         {
-            if (!stricmp(elfe16.elfLogFont.lfFaceName, font_list[i]))
+            if (!stricmp(elfe16.elfLogFont.lfFaceName, font->font_name))
             {
-                found = TRUE;
+                disallow = TRUE;
                 break;
+            }
+        }
+        if (!disallow)
+        {
+            for (i = 0; font_list[i]; i++)
+            {
+                if (!stricmp(elfe16.elfLogFont.lfFaceName, font_list[i]))
+                {
+                    found = TRUE;
+                    break;
+                }
+            }
+        }
+        if (!found && !disallow)
+        {
+            LIST_FOR_EACH_ENTRY(font, &font_allowed_list, struct font_entry, entry)
+            {
+                if (!stricmp(elfe16.elfLogFont.lfFaceName, font->font_name))
+                {
+                    found = TRUE;
+                    break;
+                }
             }
         }
         if (!found)
