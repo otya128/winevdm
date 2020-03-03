@@ -196,7 +196,7 @@ DWORD WINAPI RegCreateKey16( HKEY hkey, LPCSTR name, PHKEY retkey )
     // try to create with write access
     result = RegCreateKeyExA(hkey, name, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, retkey, NULL);
     // try to redirect to HKEY_CURRENT_USER if possible
-    if (!enable_registry_redirection && (result != ERROR_SUCCESS))
+    if (name && !enable_registry_redirection && (result != ERROR_SUCCESS))
     {
         if (hkey == HKEY_CLASSES_ROOT)
         {
