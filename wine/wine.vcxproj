@@ -11,7 +11,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="alloc.cpp" />
     <ClCompile Include="casemap.c" />
     <ClCompile Include="config.c" />
     <ClCompile Include="debug.c" />

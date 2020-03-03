@@ -36,9 +36,6 @@
     <ClCompile Include="config.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="alloc.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="wrapper.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
