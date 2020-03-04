@@ -472,6 +472,18 @@ static const char *font_list[] =
     "Palatino",
     "ITC Zapf Chancery",
     "ITC Zapf Dingbats",
+    "AvantGarde",
+    "Bookman",
+    "NewCenturySchlbk",
+    "Palatino",
+    "ZapfChancery",
+    "ZapfDingbats",
+    "AvantGarde",
+    "Bookman",
+    "NewCenturySchlbk",
+    "Palatino",
+    "ZapfChancery",
+    "ZapfDingbats",
     NULL
 };
 
