@@ -362,7 +362,8 @@ BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum )
             return TRUE;
     }
 
-    if (!pSeg->filepos) return TRUE;  /* No file image, just return */
+    if (!pSeg->filepos && !(pModule->ne_flags & NE_FFLAGS_SELFLOAD))
+        return TRUE;  /* No file image, just return */
 
     TRACE_(module)("Loading segment %d, hSeg=%04x, flags=%04x\n",
                     segnum, pSeg->hSeg, pSeg->flags );
