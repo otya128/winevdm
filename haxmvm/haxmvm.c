@@ -1343,12 +1343,29 @@ void vm86main(CONTEXT *context, DWORD cbArgs, PEXCEPTION_HANDLER handler,
                                 break;
                             }
                         }
-                        trace(&state2, cs, eip, old_ss, old_esp, flags);
-                        HAXMVM_ERRF("%s %02x %04x %04x:%04x %04x:%04x", name, intvec, err, cs, eip, old_ss, old_esp);
-                        HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp);
-                        HAXMVM_ERRF("exception");
-                        haxmvm_panic("exception %s", name);
-                        pih(intvec, MAKESEGPTR(state2._cs.selector, state2._eip & 0xffff));
+                        DWORD handler = pih(intvec, MAKESEGPTR(cs, eip));
+                        if (!handler)
+                        {
+                            trace(&state2, cs, eip, old_ss, old_esp, flags);
+                            HAXMVM_ERRF("%s %02x %04x %04x:%04x %04x:%04x", name, intvec, err, cs, eip, old_ss, old_esp);
+                            HAXMVM_ERRF("%04X:%04X(base:%04llX) ESP:%08X", state2._cs.selector, state2._eip, state2._cs.base, state2._esp);
+                            HAXMVM_ERRF("exception");
+                            haxmvm_panic("exception %s", name);
+                        }
+                        if (has_err)
+                        {
+                            err = POP32(&state2);
+                        }
+                        eip = POP32(&state2);
+                        cs = POP32(&state2);
+                        flags = POP32(&state2);
+                        old_esp = POP32(&state2);
+                        old_ss = POP32(&state2);
+                        state2._eip = OFFSETOF(handler);
+                        set_eflags(&state2, flags);
+                        load_seg(&state2._cs, SELECTOROF(handler));
+                        load_seg(&state2._ss, old_ss);
+                        state2._esp = old_esp;
                     }
                     else
                     {
