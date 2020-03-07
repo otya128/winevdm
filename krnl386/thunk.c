@@ -2447,12 +2447,21 @@ DWORD WINAPI LoadLibraryEx32W16( LPCSTR lpszLibFile, DWORD hFile, DWORD dwFlags 
     return (DWORD)hModule;
 }
 
+// workaround for dsinterface.dll
+static DWORD DSI_InitializeDirectSound = 0;
+static DWORD DSI_InitializeSound = 0;
+
 /***********************************************************************
  *           GetProcAddress32W     (KERNEL.515)
  */
 DWORD WINAPI GetProcAddress32W16( DWORD hModule, LPCSTR lpszProc )
 {
-    return (DWORD)GetProcAddress( (HMODULE)hModule, lpszProc );
+    DWORD ret = (DWORD)GetProcAddress( (HMODULE)hModule, lpszProc );
+    if (!strcmp(lpszProc, "InitializeDirectSound"))
+        DSI_InitializeDirectSound = ret;
+    else if(!strcmp(lpszProc, "InitializeSound"))
+        DSI_InitializeSound = ret;
+    return ret;
 }
 
 /***********************************************************************
@@ -2522,6 +2531,8 @@ DWORD WINAPIV CallProc32W16( DWORD nrofargs, DWORD argconvmask, FARPROC proc32, 
     /* POP nrofargs DWORD arguments and 3 DWORD parameters */
     stack16_pop( (3 + nrofargs) * sizeof(DWORD) );
 
+    if ((proc32 == DSI_InitializeDirectSound) || (proc32 == DSI_InitializeSound))
+        args[0] = HWND_32(args[0]);
     return WOW_CallProc32W16( proc32, nrofargs, args );
 }
 
