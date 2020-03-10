@@ -3095,7 +3095,7 @@ INT16 WINAPI wvsprintf16( LPSTR buffer, LPCSTR spec, VA_LIST16 args )
         if (format.flags & WPRINTF_LEFTALIGN) format.flags &= ~WPRINTF_ZEROPAD;
         if ((format.flags & WPRINTF_ZEROPAD) && (format.width > format.precision))
             format.precision = format.width;
-        if (format.flags & WPRINTF_PREFIX_HEX) len += 2;
+        if ((format.flags & WPRINTF_PREFIX_HEX) && (format.type == WPR_HEXA)) len += 2;
 
         sign = 0;
         if (!(format.flags & WPRINTF_LEFTALIGN))
