@@ -1158,11 +1158,10 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
         case WHvRunVpExitReasonX64IoPortAccess:
         {
             WHV_X64_IO_PORT_ACCESS_CONTEXT *io = &exit.IoPortAccess;
-            WHV_REGISTER_VALUE vals[] = {{0}, {0}, {0}};
+            WHV_REGISTER_VALUE vals[] = {{0}, {0}};
             const WHV_REGISTER_NAME regs[] = {WHvX64RegisterRip, WHvX64RegisterRax, WHvX64RegisterRflags};
             vals[0].Reg32 = exit.VpContext.Rip + exit.VpContext.InstructionLength;
             vals[1].Reg64 = io->Rax;
-            vals[2].Reg64 = exit.VpContext.Rflags;
             if(!(io->AccessInfo.StringOp))
             {
                 switch(io->AccessInfo.AccessSize)
@@ -1228,7 +1227,7 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
                             if(!io->AccessInfo.IsWrite)
                             {
                                 DOSVM_outport(io->PortNumber, *addr, 1);
-                                DOSVM_outport(io->PortNumber + 1, *addr + 1, 1);
+                                DOSVM_outport(io->PortNumber + 1, *(addr + 1), 1);
                             }
                             else
                             {
@@ -1255,7 +1254,7 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
                     }
                 }
             }
-            pWHvSetVirtualProcessorRegisters(partition, 0, regs, 3, vals);
+            pWHvSetVirtualProcessorRegisters(partition, 0, regs, 2, vals);
             break;
         }
         default:
