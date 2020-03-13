@@ -991,6 +991,7 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
             {
                 PANIC("HALT");
             }
+            break;
         default:
             PANIC("unexpected exit reason %d", exit.ExitReason);
             break;
