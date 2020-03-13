@@ -982,6 +982,10 @@ extern "C"
         DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
     WOWCallback16Ex_t pWOWCallback16Ex;
     static WORD tss[0x68 + 65536 / 8] = { 0 };
+    typedef BOOL (WINAPI *vm_inject_t)(DWORD vpfn16, DWORD dwFlags,
+        DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+    BOOL WINAPI vm_inject(DWORD vpfn16, DWORD dwFlags,
+        DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
 	__declspec(dllexport) BOOL init_vm86(BOOL is_vm86)
 	{
         SymInitialize(GetCurrentProcess(), NULL, TRUE);
@@ -998,6 +1002,8 @@ extern "C"
             krnl386 = LoadLibraryA(KRNL386);
         DOSVM_inport = (DOSVM_inport_t)GetProcAddress(krnl386, "DOSVM_inport");
         DOSVM_outport = (DOSVM_outport_t)GetProcAddress(krnl386, "DOSVM_outport");
+        void(WINAPI *set_vm_inject_cb)(vm_inject_t) = (void(WINAPI *)(vm_inject_t))GetProcAddress(krnl386, "set_vm_inject_cb");
+        set_vm_inject_cb(vm_inject);
         inject_event = CreateEventW(NULL, TRUE, FALSE, NULL);
         InitializeCriticalSection(&inject_crit_section);
         pGetpWin16Lock = (GetpWin16Lock_t)GetProcAddress(krnl386, "GetpWin16Lock");

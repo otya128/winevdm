@@ -793,3 +793,5 @@
 @ stdcall -arch=win32 AllocDStoCSAlias16(long)
 @ cdecl -arch=win32 GLOBAL_GetOrig(long)
 @ cdecl -arch=win32 GLOBAL_SetOrig(long long)
+@ stdcall -arch=win32 set_vm_inject_cb(long)
+@ stdcall -arch=win32 vm_inject(long long long long long)

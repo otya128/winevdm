@@ -37,6 +37,7 @@
 #include "wine/unicode.h"
 #include "wine/library.h"
 #include "wine/debug.h"
+#include "windows/wownt32.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(relay);
 
@@ -935,4 +936,23 @@ SEGPTR make_thunk_32(void *funcptr, const char *arguments, const char *name, BOO
 void free_thunk_32(SEGPTR thunk)
 {
     ((PROC16_RELAY*)MapSL(thunk))->used = FALSE;
+}
+
+typedef BOOL (WINAPI *vm_inject_t)(DWORD vpfn16, DWORD dwFlags,
+    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+
+static vm_inject_t vm_inject_cb = NULL;
+
+void WINAPI set_vm_inject_cb(vm_inject_t cb)
+{
+    if (!vm_inject_cb)
+        vm_inject_cb = cb;
+}
+
+BOOL WINAPI vm_inject(DWORD vpfn16, DWORD dwFlags,
+        DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode)
+{
+    if (!vm_inject_cb)
+        return WOWCallback16Ex(vpfn16, dwFlags, cbArgs, pArgs, pdwRetCode);
+    return vm_inject_cb(vpfn16, dwFlags, cbArgs, pArgs, pdwRetCode);
 }
