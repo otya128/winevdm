@@ -1188,7 +1188,6 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
                     case 4:
                         if(!io->AccessInfo.IsWrite)
                         {
-                            vals[1].Reg64 = (io->Rax & ~0xffff);
                             vals[1].Reg64 |= DOSVM_inport(io->PortNumber, 1);
                             vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 1, 1) << 8;
                             vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 2, 1) << 16;
