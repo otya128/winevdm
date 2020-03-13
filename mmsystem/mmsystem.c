@@ -147,26 +147,14 @@ struct timer_entry {
 
 static struct list timer_list = LIST_INIT(timer_list);
 
-typedef BOOL (WINAPI *vm_inject_t)(DWORD vpfn16, DWORD dwFlags,
-    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
-vm_inject_t vm_inject;
+BOOL WINAPI vm_inject(DWORD vpfn16, DWORD dwFlags,
+        DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
 static void CALLBACK timeCB3216(UINT id, UINT uMsg, DWORD_PTR user, DWORD_PTR dw1, DWORD_PTR dw2)
 {
     struct timer_entry* te = (void*)user;
     WORD                args[8];
     DWORD               ret;
 
-    if (!vm_inject)
-    {
-        char dllname[MAX_PATH];
-        krnl386_get_config_string("otvdm", "vm", "vm86.dll", dllname, sizeof(dllname));
-        HMODULE vm = LoadLibraryA(dllname);
-        vm_inject = (vm_inject_t)GetProcAddress(vm, "vm_inject");
-        if (!vm_inject)
-        {
-            vm_inject = WOWCallback16Ex;
-        }
-    }
     args[7] = LOWORD(id);
     args[6] = LOWORD(uMsg);
     args[5] = HIWORD(te->user);
