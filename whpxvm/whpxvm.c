@@ -1,6 +1,7 @@
 #include "whpxvm.h"
 
 #include "../krnl386/kernel16_private.h"
+#include "wownt32.h"
 
 BOOL initflag;
 UINT8 *mem;
@@ -51,6 +52,12 @@ HRESULT(WINAPI *pWHvRunVirtualProcessor)(
     _Out_writes_bytes_(ExitContextSizeInBytes) VOID* ExitContext,
     _In_ UINT32 ExitContextSizeInBytes
     );
+HRESULT(WINAPI *pWHvCancelRunVirtualProcessor)(
+    _In_ WHV_PARTITION_HANDLE Partition,
+    _In_ UINT32 VpIndex,
+    _In_ UINT32 Flags
+    );
+
 
 DWORD WINAPI panic_msgbox(LPVOID data)
 {
@@ -88,12 +95,17 @@ void panic_hresult(const char *msg, HRESULT result, const char *func, int line)
     ExitThread(1);
     return;
 }
+
+static HMODULE krnl386 = 0;
+
+
 PVOID dynamic_setWOW32Reserved(PVOID w)
 {
     static PVOID(*setWOW32Reserved)(PVOID);
     if (!setWOW32Reserved)
     {
-        HMODULE krnl386 = LoadLibraryA(KRNL386);
+        if (!krnl386)
+            krnl386 = LoadLibraryA(KRNL386);
         setWOW32Reserved = (PVOID(*)(PVOID))GetProcAddress(krnl386, "setWOW32Reserved");
     }
     return setWOW32Reserved(w);
@@ -103,7 +115,8 @@ PVOID dynamic_getWOW32Reserved()
     static PVOID(*getWOW32Reserved)();
     if (!getWOW32Reserved)
     {
-        HMODULE krnl386 = LoadLibraryA(KRNL386);
+        if (!krnl386)
+            krnl386 = LoadLibraryA(KRNL386);
         getWOW32Reserved = (PVOID(*)())GetProcAddress(krnl386, "getWOW32Reserved");
     }
     return getWOW32Reserved();
@@ -113,7 +126,8 @@ WINE_VM86_TEB_INFO *dynamic_getGdiTebBatch()
     static WINE_VM86_TEB_INFO*(*getGdiTebBatch)();
     if (!getGdiTebBatch)
     {
-        HMODULE krnl386 = LoadLibraryA(KRNL386);
+        if (!krnl386)
+            krnl386 = LoadLibraryA(KRNL386);
         getGdiTebBatch = (WINE_VM86_TEB_INFO*(*)())GetProcAddress(krnl386, "getGdiTebBatch");
     }
     return getGdiTebBatch();
@@ -123,7 +137,8 @@ void dynamic__wine_call_int_handler(CONTEXT *context, BYTE intnum)
     static void(*__wine_call_int_handler)(CONTEXT *context, BYTE intnum);
     if (!__wine_call_int_handler)
     {
-        HMODULE krnl386 = LoadLibraryA(KRNL386);
+        if (!krnl386)
+            krnl386 = LoadLibraryA(KRNL386);
         __wine_call_int_handler = (void(*)(CONTEXT *context, BYTE intnum))GetProcAddress(krnl386, "__wine_call_int_handler");
     }
     __wine_call_int_handler(context, intnum);
@@ -291,6 +306,33 @@ __attribute__ ((aligned(4096)))
 WORD seg_cs;
 WORD seg_ds;
 
+typedef DWORD (*DOSVM_inport_t)(int port, int size);
+typedef void (*DOSVM_outport_t)(int port, int size, DWORD value);
+DOSVM_inport_t DOSVM_inport;
+DOSVM_outport_t DOSVM_outport;
+
+HANDLE inject_event;
+CRITICAL_SECTION inject_crit_section;
+typedef VOID (WINAPI *GetpWin16Lock_t)(SYSLEVEL **lock);
+GetpWin16Lock_t pGetpWin16Lock;
+SYSLEVEL *win16_syslevel;
+typedef BOOL(WINAPI *WOWCallback16Ex_t)(DWORD vpfn16, DWORD dwFlags,
+    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+WOWCallback16Ex_t pWOWCallback16Ex;
+typedef BOOL (WINAPI *vm_inject_t)(DWORD vpfn16, DWORD dwFlags,
+    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+BOOL WINAPI vm_inject(DWORD vpfn16, DWORD dwFlags,
+    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode);
+__declspec(dllexport) DWORD wine_call_to_16_vm86(DWORD target, DWORD cbArgs, PEXCEPTION_HANDLER handler,
+    void(*from16_reg)(void),
+    LONG(*__wine_call_from_16)(void),
+    int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
+    void(*__wine_call_to_16_ret)(void),
+    int dasm,
+    BOOL vm86,
+    void *memory_base,
+    pm_interrupt_handler pih);
+
 static CRITICAL_SECTION running_critical_section;
 
 static WHV_PARTITION_HANDLE partition;
@@ -312,6 +354,7 @@ static BOOL load_funcs(void)
     result = result && load_func(hmod, "WHvSetVirtualProcessorRegisters", (LPVOID*)&pWHvSetVirtualProcessorRegisters);
     result = result && load_func(hmod, "WHvSetPartitionProperty", (LPVOID*)&pWHvSetPartitionProperty);
     result = result && load_func(hmod, "WHvRunVirtualProcessor", (LPVOID*)&pWHvRunVirtualProcessor);
+    result = result && load_func(hmod, "WHvCancelRunVirtualProcessor", (LPVOID*)&pWHvCancelRunVirtualProcessor);
     return result;
 }
 BOOL init_vm86(BOOL vm86)
@@ -418,6 +461,18 @@ BOOL init_vm86(BOOL vm86)
         PANIC_HRESULT("WHvSetVirtualProcessorRegisters", result);
         return FALSE;
     }
+
+    if (!krnl386)
+        krnl386 = LoadLibraryA(KRNL386);
+    pWOWCallback16Ex = (WOWCallback16Ex_t)GetProcAddress(krnl386, "K32WOWCallback16Ex");
+    void(WINAPI *set_vm_inject_cb)(vm_inject_t) = (void(WINAPI *)(vm_inject_t))GetProcAddress(krnl386, "set_vm_inject_cb");
+    set_vm_inject_cb(vm_inject);
+    inject_event = CreateEventW(NULL, TRUE, FALSE, NULL);
+    InitializeCriticalSection(&inject_crit_section);
+    pGetpWin16Lock = (GetpWin16Lock_t)GetProcAddress(krnl386, "GetpWin16Lock");
+    pGetpWin16Lock(&win16_syslevel);
+    DOSVM_inport = (DOSVM_inport_t)GetProcAddress(krnl386, "DOSVM_inport");
+    DOSVM_outport = (DOSVM_outport_t)GetProcAddress(krnl386, "DOSVM_outport");
     return TRUE;
 }
 
@@ -815,6 +870,87 @@ BOOL has_x86_exception_err(WORD num)
     return FALSE;
 }
 
+static void set_int()
+{
+    const WHV_REGISTER_NAME notreg = WHvX64RegisterDeliverabilityNotifications;
+    WHV_REGISTER_VALUE delnot = {0};
+    delnot.DeliverabilityNotifications.InterruptNotification = 1;
+    pWHvSetVirtualProcessorRegisters(partition, 0, &notreg, 1, &delnot);
+}
+
+volatile struct
+{
+    BOOL inject;
+    DWORD vpfn16;
+    DWORD dwFlags;
+    DWORD cbArgs;
+    LPVOID pArgs;
+    LPDWORD pdwRetCode;
+} vm_inject_state;
+BOOL WINAPI vm_inject(DWORD vpfn16, DWORD dwFlags,
+    DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode)
+{
+    if(dwFlags != WCB16_PASCAL)
+        PANIC("vm_inject call not pascal");
+    if (TryEnterCriticalSection(&win16_syslevel->crst))
+    {
+        /* There are no threads running VM. (e.g. call GetMessage) */
+        EnterCriticalSection(&inject_crit_section);
+        /* 16-bit stack is allocated by thread_attach(krnl386/kernel.c) */
+        BOOL result = pWOWCallback16Ex(vpfn16, dwFlags, cbArgs, pArgs, pdwRetCode);
+        LeaveCriticalSection(&inject_crit_section);
+        LeaveCriticalSection(&win16_syslevel->crst);
+        return result;
+    }
+    EnterCriticalSection(&inject_crit_section);
+    {
+        if (vm_inject_state.inject)
+        {
+            /* FIXME: multiple interrupts */
+            LeaveCriticalSection(&inject_crit_section);
+            return FALSE;
+        }
+        vm_inject_state.vpfn16 = vpfn16;
+        vm_inject_state.dwFlags = dwFlags;
+        vm_inject_state.cbArgs = cbArgs;
+        vm_inject_state.pArgs = pArgs;
+        vm_inject_state.pdwRetCode = pdwRetCode;
+        vm_inject_state.inject = TRUE;
+        ResetEvent(inject_event);
+    }
+    LeaveCriticalSection(&inject_crit_section);
+    if (pWHvCancelRunVirtualProcessor(partition, 0, 0) != ERROR_SUCCESS)
+        set_int();
+    WaitForSingleObject(inject_event, INFINITE);
+    return TRUE;
+}
+    
+void vm_inject_call(SEGPTR ret_addr, PEXCEPTION_HANDLER handler,
+    void(*from16_reg)(void),
+    LONG(*__wine_call_from_16)(void),
+    int(*relay_call_from_16)(void *entry_point, unsigned char *args16, CONTEXT *context),
+    void(*__wine_call_to_16_ret)(void),
+    int dasm,
+    pm_interrupt_handler pih, CONTEXT *context)
+{
+    DWORD ret;
+    EnterCriticalSection(&inject_crit_section);
+    {
+        char *stack = get_base_addr(context->SegSs) + context->Esp - vm_inject_state.cbArgs;
+        vm_inject_state.inject = FALSE;
+        memcpy(stack, vm_inject_state.pArgs, vm_inject_state.cbArgs);
+        /* push return address */
+        stack -= sizeof(SEGPTR);
+        *((SEGPTR *)stack) = ret_addr;
+        vm_inject_state.cbArgs += sizeof(SEGPTR);
+    }
+    LeaveCriticalSection(&inject_crit_section);
+    ret = wine_call_to_16_vm86(vm_inject_state.vpfn16, vm_inject_state.cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, FALSE, NULL, pih);
+    if (vm_inject_state.pdwRetCode)
+        *vm_inject_state.pdwRetCode = ret;
+    SetEvent(inject_event);
+}
+
 BOOL syscall_init = FALSE;
 void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     void(*from16_reg)(void),
@@ -992,6 +1128,134 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
                 PANIC("HALT");
             }
             break;
+        case WHvRunVpExitReasonCanceled:
+        {
+            if (!vm_inject_state.inject)
+                PANIC("unexpected vm cancellation");
+            const WHV_REGISTER_NAME reg = WHvX64RegisterRflags;
+            WHV_REGISTER_VALUE flags = {0};
+            pWHvGetVirtualProcessorRegisters(partition, 0, &reg, 1, &flags);
+            if (!(flags.Reg32 & 0x200))
+            {
+                set_int();
+                break;
+            }
+        }
+        case WHvRunVpExitReasonX64InterruptWindow:
+        {
+            if (!vm_inject_state.inject)
+                PANIC("unexpected vm interrupt");
+            CONTEXT ictx;
+            save_context_from_state(&ictx, &state2);
+            vm_inject_call(ret_addr, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih, &ictx);
+            load_context_to_state(&ictx, &state2);
+            if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
+            {
+
+            }
+            break;
+        }
+        case WHvRunVpExitReasonX64IoPortAccess:
+        {
+            WHV_X64_IO_PORT_ACCESS_CONTEXT *io = &exit.IoPortAccess;
+            WHV_REGISTER_VALUE vals[] = {{0}, {0}};
+            const WHV_REGISTER_NAME regs[] = {WHvX64RegisterRip, WHvX64RegisterRax, WHvX64RegisterRflags};
+            vals[0].Reg32 = exit.VpContext.Rip + exit.VpContext.InstructionLength;
+            vals[1].Reg64 = io->Rax;
+            if(!(io->AccessInfo.StringOp))
+            {
+                switch(io->AccessInfo.AccessSize)
+                {
+                    case 1:
+                        if(!io->AccessInfo.IsWrite)
+                            vals[1].Reg64 = (io->Rax & ~0xff) | DOSVM_inport(io->PortNumber, 1);
+                        else
+                            DOSVM_outport(io->PortNumber, io->Rax, 1);
+                        break;
+                    case 2:
+                        if(!io->AccessInfo.IsWrite)
+                        {
+                            vals[1].Reg64 = (io->Rax & ~0xffff);
+                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber, 1);
+                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 1, 1) << 8;
+                        }
+                        else
+                        {
+                            DOSVM_outport(io->PortNumber, io->Rax, 1);
+                            DOSVM_outport(io->PortNumber + 1, io->Rax >> 8, 1);
+                        }
+                        break;
+                    case 4:
+                        if(!io->AccessInfo.IsWrite)
+                        {
+                            vals[1].Reg64 = DOSVM_inport(io->PortNumber, 1);
+                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 1, 1) << 8;
+                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 2, 1) << 16;
+                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 3, 1) << 24;
+                        }
+                        else
+                        {
+                            DOSVM_outport(io->PortNumber, io->Rax, 1);
+                            DOSVM_outport(io->PortNumber + 1, io->Rax >> 8, 1);
+                            DOSVM_outport(io->PortNumber + 2, io->Rax >> 16, 1);
+                            DOSVM_outport(io->PortNumber + 3, io->Rax >> 24, 1);
+                        }
+                        break;
+                }
+            }
+            else
+            {
+                UINT32 count = io->AccessInfo.RepPrefix ? io->Rcx : 1;
+                UINT8 *addr;
+                if(!io->AccessInfo.IsWrite)
+                    addr = mem + io->Ds.Base + io->Rsi;
+                else
+                    addr = mem + io->Es.Base + io->Rdi;
+                for(int i = 0; i < count; i++)
+                {
+                    addr = exit.VpContext.Rflags & 0x400 ? addr - io->AccessInfo.AccessSize : addr + io->AccessInfo.AccessSize;
+                    switch(io->AccessInfo.AccessSize)
+                    {
+                        case 1:
+                            if(!io->AccessInfo.IsWrite)
+                                DOSVM_outport(io->PortNumber, *addr, 1);
+                            else
+                                *addr = DOSVM_inport(io->PortNumber, 1);
+                            break;
+                        case 2:
+                            if(!io->AccessInfo.IsWrite)
+                            {
+                                DOSVM_outport(io->PortNumber, *addr, 1);
+                                DOSVM_outport(io->PortNumber + 1, *(addr + 1), 1);
+                            }
+                            else
+                            {
+                                *addr = DOSVM_inport(io->PortNumber, 1);
+                                *(addr + 1) = DOSVM_inport(io->PortNumber + 1, 1);
+                            }
+                            break;
+                        case 4:
+                            if(!io->AccessInfo.IsWrite)
+                            {
+                                DOSVM_outport(io->PortNumber, *addr, 1);
+                                DOSVM_outport(io->PortNumber + 1, *(addr + 1), 1);
+                                DOSVM_outport(io->PortNumber + 2, *(addr + 2), 1);
+                                DOSVM_outport(io->PortNumber + 3, *(addr + 3), 1);
+                            }
+                            else
+                            {
+                                *addr = DOSVM_inport(io->PortNumber, 1);
+                                *(addr + 1) = DOSVM_inport(io->PortNumber + 1, 1);
+                                *(addr + 2) = DOSVM_inport(io->PortNumber + 2, 1);
+                                *(addr + 3) = DOSVM_inport(io->PortNumber + 3, 1);
+                            }
+                            break;
+                    }
+                }
+            }
+            pWHvSetVirtualProcessorRegisters(partition, 0, regs, 2, vals);
+            break;
+        }
         default:
             PANIC("unexpected exit reason %d", exit.ExitReason);
             break;
