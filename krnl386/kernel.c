@@ -100,6 +100,16 @@ static void redirect_current_dir()
     }
 }
 
+LONG CALLBACK fflush_vectored_handler(EXCEPTION_POINTERS *ptrs)
+{
+#if defined(_MSC_VER) || defined(__MINGW32__)
+    _flushall();
+#else
+    fflush(stderr); /* _flushlbf */
+#endif
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
 /**************************************************************************
  *		DllMain
  */
@@ -222,6 +232,7 @@ BOOL WINAPI KERNEL_DllEntryPoint( DWORD reasion, HINSTANCE16 inst, WORD ds,
     HMODULE vm = LoadLibraryA(dllname);
     func_wine_call_to_16_vm86 = (wine_call_to_16_vm86_t)GetProcAddress(vm, "wine_call_to_16_vm86");
     func_wine_call_to_16_regs_vm86 = (wine_call_to_16_regs_vm86_t)GetProcAddress(vm, "wine_call_to_16_regs_vm86");
+    RtlAddVectoredExceptionHandler(FALSE, fflush_vectored_handler);
     return TRUE;
 }
 
