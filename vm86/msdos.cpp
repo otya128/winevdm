@@ -1013,10 +1013,8 @@ extern "C"
 		AddVectoredExceptionHandler(TRUE, vm86_vectored_exception_handler);
 		WORD sel = SELECTOR_AllocBlock(iret, 256, WINE_LDT_FLAGS_CODE);
 		CPU_INIT_CALL(CPU_MODEL);
-		//enable x87
-		build_x87_opcode_table();
-		build_opcode_table(OP_I386 | OP_FPU | OP_I486);
 		CPU_RESET_CALL(CPU_MODEL);
+		m_cr[0] |= 0x20;  //we don't support irq13 for fpe
         UINT8 *base = 0;//mem;
 		m_idtr.base = (UINT32)(table - base);
         m_ldtr.limit = 65535;

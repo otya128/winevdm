@@ -401,6 +401,17 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
         return handle;
     }
 
+      /* Change the flags */
+
+    if (flags & GMEM_MODIFY)
+    {
+          /* Change the flags, leaving GA_DGROUP alone */
+        pArena->flags = (pArena->flags & GA_DGROUP) | (flags & GA_MOVEABLE);
+        if (flags & GMEM_DISCARDABLE) pArena->flags |= GA_DISCARDABLE;
+        return handle;
+    }
+
+
       /* Fixup the size */
     DWORD fixup_size = 0x1f;
     BOOL old = IsOldWindowsTask(GetCurrentTask());
@@ -411,16 +422,6 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
     if (size > GLOBAL_MAX_ALLOC_SIZE - (fixup_size + 1)) return 0;
     if (size == 0) size = fixup_size + 1;
     else size = (size + fixup_size) & ~fixup_size;
-
-      /* Change the flags */
-
-    if (flags & GMEM_MODIFY)
-    {
-          /* Change the flags, leaving GA_DGROUP alone */
-        pArena->flags = (pArena->flags & GA_DGROUP) | (flags & GA_MOVEABLE);
-        if (flags & GMEM_DISCARDABLE) pArena->flags |= GA_DISCARDABLE;
-        return handle;
-    }
 
       /* Reallocate the linear memory */
 
