@@ -824,7 +824,7 @@ void relay(LPVOID relay_func, BOOL reg, struct vcpu_state_t *state, DWORD ret_ad
     {
         context.Esp = osp + (SIZE_T)stack - (SIZE_T)stack1 - 4;
         off = ooo - context.Esp;
-        context.Ebp = bp;
+        context.Ebp = (context.Ebp & ~0xffff) | bp;
         context.Eip = ip19;
         context.SegCs = cs16;
     }
