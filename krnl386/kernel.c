@@ -497,6 +497,7 @@ BOOL16 WINAPI GetVersionEx16(OSVERSIONINFO16 *v)
  */
 void WINAPI DebugBreak16( CONTEXT *context )
 {
+/*
     EXCEPTION_RECORD rec;
 
     rec.ExceptionCode    = EXCEPTION_BREAKPOINT;
@@ -505,6 +506,8 @@ void WINAPI DebugBreak16( CONTEXT *context )
     rec.ExceptionAddress = (LPVOID)context->Eip;
     rec.NumberParameters = 0;
     NtRaiseException( &rec, context, TRUE );
+*/
+    __wine_call_int_handler(context, 3);
 }
 
 /***********************************************************************

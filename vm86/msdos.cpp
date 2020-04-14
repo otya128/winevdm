@@ -1619,7 +1619,7 @@ extern "C"
                         {
                             context.Esp = osp + (SIZE_T)stack - (SIZE_T)stack1 - 4;
                             off = ooo - context.Esp;
-                            context.Ebp = bp;
+                            context.Ebp = (context.Ebp & ~0xffff) | bp;
                             context.Eip = ip19;
                             context.SegCs = cs16;
                         }
@@ -1887,6 +1887,7 @@ extern "C"
 #endif
                     fprintf(stderr, "\t%s\n", buffer);
 #if !defined(TRACE_REGS)
+                        DWORD stkptr = m_sreg[SS].base + (m_sreg[SS].d ? REG32(ESP) : REG16(SP));
                         if (SREG(FS) || SREG(GS))
                         {
                             fprintf(stderr,
@@ -1898,7 +1899,7 @@ IP:%04X,stack:%08X,\
 EFLAGS:%08X\
 \n",
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG32(EBP), REG32(ESI), REG32(EDI),
-SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, read_dword(SREG_BASE(SS) + REG32(ESP)), m_eflags);
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, read_dword(stkptr), m_eflags);
                         }
                         else
                         {
@@ -1911,7 +1912,7 @@ IP:%04X,stack:%08X,\
 EFLAGS:%08X\
 \n",
 REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG32(EBP), REG32(ESI), REG32(EDI),
-SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, read_dword(SREG_BASE(SS) + REG32(ESP)), m_eflags);
+SREG(ES), SREG(CS), SREG(SS), SREG(DS), m_eip, read_dword(stkptr), m_eflags);
                         }
 #endif
                 }
