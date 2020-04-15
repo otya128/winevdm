@@ -935,8 +935,21 @@ void vm_inject_call(SEGPTR ret_addr, PEXCEPTION_HANDLER handler,
 {
     DWORD ret;
     EnterCriticalSection(&inject_crit_section);
+    static char intstack[4096];
+    static WORD intstksel = 0;
+    if (!intstksel)
+        intstksel = SELECTOR_AllocBlock(intstack, 4096, WINE_LDT_FLAGS_DATA);
+                    
+    WORD sp = context->Esp;
+    DWORD ss_base = get_base_addr(context->SegSs);
+    if (wine_ldt_get_flags(wine_ldt + (context->SegSs >> 3)) & WINE_LDT_FLAGS_32BIT) // don't call int handler on a large stack
     {
-        char *stack = get_base_addr(context->SegSs) + context->Esp - vm_inject_state.cbArgs;
+        ss_base = (DWORD)intstack;
+        sp = 4096;
+        dynamic_setWOW32Reserved((PVOID)MAKESEGPTR(intstksel, 4096));
+    }
+    {
+        char *stack = ss_base + sp - vm_inject_state.cbArgs;
         vm_inject_state.inject = FALSE;
         memcpy(stack, vm_inject_state.pArgs, vm_inject_state.cbArgs);
         /* push return address */
