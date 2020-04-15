@@ -1404,10 +1404,23 @@ extern "C"
     {
         CONTEXT context;
         DWORD ret;
+        static char intstack[4096];
+        static WORD intstksel = 0;
+        if (!intstksel)
+            intstksel = SELECTOR_AllocBlock(intstack, 4096, WINE_LDT_FLAGS_DATA);
+                    
         save_context(&context);
         EnterCriticalSection(&inject_crit_section);
+        WORD sp = context.Esp;
+        DWORD ss_base = m_sreg[SS].base;
+        if (m_sreg[SS].d) // don't call int handler on a large stack
         {
-            char *stack = (char *)i386_translate(SS, context.Esp, 1) - vm_inject_state.cbArgs;
+            ss_base = (DWORD)intstack;
+            sp = 4096;
+            dynamic_setWOW32Reserved((PVOID)MAKESEGPTR(intstksel, 4096));
+        }
+        {
+            char *stack = (char *)ss_base + sp - vm_inject_state.cbArgs;
             vm_inject_state.inject = FALSE;
             memcpy(stack, vm_inject_state.pArgs, vm_inject_state.cbArgs);
             /* push return address */
