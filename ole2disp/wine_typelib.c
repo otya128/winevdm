@@ -7719,7 +7719,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
                         prgpvarg[i] = src_arg;
                     }
 
-                    if((tdesc->vt == VT_USERDEFINED || (tdesc->vt == VT_PTR && ((TYPEDESC16*)MapSL(tdesc->u.lptdesc))->vt == VT_USERDEFINED))
+                    if((tdesc->vt == VT_USERDEFINED || (tdesc->vt == VT_PTR && tdesc->u.lptdesc->vt == VT_USERDEFINED))
                        && (V_VT(prgpvarg[i]) == VT_DISPATCH || V_VT(prgpvarg[i]) == VT_UNKNOWN)
                        && V_UNKNOWN(prgpvarg[i])) {
                         SEGPTR userdefined_iface;
@@ -7821,7 +7821,7 @@ static HRESULT CDECL ITypeInfo_fnInvoke16(
                     {
                         if ((rgvt[i] & VT_BYREF) && !(V_VT(arg) & VT_BYREF))
                         {
-                            hres = VariantChangeType16(arg, &rgvarg[i], 0, V_VT(arg));
+                            hres = VariantChangeType(arg, &rgvarg[i], 0, V_VT(arg));
 
                             if (FAILED(hres))
                             {

@@ -1376,6 +1376,11 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
     char filenamebuf[MAX_PATH];
     BOOL overwrite_section = FALSE;
     TRACE("%s %s %s\n", filename, section, entry);
+    if (!section || !filename)
+    {
+        if (buffer && len) buffer[0] = 0;
+        return 0;
+    }
     LPCSTR filename_file = PathFindFileNameA(filename);
     if (entry)
     {
@@ -1432,11 +1437,6 @@ INT16 WINAPI GetPrivateProfileString16( LPCSTR section, LPCSTR entry,
     TRACE("(%s, %s, %s, %p, %u, %s)\n", debugstr_a(section), debugstr_a(entry),
           debugstr_a(def_val), buffer, len, debugstr_a(filename));
 
-    if (!section)
-    {
-        if (buffer && len) buffer[0] = 0;
-        return 0;
-    }
     /* len = 0 means unlimited buffer length (windows bug?) */
     if (!entry && len == 0)
     {
