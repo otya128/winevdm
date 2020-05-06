@@ -41,6 +41,78 @@
 #include "cdlg16.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(commdlg);
+/* Maximum length of a device name */
+#define CCHDEVICENAME16 32
+
+/* Maximum length of a paper name */
+#define CCHPAPERNAME16  64
+#pragma pack(push, 1)
+typedef struct {
+    char  dmDeviceName[CCHDEVICENAME16];
+    UINT16  dmSpecVersion;
+    UINT16  dmDriverVersion;
+    UINT16  dmSize;
+    UINT16  dmDriverExtra;
+    DWORD dmFields;
+    INT16   dmOrientation;
+    INT16   dmPaperSize;
+    INT16   dmPaperLength;
+    INT16   dmPaperWidth;
+    INT16   dmScale;
+    INT16   dmCopies;
+    INT16   dmDefaultSource;
+    INT16   dmPrintQuality;
+    INT16   dmColor;
+    INT16   dmDuplex;
+    INT16   dmYResolution;
+    INT16   dmTTOption;
+} DEVMODE16, *LPDEVMODE16;
+#pragma pack(pop)
+//sizeof(DEVMODE16) != sizeof(DEVMODEA)
+void DEVMODE16To32(CONST DEVMODE16 *src, LPDEVMODEA dst)
+{
+    memcpy(dst->dmDeviceName, src->dmDeviceName, min(CCHDEVICENAME16, CCHDEVICENAME));
+    dst->dmDeviceName[CCHDEVICENAME - 1] = 0;
+    dst->dmSpecVersion = 0x30a;
+    dst->dmDriverVersion = src->dmDriverVersion;
+    dst->dmSize = sizeof(DEVMODE16);
+    dst->dmDriverExtra = 0;
+    dst->dmFields = src->dmFields;
+    dst->dmOrientation = src->dmOrientation;
+    dst->dmPaperSize = src->dmPaperSize;
+    dst->dmPaperLength = src->dmPaperLength;
+    dst->dmPaperWidth = src->dmPaperWidth;
+    dst->dmScale = src->dmScale;
+    dst->dmCopies = src->dmCopies;
+    dst->dmDefaultSource = src->dmDefaultSource;
+    dst->dmPrintQuality = src->dmPrintQuality;
+    dst->dmColor = src->dmColor;
+    dst->dmDuplex = src->dmDuplex;
+    dst->dmYResolution = src->dmYResolution;
+    dst->dmTTOption = src->dmTTOption;
+}
+void DEVMODE32To16(LPDEVMODE16 dst, const LPDEVMODEA src)
+{
+    memcpy(dst->dmDeviceName, src->dmDeviceName, min(CCHDEVICENAME16, CCHDEVICENAME));
+    dst->dmDeviceName[CCHDEVICENAME16 - 1] = 0;
+    dst->dmSpecVersion = 0x30a;
+    dst->dmDriverVersion = src->dmDriverVersion;
+    dst->dmSize = sizeof(DEVMODE16);
+    dst->dmDriverExtra = 0;
+    dst->dmFields = src->dmFields;
+    dst->dmOrientation = src->dmOrientation;
+    dst->dmPaperSize = src->dmPaperSize;
+    dst->dmPaperLength = src->dmPaperLength;
+    dst->dmPaperWidth = src->dmPaperWidth;
+    dst->dmScale = src->dmScale;
+    dst->dmCopies = src->dmCopies;
+    dst->dmDefaultSource = src->dmDefaultSource;
+    dst->dmPrintQuality = src->dmPrintQuality;
+    dst->dmColor = src->dmColor;
+    dst->dmDuplex = src->dmDuplex;
+    dst->dmYResolution = src->dmYResolution;
+    dst->dmTTOption = src->dmTTOption;
+}
 
 static void global_handle_to_16( HGLOBAL16 *h16, HGLOBAL handle )
 {
@@ -130,6 +202,14 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
     HINSTANCE16 hInst;
     LPDLGTEMPLATEA template_setup = NULL;
     LPDLGTEMPLATEA template_print = NULL;
+    HGLOBAL *hdma = NULL;
+    if (lppd->hDevMode)
+    {
+        hdma = GlobalAlloc(GMEM_MOVEABLE, sizeof(DEVMODEA));
+        DEVMODE16To32(GlobalLock16(lppd->hDevMode), GlobalLock(hdma));
+        GlobalUnlock(hdma);
+        GlobalUnlock16(lppd->hDevMode);
+    }
 
     if (!lppd) return PrintDlgA(NULL); /* generate failure with CDERR_INITIALIZATION */
 
@@ -138,7 +218,7 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
                                        PD_ENABLESETUPTEMPLATE | PD_ENABLESETUPTEMPLATEHANDLE |
                                        PD_ENABLEPRINTHOOK | PD_ENABLESETUPHOOK);
     pd32.hwndOwner   = HWND_32(lppd->hwndOwner);
-    pd32.hDevMode    = global_handle_from_16( lppd->hDevMode );
+    pd32.hDevMode    = hdma; 
     pd32.hDevNames   = global_handle_from_16( lppd->hDevNames );
     pd32.nFromPage   = lppd->nFromPage;
     pd32.nToPage     = lppd->nToPage;
@@ -187,16 +267,20 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
     {
         lppd->hDC = HDC_16( pd32.hDC );
         global_handle_to_16( &lppd->hDevNames, pd32.hDevNames );
-        global_handle_to_16( &lppd->hDevMode, pd32.hDevMode );
 
         lppd->nFromPage   = pd32.nFromPage;
         lppd->nToPage     = pd32.nToPage;
         lppd->nMinPage    = pd32.nMinPage;
         lppd->nMaxPage    = pd32.nMaxPage;
         lppd->nCopies     = pd32.nCopies;
-        DEVMODEA *dm = GlobalLock16(lppd->hDevMode);
-        dm->dmDriverExtra = 0;
-        GlobalUnlock16(lppd->hDevMode);
+        if (pd32.hDevMode)
+        {
+            if (!lppd->hDevMode)
+                lppd->hDevMode = GlobalAlloc16(GMEM_MOVEABLE, sizeof(DEVMODE16));
+            DEVMODE32To16(GlobalLock16(lppd->hDevMode), GlobalLock(pd32.hDevMode));
+            GlobalUnlock(pd32.hDevMode);
+            GlobalUnlock16(lppd->hDevMode);
+        }
     }
     GlobalFree( pd32.hDevNames );
     GlobalFree( pd32.hDevMode );
