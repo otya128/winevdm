@@ -130,7 +130,7 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
     char devmode32[65536] = { 0 };
     if (pDevMode)
         DEVMODE16To32(pDevMode, (LPDEVMODEA)&devmode32[0], 0);
-    WORD result = 0;
+    DWORD result = 0;
     switch (fwCapability)
     {
     case DC_FIELDS:
