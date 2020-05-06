@@ -27,6 +27,7 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "wownt32.h"
+#include "winspool.h"
 #include "wine/wingdi16.h"
 #include "wine/list.h"
 #if 0
@@ -1618,6 +1619,14 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
     const DEVMODEA *initData = (const DEVMODEA*)MapSL(segInitData);
     HDC16 dc;
     HINSTANCE16 drv;
+    char tmp[256];
+    if (device && !strcmp(device, "DefaultPrinter"))
+    {
+        int len = 256;
+        if (GetDefaultPrinterA(tmp, &len))
+            device = tmp;
+    }
+
 #if 0
     if (!lstrcmpiA( driver, "dib" ) || !lstrcmpiA( driver, "dirdib" ))
     {
@@ -2754,6 +2763,13 @@ BOOL16 WINAPI UnrealizeObject16( HGDIOBJ16 obj )
 HDC16 WINAPI CreateIC16( LPCSTR driver, LPCSTR device, LPCSTR output,
                          const DEVMODEA* initData )
 {
+    char tmp[256];
+    if (device && !strcmp(device, "DefaultPrinter"))
+    {
+        int len = 256;
+        if (GetDefaultPrinterA(tmp, &len))
+            device = tmp;
+    }
     return HDC_16( CreateICA( driver, device, output, initData ) );
 }
 

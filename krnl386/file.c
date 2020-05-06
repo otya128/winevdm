@@ -408,8 +408,26 @@ UINT16 WINAPI GetProfileInt16( LPCSTR section, LPCSTR entry, INT16 def_val )
 INT16 WINAPI GetProfileString16( LPCSTR section, LPCSTR entry, LPCSTR def_val,
                                  LPSTR buffer, UINT16 len )
 {
-    return GetPrivateProfileString16( section, entry, def_val,
+    char tmp[256];
+    if (section && entry && !stricmp(section, "devices") && !stricmp(entry, "DefaultPrinter"))
+    {
+        int len = 256;
+        if (GetDefaultPrinterA(tmp, &len))
+            entry = tmp;
+    }
+    INT16 ret = GetPrivateProfileString16( section, entry, def_val,
                                       buffer, len, "win.ini" );
+    if (ret && section && entry && !stricmp(section, "windows") && !stricmp(entry, "device"))
+    {
+        char *comma = strchr(buffer, ',');
+        if (comma && ((comma - buffer) > 32))
+        {
+            strcpy(buffer, "DefaultPrinter");
+            strcpy(buffer + 14, comma);
+        }
+        ret = strlen(buffer);
+    }
+    return ret;
 }
 
 /***********************************************************************

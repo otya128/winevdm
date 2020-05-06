@@ -101,6 +101,13 @@ void DEVMODE32To16(LPDEVMODE16 dst, const LPDEVMODEA src, LONG extra)
 }
 int WINAPI ExtDeviceMode16(HWND16 hwnd16, HANDLE16 hDriver16, LPDEVMODE16 pDevModeOutput, LPSTR pDeviceName, LPSTR pPort, LPDEVMODE16 pDevModeInput, LPSTR pProfile, WORD fMode)
 {
+    char tmp[256];
+    if (pDeviceName && !strcmp(pDeviceName, "DefaultPrinter"))
+    {
+        int len = 256;
+        if (GetDefaultPrinterA(tmp, &len))
+            pDeviceName = tmp;
+    }
     LONG size = ExtDeviceMode(HWND_32(hwnd16), (HANDLE)hDriver16, NULL, pDeviceName, pPort, NULL, pProfile, 0);
     if (!fMode)
         return size;
@@ -123,7 +130,7 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
     char devmode32[65536] = { 0 };
     if (pDevMode)
         DEVMODE16To32(pDevMode, (LPDEVMODEA)&devmode32[0], 0);
-    DWORD result = 0;
+    WORD result = 0;
     switch (fwCapability)
     {
     case DC_FIELDS:
