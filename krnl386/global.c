@@ -889,7 +889,10 @@ DWORD WINAPI GlobalHandle16(
 	WARN("Invalid handle 0x%04x passed to GlobalHandle16!\n",sel);
 	return 0;
     }
-    return MAKELONG( GET_ARENA_PTR(sel)->handle, GlobalHandleToSel16(sel) );
+    WORD handle = GET_ARENA_PTR(sel)->handle;
+    if (!handle)
+        return 0;
+    return MAKELONG( handle, GlobalHandleToSel16(sel) );
 }
 
 /***********************************************************************
