@@ -318,6 +318,13 @@ BOOL16 WINAPI sndPlaySound16(LPCSTR lpszSoundName, UINT16 uFlags)
 {
     BOOL16	retv;
     DWORD	lc;
+    char	buf[36];
+    if ((uFlags & SND_MEMORY) && (*(DWORD *)(lpszSoundName + 4) < 36))
+    {
+        memset(buf, 0, 36);
+        memcpy(buf, lpszSoundName, *(DWORD *)(lpszSoundName + 4));
+        lpszSoundName = buf;
+    }
 
     ReleaseThunkLock(&lc);
     retv = sndPlaySoundA(lpszSoundName, uFlags);
