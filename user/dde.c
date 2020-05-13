@@ -364,7 +364,8 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
 
         path = get_programs_path(argv[0]);
 
-        ShellExecuteW(NULL, NULL, path, NULL, NULL, SW_SHOWNORMAL);
+        if (ShellExecuteW(NULL, NULL, path, NULL, NULL, SW_SHOWNORMAL) <= 32)
+            return DDE_FNOTPROCESSED;
 
         heap_free(last_group);
         last_group = path;
@@ -391,7 +392,10 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         cmd_argv = CommandLineToArgvW(argv[0], &cmd_argc);
         if (!cmd_argv || !cmd_argc)
             return DDE_FNOTPROCESSED;
-        prg_name = cmd_argv[0];
+        if ((cmd_argv[0][0] == 0) && (cmd_argc > 1))  // if the cmd isn't an exe, the first param is empty
+            prg_name = cmd_argv[1];
+        else
+            prg_name = cmd_argv[0];
         len = SearchPathW(NULL, prg_name, dotexeW, 0, NULL, NULL);
         if (len == 0)
         {
