@@ -418,7 +418,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
             seticon(link, *argv[2] ? argv[2] : path, atoiW(argv[3]));
         else
             seticon(link, path, 0);
-        if (argc >= 7)
+        if ((argc >= 7) && strlen(argv[6]))
             IShellLinkW_SetWorkingDirectory(link, argv[6]);
         else
         {
