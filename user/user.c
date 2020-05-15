@@ -316,7 +316,8 @@ static int free_icon_handle( HICON16 handle )
 {
     HICON icon32;
 
-    if ((icon32 = store_icon_32( handle, 0 ))) DestroyIcon( icon32 );
+    if ((icon32 = wow_handlers32.get_icon_param( handle ))) DestroyIcon( icon32 );
+    wow_handlers32.set_icon_param( handle, 0);
     return GlobalFree16( handle );
 }
 
