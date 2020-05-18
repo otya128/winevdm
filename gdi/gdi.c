@@ -1685,6 +1685,20 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
         return HDC_16(memdc);
     }
 #endif
+    if (initData && (!driver || !stricmp(driver, "winspool")))
+    {
+        DEVMODEA dma = {0};
+        if (!IsValidDevmodeA(initData, initData->dmSize + initData->dmDriverExtra))
+            initData = NULL;
+        else
+        {
+            memcpy(&dma, initData, initData->dmSize);
+            dma.dmSize = sizeof(DEVMODEA);
+            dma.dmDriverExtra = 0;
+            return HDC_16( CreateDCA( driver, device, output, &dma ) );
+        }
+    }
+    
     dc = HDC_16( CreateDCA( driver, device, output, initData ) );
 
     if (dc)

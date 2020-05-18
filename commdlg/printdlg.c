@@ -77,7 +77,7 @@ void DEVMODE16To32(CONST DEVMODE16 *src, LPDEVMODEA dst)
     dst->dmDriverVersion = src->dmDriverVersion;
     dst->dmSize = sizeof(DEVMODE16);
     dst->dmDriverExtra = 0;
-    dst->dmFields = src->dmFields;
+    dst->dmFields = src->dmFields & 0x7fbf;
     dst->dmOrientation = src->dmOrientation;
     dst->dmPaperSize = src->dmPaperSize;
     dst->dmPaperLength = src->dmPaperLength;
@@ -99,7 +99,7 @@ void DEVMODE32To16(LPDEVMODE16 dst, const LPDEVMODEA src)
     dst->dmDriverVersion = src->dmDriverVersion;
     dst->dmSize = sizeof(DEVMODE16);
     dst->dmDriverExtra = 0;
-    dst->dmFields = src->dmFields;
+    dst->dmFields = src->dmFields & 0x7fbf;
     dst->dmOrientation = src->dmOrientation;
     dst->dmPaperSize = src->dmPaperSize;
     dst->dmPaperLength = src->dmPaperLength;
