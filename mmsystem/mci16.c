@@ -96,6 +96,19 @@ char *WINAPI xlate_str_handle(const char *origstr, char *newstr)
             return newstr;
         }
     }
+    else if (!strncmp(origstr, "window ", 7))
+    {
+        char *hand = strstr(origstr, "handle");
+        if (hand)
+        {
+            int pos0 = (intptr_t)hand - (intptr_t)origstr;
+            strncpy(newstr, origstr, pos0);
+            int pos1, pos2, hwnd16;
+            int count = sscanf(hand, "%[a-z ]%n%d%n", newstr + pos0, &pos1, &hwnd16, &pos2);
+            sprintf(newstr + pos0 + pos1, " %u%s", HWND_32((HWND16)hwnd16), hand + pos2);
+            return newstr;
+        }
+    }
 
     return origstr;
 }
