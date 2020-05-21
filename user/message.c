@@ -1509,7 +1509,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             cds.dwData = cds16->dwData;
             cds.cbData = cds16->cbData;
             cds.lpData = MapSL(cds16->lpData);
-            ret = callback( hwnd32, msg, wParam, (LPARAM)&cds, result, arg );
+            ret = callback( hwnd32, msg, (WPARAM)HWND_32(wParam), (LPARAM)&cds, result, arg );
         }
         break;
     case WM_GETDLGCODE:
