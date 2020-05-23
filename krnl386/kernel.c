@@ -415,7 +415,7 @@ SEGPTR WINAPI lstrcpy16( SEGPTR dst, LPCSTR src )
  */
 SEGPTR WINAPI lstrcat16( SEGPTR dst, LPCSTR src )
 {
-    /* Windows does not check for NULL pointers here, so we don't either */
+    if (!src || !dst) return 0;
     strcat( MapSL(dst), src );
     return dst;
 }
