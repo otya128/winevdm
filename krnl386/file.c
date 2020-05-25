@@ -425,7 +425,7 @@ INT16 WINAPI GetProfileString16( LPCSTR section, LPCSTR entry, LPCSTR def_val,
             ret = GetPrivateProfileString16( section, entry, def_val,
                                       tmp, tmplen, "win.ini" );
             comma = strchr(tmp, ',');
-            if (comma)
+            if (comma && (len > (strlen(comma) + 14)))
             {
                 strcpy(buffer, "DefaultPrinter");
                 strcpy(buffer + 14, comma);
