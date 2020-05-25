@@ -95,7 +95,7 @@ avifil32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="avifile.c" />
+    <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="avifile.dll16.obj" />
