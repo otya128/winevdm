@@ -611,10 +611,13 @@ INT16 WINAPI GetCommError16(INT16 cid,LPCOMSTAT16 lpStat)
 	DWORD temperror;
 	struct DosDeviceStruct *ptr;
 
+	if (cid >= 256)
+		return 0;
+
 	if ((ptr = GetDeviceStruct(cid)) == NULL) {
 		/* Some programs frequently call GetCommError(0, ) */
 		/* FIXME("no handle for cid = %0x!\n",cid); */
-		return -1;
+		return CE_MODE;
 	}
         if (cid&FLAG_LPT) {
             WARN(" cid %d not comm port\n",cid);
@@ -623,7 +626,7 @@ INT16 WINAPI GetCommError16(INT16 cid,LPCOMSTAT16 lpStat)
 	if (lpStat) {
 		COMSTAT stat;
 		if (!ClearCommError(ptr->handle, &temperror, &stat))
-			return -1;
+			return CE_MODE;
 		lpStat->status = *((BYTE *)&stat);
 		lpStat->cbInQue = stat.cbInQue;
 		lpStat->cbOutQue = stat.cbOutQue;
