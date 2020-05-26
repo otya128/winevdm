@@ -611,7 +611,7 @@ INT16 WINAPI GetCommError16(INT16 cid,LPCOMSTAT16 lpStat)
 	DWORD temperror;
 	struct DosDeviceStruct *ptr;
 
-	if (cid >= 256)
+	if ((UINT16)cid >= 256)
 		return 0;
 
 	if ((ptr = GetDeviceStruct(cid)) == NULL) {
