@@ -580,7 +580,7 @@ static DWORD WINAPI exit_thread(LPVOID param)
     CoUninitialize();
     return 0;
 }
-    
+
 
 /***********************************************************************
  *		ExitWindows (USER.7)
@@ -589,8 +589,10 @@ BOOL16 WINAPI ExitWindows16( DWORD dwReturnCode, UINT16 wReserved )
 {
     HANDLE exitth = CreateThread(NULL, 0, exit_thread, 0, 0, NULL);
     WaitForSingleObject(exitth, INFINITE);
+    CloseHandle(exitth);
     ExitProcess(0);
 }
+
 
 /***********************************************************************
  *		GetTimerResolution (USER.14)
