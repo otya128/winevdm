@@ -35,6 +35,8 @@
 #include "wine/list.h"
 #include "wine/debug.h"
 #include "winver.h"
+#define COBJMACROS
+#include "shldisp.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(user);
 
@@ -564,23 +566,31 @@ INT16 WINAPI InitApp16( HINSTANCE16 hInstance )
     return (InitThreadInput16( 0, 0 ) != 0);
 }
 
+static DWORD WINAPI exit_thread(LPVOID param)
+{
+    IShellDispatch *shelldisp;
+    HRESULT hres;
+    CoInitialize(NULL);
+    hres = CoCreateInstance(&CLSID_Shell, NULL, CLSCTX_INPROC_SERVER, &IID_IShellDispatch, (void **)&shelldisp);
+    if (SUCCEEDED(hres))
+    {
+        IShellDispatch_ShutdownWindows(shelldisp);
+        IShellDispatch_Release(shelldisp);
+    }
+    CoUninitialize();
+    return 0;
+}
+    
+
 /***********************************************************************
  *		ExitWindows (USER.7)
  */
 BOOL16 WINAPI ExitWindows16( DWORD dwReturnCode, UINT16 wReserved )
 {
-    int result = MessageBoxA(NULL, "ExitWindows?", "ExitWindows", MB_SYSTEMMODAL | MB_YESNO);
-    if (result == IDYES)
-    {
-        result = MessageBoxA(NULL, "ExitWindows?????", "ExitWindows?????", MB_SYSTEMMODAL | MB_YESNO);
-        if (result == IDYES)
-        {
-            return ExitWindowsEx( EWX_LOGOFF, 0xffffffff );
-        }
-    }
+    HANDLE exitth = CreateThread(NULL, 0, exit_thread, 0, 0, NULL);
+    WaitForSingleObject(exitth, INFINITE);
     ExitProcess(0);
 }
-
 
 /***********************************************************************
  *		GetTimerResolution (USER.14)
