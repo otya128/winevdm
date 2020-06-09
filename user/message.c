@@ -2159,7 +2159,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                 }
             }
         }
-        /* fall through */
+        ret = callback( HWND_16(hwnd), msg, wParam,
+                        MAKELPARAM( HIWORD(wParam), HIWORD(wParam) & MF_SYSMENU ? (HMENU16)HMENU_16((HMENU)lParam) : 0 ), result, arg );
+        break;
     case WM_MENUCHAR:
         ret = callback( HWND_16(hwnd), msg, wParam,
                         MAKELPARAM( HIWORD(wParam), (HMENU16)HMENU_16((HMENU)lParam) ), result, arg );
