@@ -3846,6 +3846,8 @@ static LRESULT edit_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd,
         return callback(hwnd, msg, wParam, lParam, result, arg);/* no unlock on destroy */
     case WM_HSCROLL:
     case WM_VSCROLL:
+        if (LOWORD(wParam) == SB_THUMBTRACK || LOWORD(wParam) == SB_THUMBPOSITION)
+            return callback(hwnd, msg, MAKELONG(LOWORD(wParam), LOWORD(lParam)), NULL, result, arg);
         if (LOWORD(wParam) == EM_GETTHUMB16 || LOWORD(wParam) == EM_LINESCROLL16) wParam -= msg16_offset;
         return callback(hwnd, msg, wParam, lParam, result, arg);
     }
