@@ -25,6 +25,7 @@
 #include "windef.h"
 #include "winbase.h"
 #include "wine/winuser16.h"
+#include "wine/exception.h"
 
 /* macros to set parts of a DWORD */
 #define SET_LOWORD(dw,val)  ((dw) = ((dw) & 0xffff0000) | LOWORD(val))
@@ -109,31 +110,41 @@ static BYTE get_reg_byte(CONTEXT *context, BYTE regmodrm)
 /* store an operand into a register */
 static void store_reg_word(CONTEXT *context, BYTE regmodrm, const BYTE *addr)
 {
+    WORD data;
+    __TRY
+    {
+        data = *(const WORD *)addr;
+    }
+    __EXCEPT_ALL
+    {
+        data = 0;
+    }
+    __ENDTRY
     switch((regmodrm >> 3) & 7)
     {
     case 0:
-        SET_LOWORD(context->Eax, *(const WORD *)addr);
+        SET_LOWORD(context->Eax, data);
         break;
     case 1:
-        SET_LOWORD(context->Ecx, *(const WORD *)addr);
+        SET_LOWORD(context->Ecx, data);
         break;
     case 2:
-        SET_LOWORD(context->Edx, *(const WORD *)addr);
+        SET_LOWORD(context->Edx, data);
         break;
     case 3:
-        SET_LOWORD(context->Ebx, *(const WORD *)addr);
+        SET_LOWORD(context->Ebx, data);
         break;
     case 4:
-        SET_LOWORD(context->Esp, *(const WORD *)addr);
+        SET_LOWORD(context->Esp, data);
         break;
     case 5:
-        SET_LOWORD(context->Ebp, *(const WORD *)addr);
+        SET_LOWORD(context->Ebp, data);
         break;
     case 6:
-        SET_LOWORD(context->Esi, *(const WORD *)addr);
+        SET_LOWORD(context->Esi, data);
         break;
     case 7:
-        SET_LOWORD(context->Edi, *(const WORD *)addr);
+        SET_LOWORD(context->Edi, data);
         break;
     }
 }
@@ -141,16 +152,26 @@ static void store_reg_word(CONTEXT *context, BYTE regmodrm, const BYTE *addr)
 /* store an operand into a byte register */
 static void store_reg_byte(CONTEXT *context, BYTE regmodrm, const BYTE *addr)
 {
+    BYTE data;
+    __TRY
+    {
+        data = *addr;
+    }
+    __EXCEPT_ALL
+    {
+        data = 0;
+    }
+    __ENDTRY
     switch((regmodrm >> 3) & 7)
     {
-    case 0: context->Eax = (context->Eax & 0xffffff00) | *addr; break;
-    case 1: context->Ecx = (context->Ecx & 0xffffff00) | *addr; break;
-    case 2: context->Edx = (context->Edx & 0xffffff00) | *addr; break;
-    case 3: context->Ebx = (context->Ebx & 0xffffff00) | *addr; break;
-    case 4: context->Eax = (context->Eax & 0xffff00ff) | (*addr << 8); break;
-    case 5: context->Ecx = (context->Ecx & 0xffff00ff) | (*addr << 8); break;
-    case 6: context->Edx = (context->Edx & 0xffff00ff) | (*addr << 8); break;
-    case 7: context->Ebx = (context->Ebx & 0xffff00ff) | (*addr << 8); break;
+    case 0: context->Eax = (context->Eax & 0xffffff00) | data; break;
+    case 1: context->Ecx = (context->Ecx & 0xffffff00) | data; break;
+    case 2: context->Edx = (context->Edx & 0xffffff00) | data; break;
+    case 3: context->Ebx = (context->Ebx & 0xffffff00) | data; break;
+    case 4: context->Eax = (context->Eax & 0xffff00ff) | (data << 8); break;
+    case 5: context->Ecx = (context->Ecx & 0xffff00ff) | (data << 8); break;
+    case 6: context->Edx = (context->Edx & 0xffff00ff) | (data << 8); break;
+    case 7: context->Ebx = (context->Ebx & 0xffff00ff) | (data << 8); break;
     }
 }
 
