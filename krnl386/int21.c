@@ -5055,10 +5055,7 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
             DWORD bytes = (DWORD)BX_reg(context) << 4;
 
             if (!ISV86(context) && DOSVM_IsWin16())
-            {
-                DWORD rv = GlobalDOSAlloc16( bytes );
-                selector = LOWORD( rv );
-            }
+                selector = GlobalAlloc16( GMEM_FIXED, bytes );
             else
                 DOSMEM_AllocBlock( bytes, &selector );
 
@@ -5083,7 +5080,7 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
             
             if (!ISV86(context) && DOSVM_IsWin16())
             {
-                ok = !GlobalDOSFree16( context->SegEs );
+                ok = !GlobalFree16( context->SegEs );
 
                 /* If we don't reset ES_reg, we will fail in the relay code */
                 if (ok)
