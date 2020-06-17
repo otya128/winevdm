@@ -58,7 +58,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(mmsys);
  * ###################################################
  */
 #include <pshpack1.h>
-#define MMIO_MAX_THUNKS      32
+#define MMIO_MAX_THUNKS      64
 
 static struct mmio_thunk
 {
