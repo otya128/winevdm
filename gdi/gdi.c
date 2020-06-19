@@ -2108,8 +2108,14 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
                 ret |= RC_PALETTE;
                 break;
             case NUMCOLORS:
-                ret = 256;
+            {
+                HPALETTE pal = GetCurrentObject(hdc32, OBJ_PAL);
+                if (pal)
+                    ret = GetPaletteEntries(pal, 0, 0, NULL);
+                else
+                    ret = 256;
                 break;
+            }
         }
     }
     else if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;
@@ -3487,11 +3493,13 @@ BOOL16 WINAPI ExtFloodFill16( HDC16 hdc, INT16 x, INT16 y, COLORREF color,
 }
 
 
+static UINT16 syspaluse = SYSPAL_STATIC;
 /***********************************************************************
  *           SetSystemPaletteUse   (GDI.373)
  */
 UINT16 WINAPI SetSystemPaletteUse16( HDC16 hdc, UINT16 use )
 {
+    syspaluse = use;
     return SetSystemPaletteUse( HDC_32(hdc), use );
 }
 
@@ -3501,7 +3509,10 @@ UINT16 WINAPI SetSystemPaletteUse16( HDC16 hdc, UINT16 use )
  */
 UINT16 WINAPI GetSystemPaletteUse16( HDC16 hdc )
 {
-    return GetSystemPaletteUse( HDC_32(hdc) );
+    UINT16 ret = GetSystemPaletteUse( HDC_32(hdc) );
+    if (!ret && krnl386_get_compat_mode("256color"))
+         ret = syspaluse;
+    return ret;
 }
 
 
