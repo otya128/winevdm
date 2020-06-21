@@ -328,6 +328,8 @@ BOOL16 WINAPI sndPlaySound16(LPCSTR lpszSoundName, UINT16 uFlags)
 
     ReleaseThunkLock(&lc);
     retv = sndPlaySoundA(lpszSoundName, uFlags);
+    if (uFlags & SND_ASYNC)
+        Sleep(1);
     RestoreThunkLock(lc);
 
     return retv;
