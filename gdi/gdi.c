@@ -48,7 +48,7 @@ __declspec(dllimport) HGDIOBJ16 K32HGDIOBJ_16(HGDIOBJ handle);
 __declspec(dllimport) HGDIOBJ K32HGDIOBJ_32(HGDIOBJ16 handle);
 #define HGDIOBJ_32(handle16)    (K32HGDIOBJ_32(handle16))
 #define HGDIOBJ_16(handle32)    (K32HGDIOBJ_16(handle32))
-void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
+void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type);
 static BYTE fix_font_charset(BYTE charset);
 
 struct saved_visrgn
@@ -1926,7 +1926,7 @@ BOOL16 WINAPI DeleteDC16( HDC16 hdc )
             HeapFree( GetProcessHeap(), 0, saved );
         }
         delete_dib_driver(hdc32);
-        K32WOWHandle16DestroyHint(hdc32, WOW_TYPE_HDC /* GDIOBJ */);
+        K32WOWHandle16Destroy(hdc32, WOW_TYPE_HDC /* GDIOBJ */);
         return TRUE;
     }
     else if (!GetObjectType(hdc32))
@@ -1967,7 +1967,7 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
     }
     if (result)
     {
-        K32WOWHandle16DestroyHint(object, WOW_TYPE_HDC /* GDIOBJ */);
+        K32WOWHandle16Destroy(object, WOW_TYPE_HDC /* GDIOBJ */);
     }
     return result;
 }
