@@ -415,8 +415,7 @@ SEGPTR WINAPI lstrcpy16( SEGPTR dst, LPCSTR src )
  */
 SEGPTR WINAPI lstrcat16( SEGPTR dst, LPCSTR src )
 {
-    if (!src || !dst) return 0;
-    strcat( MapSL(dst), src );
+    if (!lstrcatA( MapSL(dst), src )) dst = 0;
     return dst;
 }
 
