@@ -74,7 +74,7 @@
 71  pascal -ret16 DeleteAtom(word) DeleteAtom16
 72  pascal -ret16 GetAtomName(word ptr word) GetAtomName16
 73  pascal -ret16 GetAtomHandle(word) GetAtomHandle16
-74  pascal -ret16 OpenFile(str ptr word) OpenFile16
+74  pascal -ret16 OpenFile(str long word) WIN16_OpenFile16
 75  stub OpenPathName
 76  stub DeletePathName
 # Reserved*: old Win 2.x functions now moved to USER (Win 3.0+)
