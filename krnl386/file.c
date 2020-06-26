@@ -597,6 +597,12 @@ static HANDLE create_file_OF( LPCWSTR path, INT mode )
  *           OpenFile   (KERNEL.74)
  *           OpenFileEx (KERNEL.360)
  */
+HFILE16 WINAPI WIN16_OpenFile16( LPCSTR name, SEGPTR ofs, UINT16 mode )
+{
+    CURRENT_STACK16->es = SELECTOROF(ofs);
+    return OpenFile16(name, MapSL(ofs), mode);
+}
+
 HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
 {
     HFILE hFileRet;

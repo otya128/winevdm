@@ -4936,6 +4936,7 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
             else
             {
                 HFILE handle = (HFILE)DosFileHandleToWin32Handle(BX_reg(context));
+                if (!context->SegDs) ptr = MapSL(MAKELONG(context->Edx & 0xffff, DOSMEM_0000H));
                 LONG result = _hwrite( handle, ptr, CX_reg(context) );
                 if (result == HFILE_ERROR)
                     bSetDOSExtendedError = TRUE;
