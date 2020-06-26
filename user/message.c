@@ -2117,9 +2117,12 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         UnMapLS( lParam );
         break;
+    case WM_COMMAND:
+        if (IsOldWindowsTask(GetCurrentTask()) && (window_type_table[HWND_16((HWND)lParam)] == WINDOW_TYPE_LISTBOX) &&
+                (HIWORD(wParam) > LBN_DBLCLK) && (HIWORD(wParam) != LBN_ERRSPACE))
+            break;
     case WM_ACTIVATE:
     case WM_CHARTOITEM:
-    case WM_COMMAND:
     case WM_VKEYTOITEM:
         {
             if (HIWORD(lParam) == 0)
