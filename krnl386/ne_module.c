@@ -1068,6 +1068,21 @@ static HMODULE16 NE_DoLoadBuiltinModule( const IMAGE_DOS_HEADER *mz_header, cons
     return hInstance;
 }
 
+// list of programs that should load native rather than built in dlls
+static BOOL builtin_override(const char *lib)
+{
+    const char list[][2][10] = {{"SCW", "TYPELIB"}};
+    char name[10] = {0};
+    HANDLE task = GetCurrentTask();
+    if (!task) return FALSE;
+    GetModuleName16(task, &name, sizeof(name));
+    for (int i = 0; i < ARRAY_SIZE(list); i++)
+    {
+        if (!strcmp(name, list[i][0]) && !strcmp(lib, list[i][1]))
+            return TRUE;
+    }
+    return FALSE;
+}
 
 LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOOL search_builtin);
 /**********************************************************************
@@ -1118,7 +1133,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
             ReleaseThunkLock(&count);
             mod32 = LoadLibraryAWrapper( dllname );
         }
-        if (mod32)
+        if (mod32 && !builtin_override(basename))
         {
 			if (!(descr = (void *)GetProcAddress(mod32, "_wine_spec_dos_header")) && !(descr = (void *)GetProcAddress(mod32, "__wine_spec_dos_header")))
             {
