@@ -1435,9 +1435,12 @@ INT16 WINAPI GetSystemMetrics16( INT16 index )
         switch (index)
         {
             case SM_CXSCREEN:
+            case SM_CXFULLSCREEN:
                 return 640;
             case SM_CYSCREEN:
                 return 480;
+            case SM_CYFULLSCREEN:
+                return 480 - GetSystemMetrics(SM_CYMIN);
         }
     }
         
