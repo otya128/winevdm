@@ -2993,8 +2993,20 @@ BOOL16 WINAPI PeekMessage16( MSG16 *msg, HWND16 hwnd,
     {
         RestoreThunkLock(count);
     }
-    if (IsOldWindowsTask(GetCurrentTask()) && !msg->hwnd)
-        msg->hwnd = HWND_16(GetDesktopWindow());
+    if (IsOldWindowsTask(GetCurrentTask()))
+    {
+        if (!msg->hwnd)
+            msg->hwnd = HWND_16(GetDesktopWindow());
+        if (!(flags & PM_REMOVE) && ((msg->message & ~1) == 0x100))
+        {
+            char key = msg->wParam & 0xff;
+            char keys[256];
+            GetKeyboardState(keys);
+            keys[key] = (keys[key] & 1) ^ (!(keys[key] & 0x80) && !(msg->message & 1)) ? 1 : 0;
+            keys[key] |= (msg->message & 1) ? 0 : 0x80;
+            SetKeyboardState(keys);
+        }
+    }
     return ret;
 }
 
