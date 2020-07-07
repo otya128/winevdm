@@ -268,7 +268,7 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
     BOOL old = IsOldWindowsTask(GetCurrentTask());
     DWORD add_size = old ? 0x100 : 0;
 
-    if (size >= GLOBAL_MAX_ALLOC_SIZE - fixup_size) return 0;
+    if (size > GLOBAL_MAX_ALLOC_SIZE) return 0;
     size = (size + fixup_size) & ~fixup_size;
 
     /* Allocate the linear memory */
