@@ -1358,7 +1358,7 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
             sei.cbSize = sizeof(sei);
             sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_CLASSNAME;
             sei.lpFile = filename;
-            sei.lpParameters = params->lpCmdLine;
+            sei.lpParameters = p;
             sei.nShow = startup.dwFlags ? startup.wShowWindow : SW_NORMAL;
             sei.lpVerb = "open";
             sei.lpClass = "exefile";
