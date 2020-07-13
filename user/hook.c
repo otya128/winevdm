@@ -793,6 +793,9 @@ FARPROC16 WINAPI SetWindowsHook16( INT16 id, HOOKPROC16 proc )
     /* WH_MSGFILTER is the only task-specific hook for SetWindowsHook() */
     HTASK16 hTask = (id == WH_MSGFILTER) ? GetCurrentTask() : 0;
 
+    if (SELECTOROF(proc) == 0x4b48) // Don't try to call an hhook, this a valid GDT selector we only use the LDT
+        return 0;	
+
     return (FARPROC16)SetWindowsHookEx16( id, proc, hInst, hTask );
 }
 
