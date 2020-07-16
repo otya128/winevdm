@@ -58,7 +58,7 @@ typedef struct
     DWORD     dib_avail_size;
     WORD      wSeg;
     WORD      wType;
-    HGLOBAL   orig_hndl;
+    HGLOBAL   link_hndl;
     BYTE      pad[0x10 - 4 - 2 - 2 - 4];     /* win31 GLOBALARENA size = 0x20 */
 } GLOBALARENA;
 
@@ -187,7 +187,7 @@ HGLOBAL16 GLOBAL_CreateBlock( WORD flags, void *ptr, DWORD size,
     pArena->wSeg = 0;
     pArena->wType = GT_UNKNOWN;
     pArena->flags = flags & GA_MOVEABLE;
-    pArena->orig_hndl = NULL;
+    pArena->link_hndl = NULL;
     if (flags & GMEM_DISCARDABLE) pArena->flags |= GA_DISCARDABLE;
     if (flags & GMEM_DDESHARE) pArena->flags |= GA_IPCSHARE;
     if (!(selflags & (WINE_LDT_FLAGS_CODE^WINE_LDT_FLAGS_DATA))) pArena->flags |= GA_DGROUP;
@@ -302,23 +302,23 @@ void GLOBAL_SetSeg(HGLOBAL16 hg, WORD wSeg, WORD type)
     GET_ARENA_PTR(hg)->wType = type;
 }
 
-HGLOBAL GLOBAL_GetOrig(HGLOBAL16 hg)
+HGLOBAL GLOBAL_GetLink(HGLOBAL16 hg)
 {
-    return GET_ARENA_PTR(hg)->orig_hndl;
+    return GET_ARENA_PTR(hg)->link_hndl;
 }
 
-void GLOBAL_SetOrig(HGLOBAL16 hg16, HGLOBAL hg)
+void GLOBAL_SetLink(HGLOBAL16 hg16, HGLOBAL hg)
 {
-    GET_ARENA_PTR(hg16)->orig_hndl = hg;
+    GET_ARENA_PTR(hg16)->link_hndl = hg;
 }
 
-HGLOBAL16 GLOBAL_FindOrig(HGLOBAL hg)
+HGLOBAL16 GLOBAL_FindLink(HGLOBAL hg)
 {
     int i;
     GLOBALARENA *pArena = pGlobalArena;
     for (i = 0; i < globalArenaSize; i++, pArena++)
     {
-        if ((pArena->size != 0) && (pArena->orig_hndl == hg))
+        if ((pArena->size != 0) && (pArena->link_hndl == hg))
             return pArena->handle;
     }
     return 0;
@@ -561,7 +561,6 @@ HGLOBAL16 WINAPI GlobalFree16(
                  HGLOBAL16 handle /* [in] Handle of global memory object */
 ) {
     void *ptr;
-    HGLOBAL ddehndl = 0;
 
     if (!VALID_HANDLE(handle))
     {
@@ -576,7 +575,7 @@ HGLOBAL16 WINAPI GlobalFree16(
         FIXME("DIB.DRV\n");
         return 0;
     }
-    if (GLOBAL_GetOrig(handle)) ddehndl = GLOBAL_GetOrig(handle);
+    HGLOBAL ddehndl = GLOBAL_GetLink(handle);
     if (!GLOBAL_FreeBlock( handle )) return handle;  /* failed */
     HeapFree( get_win16_heap(), 0, ptr );
     if (ddehndl) GlobalFree(ddehndl);
