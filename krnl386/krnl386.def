@@ -238,5 +238,6 @@ EXPORTS
   TaskSwitch16
   GLOBAL_GetOrig
   GLOBAL_SetOrig
+  GLOBAL_FindOrig
   vm_inject
   set_vm_inject_cb

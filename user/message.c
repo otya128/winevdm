@@ -772,6 +772,10 @@ static void MDICREATESTRUCT16to32A( const MDICREATESTRUCT16* from, MDICREATESTRU
     to->szClass = win32classname(from->hOwner, MapSL(from->szClass));
 }
 
+HGLOBAL GLOBAL_GetOrig(HGLOBAL16 hg);
+void GLOBAL_SetOrig(HGLOBAL16 hg16, HGLOBAL hg);
+HGLOBAL16 GLOBAL_FindOrig(HGLOBAL hg);
+
 static UINT_PTR convert_handle_16_to_32(HANDLE16 src, unsigned int flags)
 {
     HANDLE      dst;
@@ -790,6 +794,7 @@ static UINT_PTR convert_handle_16_to_32(HANDLE16 src, unsigned int flags)
     if (ptr16 != NULL && ptr32 != NULL) memcpy(ptr32, ptr16, sz);
     GlobalUnlock16(src);
     GlobalUnlock(dst);
+    GLOBAL_SetOrig(src, (HANDLE)dst);
 
     return (UINT_PTR)dst;
 }
@@ -800,7 +805,12 @@ static HANDLE16 convert_handle_32_to_16(UINT_PTR src, unsigned int flags)
     UINT        sz = GlobalSize((HANDLE)src);
     LPSTR       ptr16, ptr32;
 
-    if (!(dst = GlobalAlloc16(flags, sz)))
+    if (dst = GLOBAL_FindOrig(src))
+    {
+        if (GlobalSize16(dst) != sz)
+            dst = GlobalReAlloc16(dst, sz, 0);
+    }
+    else if (!(dst = GlobalAlloc16(flags, sz)))
         return 0;
     ptr32 = GlobalLock((HANDLE)src);
     ptr16 = GlobalLock16(dst);

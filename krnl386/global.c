@@ -312,6 +312,18 @@ void GLOBAL_SetOrig(HGLOBAL16 hg16, HGLOBAL hg)
     GET_ARENA_PTR(hg16)->orig_hndl = hg;
 }
 
+HGLOBAL16 GLOBAL_FindOrig(HGLOBAL hg)
+{
+    int i;
+    GLOBALARENA *pArena = pGlobalArena;
+    for (i = 0; i < globalArenaSize; i++, pArena++)
+    {
+        if ((pArena->size != 0) && (pArena->orig_hndl == hg))
+            return pArena->handle;
+    }
+    return 0;
+}
+
 /***********************************************************************
  *           GlobalAlloc     (KERNEL.15)
  *           GlobalAlloc16   (KERNEL32.24)
@@ -549,6 +561,7 @@ HGLOBAL16 WINAPI GlobalFree16(
                  HGLOBAL16 handle /* [in] Handle of global memory object */
 ) {
     void *ptr;
+    HGLOBAL ddehndl = 0;
 
     if (!VALID_HANDLE(handle))
     {
@@ -563,8 +576,10 @@ HGLOBAL16 WINAPI GlobalFree16(
         FIXME("DIB.DRV\n");
         return 0;
     }
+    if (GLOBAL_GetOrig(handle)) ddehndl = GLOBAL_GetOrig(handle);
     if (!GLOBAL_FreeBlock( handle )) return handle;  /* failed */
     HeapFree( get_win16_heap(), 0, ptr );
+    if (ddehndl) GlobalFree(ddehndl);
     return 0;
 }
 
