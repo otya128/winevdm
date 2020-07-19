@@ -241,7 +241,6 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
     case MCI_SEEK:
     case MCI_SET:
     case MCI_SETAUDIO:
-    case MCI_SETVIDEO:
 	/* case MCI_SETTIMECODE:*/
     case MCI_SIGNAL:
     case MCI_SPIN:
@@ -254,6 +253,32 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
             *lParam = mgp;
         }
         return MMSYSTEM_MAP_OKMEM;
+    case MCI_SETVIDEO:
+	{
+	    LPMCI_DGV_SETVIDEO_PARMSA mdsvp32 =  HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY,
+                sizeof(LPMCI_DGV_SETVIDEO_PARMS16) + sizeof(MCI_DGV_SETVIDEO_PARMSA));
+	    LPMCI_DGV_SETVIDEO_PARMS16 mdsvp16 = MapSL(*lParam);
+	    if (mdsvp32)
+	    {
+		*(LPMCI_DGV_SETVIDEO_PARMS16*)(mdsvp32) = mdsvp16;
+		mdsvp32 = (LPMCI_DGV_SETVIDEO_PARMSA)((char*)mdsvp32 + sizeof(LPMCI_DGV_SETVIDEO_PARMS16));
+		mdsvp32->dwCallback = HWND_32(mdsvp16->dwCallback);
+		mdsvp32->dwItem = mdsvp16->dwItem;
+		if ((dwFlags & MCI_DGV_SETVIDEO_ITEM) && (mdsvp16->dwItem == MCI_DGV_SETVIDEO_PALHANDLE))
+		    mdsvp32->dwValue = HPALETTE_32(mdsvp16->dwValue);
+		else
+		    mdsvp32->dwValue = mdsvp16->dwValue;
+		mdsvp32->dwOver = mdsvp16->dwOver;
+		if (dwFlags & MCI_DGV_SETVIDEO_ALG)
+		    mdsvp32->lpstrAlgorithm = MapSL(mdsvp16->lpstrAlgorithm);
+		if (dwFlags & MCI_DGV_SETVIDEO_QUALITY)
+		    mdsvp32->lpstrQuality = MapSL(mdsvp16->lpstrQuality);
+                *lParam = (DWORD)mdsvp32;
+             } else {
+                 return MMSYSTEM_MAP_NOMEM;
+             }
+	}
+	return MMSYSTEM_MAP_OKMEM;
     case MCI_UPDATE:
         {
             if (dwFlags & (MCI_DGV_UPDATE_HDC | MCI_DGV_RECT))
@@ -526,7 +551,6 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
     case MCI_SEEK:
     case MCI_SET:
     case MCI_SETAUDIO:
-    case MCI_SETVIDEO:
     case MCI_SPIN:
     case MCI_STEP:
     case MCI_STOP:
@@ -537,6 +561,12 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
         }
         break;
 
+    case MCI_SETVIDEO:
+	if (lParam) {
+            char *base = (char*)lParam - sizeof(LPMCI_DGV_SETVIDEO_PARMS16);
+            HeapFree(GetProcessHeap(), 0, base);
+	}
+	break;
     case MCI_UPDATE:
         if (dwFlags & (MCI_DGV_UPDATE_HDC | MCI_DGV_RECT))
         {
