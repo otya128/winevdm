@@ -807,6 +807,9 @@ int main( int argc, char *argv[] )
 
     RestoreThunkLock(1);  /* grab the Win16 lock */
 
+    if (krnl386_get_config_int("otvdm", "ForceSingleProcessor", FALSE))
+        SetProcessAffinityMask(GetCurrentProcess(), 1);
+
     /* some programs assume mmsystem is always present */
     LoadLibrary16( "gdi.exe" );
     LoadLibrary16( "user.exe" );
