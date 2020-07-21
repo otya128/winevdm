@@ -236,7 +236,8 @@ EXPORTS
   TaskSetCSIP16
   TaskGetCSIP16
   TaskSwitch16
-  GLOBAL_GetOrig
-  GLOBAL_SetOrig
+  GLOBAL_GetLink
+  GLOBAL_SetLink
+  GLOBAL_FindLink
   vm_inject
   set_vm_inject_cb
