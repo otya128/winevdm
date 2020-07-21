@@ -2687,7 +2687,10 @@ BOOL16 WINAPI GetClassInfoEx16( HINSTANCE16 hInst16, SEGPTR name, WNDCLASSEX16 *
         BOOL f;
         WORD cb = get_system_window_class_wndextra(wc32.lpszClassName, &f);
         wc->cbWndExtra    = f ? cb : wc32.cbWndExtra;
-        wc->hInstance     = (wc32.hInstance == user32_module) ? GetModuleHandle16("user") : HINSTANCE_16(wc32.hInstance);
+        if (GetExePtr(hInst16) == HINSTANCE_16(wc32.hInstance))
+            wc->hInstance = hInst16;
+        else
+            wc->hInstance = (wc32.hInstance == user32_module) ? GetModuleHandle16("user") : HINSTANCE_16(wc32.hInstance);
         wc->hIcon         = get_icon_16( wc32.hIcon );
         wc->hIconSm       = get_icon_16( wc32.hIconSm );
         wc->hCursor       = get_icon_16( wc32.hCursor );
