@@ -63,11 +63,12 @@ WINE_DEFAULT_DEBUG_CHANNEL(mmsys);
 static struct mmio_thunk
 {
     BYTE        popl_eax;       /* popl  %eax (return address) */
-    BYTE        pushl_func;     /* pushl $pfn16 (16bit callback function) */
-    LPMMIOPROC16 pfn16;
+    BYTE        pushl_func;     /* pushl $this */
+    struct mmio_thunk *this;
     BYTE        pushl_eax;      /* pushl %eax */
     BYTE        jmp;            /* ljmp MMIO_Callback1632 */
     DWORD       callback;
+    LPMMIOPROC16 pfn16;
     HMMIO       hMmio;          /* Handle to 32bit mmio object */
     SEGPTR      segbuffer;      /* actual segmented ptr to buffer */
     HGLOBAL16   allocbuf;       /* MMIO_ALLOCBUF */
@@ -87,7 +88,7 @@ static CRITICAL_SECTION mmio_cs = { &mmio_critsect_debug, -1, 0, 0, 0, 0 };
 /****************************************************************
  *       		MMIO_Map32To16			[INTERNAL]
  */
-static LRESULT	MMIO_Map32To16(DWORD wMsg, LPARAM* lp1, LPARAM* lp2)
+static LRESULT	MMIO_Map32To16(struct mmio_thunk *thunk, DWORD wMsg, LPARAM* lp1, LPARAM* lp2, DWORD cch)
 {
     switch (wMsg) {
     case MMIOM_CLOSE:
@@ -95,9 +96,30 @@ static LRESULT	MMIO_Map32To16(DWORD wMsg, LPARAM* lp1, LPARAM* lp2)
 	/* nothing to do */
 	break;
     case MMIOM_OPEN:
+        *lp1 = MapLS( (void *)*lp1 );
+	break;
     case MMIOM_READ:
     case MMIOM_WRITE:
     case MMIOM_WRITEFLUSH:
+        if (*lp2 > cch) {
+            int size = *lp2;
+            int count = (size + 0xffff) / 0x10000;
+            WORD sel = AllocSelectorArray16(count);
+            for (int i = 0; i < count; i++) {
+                SetSelectorBase(sel + (i << __AHSHIFT), (DWORD)*lp1 + i * 0x10000);
+                SetSelectorLimit16(sel + (i << __AHSHIFT), size - 1);
+                size -= 0x10000;
+            }
+            *lp1 = sel << 16;
+            break;
+        } else if (thunk->segbuffer) {
+            int offset = *lp1 - (INT_PTR)MapSL(thunk->segbuffer);
+            if ((offset <= 0xffff) && (offset <= GlobalSize16(SELECTOROF(thunk->segbuffer))))
+            {
+                *lp1 = thunk->segbuffer + offset;
+                break;
+            }
+        }
         *lp1 = MapLS( (void *)*lp1 );
 	break;
     case MMIOM_RENAME:
@@ -114,8 +136,8 @@ static LRESULT	MMIO_Map32To16(DWORD wMsg, LPARAM* lp1, LPARAM* lp2)
 /****************************************************************
  *       	MMIO_UnMap32To16 			[INTERNAL]
  */
-static LRESULT	MMIO_UnMap32To16(DWORD wMsg, LPARAM lParam1, LPARAM lParam2,
-				 LPARAM lp1, LPARAM lp2)
+static LRESULT	MMIO_UnMap32To16(struct mmio_thunk *thunk, DWORD wMsg, LPARAM lParam1, LPARAM lParam2,
+				 LPARAM lp1, LPARAM lp2, DWORD cch)
 {
     switch (wMsg) {
     case MMIOM_CLOSE:
@@ -123,10 +145,19 @@ static LRESULT	MMIO_UnMap32To16(DWORD wMsg, LPARAM lParam1, LPARAM lParam2,
 	/* nothing to do */
 	break;
     case MMIOM_OPEN:
+        UnMapLS( lp1 );
+	break;
     case MMIOM_READ:
     case MMIOM_WRITE:
     case MMIOM_WRITEFLUSH:
-        UnMapLS( lp1 );
+        if (lp2 > cch) {
+            int count = (lp2 + 0xffff) / 0x10000;
+            WORD sel = SELECTOROF(lp1);
+            for (int i = 0; i < count; i++) {
+                FreeSelector16(sel + (i << __AHSHIFT));
+            }
+        } else if (SELECTOROF(thunk->segbuffer) != SELECTOROF(lp1))
+            UnMapLS( lp1 );
 	break;
     case MMIOM_RENAME:
         UnMapLS( lp1 );
@@ -140,11 +171,27 @@ static LRESULT	MMIO_UnMap32To16(DWORD wMsg, LPARAM lParam1, LPARAM lParam2,
 }
 
 /******************************************************************
+ *		MMIO_HasThunk
+ *
+ */
+static struct mmio_thunk*    MMIO_HasThunk(HMMIO hmmio)
+{
+    struct mmio_thunk* thunk;
+
+    if (!MMIO_Thunks) return NULL;
+    for (thunk = MMIO_Thunks; thunk < &MMIO_Thunks[MMIO_MAX_THUNKS]; thunk++)
+    {
+        if (thunk->hMmio == hmmio) return thunk;
+    }
+    return NULL;
+}
+
+/******************************************************************
  *		MMIO_Callback3216
  *
  *
  */
-static LRESULT CALLBACK MMIO_Callback3216(SEGPTR cb16, LPMMIOINFO lpmmioinfo, UINT uMessage,
+static LRESULT CALLBACK MMIO_Callback3216(struct mmio_thunk *thunk, LPMMIOINFO lpmmioinfo, UINT uMessage,
                                  LPARAM lParam1, LPARAM lParam2)
 {
     DWORD 		result;
@@ -152,8 +199,16 @@ static LRESULT CALLBACK MMIO_Callback3216(SEGPTR cb16, LPMMIOINFO lpmmioinfo, UI
     SEGPTR		segmmioInfo16;
     LPARAM		lp1 = lParam1, lp2 = lParam2;
     WORD                args[7];
+    SEGPTR              cb16 = thunk->pfn16;
 
     if (!cb16) return MMSYSERR_INVALPARAM;
+
+    if (thunk->hMmio != lpmmioinfo->hmmio)
+    {
+        struct mmio_thunk *realfile = MMIO_HasThunk(lpmmioinfo->hmmio);
+        if (realfile)
+            thunk = realfile;
+    }
 
     memset(&mmioInfo16, 0, sizeof(MMIOINFO16));
     mmioInfo16.dwFlags = lpmmioinfo->dwFlags;
@@ -162,7 +217,7 @@ static LRESULT CALLBACK MMIO_Callback3216(SEGPTR cb16, LPMMIOINFO lpmmioinfo, UI
     mmioInfo16.adwInfo[1]  = lpmmioinfo->adwInfo[1];
     mmioInfo16.adwInfo[2]  = lpmmioinfo->adwInfo[2];
     /* map (lParam1, lParam2) into (lp1, lp2) 32=>16 */
-    if ((result = MMIO_Map32To16(uMessage, &lp1, &lp2)) != MMSYSERR_NOERROR)
+    if ((result = MMIO_Map32To16(thunk, uMessage, &lp1, &lp2, lpmmioinfo->cchBuffer)) != MMSYSERR_NOERROR)
         return result;
 
     segmmioInfo16 = MapLS(&mmioInfo16);
@@ -175,7 +230,7 @@ static LRESULT CALLBACK MMIO_Callback3216(SEGPTR cb16, LPMMIOINFO lpmmioinfo, UI
     args[0] = LOWORD(lp2);
     WOWCallback16Ex( cb16, WCB16_PASCAL, sizeof(args), args, &result );
     UnMapLS(segmmioInfo16);
-    MMIO_UnMap32To16(uMessage, lParam1, lParam2, lp1, lp2);
+    MMIO_UnMap32To16(thunk, uMessage, lParam1, lParam2, lp1, lp2, lpmmioinfo->cchBuffer);
 
     lpmmioinfo->lDiskOffset = mmioInfo16.lDiskOffset;
     lpmmioinfo->adwInfo[0]  = mmioInfo16.adwInfo[0];
@@ -201,11 +256,12 @@ static struct mmio_thunk*       MMIO_AddThunk(LPMMIOPROC16 pfn16, HPSTR segbuf)
         for (thunk = MMIO_Thunks; thunk < &MMIO_Thunks[MMIO_MAX_THUNKS]; thunk++)
         {
             thunk->popl_eax     = 0x58;   /* popl  %eax */
-            thunk->pushl_func   = 0x68;   /* pushl $pfn16 */
-            thunk->pfn16        = 0;
+            thunk->pushl_func   = 0x68;   /* pushl $this */
+            thunk->this         = thunk;
             thunk->pushl_eax    = 0x50;   /* pushl %eax */
             thunk->jmp          = 0xe9;   /* jmp MMIO_Callback3216 */
             thunk->callback     = (char *)MMIO_Callback3216 - (char *)(&thunk->callback + 1);
+            thunk->pfn16        = 0;
             thunk->hMmio        = NULL;
             thunk->segbuffer    = 0;
             thunk->allocbuf     = NULL;
@@ -222,22 +278,6 @@ static struct mmio_thunk*       MMIO_AddThunk(LPMMIOPROC16 pfn16, HPSTR segbuf)
         }
     }
     FIXME("Out of mmio-thunks. Bump MMIO_MAX_THUNKS\n");
-    return NULL;
-}
-
-/******************************************************************
- *		MMIO_HasThunk
- *
- */
-static struct mmio_thunk*    MMIO_HasThunk(HMMIO hmmio)
-{
-    struct mmio_thunk* thunk;
-
-    if (!MMIO_Thunks) return NULL;
-    for (thunk = MMIO_Thunks; thunk < &MMIO_Thunks[MMIO_MAX_THUNKS]; thunk++)
-    {
-        if (thunk->hMmio == hmmio) return thunk;
-    }
     return NULL;
 }
 
