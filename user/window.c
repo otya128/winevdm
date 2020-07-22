@@ -1418,6 +1418,7 @@ HINSTANCE16 GetWindowHInst16(WORD hWnd16);
 void SetWindowHMenu16(WORD hWnd16, HMENU16 hinst16);
 //__declspec(dllexport) 
 HMENU16 GetWindowHMenu16(WORD hWnd16);
+BOOL isButton(HWND16 hWnd16, HWND hWnd);
 static WORD get_actual_cbwndextra(HWND16 hwnd16)
 {
     SIZE_T siz = GetClassWord16(hwnd16, GCL_CBWNDEXTRA);
@@ -1435,6 +1436,9 @@ WORD WINAPI GetWindowWord16( HWND16 hwnd, INT16 offset )
 {
     if (offset >= 0)
     {
+        if (!offset && isButton(hwnd, WIN_Handle32(hwnd)))
+            return GetWindowWord( WIN_Handle32(hwnd), offset );
+
         size_t siz = get_actual_cbwndextra(hwnd);
         if (siz + sizeof(WORD) < offset)
         {
@@ -1515,6 +1519,9 @@ WORD WINAPI SetWindowWord16( HWND16 hwnd, INT16 offset, WORD newval )
 {
     if (offset >= 0)
     {
+        if (!offset && isButton(hwnd, WIN_Handle32(hwnd)))
+            return SetWindowWord( WIN_Handle32(hwnd), offset, newval );
+
         size_t siz = get_actual_cbwndextra(hwnd);
         if (siz + sizeof(WORD) < offset)
         {
