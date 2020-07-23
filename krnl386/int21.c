@@ -4014,6 +4014,8 @@ static unsigned INT21_FindHelper(LPCWSTR fullPath, unsigned drive, unsigned coun
                         FindClose(INT21_FindHandle); INT21_FindHandle = 0;
                         return 0;
                     }
+                    if (!(entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+                        break;
                     i = -1;
                 }
             }
