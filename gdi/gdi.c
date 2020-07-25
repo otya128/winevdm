@@ -1943,6 +1943,7 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
 {
     HANDLE object = HGDIOBJ_32(obj);
     BOOL result;
+    int type = GetObjectType(object);
     static BOOL (*haxmvm_DeleteObject)(HGDIOBJ);
     static BOOL init;
     if (!init)
@@ -1951,8 +1952,8 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
         haxmvm_DeleteObject = (BOOL(*)(HGDIOBJ))GetProcAddress(haxmvm, "haxmvm_DeleteObject");
         init = TRUE;
     }
-    if (GetObjectType( object ) == OBJ_BITMAP) free_segptr_bits( obj );
-    if ((GetObjectType(object) == OBJ_PAL) && GetPtr16(object, 1))
+    if (type == OBJ_BITMAP) free_segptr_bits( obj );
+    else if ((type == OBJ_PAL) && GetPtr16(object, 1))
     {
         HeapFree(GetProcessHeap(), 0, GetPtr16(object, 1));
         SetPtr16(object, NULL, 1);
@@ -1968,6 +1969,11 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
     if (result)
     {
         K32WOWHandle16Destroy(object, WOW_TYPE_HDC /* GDIOBJ */);
+    }
+    else
+    {
+        if (type == OBJ_PAL)
+           return TRUE;
     }
     return result;
 }
