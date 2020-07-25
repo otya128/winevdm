@@ -86,7 +86,7 @@
 87  pascal -ret16 DialogBox(word str word segptr) DialogBox16
 88  pascal -ret16 EndDialog(word s_word) EndDialog16
 89  pascal -ret16 CreateDialog(word str word segptr) CreateDialog16
-90  pascal -ret16 IsDialogMessage(word ptr) IsDialogMessage16
+90  pascal -ret16 IsDialogMessage(word long) IsDialogMessage16
 91  pascal -ret16 GetDlgItem(word word) GetDlgItem16
 92  pascal -ret16 SetDlgItemText(word word segstr) SetDlgItemText16
 93  pascal -ret16 GetDlgItemText(word word segptr word) GetDlgItemText16

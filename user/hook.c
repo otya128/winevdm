@@ -32,6 +32,7 @@
 #include "wine/debug.h"
 #undef _WINTERNL_
 #include "winternl.h"
+#include "wine/exception.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(hook);
 
@@ -424,20 +425,45 @@ HHOOK get_hhook(INT code, BOOL global)
     return get_hook_info(FALSE, 0)->hhook[code - WH_MIN];
 }
 
+typedef struct
+{
+    MSG msg32;
+    char tag[4];
+    SEGPTR *pmsg16;
+} msg_thunk;
 /***********************************************************************
  *		call_WH_MSGFILTER
  */
 static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
     MSG *msg32 = (MSG *)lp;
-    MSG16 msg16;
+    MSG16 mesg;
+    MSG16 *msg16 = &mesg;
+    BOOL mapped = TRUE;
     LRESULT ret;
     CallNextHookEx(get_hhook(WH_MSGFILTER, global), code, wp, lp);
 
-    map_msg_32_to_16( msg32, &msg16 );
-    lp = MapLS( &msg16 );
+    __TRY
+    {
+        msg_thunk *msg_th = (msg_thunk *)lp;
+        if (!strcmp(msg_th->tag, "MSG"))
+        {
+            lp = (LPARAM)msg_th->pmsg16;
+            mapped = FALSE;
+        }
+    }
+    __EXCEPT_ALL
+    {
+    }
+    __ENDTRY
+    if (mapped)
+    {
+        map_msg_32_to_16( msg32, &msg16 );
+        lp = MapLS( &msg16 );
+    }
     ret = call_hook_16( WH_MSGFILTER, code, wp, lp, global);
-    UnMapLS( lp );
+    if (mapped)
+        UnMapLS( lp );
     return ret;
 }
 
