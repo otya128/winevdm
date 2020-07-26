@@ -110,7 +110,7 @@
 106 pascal SetSwapAreaSize(word) SetSwapAreaSize16
 107 pascal -ret16 SetErrorMode(word) SetErrorMode16
 108 pascal -ret16 SwitchStackTo(word word word) SwitchStackTo16 # STO in W2.0
-109 pascal -register SwitchStackBack() SwitchStackBack16 # SBACK in W2.0
+109 pascal -register SwitchStackBack(word word word) SwitchStackBack16 # SBACK in W2.0
 110 pascal   PatchCodeHandle(word) PatchCodeHandle16
 111 pascal   GlobalWire(word) GlobalWire16
 112 pascal -ret16 GlobalUnWire(word) GlobalUnWire16
