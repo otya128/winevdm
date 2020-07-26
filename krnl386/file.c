@@ -438,7 +438,7 @@ INT16 WINAPI GetProfileString16( LPCSTR section, LPCSTR entry, LPCSTR def_val,
         }
         ret = strlen(buffer);
     }
-    else if (ret && PathFileExistsA(buffer))
+    else if (ret && !PathIsRelativeA(buffer) && PathFileExistsA(buffer))
     {
         int cnt = GetShortPathNameA(buffer, tmp, len <= 256 ? len : 256);
         if (cnt)
