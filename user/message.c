@@ -3187,65 +3187,56 @@ LONG WINAPI DispatchMessage32_16( const MSG32_16 *msg16, BOOL16 wHaveParamHigh )
     }
 }
 
-typedef struct
-{
-    MSG msg32;
-    char tag[4];
-    SEGPTR pmsg16;
-} msg_thunk;
+
 
 static LRESULT is_dialog_message_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
     LRESULT *result, void *arg)
 {
-    msg_thunk *msg_th = (msg_thunk *)arg;
-    MSG16 *msg16 = (MSG16*)MapSL(msg_th->pmsg16);
-    MSG *mesg = &msg_th->msg32;
+    MSG16 *msg16 = (MSG16*)arg;
+    MSG mesg;
     if (msg == WM_DWMNCRENDERINGCHANGED)
         return;
-    mesg->hwnd = HWND_32(msg16->hwnd);
-    mesg->message = msg;
-    mesg->wParam = wp;
-    mesg->lParam = lp;
-    mesg->time = msg16->time;
-    mesg->pt.x = msg16->pt.x;
-    mesg->pt.y = msg16->pt.y;
+    mesg.hwnd = HWND_32(msg16->hwnd);
+    mesg.message = msg;
+    mesg.wParam = wp;
+    mesg.lParam = lp;
+    mesg.time = msg16->time;
+    mesg.pt.x = msg16->pt.x;
+    mesg.pt.y = msg16->pt.y;
     *result = IsDialogMessageA(hwnd, &mesg);
     return *result;
 }
 /***********************************************************************
  *		IsDialogMessage (USER.90)
  */
-BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, SEGPTR pmsg16 )
+BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, MSG16 *msg16 )
 {
-    msg_thunk msg;
+    MSG msg;
     HWND hwndDlg32;
-    MSG16 *msg16 = MapSL(pmsg16);
 
-    msg.msg32.hwnd  = WIN_Handle32(msg16->hwnd);
-    msg.pmsg16 = pmsg16;
+    msg.hwnd  = WIN_Handle32(msg16->hwnd);
     hwndDlg32 = WIN_Handle32(hwndDlg);
-    strcpy(&msg.tag, "MSG");
 
     switch(msg16->message)
     {
     case WM_KEYDOWN:
     case WM_CHAR:
     case WM_SYSCHAR:
-        msg.msg32.message = msg16->message;
-        msg.msg32.wParam  = msg16->wParam;
-        msg.msg32.lParam  = msg16->lParam;
-        msg.msg32.time    = msg16->time;
-        msg.msg32.pt.x    = msg16->pt.x;
-        msg.msg32.pt.y    = msg16->pt.y;
-        return IsDialogMessageA( hwndDlg32, &msg.msg32 );
+        msg.message = msg16->message;
+        msg.wParam  = msg16->wParam;
+        msg.lParam  = msg16->lParam;
+        msg.time    = msg16->time;
+        msg.pt.x    = msg16->pt.x;
+        msg.pt.y    = msg16->pt.y;
+        return IsDialogMessageA( hwndDlg32, &msg );
     default:
     {
         LPARAM result;
-        return WINPROC_CallProc16To32A(is_dialog_message_callback, hwndDlg, msg16->message, msg16->wParam, msg16->lParam, &result, &msg);
+        return WINPROC_CallProc16To32A(is_dialog_message_callback, hwndDlg, msg16->message, msg16->wParam, msg16->lParam, &result, msg16);
     }
     }
 
-    if ((hwndDlg32 != msg.msg32.hwnd) && !IsChild( hwndDlg32, msg.msg32.hwnd )) return FALSE;
+    if ((hwndDlg32 != msg.hwnd) && !IsChild( hwndDlg32, msg.hwnd )) return FALSE;
     TranslateMessage16( msg16 );
 	//????
 	if (DispatchMessage16(msg16) == FALSE)
