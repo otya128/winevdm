@@ -3938,6 +3938,10 @@ static unsigned INT21_FindHelper(LPCWSTR fullPath, unsigned drive, unsigned coun
 {
     unsigned ncalls;
     const int attr_win32 = (-1 & ~(FA_NORMAL | FA_RDONLY | FA_HIDDEN | FA_SYSTEM | FA_LABEL | FA_DIRECTORY | FA_ARCHIVE | FA_UNUSED));
+    const WCHAR croot[] = {'C',':','\\','*','.','*','\0'};
+    char name[9] = {0};
+    GetModuleName16(GetCurrentTask(), name, 9);
+    BOOL skip_large = !stricmp(name, "acmsetup") && !wcsicmp(fullPath, croot);
 
     if ((search_attr & ~(FA_UNUSED | FA_ARCHIVE | FA_RDONLY | attr_win32)) == FA_LABEL)
     {
@@ -3991,6 +3995,31 @@ static unsigned INT21_FindHelper(LPCWSTR fullPath, unsigned drive, unsigned coun
     }
     while (count < 0xffff)
     {
+        if (skip_large && (entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        {
+            const WCHAR *skip_dirs[] =
+                    {(const WCHAR []){'U','s','e','r','s','\0'},
+                     (const WCHAR []){'P','r','o','g','r','a','m',' ','F','i','l','e','s',' ','(','x','8','6',')','\0'},
+                     (const WCHAR []){'P','r','o','g','r','a','m',' ','F','i','l','e','s','\0'},
+                     (const WCHAR []){'P','r','o','g','r','a','m','D','a','t','a','\0'},
+                     (const WCHAR []){'W','i','n','d','o','w','s','\0'},
+                     (const WCHAR []){'D','o','c','u','m','e','n','t','s',' ','a','n','d',' ','S','e','t','t','i','n','g','s','\0'}};
+
+            for (int i = 0; i < ARRAY_SIZE(skip_dirs); i++)
+            {
+                if (!wcscmp(entry->cFileName, skip_dirs[i]))
+                {
+                    if (!FindNextFileW(INT21_FindHandle, entry))
+                    {
+                        FindClose(INT21_FindHandle); INT21_FindHandle = 0;
+                        return 0;
+                    }
+                    if (!(entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+                        break;
+                    i = -1;
+                }
+            }
+        }
         count++;
         /* Check the file attributes, and path */
         if (!(entry->dwFileAttributes & ~attr_win32 & ~search_attr) &&
