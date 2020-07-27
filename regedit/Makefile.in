@@ -1,0 +1,4 @@
+MODULE    = winoldap.mod16
+
+EXTRADLLFLAGS = -m16
+

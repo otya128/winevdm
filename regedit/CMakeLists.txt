@@ -1,0 +1,7 @@
+file(GLOB SOURCE *.c *.cpp *.rc)
+add_library(regedit SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/regedit.def regedit.exe16.obj)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+spec_build(regedit.exe16 regedit)
+target_link_libraries(regedit libwine winecrt0 krnl386)
+set_target_properties(regedit PROPERTIES SUFFIX ".exe16")
