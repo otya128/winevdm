@@ -71,6 +71,7 @@ BOOL is_win_menu_disallowed(DWORD style);
 DWORD USER16_AlertableWait = 0;
 static UINT aviwnd_msg = 0;
 static void *aviwnd_cwp;
+static ATOM dialogmsgthunk;
 
 struct wow_handlers32 wow_handlers32;
 #define TIMER32_LPARAM 0x42137460
@@ -3209,10 +3210,12 @@ static LRESULT is_dialog_message_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 /***********************************************************************
  *		IsDialogMessage (USER.90)
  */
-BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, MSG16 *msg16 )
+BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, SEGPTR *pmsg16 )
 {
     MSG msg;
+    MSG16 *msg16 = MapSL(pmsg16);
     HWND hwndDlg32;
+    BOOL ret;
 
     msg.hwnd  = WIN_Handle32(msg16->hwnd);
     hwndDlg32 = WIN_Handle32(hwndDlg);
@@ -3228,11 +3231,17 @@ BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, MSG16 *msg16 )
         msg.time    = msg16->time;
         msg.pt.x    = msg16->pt.x;
         msg.pt.y    = msg16->pt.y;
-        return IsDialogMessageA( hwndDlg32, &msg );
+        SetPropA(msg.hwnd, MAKEINTATOM(dialogmsgthunk), (HANDLE)pmsg16);
+        ret = IsDialogMessageA( hwndDlg32, &msg );
+        RemovePropA(msg.hwnd, MAKEINTATOM(dialogmsgthunk));
+        return ret;
     default:
     {
         LPARAM result;
-        return WINPROC_CallProc16To32A(is_dialog_message_callback, hwndDlg, msg16->message, msg16->wParam, msg16->lParam, &result, msg16);
+        SetPropA(msg.hwnd, MAKEINTATOM(dialogmsgthunk), (HANDLE)pmsg16);
+        ret = WINPROC_CallProc16To32A(is_dialog_message_callback, hwndDlg, msg16->message, msg16->wParam, msg16->lParam, &result, msg16);
+        RemovePropA(msg.hwnd, MAKEINTATOM(dialogmsgthunk));
+        return ret;
     }
     }
 
@@ -4629,6 +4638,7 @@ BOOL WINAPI DllMain(
     LPVOID lpvReserved
 )
 {
+
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
         window_type_table = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536);
@@ -4640,10 +4650,12 @@ BOOL WINAPI DllMain(
         drag_list_message = RegisterWindowMessage(DRAGLISTMSGSTRING);
         separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE);
         ShellDDEInit(TRUE);
+        dialogmsgthunk = GlobalAddAtomA("dialogmsgthunk");
     }
     if (fdwReason == DLL_PROCESS_DETACH)
     {
         ShellDDEInit(FALSE);
+        GlobalDeleteAtom(dialogmsgthunk);
     }
     return TRUE;
 }

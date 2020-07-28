@@ -431,13 +431,19 @@ static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp, BOOL 
 {
     MSG *msg32 = (MSG *)lp;
     MSG16 msg16;
+    MSG16 *thunk;
     LRESULT ret;
     CallNextHookEx(get_hhook(WH_MSGFILTER, global), code, wp, lp);
 
-    map_msg_32_to_16( msg32, &msg16 );
-    lp = MapLS( &msg16 );
-    ret = call_hook_16( WH_MSGFILTER, code, wp, lp, global);
-    UnMapLS( lp );
+    if (thunk = (MSG16 *)GetPropA(msg32->hwnd, "dialogmsgthunk"))
+        ret = call_hook_16( WH_MSGFILTER, code, wp, thunk, global);
+    else
+    {
+        map_msg_32_to_16( msg32, &msg16 );
+        lp = MapLS( &msg16 );
+        ret = call_hook_16( WH_MSGFILTER, code, wp, lp, global);
+        UnMapLS( lp );
+    }
     return ret;
 }
 
