@@ -1,0 +1,4 @@
+MODULE    = regedit.exe16
+
+EXTRADLLFLAGS = -m16
+
