@@ -52,8 +52,10 @@ for:
      copy ..\wow32.dll .
      mkdir WINDOWS
      mkdir WINDOWS\SYSTEM
+     mkdir WINDOWS\SYSTEM32
      mkdir dummydll
      mkdir dummydll\SYSTEM
+     mkdir dummydll\SYSTEM32
      ni WINDOWS\WIN.INI
      ni WINDOWS\SYSTEM.INI
      copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\CTL3D.DLL
@@ -97,6 +99,7 @@ for:
      copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WINOLDAP.MOD
      copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WINSOCK.DLL
      copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM\WINSPOOL.DRV
+     copy ..\..\dummydll\dummydll.dll dummydll\SYSTEM32\WOWEXEC.EXE
      copy ..\..\dummydll\dummydll.dll WINDOWS\CTL3D.DLL
      copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\CTL3DV2.DLL
      copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\AVIFILE.DLL
@@ -138,6 +141,7 @@ for:
      copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINOLDAP.MOD
      copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSOCK.DLL
      copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSPOOL.DRV
+     copy ..\..\dummydll\dummydll.dll WINDOWS\SYSTEM32\WOWEXEC.EXE
      copy C:\msys64\mingw32\bin\libgcc_s_dw2-1.dll .
      copy C:\msys64\mingw32\bin\libstdc++-6.dll .
      copy C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw32\bin\libwinpthread-1.dll .
