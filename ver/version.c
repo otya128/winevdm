@@ -523,16 +523,23 @@ DWORD WINAPI GetFileVersionInfoSize16( LPCSTR lpszFileName, LPDWORD lpdwHandle )
 DWORD WINAPI GetFileVersionInfo16( LPCSTR lpszFileName, DWORD handle,
                                    DWORD cbBuf, LPVOID lpvData )
 {
-    DWORD ret;
+    DWORD ret, size;
+    char *buf;
     TRACE("(%s, %08x, %d, %p)\n",
                 debugstr_a(lpszFileName), handle, cbBuf, lpvData );
-    ret = GetFileVersionInfoA( lpszFileName, handle, cbBuf, lpvData );
+    if (!(size = GetFileVersionInfoSize16(lpszFileName, handle)))
+        return 0;
+    buf = (char *)HeapAlloc(GetProcessHeap(), 0, size);
+    ret = GetFileVersionInfoA( lpszFileName, handle, size, (LPVOID)buf );
     if (!ret)
     {
         char path[MAX_PATH];
         if (findfile( lpszFileName, path, MAX_PATH ));
-            ret = GetFileVersionInfoA( (LPSTR)path, handle, cbBuf, lpvData );
+            ret = GetFileVersionInfoA( (LPSTR)path, handle, size, (LPVOID)buf );
     }
+    if (ret)
+        memcpy(lpvData, buf, min(size, cbBuf));
+    HeapFree(GetProcessHeap(), 0, buf);
     return ret;
 }
 
