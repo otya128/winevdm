@@ -1195,3 +1195,29 @@ DWORD WINAPI videoStreamFreeHdrAndBuffer16(HVIDEO16 hVideo, LPVIDEOHDR16 lpVHdr)
     FIXME("\n");
     return 0;
 }
+
+BOOL16 WINAPI ICInstall16(DWORD fccType, DWORD fccHandler, LPARAM lParam, LPSTR szDesc, UINT16 wFlags)
+{
+    if (wFlags == ICINSTALL_FUNCTION)
+    {
+        BOOL ret;
+        struct msvideo_thunk*       thunk;
+
+        EnterCriticalSection(&msvideo_cs);
+        if (!(thunk = MSVIDEO_AddThunk((DWORD)lParam)))
+        {
+            LeaveCriticalSection(&msvideo_cs);
+            return 0;
+        }
+        if (!(ret = ICInstall(fccType, fccHandler, thunk, szDesc, wFlags)))
+            thunk->pfn16 = 0;
+        LeaveCriticalSection(&msvideo_cs);
+        return ret;
+    }
+    return ICInstall(fccType, fccHandler, lParam, szDesc, wFlags);
+}
+
+BOOL16 WINAPI ICRemove16(DWORD fccType, DWORD fccHandler, UINT16 wFlags)
+{
+    return ICRemove(fccType, fccHandler, wFlags);
+}
