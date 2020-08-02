@@ -272,7 +272,7 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
             static void *(*get_video_thunk)(DWORD) = 0;
             if (!get_video_thunk)
             {
-                HMODULE msvideo = LoadLibraryA("msvideo.dll");
+                HMODULE msvideo = LoadLibraryA("msvideo.dll16");
                 if (msvideo)
                     get_video_thunk = (void *(*)(DWORD))GetProcAddress(msvideo, "get_video_thunk");
             }
