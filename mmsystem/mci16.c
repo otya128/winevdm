@@ -50,6 +50,8 @@
 #include "wine/winuser16.h"
 #include "winemm16.h"
 #include "digitalv.h"
+#include "mciavi.h"
+#include "../msvideo/vfw16.h"
 
 #include "wine/debug.h"
 
@@ -112,7 +114,6 @@ char *WINAPI xlate_str_handle(const char *origstr, char *newstr)
 
     return origstr;
 }
-
 /**************************************************************************
  * 			MCI_MessageToString			[internal]
  */
@@ -266,6 +267,18 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 		mdsvp32->dwItem = mdsvp16->dwItem;
 		if ((dwFlags & MCI_DGV_SETVIDEO_ITEM) && (mdsvp16->dwItem == MCI_DGV_SETVIDEO_PALHANDLE))
 		    mdsvp32->dwValue = HPALETTE_32(mdsvp16->dwValue);
+        else if ((dwFlags & MCI_DGV_SETVIDEO_ITEM) && (mdsvp16->dwItem == MCI_AVI_SETVIDEO_DRAW_PROCEDURE))
+        {
+            static void *(*get_video_thunk)(DWORD) = 0;
+            if (!get_video_thunk)
+            {
+                HMODULE msvideo = LoadLibraryA("msvideo.dll16");
+                if (msvideo)
+                    get_video_thunk = (void *(*)(DWORD))GetProcAddress(msvideo, "get_video_thunk");
+            }
+            if (get_video_thunk)
+                mdsvp32->dwValue = get_video_thunk(mdsvp16->dwValue);
+        }
 		else
 		    mdsvp32->dwValue = mdsvp16->dwValue;
 		mdsvp32->dwOver = mdsvp16->dwOver;

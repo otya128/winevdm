@@ -41,8 +41,8 @@
 119 pascal -ret16 DrawDibStop(word) DrawDibStop16
 120 stub DRAWDIBGETBUFFER
 200 pascal -ret16 ICInfo(long long segptr) ICInfo16
-201 stub ICINSTALL
-202 stub ICREMOVE
+201 pascal -ret16 ICInstall(long long long ptr word) ICInstall16
+202 pascal -ret16 ICRemove(long long word) ICRemove16
 203 pascal -ret16 ICOpen(long long word) ICOpen16
 204 pascal ICClose(word) ICClose16
 205 pascal ICSendMessage(word word long long) ICSendMessage16
@@ -66,3 +66,5 @@
 251 cdecl _MCIWndRegisterClass() MCIWndRegisterClass16
 252 stub GETOPENFILENAMEPREVIEW
 253 stub GETSAVEFILENAMEPREVIEW
+
+@ cdecl -arch=win32 get_video_thunk(long)
