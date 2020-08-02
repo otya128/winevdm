@@ -691,12 +691,100 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
 {
     WORD args[8];
     DWORD ret = 0;
+    void *data = (void *)lp1;
 
     switch (msg)
     {
     case DRV_OPEN:
         lp2 = (DWORD)MapLS((void*)lp2);
         break;
+    case ICM_GETINFO:
+    {
+        ICINFO16 *ici16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICINFO16));
+        ICINFO *ici = lp1;
+
+        ici16->dwSize = sizeof(ICINFO16);
+        ici16->fccType = ici->fccType;
+        ici16->fccHandler = ici->fccHandler;
+        ici16->dwFlags = ici->dwFlags;
+        ici16->dwVersion = ici->dwVersion;
+        ici16->dwVersionICM = ici->dwVersionICM;
+        WideCharToMultiByte( CP_ACP, 0, ici->szName, -1, ici16->szName,
+                        sizeof(ici16->szName), NULL, NULL );
+        ici16->szName[sizeof(ici16->szName)-1] = 0;
+        WideCharToMultiByte( CP_ACP, 0, ici->szDescription, -1, ici16->szDescription,
+                        sizeof(ici16->szDescription), NULL, NULL );
+        ici16->szDescription[sizeof(ici16->szDescription)-1] = 0;
+        WideCharToMultiByte( CP_ACP, 0, ici->szDriver, -1, ici16->szDriver,
+                        sizeof(ici16->szDriver), NULL, NULL );
+        ici16->szDescription[sizeof(ici16->szDescription)-1] = 0;
+        lp1 = MapLS(ici16);
+        lp2 = sizeof(ICINFO16);
+        break;
+    }
+    case ICM_DRAW_QUERY:
+        lp1 = MapLS(lp1);
+        break;
+    case ICM_DRAW_BEGIN:
+    {
+        ICDRAWBEGIN16 *icdb16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAWBEGIN16));
+        ICDRAWBEGIN *icdb = lp1;
+
+        icdb16->dwFlags = icdb->dwFlags;
+        icdb16->hpal = HPALETTE_16(icdb->hpal);
+        icdb16->hwnd = HWND_16(icdb->hwnd);
+        icdb16->hdc = HDC_16(icdb->hdc);
+        icdb16->xDst = icdb->xDst;
+        icdb16->yDst = icdb->yDst;
+        icdb16->dxDst = icdb->dxDst;
+        icdb16->dyDst = icdb->dyDst;
+        icdb16->lpbi = MapLS(icdb->lpbi);
+        icdb16->xSrc = icdb->xSrc;
+        icdb16->ySrc = icdb->ySrc;
+        icdb16->dxSrc = icdb->dxSrc;
+        icdb16->dySrc = icdb->dySrc;
+        icdb16->dwRate = icdb->dwRate;
+        icdb16->dwScale = icdb->dwScale;
+
+        lp1 = (LPARAM)(MapLS(icdb16));
+        lp2 = sizeof(ICDRAWBEGIN16);
+        break;
+    }
+    case ICM_DRAW_SUGGESTFORMAT:
+    {
+        ICDRAWSUGGEST16 *icds16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAWSUGGEST16));
+        ICDRAWSUGGEST *icds = lp1;
+
+        icds16->lpbiIn = MapLS(icds->lpbiIn);
+        icds16->lpbiSuggest = MapLS(icds->lpbiSuggest);
+        icds16->dxSrc = icds->dxSrc;
+        icds16->dySrc = icds->dySrc;
+        icds16->dxDst = icds->dxDst;
+        icds16->dyDst = icds->dyDst;
+        icds->hicDecompressor = HIC_32(icds16->hicDecompressor);
+
+        lp1 = (LPARAM)((char *)MapLS(icds16) + 4); // dwFlags doesn't exist?
+        lp2 = sizeof(ICDRAWSUGGEST16) - 4;
+        break;
+    }
+    case ICM_DRAW_WINDOW:
+        lp1 = (LPARAM)(MapLS(lp1));
+        break;
+    case ICM_DRAW:
+    {
+        ICDRAW *icd16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAW));
+        ICDRAW *icd = lp1;
+
+        icd16->dwFlags = icd->dwFlags;
+        icd16->lpFormat = MapLS(icd->lpFormat);
+        icd16->lpData = MapLS(icd->lpData);
+        icd16->cbData = icd->cbData;
+        icd16->lTime = icd->lTime;
+
+        lp1 = (LPARAM)(MapLS(icd16));
+        lp2 = sizeof(ICDRAW);
+        break;
+    }
     }
     args[7] = HIWORD(hic);
     args[6] = LOWORD(hic);
@@ -713,6 +801,55 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
     case DRV_OPEN:
         UnMapLS(lp2);
         break;
+    case ICM_GETINFO:
+    {
+        ICINFO16 *ici16 = MapSL(lp1);
+        ICINFO *ici = (ICINFO *)data;
+
+        UnMapLS(lp1);
+        ici->fccType = ici16->fccType;
+        ici->fccHandler = ici16->fccHandler;
+        ici->dwFlags = ici16->dwFlags;
+        ici->dwVersion = ici16->dwVersion;
+        ici->dwVersionICM = ici16->dwVersionICM;
+        MultiByteToWideChar( CP_ACP, 0, ici16->szName, -1, ici->szName, 16 );
+        MultiByteToWideChar( CP_ACP, 0, ici16->szDescription, -1, ici->szDescription, 128 );
+        MultiByteToWideChar( CP_ACP, 0, ici16->szDriver, -1, ici->szDriver, 128 );
+        HeapFree(GetProcessHeap(), 0, ici16);
+        break; 
+    }
+    case ICM_DRAW_QUERY:
+        UnMapLS(lp1);
+        break;
+     case ICM_DRAW_BEGIN:
+    {
+        ICDRAWBEGIN16 *icdb16 = MapSL(lp1);
+        UnMapLS(lp1);
+        UnMapLS(icdb16->lpbi);
+        HeapFree(GetProcessHeap(), 0, icdb16);
+        break;
+    }
+    case ICM_DRAW_SUGGESTFORMAT:
+    {
+        ICDRAWSUGGEST16 *icds16 = MapSL(lp1 - 4);
+        UnMapLS(lp1);
+        UnMapLS(icds16->lpbiIn);
+        UnMapLS(icds16->lpbiSuggest);
+        HeapFree(GetProcessHeap(), 0, icds16);
+        break;
+    }
+    case ICM_DRAW_WINDOW:
+        UnMapLS(lp1);
+        break;
+    case ICM_DRAW:
+    {
+        ICDRAW *icd16 = MapSL(lp1);
+        UnMapLS(lp1);
+        UnMapLS(icd16->lpFormat);
+        UnMapLS(icd16->lpData);
+        HeapFree(GetProcessHeap(), 0, icd16);
+        break;
+    }
     }
     return ret;
 }
@@ -786,6 +923,20 @@ static struct msvideo_thunk*    MSVIDEO_HasThunk(HIC16 hic)
     }
     return NULL;
 }
+
+void *get_video_thunk(DWORD pfn16)
+{
+    struct msvideo_thunk* thunk;
+
+    if (!MSVIDEO_Thunks)
+        return NULL;
+
+    for (thunk = MSVIDEO_Thunks; thunk < &MSVIDEO_Thunks[MAX_THUNKS]; thunk++)
+    {
+        if (thunk->pfn16 == pfn16) return thunk;
+    }
+    return (void *)MSVIDEO_AddThunk(pfn16);
+}    
 
 /***********************************************************************
  *		ICOpenFunction			[MSVIDEO.206]

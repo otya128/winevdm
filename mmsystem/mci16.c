@@ -114,196 +114,6 @@ char *WINAPI xlate_str_handle(const char *origstr, char *newstr)
 
     return origstr;
 }
-
-#define HIC_32(h16)		WOWHandle32(h16, WOW_TYPE_HWND)
-
-/******************************************************************
- *		MCIPROC_Callback3216
- *
- *
- */
-static  LRESULT CALLBACK  MCIPROC_Callback3216(DWORD pfn16, DWORD id, HDRVR hdrv, UINT msg, LPARAM lp1, LPARAM lp2)
-{
-    WORD args[8];
-    DWORD ret = 0;
-
-    switch (msg)
-    {
-    case DRV_OPEN:
-        lp2 = (DWORD)MapLS((void*)lp2);
-        break;
-    case ICM_DRAW_BEGIN:
-    {
-        ICDRAWBEGIN16 *icdb16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAWBEGIN16));
-        ICDRAWBEGIN *icdb = lp1;
-
-        icdb16->dwFlags = icdb->dwFlags;
-        icdb16->hpal = HPALETTE_16(icdb->hpal);
-        icdb16->hwnd = HWND_16(icdb->hwnd);
-        icdb16->hdc = HDC_16(icdb->hdc);
-        icdb16->xDst = icdb->xDst;
-        icdb16->yDst = icdb->yDst;
-        icdb16->dxDst = icdb->dxDst;
-        icdb16->dyDst = icdb->dyDst;
-        icdb16->lpbi = MapLS(icdb->lpbi);
-        icdb16->xSrc = icdb->xSrc;
-        icdb16->ySrc = icdb->ySrc;
-        icdb16->dxSrc = icdb->dxSrc;
-        icdb16->dySrc = icdb->dySrc;
-        icdb16->dwRate = icdb->dwRate;
-        icdb16->dwScale = icdb->dwScale;
-
-        lp1 = (LPARAM)(MapLS(icdb16));
-        lp2 = sizeof(ICDRAWBEGIN16);
-        break;
-    }
-    case ICM_DRAW_SUGGESTFORMAT:
-    {
-        ICDRAWSUGGEST16 *icds16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAWSUGGEST16));
-        ICDRAWSUGGEST *icds = lp1;
-
-        icds16->lpbiIn = MapLS(icds->lpbiIn);
-        icds16->lpbiSuggest = MapLS(icds->lpbiSuggest);
-        icds16->dxSrc = icds->dxSrc;
-        icds16->dySrc = icds->dySrc;
-        icds16->dxDst = icds->dxDst;
-        icds16->dyDst = icds->dyDst;
-        icds->hicDecompressor = HIC_32(icds16->hicDecompressor);
-
-        lp1 = (LPARAM)((char *)MapLS(icds16) + 4); // dwFlags doesn't exist?
-        lp2 = sizeof(ICDRAWSUGGEST16) - 4;
-        break;
-    }
-    case ICM_DRAW_WINDOW:
-        lp1 = (LPARAM)(MapLS(lp1));
-        break;
-    case ICM_DRAW:
-    {
-        ICDRAW *icd16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAW));
-        ICDRAW *icd = lp1;
-
-        icd16->dwFlags = icd->dwFlags;
-        icd16->lpFormat = MapLS(icd->lpFormat);
-        icd16->lpData = MapLS(icd->lpData);
-        icd16->cbData = icd->cbData;
-        icd16->lTime = icd->lTime;
-
-        lp1 = (LPARAM)(MapLS(icd16));
-        lp2 = sizeof(ICDRAW);
-        break;
-    }
-    }
-    args[7] = HIWORD(id);
-    args[6] = LOWORD(id);
-    args[5] = HDRVR_16(hdrv);
-    args[4] = msg;
-    args[3] = HIWORD(lp1);
-    args[2] = LOWORD(lp1);
-    args[1] = HIWORD(lp2);
-    args[0] = LOWORD(lp2);
-    WOWCallback16Ex( pfn16, WCB16_PASCAL, sizeof(args), args, &ret );
-
-    switch (msg)
-    {
-    case DRV_OPEN:
-        UnMapLS(lp2);
-        break;
-    case ICM_DRAW_BEGIN:
-    {
-        ICDRAWBEGIN16 *icdb16 = MapSL(lp1);
-        UnMapLS(lp1);
-        UnMapLS(icdb16->lpbi);
-        HeapFree(GetProcessHeap(), 0, icdb16);
-        break;
-    }
-    case ICM_DRAW_SUGGESTFORMAT:
-    {
-        ICDRAWSUGGEST16 *icds16 = MapSL(lp1 - 4);
-        UnMapLS(lp1);
-        UnMapLS(icds16->lpbiIn);
-        UnMapLS(icds16->lpbiSuggest);
-        HeapFree(GetProcessHeap(), 0, icds16);
-        break;
-    }
-    case ICM_DRAW_WINDOW:
-        UnMapLS(lp1);
-        break;
-    case ICM_DRAW:
-    {
-        ICDRAW *icd16 = MapSL(lp1);
-        UnMapLS(lp1);
-        UnMapLS(icd16->lpFormat);
-        UnMapLS(icd16->lpData);
-        HeapFree(GetProcessHeap(), 0, icd16);
-        break;
-    }
-    }
-    return ret;
-}
-
-#define MCIPROC_MAX_THUNKS 8
-
-#include "pshpack1.h"
-static struct mciproc_thunk
-{
-    BYTE        popl_eax;        /* popl  %eax (return address) */
-    BYTE        pushl_func;      /* pushl $pfn16 (16bit callback function) */
-    DWORD       pfn16;
-    BYTE        pushl_eax;       /* pushl %eax */
-    BYTE        jmp;             /* ljmp WDML_InvokeCallback16 */
-    DWORD       callback;
-    DWORD       id;              /* driver's handle */
-} *MCIPROC_Thunks;
-#include "poppack.h"
-
-static struct mciproc_thunk*      MCIPROC_AddThunk(DWORD pfn16)
-{
-    struct mciproc_thunk* thunk;
-
-    if (!MCIPROC_Thunks)
-    {
-        MCIPROC_Thunks = VirtualAlloc(NULL, MCIPROC_MAX_THUNKS * sizeof(*MCIPROC_Thunks), MEM_COMMIT,
-                                      PAGE_EXECUTE_READWRITE);
-        if (!MCIPROC_Thunks) return NULL;
-        for (thunk = MCIPROC_Thunks; thunk < &MCIPROC_Thunks[MCIPROC_MAX_THUNKS]; thunk++)
-        {
-            thunk->popl_eax     = 0x58;   /* popl  %eax */
-            thunk->pushl_func   = 0x68;   /* pushl $pfn16 */
-            thunk->pfn16        = 0;
-            thunk->pushl_eax    = 0x50;   /* pushl %eax */
-            thunk->jmp          = 0xe9;   /* jmp MCI_Callback3216 */
-            thunk->callback     = (char *)MCIPROC_Callback3216 - (char *)(&thunk->callback + 1);
-        }
-    }
-    for (thunk = MCIPROC_Thunks; thunk < &MCIPROC_Thunks[MCIPROC_MAX_THUNKS]; thunk++)
-    {
-        if (thunk->pfn16 == 0)
-        {
-            thunk->pfn16 = pfn16;
-            return thunk;
-        }
-    }
-    FIXME("Out of mciproc-thunks. Bump MCIPROC_MAX_THUNKS\n");
-    return NULL;
-}
-
-
-/******************************************************************
- *		MCIPROC_HasThunk
- *
- */
-static struct mciproc_thunk*    MCIPROC_HasThunk(DWORD pfn)
-{
-    struct mciproc_thunk* thunk;
-
-    if (!MCIPROC_Thunks) return NULL;
-    for (thunk = MCIPROC_Thunks; thunk < &MCIPROC_Thunks[MCIPROC_MAX_THUNKS]; thunk++)
-    {
-        if ((DWORD)thunk == pfn) return thunk;
-    }
-    return NULL;
-}
-
 /**************************************************************************
  * 			MCI_MessageToString			[internal]
  */
@@ -459,10 +269,15 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
 		    mdsvp32->dwValue = HPALETTE_32(mdsvp16->dwValue);
         else if ((dwFlags & MCI_DGV_SETVIDEO_ITEM) && (mdsvp16->dwItem == MCI_AVI_SETVIDEO_DRAW_PROCEDURE))
         {
-            struct mciproc_thunk *thunk = MCIPROC_HasThunk(mdsvp16->dwValue);
-            if (!thunk)
-                thunk = MCIPROC_AddThunk(mdsvp16->dwValue);
-            mdsvp32->dwValue = thunk;
+            static void *(*get_video_thunk)(DWORD) = 0;
+            if (!get_video_thunk)
+            {
+                HMODULE msvideo = LoadLibraryA("msvideo.dll");
+                if (msvideo)
+                    get_video_thunk = (void *(*)(DWORD))GetProcAddress(msvideo, "get_video_thunk");
+            }
+            if (get_video_thunk)
+                mdsvp32->dwValue = get_video_thunk(mdsvp16->dwValue);
         }
 		else
 		    mdsvp32->dwValue = mdsvp16->dwValue;

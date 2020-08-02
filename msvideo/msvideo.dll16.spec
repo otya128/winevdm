@@ -66,3 +66,5 @@
 251 cdecl _MCIWndRegisterClass() MCIWndRegisterClass16
 252 stub GETOPENFILENAMEPREVIEW
 253 stub GETSAVEFILENAMEPREVIEW
+
+@ cdecl -arch=win32 get_video_thunk(long)
