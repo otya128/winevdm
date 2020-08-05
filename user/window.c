@@ -857,9 +857,12 @@ BOOL16 WINAPI DestroyWindow16( HWND16 hwnd )
 {
     DWORD count;
     BOOL result;
+    HMENU16 hmenu16 = GetMenu16(hwnd);
     ReleaseThunkLock(&count);
     result = DestroyWindow(WIN_Handle32(hwnd));
     RestoreThunkLock(count);
+    if (result && IsMenu16(hmenu16))
+        DestroyMenu16(hmenu16);
     return result;
 }
 
@@ -1775,6 +1778,13 @@ BOOL16 WINAPI SetMenu16( HWND16 hwnd, HMENU16 hMenu )
     if (result)
     {
         SetWindowHMenu16(hwnd, hMenu);
+    }
+    else if ((GetLastError() == ERROR_INVALID_PARAMETER) && !(GetWindowLongA(HWND_32(hwnd), -20) & WS_CHILD))
+    {
+        // if last error isn't ERROR_INVALID_xxx_HANDLE then hmenu and hwnd are valid
+        // hmenu is likely a popup, set it and return true
+        SetWindowHMenu16(hwnd, hMenu);
+        return TRUE;
     }
     return result;
 }
@@ -2791,6 +2801,7 @@ BOOL16 WINAPI TrackPopupMenu16( HMENU16 hMenu, UINT16 wFlags, INT16 x, INT16 y,
                                 INT16 nReserved, HWND16 hwnd, const RECT16 *lpRect )
 {
     RECT r;
+    BOOL ret;
     if (lpRect)
     {
         r.left   = lpRect->left;
@@ -2798,8 +2809,15 @@ BOOL16 WINAPI TrackPopupMenu16( HMENU16 hMenu, UINT16 wFlags, INT16 x, INT16 y,
         r.right  = lpRect->right;
         r.bottom = lpRect->bottom;
     }
-    return TrackPopupMenu( HMENU_32(hMenu), wFlags, x, y, nReserved,
+    ret = TrackPopupMenu( HMENU_32(hMenu), wFlags, x, y, nReserved,
                            WIN_Handle32(hwnd), lpRect ? &r : NULL );
+    if (ret)
+    {
+        MSG16 msg;
+        if (PeekMessage16(&msg, hwnd, WM_COMMAND, WM_COMMAND, PM_REMOVE | PM_NOYIELD))
+            DispatchMessage16(&msg);
+    }
+    return ret;
 }
 
 
