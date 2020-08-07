@@ -1071,7 +1071,7 @@ DWORD WINAPI GetFreeSpace16( UINT16 wFlags )
 {
     MEMORYSTATUS ms;
     GlobalMemoryStatus( &ms );
-    return ms.dwAvailVirtual;
+    return min(ms.dwAvailVirtual, 102400000);
 }
 
 /***********************************************************************

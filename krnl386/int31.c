@@ -1337,10 +1337,10 @@ void WINAPI DOSVM_Int31Handler( CONTEXT *context )
             NtQuerySystemInformation( SystemBasicInformation, &sbi, sizeof(sbi), NULL );
 
             info->wPageSize            = sbi.PageSize;
-            info->dwLargestFreeBlock   = status.dwAvailVirtual;
+            info->dwLargestFreeBlock   = min(status.dwAvailVirtual, 102400000);
             info->dwMaxPagesAvailable  = info->dwLargestFreeBlock / info->wPageSize;
             info->dwMaxPagesLockable   = info->dwMaxPagesAvailable;
-            info->dwTotalLinearSpace   = status.dwTotalVirtual / info->wPageSize;
+            info->dwTotalLinearSpace   = min(status.dwTotalVirtual, 102400000) / info->wPageSize;
             info->dwTotalUnlockedPages = info->dwTotalLinearSpace;
             info->dwFreePages          = info->dwMaxPagesAvailable;
             info->dwTotalPages         = info->dwTotalLinearSpace;
