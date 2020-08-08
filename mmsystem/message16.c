@@ -774,10 +774,10 @@ static  MMSYSTEM_MapType	MMSYSTDRV_WaveOut_Map16To32W  (UINT wMsg, DWORD_PTR* lp
 	    *lpParam1 = (DWORD)wh32;
 	    *lpParam2 = sizeof(WAVEHDR);
 	    /* dwBufferLength can be reduced between prepare & write */
-	    if (wMsg == WODM_WRITE && *(DWORD *)((LPSTR)wh32 - sizeof(DWORD)) < wh16->dwBufferLength) {
+/*	    if (wMsg == WODM_WRITE && *(DWORD *)((LPSTR)wh32 - sizeof(DWORD)) < wh16->dwBufferLength) {
 		ERR("Size of buffer has been increased from %d to %d, keeping initial value\n",
 		    *(DWORD *)((LPSTR)wh32 - sizeof(DWORD)), wh16->dwBufferLength);
-	    } else
+	    } else*/
                 wh32->dwBufferLength = wh16->dwBufferLength;
 	    ret = MMSYSTEM_MAP_OKMEM;
 	}
