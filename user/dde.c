@@ -380,6 +380,7 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         int cmd_argc;
         WCHAR **cmd_argv;
         WCHAR *prg_name, *dirend;
+        BOOL defdirpath = FALSE;
 
         if (argc < 1) return DDE_FNOTPROCESSED;
 
@@ -399,12 +400,23 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         len = SearchPathW(NULL, prg_name, dotexeW, 0, NULL, NULL);
         if (len == 0)
         {
-            LocalFree(cmd_argv);
-            IShellLinkW_Release(link);
-            return DDE_FNOTPROCESSED;
+            if (argc >= 7)
+            {
+                defdirpath = TRUE;
+                len = SearchPathW(argv[6], prg_name, dotexeW, 0, NULL, NULL);
+            }
+            if (len == 0)
+            {
+                LocalFree(cmd_argv);
+                IShellLinkW_Release(link);
+                return DDE_FNOTPROCESSED;
+            }
         }
         path = heap_alloc(len * sizeof(WCHAR));
-        SearchPathW(NULL, prg_name, dotexeW, len, path, &dirend);
+        if (defdirpath)
+            SearchPathW(argv[6], prg_name, dotexeW, len, path, &dirend);
+        else
+            SearchPathW(NULL, prg_name, dotexeW, len, path, &dirend);
         IShellLinkW_SetPath(link, path);
         if (cmd_argc > 1)
         {
