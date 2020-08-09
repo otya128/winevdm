@@ -437,7 +437,7 @@ UINT16 WINAPI mixerOpen16(LPHMIXER16 lphmix, UINT16 uDeviceID, DWORD dwCallback,
     {
         if ((fdwOpen & CALLBACK_TYPEMASK) != CALLBACK_WINDOW)
         {
-            ERR("called with unsupported callback type %x", fdwOpen & CALLBACK_TYPEMASK);
+            ERR("called with unsupported callback type %x\n", fdwOpen & CALLBACK_TYPEMASK);
             return MMSYSERR_NOTSUPPORTED;
         }
         dwCallback = HWND_32(dwCallback);
