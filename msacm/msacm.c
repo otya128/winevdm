@@ -34,9 +34,14 @@
 #endif
 #include "wineacm16.h"
 #include "wine/debug.h"
+#include "wine/winbase16.h"
+#include "wownt32.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(msacm);
-
+void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
+#define WOW_TYPE_HAS WOW_TYPE_HWND
+#define HACMSTREAM_16(h32)		WOWHandle16(h32, WOW_TYPE_HAS)
+#define HACMSTREAM_32(h16)		WOWHandle32(h16, WOW_TYPE_HAS)
 /**************************************************************************
  *		DllEntryPoint (MSACM.3)
  *
@@ -186,9 +191,7 @@ MMRESULT16 WINAPI acmDriverPriority16(
 MMRESULT16 WINAPI acmFormatTagDetails16(
   HACMDRIVER16 had, LPACMFORMATTAGDETAILS16 paftd, DWORD fdwDetails)
 {
-  FIXME("(0x%04x, %p, %d): stub\n", had, paftd, fdwDetails);
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+  return acmFormatTagDetailsA(had, paftd, fdwDetails);
 }
 
 /***********************************************************************
@@ -222,9 +225,22 @@ MMRESULT16 WINAPI acmFormatChoose16(
 MMRESULT16 WINAPI acmFormatDetails16(
   HACMDRIVER16 had, LPACMFORMATDETAILS16 pafd, DWORD fdwDetails)
 {
-  FIXME("(0x%04x, %p, %d): stub\n", had, pafd, fdwDetails);
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+  MMRESULT ret;
+  ACMFORMATDETAILSA afd;
+  afd.cbStruct = pafd->cbStruct;
+  afd.dwFormatIndex = pafd->dwFormatIndex;
+  afd.dwFormatTag = pafd->dwFormatTag;
+  afd.fdwSupport = pafd->fdwSupport;
+  afd.pwfx = MapSL(pafd->pwfx);
+  afd.cbwfx = pafd->cbwfx;
+  memcpy(&afd.szFormat, &pafd->szFormat, pafd->cbStruct - (6*4));
+  ret = acmFormatDetailsA(had, &afd, fdwDetails);
+  pafd->dwFormatIndex = afd.dwFormatIndex;
+  pafd->dwFormatTag = afd.dwFormatTag;
+  pafd->fdwSupport = afd.fdwSupport;
+  pafd->cbwfx = afd.cbwfx;
+  memcpy(&pafd->szFormat, &afd.szFormat, pafd->cbStruct - (6*4));
+  return ret; 
 }
 
 /***********************************************************************
@@ -325,12 +341,16 @@ MMRESULT16 WINAPI acmStreamOpen16(
   LPWAVEFILTER pwfltr, DWORD dwCallback,
   DWORD dwInstance, DWORD fdwOpen)
 {
-  FIXME("(%p, 0x%04x, %p, %p, %p, %d, %d, %d): stub\n",
-    phas, had, pwfxSrc, pwfxDst, pwfltr,
-    dwCallback, dwInstance, fdwOpen
-  );
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+  HACMSTREAM strm;
+  MMRESULT ret;
+  if (fdwOpen & ACM_STREAMOPENF_ASYNC)
+  {
+    FIXME("ASYNC not supported\n");
+    return MMSYSERR_ERROR;
+  }
+  ret = acmStreamOpen(&strm, had, pwfxSrc, pwfxDst, pwfltr, dwCallback, dwInstance, fdwOpen);
+  *phas = HACMSTREAM_16(strm);
+  return ret;
 }
 
 /***********************************************************************
@@ -339,9 +359,12 @@ MMRESULT16 WINAPI acmStreamOpen16(
 MMRESULT16 WINAPI acmStreamClose16(
   HACMSTREAM16 has, DWORD fdwClose)
 {
-  FIXME("(0x%04x, %d): stub\n", has, fdwClose);
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+  MMRESULT ret;
+  HACMSTREAM has32 = HACMSTREAM_32(has);
+  ret = acmStreamClose(has32, fdwClose);
+  if (!ret)
+    K32WOWHandle16DestroyHint(has32, WOW_TYPE_HAS);
+  return ret;
 }
 
 /***********************************************************************
@@ -351,11 +374,7 @@ MMRESULT16 WINAPI acmStreamSize16(
   HACMSTREAM16 has, DWORD cbInput,
   LPDWORD pdwOutputBytes, DWORD fdwSize)
 {
-  FIXME("(0x%04x, %d, %p, %d): stub\n",
-    has, cbInput, pdwOutputBytes, fdwSize
-  );
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+    return acmStreamSize(HACMSTREAM_32(has), cbInput, pdwOutputBytes, fdwSize);
 }
 
 /***********************************************************************
@@ -364,9 +383,21 @@ MMRESULT16 WINAPI acmStreamSize16(
 MMRESULT16 WINAPI acmStreamConvert16(
   HACMSTREAM16 has, LPACMSTREAMHEADER16 pash, DWORD fdwConvert)
 {
-  FIXME("(0x%04x, %p, %d): stub\n", has, pash, fdwConvert);
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+  MMRESULT ret;
+  LPACMSTREAMHEADER pash32 = pash->dwReservedDriver[0];
+  pash32->fdwStatus = pash->fdwStatus;
+  pash32->dwUser = pash->dwUser;
+  pash32->pbSrc = MapSL(pash->pbSrc);
+  pash32->cbSrcLength = pash->cbSrcLength;
+  pash32->dwSrcUser = pash->dwSrcUser;
+  pash32->pbDst = MapSL(pash->pbDst);
+  pash32->cbDstLength = pash->cbDstLength;
+  pash32->dwDstUser = pash->dwDstUser;
+  ret = acmStreamConvert(HACMSTREAM_32(has), pash32, fdwConvert);
+  pash->fdwStatus = pash32->fdwStatus;
+  pash->cbSrcLengthUsed = pash32->cbSrcLengthUsed;
+  pash->cbDstLengthUsed = pash32->cbDstLengthUsed;
+  return ret;
 }
 
 /***********************************************************************
@@ -386,9 +417,26 @@ MMRESULT16 WINAPI acmStreamReset16(
 MMRESULT16 WINAPI acmStreamPrepareHeader16(
   HACMSTREAM16 has, LPACMSTREAMHEADER16 pash, DWORD fdwPrepare)
 {
-  FIXME("(0x%04x, %p, %d): stub\n", has, pash, fdwPrepare);
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+  MMRESULT ret;
+  LPACMSTREAMHEADER pash32 = HeapAlloc(GetProcessHeap(), 0, sizeof(ACMSTREAMHEADER));
+  pash32->cbStruct = sizeof(ACMSTREAMHEADER);
+  pash32->fdwStatus = pash->fdwStatus;
+  pash32->dwUser = pash->dwUser;
+  pash32->pbSrc = MapSL(pash->pbSrc);
+  pash32->cbSrcLength = pash->cbSrcLength;
+  pash32->dwSrcUser = pash->dwSrcUser;
+  pash32->pbDst = MapSL(pash->pbDst);
+  pash32->cbDstLength = pash->cbDstLength;
+  pash32->dwDstUser = pash->dwDstUser;
+  ret = acmStreamPrepareHeader(HACMSTREAM_32(has), pash32, fdwPrepare);
+  if (!ret)
+  {
+    pash->dwReservedDriver[0] = pash32;
+    pash->fdwStatus = pash32->fdwStatus;
+  }
+  else
+    HeapFree(GetProcessHeap(), 0, pash32);
+  return ret;
 }
 
 /***********************************************************************
@@ -397,11 +445,12 @@ MMRESULT16 WINAPI acmStreamPrepareHeader16(
 MMRESULT16 WINAPI acmStreamUnprepareHeader16(
   HACMSTREAM16 has, LPACMSTREAMHEADER16 pash, DWORD fdwUnprepare)
 {
-  FIXME("(0x%04x, %p, %d): stub\n",
-    has, pash, fdwUnprepare
-  );
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+  MMRESULT ret;
+  LPACMSTREAMHEADER pash32 = pash->dwReservedDriver[0];
+  ret = acmStreamUnprepareHeader(HACMSTREAM_32(has), pash32, fdwUnprepare);
+  if (!ret)
+    HeapFree(GetProcessHeap(), 0, pash32);
+  return ret;
 }
 
 /***********************************************************************
