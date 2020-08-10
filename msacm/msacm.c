@@ -264,11 +264,7 @@ MMRESULT16 WINAPI acmFormatSuggest16(
   HACMDRIVER16 had, LPWAVEFORMATEX pwfxSrc,
   LPWAVEFORMATEX pwfxDst, DWORD cbwfxDst, DWORD fdwSuggest)
 {
-  FIXME("(0x%04x, %p, %p, %d, %d): stub\n",
-    had, pwfxSrc, pwfxDst, cbwfxDst, fdwSuggest
-  );
-  SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-  return MMSYSERR_ERROR;
+  return acmFormatSuggest(had, pwfxSrc, pwfxDst, cbwfxDst, fdwSuggest);
 }
 
 /***********************************************************************

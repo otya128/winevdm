@@ -1053,6 +1053,7 @@ struct mmsystdrv_thunk*       MMSYSTDRV_AddThunk(DWORD callback, DWORD flags, en
 static void*    MMSYSTDRV_FindHandle(void* h)
 {
     struct mmsystdrv_thunk* thunk;
+    if (!h) return NULL;
 
     for (thunk = MMSYSTDRV_Thunks; thunk < &MMSYSTDRV_Thunks[MMSYSTDRV_MAX_THUNKS]; thunk++)
     {
