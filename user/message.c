@@ -466,8 +466,8 @@ DWORD call_native_wndproc_context(CONTEXT *context)
     context.SegDs = context.SegEs = SELECTOROF(getWOW32Reserved());
     context.SegFs = wine_get_fs();
     context.SegGs = wine_get_gs();
-    context.Eax = !hwnd ? 0 : GetWindowWord16(hwnd, GWLP_HINSTANCE) | 1; /* Handle To Sel */
-    if (!context.Eax) context.Eax = context.SegDs;
+    //context.Eax = !hwnd ? 0 : GetWindowWord16(hwnd, GWLP_HINSTANCE) | 1; /* Handle To Sel */
+    context.Eax = context.SegDs;
     context.Ebx = 6;
     context.Esi = hwnd;
     context.SegCs = SELECTOROF(func);
