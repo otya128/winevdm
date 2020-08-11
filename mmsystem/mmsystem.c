@@ -431,21 +431,22 @@ UINT16 WINAPI mixerOpen16(LPHMIXER16 lphmix, UINT16 uDeviceID, DWORD dwCallback,
 {
     HMIXER	                hmix;
     UINT	                ret;
-    struct mmsystdrv_thunk*     thunk;
-
-    if (!(thunk = MMSYSTDRV_AddThunk(dwCallback, fdwOpen, MMSYSTDRV_MIXER)))
+    // mixer doesn't support CALLBACK_FUNCTION without which only CALLBACK_WINDOW isn't difficult 
+    // wine source says CALLBACK_THREAD and CALLBACK_EVENT weren't supported until win2k
+    if (fdwOpen & CALLBACK_TYPEMASK)
     {
-        return MMSYSERR_NOMEM;
+        if ((fdwOpen & CALLBACK_TYPEMASK) != CALLBACK_WINDOW)
+        {
+            ERR("called with unsupported callback type %x\n", fdwOpen & CALLBACK_TYPEMASK);
+            return MMSYSERR_NOTSUPPORTED;
+        }
+        dwCallback = HWND_32(dwCallback);
     }
-    if ((fdwOpen & CALLBACK_TYPEMASK) != CALLBACK_NULL)
-        fdwOpen = (fdwOpen & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
-    ret = mixerOpen(&hmix, uDeviceID, (DWORD)thunk, dwInstance, fdwOpen);
+    ret = mixerOpen(&hmix, uDeviceID, dwCallback, dwInstance, fdwOpen);
     if (ret == MMSYSERR_NOERROR)
     {
         if (lphmix) *lphmix = HMIXER_16(hmix);
-        if (thunk) MMSYSTDRV_SetHandle(thunk, hmix);
     }
-    else MMSYSTDRV_DeleteThunk(thunk);
     return ret;
 }
 
@@ -454,11 +455,7 @@ UINT16 WINAPI mixerOpen16(LPHMIXER16 lphmix, UINT16 uDeviceID, DWORD dwCallback,
  */
 UINT16 WINAPI mixerClose16(HMIXER16 hMix)
 {
-    UINT        ret = mixerClose(HMIXER_32(hMix));
-
-    if (ret == MMSYSERR_NOERROR)
-        MMSYSTDRV_CloseHandle((void*)HMIXER_32(hMix));
-    return ret;
+    return mixerClose(HMIXER_32(hMix));
 }
 
 /**************************************************************************
