@@ -1662,12 +1662,12 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
         DWORD offset_bits;
         if (segInitData == 0)
         {
-            return HDC_32(memdc);
+            return HDC_16(memdc);
         }
         if (find_dib_driver(selector))
         {
             FIXME("Multiple DIB mappings on the same segment are not supported.\n");
-            return HDC_32(memdc);
+            return HDC_16(memdc);
         }
         offset_bits = offset + bmi->bmiHeader.biSize + bmi->bmiHeader.biClrUsed * sizeof(RGBQUAD);
 #define DWORD_PADDING(x) (((x) + 3) & -4)
