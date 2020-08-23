@@ -2183,118 +2183,165 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
         if (!hlpfile->lpszTitle) return FALSE;
         strcpy(hlpfile->lpszTitle, str);
         WINE_TRACE("Title: %s\n", debugstr_a(hlpfile->lpszTitle));
-        /* Nothing more to parse */
-        return TRUE;
     }
-    for (ptr = buf + 0x15; ptr + 4 <= end; ptr += GET_USHORT(ptr, 2) + 4)
+    else
     {
-        char *str = (char*) ptr + 4;
-        switch (GET_USHORT(ptr, 0))
-	{
-	case 1:
-            if (hlpfile->lpszTitle) {WINE_WARN("title\n"); break;}
-            hlpfile->lpszTitle = HeapAlloc(GetProcessHeap(), 0, strlen(str) + 1);
-            if (!hlpfile->lpszTitle) return FALSE;
-            strcpy(hlpfile->lpszTitle, str);
-            WINE_TRACE("Title: %s\n", debugstr_a(hlpfile->lpszTitle));
-            break;
+        for (ptr = buf + 0x15; ptr + 4 <= end; ptr += GET_USHORT(ptr, 2) + 4)
+        {
+            char *str = (char*) ptr + 4;
+            switch (GET_USHORT(ptr, 0))
+    	{
+	    case 1:
+                if (hlpfile->lpszTitle) {WINE_WARN("title\n"); break;}
+                hlpfile->lpszTitle = HeapAlloc(GetProcessHeap(), 0, strlen(str) + 1);
+                if (!hlpfile->lpszTitle) return FALSE;
+                strcpy(hlpfile->lpszTitle, str);
+                WINE_TRACE("Title: %s\n", debugstr_a(hlpfile->lpszTitle));
+                break;
 
-	case 2:
-            if (hlpfile->lpszCopyright) {WINE_WARN("copyright\n"); break;}
-            hlpfile->lpszCopyright = HeapAlloc(GetProcessHeap(), 0, strlen(str) + 1);
-            if (!hlpfile->lpszCopyright) return FALSE;
-            strcpy(hlpfile->lpszCopyright, str);
-            WINE_TRACE("Copyright: %s\n", debugstr_a(hlpfile->lpszCopyright));
-            break;
+    	case 2:
+                if (hlpfile->lpszCopyright) {WINE_WARN("copyright\n"); break;}
+                hlpfile->lpszCopyright = HeapAlloc(GetProcessHeap(), 0, strlen(str) + 1);
+                if (!hlpfile->lpszCopyright) return FALSE;
+                strcpy(hlpfile->lpszCopyright, str);
+                WINE_TRACE("Copyright: %s\n", debugstr_a(hlpfile->lpszCopyright));
+                break;
 
-	case 3:
-            if (GET_USHORT(ptr, 2) != 4) {WINE_WARN("system3\n");break;}
-            hlpfile->contents_start = GET_UINT(ptr, 4);
-            WINE_TRACE("Setting contents start at %08lx\n", hlpfile->contents_start);
-            break;
+    	case 3:
+               if (GET_USHORT(ptr, 2) != 4) {WINE_WARN("system3\n");break;}
+               hlpfile->contents_start = GET_UINT(ptr, 4);
+               WINE_TRACE("Setting contents start at %08lx\n", hlpfile->contents_start);
+               break;
 
-	case 4:
-            macro = HeapAlloc(GetProcessHeap(), 0, sizeof(HLPFILE_MACRO) + strlen(str) + 1);
-            if (!macro) break;
-            p = (char*)macro + sizeof(HLPFILE_MACRO);
-            strcpy(p, str);
-            macro->lpszMacro = p;
-            macro->next = 0;
-            for (m = &hlpfile->first_macro; *m; m = &(*m)->next);
-            *m = macro;
-            break;
+        case 4:
+               macro = HeapAlloc(GetProcessHeap(), 0, sizeof(HLPFILE_MACRO) + strlen(str) + 1);
+               if (!macro) break;
+               p = (char*)macro + sizeof(HLPFILE_MACRO);
+               strcpy(p, str);
+               macro->lpszMacro = p;
+               macro->next = 0;
+               for (m = &hlpfile->first_macro; *m; m = &(*m)->next);
+               *m = macro;
+               break;
 
         case 5:
-            if (GET_USHORT(ptr, 4 + 4) != 1)
-                WINE_FIXME("More than one icon, picking up first\n");
-            /* 0x16 is sizeof(CURSORICONDIR), see user32/user_private.h */
-            hlpfile->hIcon = CreateIconFromResourceEx(ptr + 4 + 0x16,
-                                                      GET_USHORT(ptr, 2) - 0x16, TRUE,
-                                                      0x30000, 0, 0, 0);
-            break;
+               if (GET_USHORT(ptr, 4 + 4) != 1)
+                       WINE_FIXME("More than one icon, picking up first\n");
+               /* 0x16 is sizeof(CURSORICONDIR), see user32/user_private.h */
+               hlpfile->hIcon = CreateIconFromResourceEx(ptr + 4 + 0x16,
+                               GET_USHORT(ptr, 2) - 0x16, TRUE,
+                               0x30000, 0, 0, 0);
+               break;
 
         case 6:
-            if (GET_USHORT(ptr, 2) != 90) {WINE_WARN("system6\n");break;}
+               if (GET_USHORT(ptr, 2) != 90) {WINE_WARN("system6\n");break;}
 
-	    if (hlpfile->windows) 
-        	hlpfile->windows = HeapReAlloc(GetProcessHeap(), 0, hlpfile->windows, 
-                                           sizeof(HLPFILE_WINDOWINFO) * ++hlpfile->numWindows);
-	    else 
-        	hlpfile->windows = HeapAlloc(GetProcessHeap(), 0, 
-                                           sizeof(HLPFILE_WINDOWINFO) * ++hlpfile->numWindows);
-	    
-            if (hlpfile->windows)
-            {
-                HLPFILE_WINDOWINFO* wi = &hlpfile->windows[hlpfile->numWindows - 1];
+               if (hlpfile->windows) 
+                       hlpfile->windows = HeapReAlloc(GetProcessHeap(), 0, hlpfile->windows, 
+                                       sizeof(HLPFILE_WINDOWINFO) * ++hlpfile->numWindows);
+               else 
+                       hlpfile->windows = HeapAlloc(GetProcessHeap(), 0, 
+                                       sizeof(HLPFILE_WINDOWINFO) * ++hlpfile->numWindows);
 
-                flags = GET_USHORT(ptr, 4);
-                if (flags & 0x0001) strcpy(wi->type, &str[2]);
-                else wi->type[0] = '\0';
-                if (flags & 0x0002) strcpy(wi->name, &str[12]);
-                else wi->name[0] = '\0';
-                if (flags & 0x0004) strcpy(wi->caption, &str[21]);
-                else lstrcpynA(wi->caption, hlpfile->lpszTitle, sizeof(wi->caption));
-                wi->origin.x = (flags & 0x0008) ? GET_USHORT(ptr, 76) : CW_USEDEFAULT;
-                wi->origin.y = (flags & 0x0010) ? GET_USHORT(ptr, 78) : CW_USEDEFAULT;
-                wi->size.cx = (flags & 0x0020) ? GET_USHORT(ptr, 80) : CW_USEDEFAULT;
-                wi->size.cy = (flags & 0x0040) ? GET_USHORT(ptr, 82) : CW_USEDEFAULT;
-                wi->style = (flags & 0x0080) ? GET_USHORT(ptr, 84) : SW_SHOW;
-                wi->win_style = WS_OVERLAPPEDWINDOW;
-                wi->sr_color = (flags & 0x0100) ? GET_UINT(ptr, 86) : 0xFFFFFF;
-                wi->nsr_color = (flags & 0x0200) ? GET_UINT(ptr, 90) : 0xFFFFFF;
-                wi->flags = flags;
-                WINE_TRACE("System-Window: flags=%c%c%c%c%c%c%c%c type=%s name=%s caption=%s (%d,%d)x(%d,%d)\n",
-                           flags & 0x0001 ? 'T' : 't',
-                           flags & 0x0002 ? 'N' : 'n',
-                           flags & 0x0004 ? 'C' : 'c',
-                           flags & 0x0008 ? 'X' : 'x',
-                           flags & 0x0010 ? 'Y' : 'y',
-                           flags & 0x0020 ? 'W' : 'w',
-                           flags & 0x0040 ? 'H' : 'h',
-                           flags & 0x0080 ? 'S' : 's',
-                           debugstr_a(wi->type), debugstr_a(wi->name), debugstr_a(wi->caption), wi->origin.x, wi->origin.y,
-                           wi->size.cx, wi->size.cy);
-            }
-            break;
+               if (hlpfile->windows)
+               {
+                       HLPFILE_WINDOWINFO* wi = &hlpfile->windows[hlpfile->numWindows - 1];
+
+                       flags = GET_USHORT(ptr, 4);
+                       if (flags & 0x0001) strcpy(wi->type, &str[2]);
+                       else wi->type[0] = '\0';
+                       if (flags & 0x0002) strcpy(wi->name, &str[12]);
+                       else wi->name[0] = '\0';
+                       if (flags & 0x0004) strcpy(wi->caption, &str[21]);
+                       else lstrcpynA(wi->caption, hlpfile->lpszTitle, sizeof(wi->caption));
+                       wi->origin.x = (flags & 0x0008) ? GET_USHORT(ptr, 76) : CW_USEDEFAULT;
+                       wi->origin.y = (flags & 0x0010) ? GET_USHORT(ptr, 78) : CW_USEDEFAULT;
+                       wi->size.cx = (flags & 0x0020) ? GET_USHORT(ptr, 80) : CW_USEDEFAULT;
+                       wi->size.cy = (flags & 0x0040) ? GET_USHORT(ptr, 82) : CW_USEDEFAULT;
+                       wi->style = (flags & 0x0080) ? GET_USHORT(ptr, 84) : SW_SHOW;
+                       wi->win_style = WS_OVERLAPPEDWINDOW;
+                       wi->sr_color = (flags & 0x0100) ? GET_UINT(ptr, 86) : 0xFFFFFF;
+                       wi->nsr_color = (flags & 0x0200) ? GET_UINT(ptr, 90) : 0xFFFFFF;
+                       wi->flags = flags;
+                       WINE_TRACE("System-Window: flags=%c%c%c%c%c%c%c%c type=%s name=%s caption=%s (%d,%d)x(%d,%d)\n",
+                                       flags & 0x0001 ? 'T' : 't',
+                                       flags & 0x0002 ? 'N' : 'n',
+                                       flags & 0x0004 ? 'C' : 'c',
+                                       flags & 0x0008 ? 'X' : 'x',
+                                       flags & 0x0010 ? 'Y' : 'y',
+                                       flags & 0x0020 ? 'W' : 'w',
+                                       flags & 0x0040 ? 'H' : 'h',
+                                       flags & 0x0080 ? 'S' : 's',
+                                       debugstr_a(wi->type), debugstr_a(wi->name), debugstr_a(wi->caption), wi->origin.x, wi->origin.y,
+                                       wi->size.cx, wi->size.cy);
+               }
+               break;
         case 8:
-            WINE_WARN("Citation: %s\n", debugstr_a((char *)ptr + 4));
-            break;
+               WINE_WARN("Citation: %s\n", debugstr_a((char *)ptr + 4));
+               break;
         case 9:
-            lcid = GET_USHORT(ptr, 12);
-            break;
+               lcid = GET_USHORT(ptr, 12);
+               break;
         case 11:
-            hlpfile->charset = ptr[4];
-            WINE_TRACE("Charset: %d\n", hlpfile->charset);
-            break;
-	default:
-            WINE_WARN("Unsupported SystemRecord[%d]\n", GET_USHORT(ptr, 0));
-	}
+               hlpfile->charset = ptr[4];
+               WINE_TRACE("Charset: %d\n", hlpfile->charset);
+               break;
+        default:
+               WINE_WARN("Unsupported SystemRecord[%d]\n", GET_USHORT(ptr, 0));
+        }
+        }
     }
-    if (hlpfile->charset == DEFAULT_CHARSET)
+    if (!lcid && (hlpfile->charset == DEFAULT_CHARSET))
     {
         BYTE *cbuf, *cend;
         if (HLPFILE_FindSubFile(hlpfile, "|CHARSET", &cbuf, &cend) && ((cend - cbuf) >= 11))
             hlpfile->charset = *(WORD *)(cbuf + 9);
+        if (((hlpfile->charset == DEFAULT_CHARSET) || (hlpfile->charset == ANSI_CHARSET)) && HLPFILE_FindSubFile(hlpfile, "|FONT", &cbuf, &cend))
+        {
+            cbuf += 9;
+            unsigned fnum = GET_USHORT(cbuf, 0);
+            unsigned foff = GET_USHORT(cbuf, 4);
+            unsigned len = (GET_USHORT(cbuf, 6) - foff) / fnum;
+            BYTE *pos = cbuf + foff;
+            for (int i = 0; i < fnum; i++, pos += len)
+            {
+                if (strstr(pos, "\xb2\xd3\xa9\xfa\xc5\xe9")) // MingLiU
+                {
+                    hlpfile->charset = CHINESEBIG5_CHARSET;
+                    break;
+                }
+                if (!strcmp(pos, "CFShouSung"))
+                    hlpfile->charset = GB2312_CHARSET; // don't break because big5 files have this font too
+                if (strstr(pos, "\x83\x53\x56\x83\x63\x83\x4e") || // Gothic
+                    strstr(pos, "\x96\xbe\x92\xa9")) // Mincho
+                {
+                    hlpfile->charset = SHIFTJIS_CHARSET;
+                    break;
+                }
+                if (strstr(pos, "\xb8\xed\xc1\xb6") || // Myeongjo
+                    strstr(pos, "\xb0\xed\xb5\xf1") || // Gothic
+                    strstr(pos, "\xb9\xd9\xc5\xc1")) // Batang
+                {
+                    hlpfile->charset = HANGEUL_CHARSET;
+                    break;
+                }
+                if (strstr(pos, "Arabic"))
+                {
+                    hlpfile->charset = ARABIC_CHARSET;
+                    break;
+                }
+                if (!strcmp(pos, "Arial Cyr"))
+                {
+                    hlpfile->charset = RUSSIAN_CHARSET;
+                    break;
+                }
+                if (strstr(pos, "Thai") || !strcmp(pos, "CordiaUPC"))
+                {
+                    hlpfile->charset = THAI_CHARSET;
+                    break;
+                }
+            }
+        }
     }
     if ((hlpfile->charset != DEFAULT_CHARSET) && (hlpfile->charset != ANSI_CHARSET))
     {
