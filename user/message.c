@@ -3210,7 +3210,7 @@ static LRESULT is_dialog_message_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 /***********************************************************************
  *		IsDialogMessage (USER.90)
  */
-BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, SEGPTR *pmsg16 )
+BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, SEGPTR pmsg16 )
 {
     MSG msg;
     MSG16 *msg16 = MapSL(pmsg16);
