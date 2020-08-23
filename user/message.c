@@ -2866,6 +2866,12 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
         MsgWaitForMultipleObjectsEx( 0, NULL, 0, 0, MWMO_ALERTABLE );
     if (!PeekMessageA( &msg, hwnd, first, last, flags )) return FALSE;
 
+    if ((flags & PM_REMOVE) && !msg.hwnd && (msg.message == WM_TIMER))
+    {
+        DispatchMessageA(&msg);
+        return PeekMessage32_16(msg16, hwnd16, first, last, flags, wHaveParamHigh);
+    }
+
     if (atom_UserAdapterWindowClass == 0)
     {
         WNDCLASSA c;
