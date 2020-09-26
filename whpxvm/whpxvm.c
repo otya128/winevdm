@@ -1113,9 +1113,9 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
 #else
                     __cpuid(0, cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
 #endif
-                    fprintf(stderr, "cpu type %x %x %x %x", cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
-                    trace(&state2, get_seg_selector(get_cs(&state2)), get_eip(&state2), get_seg_selector(get_ss(&state2)), get_esp(&state2), get_eflags(&state2));
-                    PANIC("exception", name);
+                    fprintf(stderr, "cpu type %x %x %x %x\n", cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
+                    trace(&state2, cs, eip, old_ss, old_esp, flags);
+                    PANIC("exception %s", name);
                 }
                 else
                 {
