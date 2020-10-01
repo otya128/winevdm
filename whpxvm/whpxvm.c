@@ -1107,7 +1107,15 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
                 set_eip(&state2, 256);
                 if (name)
                 {
-                    PANIC("exception");
+                    DWORD cpusig[4];
+#ifdef _MSC_VER
+                    __cpuid(cpusig, 0);
+#else
+                    __cpuid(0, cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
+#endif
+                    fprintf(stderr, "cpu type %x %x %x %x\n", cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
+                    trace(&state2, cs, eip, old_ss, old_esp, flags);
+                    PANIC("exception %s", name);
                 }
                 else
                 {
