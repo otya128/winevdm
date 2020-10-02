@@ -21,7 +21,7 @@ HRESULT(WINAPI *pWHvUnmapGpaRange)(
     _In_ WHV_GUEST_PHYSICAL_ADDRESS GuestAddress,
     _In_ UINT64 SizeInBytes
     );
-HRESULT(WINAPI*pWHvCreateVirtualProcessor)(
+HRESULT(WINAPI *pWHvCreateVirtualProcessor)(
     _In_ WHV_PARTITION_HANDLE Partition,
     _In_ UINT32 VpIndex,
     _In_ UINT32 Flags
@@ -391,11 +391,6 @@ BOOL init_vm86(BOOL vm86)
     if (FAILED(result = pWHvSetupPartition(partition)))
     {
         PANIC_HRESULT("WHvSetupPartition", result);
-        return FALSE;
-    }
-    if (FAILED(result = pWHvMapGpaRange(partition, (LPVOID)0x1000, 0x1000, 0x80000000 - 0x1000, WHvMapGpaRangeFlagRead | WHvMapGpaRangeFlagWrite | WHvMapGpaRangeFlagExecute)))
-    {
-        PANIC_HRESULT("WHvMapGpaRange", result);
         return FALSE;
     }
     if (FAILED(result = pWHvCreateVirtualProcessor(partition, 0, 0)))
@@ -965,6 +960,16 @@ void vm_inject_call(SEGPTR ret_addr, PEXCEPTION_HANDLER handler,
 }
 
 BOOL syscall_init = FALSE;
+static int compare(const void *a1, const void *a2)
+{
+    SIZE_T lhs = *(const SIZE_T*)a1;
+    SIZE_T rhs = *(const SIZE_T*)a2;
+    if (lhs == rhs)
+        return 0;
+    if (lhs < rhs)
+        return -1;
+    return 1;
+}
 void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION_HANDLER handler,
     void(*from16_reg)(void),
     LONG(*__wine_call_from_16)(void),
@@ -979,12 +984,24 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
     EnterCriticalSection(&running_critical_section);
     if (!syscall_init)
     {
-        SIZE_T page1 = (SIZE_T)from16_reg & ~0xfff;
-        SIZE_T page2 = (SIZE_T)__wine_call_from_16 & ~0xfff;
-        SIZE_T page3 = (SIZE_T)__wine_call_to_16_ret & ~0xfff;
-        pWHvUnmapGpaRange(partition, page1, 0x1000);
-        pWHvUnmapGpaRange(partition, page2, 0x1000);
-        pWHvUnmapGpaRange(partition, page3, 0x1000);
+        SIZE_T pages[4] = { (SIZE_T)from16_reg & ~0xfff, (SIZE_T)__wine_call_from_16 & ~0xfff, (SIZE_T)__wine_call_to_16_ret & ~0xfff, 0x80000000 };
+        int i;
+        SIZE_T map_addr = 0x1000;
+        qsort((void*)pages, sizeof(pages) / sizeof(pages[0]), sizeof(pages[0]), compare);
+        for (i = 0; i < sizeof(pages) / sizeof(pages[0]); i++)
+        {
+            SIZE_T len = pages[i] - map_addr;
+            if (pages[i] <= map_addr)
+            {
+                continue;
+            }
+            if (FAILED(result = pWHvMapGpaRange(partition, (LPVOID)map_addr, map_addr, len, WHvMapGpaRangeFlagRead | WHvMapGpaRangeFlagWrite | WHvMapGpaRangeFlagExecute)))
+            {
+                PANIC_HRESULT("WHvMapGpaRange", result);
+                return FALSE;
+            }
+            map_addr = pages[i] + 4096;
+        }
         syscall_init = TRUE;
     }
     is_single_step = dasm;
