@@ -401,7 +401,7 @@ BOOL init_vm86(BOOL vm86)
     struct whpx_vcpu_state state;
     if (FAILED(result = pWHvGetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state.values)))
     {
-        PANIC_HRESULT("WHvCreateVirtualProcessor", result);
+        PANIC_HRESULT("WHvGetVirtualProcessorRegisters", result);
         return FALSE;
     }
     /* setup initial states */
@@ -991,14 +991,13 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
         for (i = 0; i < sizeof(pages) / sizeof(pages[0]); i++)
         {
             SIZE_T len = pages[i] - map_addr;
-            if (pages[i] <= map_addr)
+            if (pages[i] > map_addr)
             {
-                continue;
-            }
-            if (FAILED(result = pWHvMapGpaRange(partition, (LPVOID)map_addr, map_addr, len, WHvMapGpaRangeFlagRead | WHvMapGpaRangeFlagWrite | WHvMapGpaRangeFlagExecute)))
-            {
-                PANIC_HRESULT("WHvMapGpaRange", result);
-                return FALSE;
+                if (FAILED(result = pWHvMapGpaRange(partition, (LPVOID)map_addr, map_addr, len, WHvMapGpaRangeFlagRead | WHvMapGpaRangeFlagWrite | WHvMapGpaRangeFlagExecute)))
+                {
+                    PANIC_HRESULT("WHvMapGpaRange", result);
+                    return;
+                }
             }
             map_addr = pages[i] + 4096;
         }
