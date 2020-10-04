@@ -1338,3 +1338,166 @@ __declspec(dllexport) void wine_call_to_16_regs_vm86(CONTEXT *context, DWORD cbA
 
 
 }
+
+void callx87(const char *addr, LPCVOID eax)
+{
+    HRESULT result;
+    struct whpx_vcpu_state state;
+    if (FAILED(result = pWHvGetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state.values)))
+    {
+        PANIC_HRESULT("WHvGetVirtualProcessorRegisters", result);
+        return;
+    }
+    set_eip(&state, (UINT32)addr);
+    set_eax(&state, (UINT32)eax);
+    load_seg(get_cs(&state), seg_cs);
+    load_seg(get_ds(&state), seg_ds);
+    while (TRUE)
+    {
+        WHV_RUN_VP_EXIT_CONTEXT exit;
+        if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state.values)))
+        {
+            PANIC_HRESULT("WHvSetVirtualProcessorRegisters", result);
+            return;
+        }
+        EnterCriticalSection(&running_critical_section);
+        if (FAILED(result = pWHvRunVirtualProcessor(partition, 0, &exit, sizeof(exit))))
+        {
+            LeaveCriticalSection(&running_critical_section);
+            PANIC_HRESULT("WHvRunVirtualProcessor", result);
+            return;
+        }
+        if (FAILED(result = pWHvGetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state.values)))
+        {
+            PANIC_HRESULT("WHvGetVirtualProcessorRegisters", result);
+        }
+        if (exit.ExitReason == WHvRunVpExitReasonX64IoPortAccess)
+        {
+            break;
+        }
+        PANIC("unexpected exit reason %d", exit.ExitReason);
+    }
+}
+
+void fldcw(WORD a)
+{
+    HRESULT result;
+    WHV_REGISTER_NAME reg = WHvX64RegisterFpControlStatus;
+    WHV_REGISTER_VALUE s;
+    if (FAILED(result = pWHvGetVirtualProcessorRegisters(partition, 0, &reg, 1, &s)))
+    {
+        PANIC_HRESULT("WHvGetVirtualProcessorRegisters", result);
+    }
+    s.FpControlStatus.FpControl = a;
+    if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, &reg, 1, &s)))
+    {
+        PANIC_HRESULT("WHvSetVirtualProcessorRegisters", result);
+    }
+}
+
+void wait()
+{
+    char instr[] = { 0x9b, 0xee }; /* wait */
+    callx87(instr, NULL);
+}
+
+void fninit()
+{
+    char instr[] = { 0xdb, 0xe3, 0xee }; /* fninit */
+    callx87(instr, NULL);
+}
+
+void fstcw(WORD* a)
+{
+    HRESULT result;
+    WHV_REGISTER_NAME reg = WHvX64RegisterFpControlStatus;
+    WHV_REGISTER_VALUE s;
+    if (FAILED(result = pWHvGetVirtualProcessorRegisters(partition, 0, &reg, 1, &s)))
+    {
+        PANIC_HRESULT("WHvGetVirtualProcessorRegisters", result);
+    }
+    *a = s.FpControlStatus.FpControl;
+}
+void fstsw(WORD* a)
+{
+    HRESULT result;
+    WHV_REGISTER_NAME reg = WHvX64RegisterFpControlStatus;
+    WHV_REGISTER_VALUE s;
+    if (FAILED(result = pWHvGetVirtualProcessorRegisters(partition, 0, &reg, 1, &s)))
+    {
+        PANIC_HRESULT("WHvGetVirtualProcessorRegisters", result);
+    }
+    *a = s.FpControlStatus.FpStatus;
+}
+
+void frndint()
+{
+    char instr[] = { 0xd9, 0xfc, 0xee }; /* frndint */
+    callx87(instr, NULL);
+}
+
+void fclex()
+{
+    char instr[] = { 0xdb, 0xe2, 0xee }; /* fnclex */
+    callx87(instr, NULL);
+}
+
+void fsave(char* a)
+{
+    char instr[] = { 0xdd, 0x30, 0xee }; /* fnsave [eax] */
+    callx87(instr, a);
+}
+
+void frstor(const char* a)
+{
+    char instr[] = { 0xdd, 0x20, 0xee }; /* frstor [eax] */
+    callx87(instr, a);
+}
+
+void fstenv32(char* a)
+{
+    const char instr[] = { 0xd9, 0x30, 0xee }; /* fnstenv dword ptr [eax] */
+    callx87(instr, a);
+    return;
+}
+
+typedef void(*fldcw_t)(WORD);
+typedef void(*wait_t)();
+typedef void(*fninit_t)();
+typedef void(*fstcw_t)(WORD*);
+typedef void(*fstsw_t)(WORD*);
+typedef void(*frndint_t)();
+typedef void(*fclex_t)();
+typedef void(*fsave_t)(char*);
+typedef void(*fstenv32_t)(char*);
+typedef void(*frstor_t)(const char*);
+typedef DWORD(*fistp_t)(WORD);
+
+typedef struct
+{
+    fldcw_t fldcw;
+    wait_t wait;
+    fninit_t fninit;
+    fstcw_t fstcw;
+    fstsw_t fstsw;
+    frndint_t frndint;
+    fclex_t fclex;
+    fsave_t fsave;
+    frstor_t frstor;
+    fstenv32_t fstenv32;
+    fistp_t fistp;
+} x87function;
+
+__declspec(dllexport) void load_x87function(x87function *func)
+{
+    func->fclex = fclex;
+    func->fldcw = fldcw;
+    func->fninit = fninit;
+    func->frndint = frndint;
+    func->frstor = frstor;
+    func->fsave = fsave;
+    func->fstcw = fstcw;
+    func->fstsw = fstsw;
+    func->wait = wait;
+    func->fstenv32 = fstenv32;
+}
