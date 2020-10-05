@@ -1355,12 +1355,12 @@ void callx87(const char *addr, LPCVOID eax)
     while (TRUE)
     {
         WHV_RUN_VP_EXIT_CONTEXT exit;
+        EnterCriticalSection(&running_critical_section);
         if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state.values)))
         {
             PANIC_HRESULT("WHvSetVirtualProcessorRegisters", result);
             return;
         }
-        EnterCriticalSection(&running_critical_section);
         if (FAILED(result = pWHvRunVirtualProcessor(partition, 0, &exit, sizeof(exit))))
         {
             LeaveCriticalSection(&running_critical_section);
@@ -1371,6 +1371,7 @@ void callx87(const char *addr, LPCVOID eax)
         {
             PANIC_HRESULT("WHvGetVirtualProcessorRegisters", result);
         }
+        LeaveCriticalSection(&running_critical_section);
         if (exit.ExitReason == WHvRunVpExitReasonX64IoPortAccess)
         {
             break;
