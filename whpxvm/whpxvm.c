@@ -7,6 +7,7 @@ BOOL initflag;
 UINT8 *mem;
 #define KRNL386 "krnl386.exe16"
 BOOL is_single_step = FALSE;
+WORD native_wndproc_seg = 0xffff;
 HRESULT(WINAPI *pWHvCreatePartition)(WHV_PARTITION_HANDLE *Partition);
 HRESULT(WINAPI *pWHvSetupPartition)(WHV_PARTITION_HANDLE Partition);
 HRESULT(WINAPI *pWHvMapGpaRange)(
@@ -143,6 +144,18 @@ void dynamic__wine_call_int_handler(CONTEXT *context, BYTE intnum)
     }
     __wine_call_int_handler(context, intnum);
 }
+void dynamic__call_native_wndproc_context(CONTEXT *context)
+{
+    static void(*call_native_wndproc_context)(CONTEXT *context) = NULL;
+    if (!call_native_wndproc_context)
+    {
+        HMODULE user = LoadLibraryW(L"user.exe16");
+        if (user)
+            call_native_wndproc_context = (void(*)(CONTEXT *context))GetProcAddress(user, "call_native_wndproc_context");
+    }
+    call_native_wndproc_context(context);
+}
+
 /***********************************************************************
 *           SELECTOR_SetEntries
 *
@@ -468,6 +481,12 @@ BOOL init_vm86(BOOL vm86)
     pGetpWin16Lock(&win16_syslevel);
     DOSVM_inport = (DOSVM_inport_t)GetProcAddress(krnl386, "DOSVM_inport");
     DOSVM_outport = (DOSVM_outport_t)GetProcAddress(krnl386, "DOSVM_outport");
+    HMODULE user = LoadLibraryW(L"user.exe16");
+    if (user)
+    {
+        WORD(*get_native_wndproc_segment)() = (WORD(*)())GetProcAddress(user, "get_native_wndproc_segment");
+        native_wndproc_seg = get_native_wndproc_segment();
+    }
     return TRUE;
 }
 
@@ -960,6 +979,7 @@ void vm_inject_call(SEGPTR ret_addr, PEXCEPTION_HANDLER handler,
 }
 
 BOOL syscall_init = FALSE;
+void fstsw(WORD* a);
 static int compare(const void *a1, const void *a2)
 {
     SIZE_T lhs = *(const SIZE_T*)a1;
@@ -1121,31 +1141,159 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
                 case 14: name = "#PF"; break;
                 }
                 set_eip(&state2, 256);
-                if (name)
+                if (intvec == 1 && (state2.dr6.Reg32 & 15 || is_single_step))
                 {
-                    DWORD cpusig[4];
-#ifdef _MSC_VER
-                    __cpuid(cpusig, 0);
-#else
-                    __cpuid(0, cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
-#endif
-                    fprintf(stderr, "cpu type %x %x %x %x\n", cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
+                    if (state2.dr6.Reg32 & 15)
+                    {
+                        if (state2.dr6.Reg32 & 1)
+                        {
+                            fprintf(stderr, "breakpoint 0\n");
+                        }
+                        if (state2.dr6.Reg32 & 2)
+                        {
+                            fprintf(stderr, "breakpoint 1\n");
+                        }
+                        if (state2.dr6.Reg32 & 4)
+                        {
+                            fprintf(stderr, "breakpoint 2\n");
+                        }
+                        if (state2.dr6.Reg32 & 8)
+                        {
+                            fprintf(stderr, "breakpoint 3\n");
+                        }
+                        state2.dr6.Reg32 = 0;
+                        flags |= 0x100;
+                        dr7 = state2.dr7.Reg32;
+                        state2.dr7.Reg32 = 0;
+                        /* breakpoint -> disable -> step -> enable */
+                    }
+                    else if (!is_single_step)
+                    {
+                        flags &= ~0x100;
+                        state2.dr7.Reg32 = dr7;
+                    }
                     trace(&state2, cs, eip, old_ss, old_esp, flags);
-                    PANIC("exception %s", name);
+                    if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
+                    {
+
+                    }
+                    break;
+                }
+                else if (name)
+                {
+                    if (intvec == 13)
+                    {
+                        if (cs == native_wndproc_seg)
+                        {
+                            load_seg(get_ss(&state2), (WORD)old_ss);
+                            set_esp(&state2, old_esp);
+                            load_seg(get_cs(&state2), (WORD)cs);
+                            set_eip(&state2, eip);
+                            CONTEXT ctx;
+                            save_context_from_state(&ctx, &state2);
+                            if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
+                            {
+
+                            }
+                            LeaveCriticalSection(&running_critical_section);
+                            dynamic__call_native_wndproc_context(&ctx);
+                            EnterCriticalSection(&running_critical_section);
+                            load_context_to_state(&ctx, &state2);
+                            if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
+                            {
+
+                            }
+                            break;
+                        }
+                        else if (err == 0x40)
+                        {
+                            /* many startups access the BDA directly */
+                            static WORD dosmem_0040H = 0;
+                            if (!dosmem_0040H)
+                            {
+                                DWORD(WINAPI *GetProcAddress16)(HMODULE16, LPCSTR);
+                                HMODULE16(WINAPI *GetModuleHandle16)(LPCSTR);
+                                static HMODULE krnl386;
+                                if (!krnl386)
+                                    krnl386 = LoadLibraryA(KRNL386);
+                                GetProcAddress16 = (DWORD(WINAPI *)(HMODULE16, LPCSTR))GetProcAddress(krnl386, "GetProcAddress16");
+                                GetModuleHandle16 = (HMODULE16(WINAPI *)(LPCSTR))GetProcAddress(krnl386, "GetModuleHandle16");
+                                dosmem_0040H = (WORD)GetProcAddress16(GetModuleHandle16("KERNEL"), (LPCSTR)193);
+                                (void(*)(void))GetProcAddress(krnl386, "DOSVM_start_bios_timer")();
+                            }
+                            /* allocate segment 40h */
+                            LPLDT_ENTRY entry = wine_ldt + (dosmem_0040H >> __AHSHIFT);
+                            gdt[0x40 >> __AHSHIFT] = *entry;
+                            load_seg(get_cs(&state2), cs);
+                            set_eip(&state2, eip);
+                            set_eflags(&state2, flags & ~0x10000);
+                            load_seg(get_ss(&state2), old_ss);
+                            set_esp(&state2, old_esp);
+                            if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
+                            {
+
+                            }
+                            break;
+                        }
+                        HMODULE toolhelp = GetModuleHandleA("toolhelp.dll16");
+                        if (toolhelp)
+                        {
+                            SEGPTR stack = MAKESEGPTR(old_ss, (WORD)old_esp);
+                            FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(cs, (WORD)eip), flags, intvec, (WORD)get_eax(&state2));
+                            if (intcb)
+                            {
+                                load_seg(get_ss(&state2), SELECTOROF(stack));
+                                set_esp(&state2, OFFSETOF(stack));
+                                load_seg(get_cs(&state2), SELECTOROF(intcb));
+                                set_eip(&state2, OFFSETOF(intcb));
+                                if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
+                                {
+
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    DWORD handler = pih(intvec, MAKESEGPTR(cs, eip));
+                    if (!handler)
+                    {
+                        DWORD cpusig[4];
+#ifdef _MSC_VER
+                        __cpuid(cpusig, 0);
+#else
+                        __cpuid(0, cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
+#endif
+                        fprintf(stderr, "cpu type %x %x %x %x\n", cpusig[0], cpusig[1], cpusig[2], cpusig[3]);
+                        trace(&state2, cs, eip, old_ss, old_esp, flags);
+                        PANIC("exception %s", name);
+                    }
+                    set_eip(&state2, OFFSETOF(handler));
+                    set_eflags(&state2, flags);
+                    load_seg(get_cs(&state2), SELECTOROF(handler));
+                    load_seg(get_ss(&state2), old_ss);
+                    set_esp(&state2, old_esp);
+                    if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
+                    {
+
+                    }
+                    break;
                 }
                 else
                 {
-                    DWORD eip = POP32(&state2);
-                    DWORD cs = POP32(&state2);
-                    DWORD eflags = POP32(&state2);
-                    DWORD esp = POP32(&state2);
-                    DWORD ss = POP32(&state2);
                     load_seg(get_cs(&state2), (WORD)cs);
                     set_eip(&state2, eip);
-                    load_seg(get_ss(&state2), (WORD)ss);
-                    set_esp(&state2, esp);
+                    load_seg(get_ss(&state2), (WORD)old_ss);
+                    set_esp(&state2, old_esp);
+                    set_eflags(&state2, flags);
                     CONTEXT ctx;
                     save_context_from_state(&ctx, &state2);
+                    if (intvec == 0x10) // redirect fpu errors to nmi 
+                    {
+                        WORD sw;
+                        fstsw(&sw);
+                        if (sw & 0x80)
+                            intvec = 2;
+                    }
                     if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
                     {
 
@@ -1462,6 +1610,19 @@ void fstenv32(char* a)
     return;
 }
 
+DWORD fistp(WORD rnd)
+{
+    const char instr[] = { 0xdb, 0x18, 0xee }; /* fistp dword ptr [eax] */
+    WORD oldcw, newcw;
+    DWORD a;
+    fstcw(&oldcw);
+    newcw = (oldcw & ~0xc00) | ((rnd & 3) << 10);
+    fldcw(newcw);
+    callx87(instr, &a);
+    fldcw(oldcw);
+    return a;
+}
+
 typedef void(*fldcw_t)(WORD);
 typedef void(*wait_t)();
 typedef void(*fninit_t)();
@@ -1501,4 +1662,5 @@ __declspec(dllexport) void load_x87function(x87function *func)
     func->fstsw = fstsw;
     func->wait = wait;
     func->fstenv32 = fstenv32;
+    func->fistp = fistp;
 }
