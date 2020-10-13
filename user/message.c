@@ -290,7 +290,7 @@ static void init_dummy_proc()
     if (!dummy_proc_allocated)
     {
         dummy_proc = HeapAlloc(GetProcessHeap(), 0xcc, MAX_WINPROCS32 * 2);
-        memset(dummy_proc, 0xc3, MAX_WINPROCS32 * 2);
+        memset(dummy_proc, 0xf4, MAX_WINPROCS32 * 2);
         dummy_proc_allocated = TRUE;
         LDT_ENTRY dummy;
         wine_ldt_set_base(&dummy, dummy_proc);
