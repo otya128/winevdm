@@ -1058,6 +1058,8 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
             load_seg(&state.ss, (WORD)SELECTOROF(sssp));
             state.rip.Reg32 = OFFSETOF(csip);
             state.rsp.Reg32 = OFFSETOF(sssp) - cbArgs;
+            if (!wine_ldt_copy.flags[(WORD)context->SegDs >> 3] & WINE_LDT_FLAGS_ALLOCATED)
+                load_seg(&state.ds, (WORD)0);
         }
         if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state.values)))
         {
