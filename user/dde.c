@@ -139,6 +139,29 @@ static WCHAR *get_programs_path(const WCHAR *name)
     return path;
 }
 
+/* Returned string must be freed by caller */
+static WCHAR *get_common_programs_path(const WCHAR *name)
+{
+    static const WCHAR slashW[] = {'\\',0};
+    WCHAR *path;
+    WCHAR programs[MAX_PATH];
+    WCHAR clnname[MAX_PATH];
+    int len;
+
+    wcsncpy(clnname, name, MAX_PATH);
+    PathCleanupSpec(NULL, clnname);
+    SHGetFolderPathW(NULL, CSIDL_COMMON_PROGRAMS, NULL, 0, &programs);
+
+    len = lstrlenW(programs) + 1 + lstrlenW(name);
+    path = heap_alloc((len + 1) * sizeof(*path));
+    lstrcpyW(path, programs);
+    lstrcatW(path, slashW);
+    lstrcatW(path, clnname);
+
+    return path;
+}
+
+
 static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
                                      HSZ hszItem)
 {
@@ -154,19 +177,19 @@ static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
             WCHAR *programs;
             WIN32_FIND_DATAW finddata;
             HANDLE hfind;
-            int len;
+            int len, plen;
             WCHAR *groups_data = heap_alloc(sizeof(WCHAR));
             char *groups_dataA;
             HDDEDATA ret;
 
             groups_data[0] = 0;
+            len = 1;
             programs = get_programs_path(placeholdW); // PathCleanupSpec will remove the * so use a placeholder
-            len = wcslen(programs);
-            programs[len - 1] = '*';
+            plen = wcslen(programs);
+            programs[plen - 1] = '*';
             hfind = FindFirstFileW(programs, &finddata);
             if (hfind != INVALID_HANDLE_VALUE)
             {
-                len = 1;
                 do
                 {
                     if ((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
@@ -180,6 +203,27 @@ static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
                 } while (FindNextFileW(hfind, &finddata));
                 FindClose(hfind);
             }
+
+            programs = get_common_programs_path(placeholdW); // PathCleanupSpec will remove the * so use a placeholder
+            plen = wcslen(programs);
+            programs[plen - 1] = '*';
+            hfind = FindFirstFileW(programs, &finddata);
+            if (hfind != INVALID_HANDLE_VALUE)
+            {
+                do
+                {
+                    if ((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+                            lstrcmpW(finddata.cFileName, dotW) && lstrcmpW(finddata.cFileName, dotdotW))
+                    {
+                        len += lstrlenW(finddata.cFileName) + 2;
+                        groups_data = heap_realloc(groups_data, len * sizeof(WCHAR));
+                        lstrcatW(groups_data, finddata.cFileName);
+                        lstrcatW(groups_data, newlineW);
+                    }
+                } while (FindNextFileW(hfind, &finddata));
+                FindClose(hfind);
+            }
+
 
             len = WideCharToMultiByte(CP_ACP, 0, groups_data, -1, NULL, 0, NULL, NULL);
             groups_dataA = heap_alloc(len * sizeof(WCHAR));
@@ -206,13 +250,18 @@ static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
             groupW = heap_alloc((len + 1) * sizeof(WCHAR));
             MultiByteToWideChar(CP_ACP, 0, group, -1, groupW, (len + 1) * sizeof(WCHAR)); 
             find = get_programs_path(groupW);
-            heap_free(groupW);
             if (!GetShortPathNameW(find, path, MAX_PATH))
             {
-                heap_free(find);
-                heap_free(group);
-                return NULL;
+                find = get_common_programs_path(groupW);
+                if (!GetShortPathNameW(find, path, MAX_PATH))
+                {
+                    heap_free(find);
+                    heap_free(groupW);
+                    heap_free(group);
+                    return NULL;
+                }
             }
+            heap_free(groupW);
             find = heap_realloc(find, (lstrlenW(find) + lstrlenW(lnkW) + 1) * sizeof(WCHAR));
             lstrcatW(find, lnkW);
 
