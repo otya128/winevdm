@@ -120,7 +120,7 @@ static inline HDDEDATA Dde_OnWildConnect(HSZ hszTopic, HSZ hszService)
 /* Returned string must be freed by caller */
 static WCHAR *get_programs_path(const WCHAR *name)
 {
-    static const WCHAR slashW[] = {'/',0};
+    static const WCHAR slashW[] = {'\\',0};
     WCHAR *path;
     WCHAR programs[MAX_PATH];
     WCHAR clnname[MAX_PATH];
@@ -139,55 +139,213 @@ static WCHAR *get_programs_path(const WCHAR *name)
     return path;
 }
 
+/* Returned string must be freed by caller */
+static WCHAR *get_common_programs_path(const WCHAR *name)
+{
+    static const WCHAR slashW[] = {'\\',0};
+    WCHAR *path;
+    WCHAR programs[MAX_PATH];
+    WCHAR clnname[MAX_PATH];
+    int len;
+
+    wcsncpy(clnname, name, MAX_PATH);
+    PathCleanupSpec(NULL, clnname);
+    SHGetFolderPathW(NULL, CSIDL_COMMON_PROGRAMS, NULL, 0, &programs);
+
+    len = lstrlenW(programs) + 1 + lstrlenW(name);
+    path = heap_alloc((len + 1) * sizeof(*path));
+    lstrcpyW(path, programs);
+    lstrcatW(path, slashW);
+    lstrcatW(path, clnname);
+
+    return path;
+}
+
+
 static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
                                      HSZ hszItem)
 {
-    if (hszTopic == hszProgmanTopic && (hszItem == hszGroups || hszItem == hszProgmanService) && uFmt == CF_TEXT)
+    if ((hszTopic == hszProgmanTopic) && uFmt == CF_TEXT)
     {
-        static const WCHAR asteriskW[] = {'*',0};
-        static const WCHAR newlineW[] = {'\r','\n',0};
-        static const WCHAR dotW[] = {'.',0};
-        static const WCHAR dotdotW[] = {'.','.',0};
-        static const WCHAR placeholdW[] = {'x',0};
-        WCHAR *programs;
-        WIN32_FIND_DATAW finddata;
-        HANDLE hfind;
-        int len;
-        WCHAR *groups_data = heap_alloc(sizeof(WCHAR));
-        char *groups_dataA;
-        HDDEDATA ret;
-
-        groups_data[0] = 0;
-        programs = get_programs_path(placeholdW); // PathCleanupSpec will remove the * so use a placeholder
-        len = wcslen(programs);
-        programs[len - 1] = '*';
-        hfind = FindFirstFileW(programs, &finddata);
-        if (hfind != INVALID_HANDLE_VALUE)
+        if ((hszItem == hszGroups || hszItem == hszProgmanService))
         {
+            static const WCHAR asteriskW[] = {'*',0};
+            static const WCHAR newlineW[] = {'\r','\n',0};
+            static const WCHAR dotW[] = {'.',0};
+            static const WCHAR dotdotW[] = {'.','.',0};
+            static const WCHAR placeholdW[] = {'x',0};
+            WCHAR *programs;
+            WIN32_FIND_DATAW finddata;
+            HANDLE hfind;
+            int len, plen;
+            WCHAR *groups_data = heap_alloc(sizeof(WCHAR));
+            char *groups_dataA;
+            HDDEDATA ret;
+
+            groups_data[0] = 0;
             len = 1;
-            do
+            programs = get_programs_path(placeholdW); // PathCleanupSpec will remove the * so use a placeholder
+            plen = wcslen(programs);
+            programs[plen - 1] = '*';
+            hfind = FindFirstFileW(programs, &finddata);
+            if (hfind != INVALID_HANDLE_VALUE)
             {
-                if ((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
-                    lstrcmpW(finddata.cFileName, dotW) && lstrcmpW(finddata.cFileName, dotdotW))
+                do
                 {
-                    len += lstrlenW(finddata.cFileName) + 2;
-                    groups_data = heap_realloc(groups_data, len * sizeof(WCHAR));
-                    lstrcatW(groups_data, finddata.cFileName);
-                    lstrcatW(groups_data, newlineW);
-                }
-            } while (FindNextFileW(hfind, &finddata));
-            FindClose(hfind);
+                    if ((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+                            lstrcmpW(finddata.cFileName, dotW) && lstrcmpW(finddata.cFileName, dotdotW))
+                    {
+                        len += lstrlenW(finddata.cFileName) + 2;
+                        groups_data = heap_realloc(groups_data, len * sizeof(WCHAR));
+                        lstrcatW(groups_data, finddata.cFileName);
+                        lstrcatW(groups_data, newlineW);
+                    }
+                } while (FindNextFileW(hfind, &finddata));
+                FindClose(hfind);
+            }
+
+            programs = get_common_programs_path(placeholdW); // PathCleanupSpec will remove the * so use a placeholder
+            plen = wcslen(programs);
+            programs[plen - 1] = '*';
+            hfind = FindFirstFileW(programs, &finddata);
+            if (hfind != INVALID_HANDLE_VALUE)
+            {
+                do
+                {
+                    if ((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+                            lstrcmpW(finddata.cFileName, dotW) && lstrcmpW(finddata.cFileName, dotdotW))
+                    {
+                        len += lstrlenW(finddata.cFileName) + 2;
+                        groups_data = heap_realloc(groups_data, len * sizeof(WCHAR));
+                        lstrcatW(groups_data, finddata.cFileName);
+                        lstrcatW(groups_data, newlineW);
+                    }
+                } while (FindNextFileW(hfind, &finddata));
+                FindClose(hfind);
+            }
+
+
+            len = WideCharToMultiByte(CP_ACP, 0, groups_data, -1, NULL, 0, NULL, NULL);
+            groups_dataA = heap_alloc(len * sizeof(WCHAR));
+            WideCharToMultiByte(CP_ACP, 0, groups_data, -1, groups_dataA, len, NULL, NULL);
+            ret = DdeCreateDataHandle(dwDDEInst, (BYTE *)groups_dataA, len, 0, hszItem, uFmt, 0);
+
+            heap_free(groups_dataA);
+            heap_free(groups_data);
+            heap_free(programs);
+            return ret;
         }
+        else
+        {
+            static const WCHAR lnkW[] = {'\\','*','.','l','n','k',0};
+            char *group;
+            WCHAR *find, *groupW;
+            WCHAR path[MAX_PATH];
+            WIN32_FIND_DATAW finddata;
+            HANDLE hfind;
+            DWORD len = DdeQueryStringA(dwDDEInst, hszItem, NULL, 0, CP_WINANSI);
+            if (!len) return DDE_FNOTPROCESSED;
+            group = heap_alloc(len + 1);
+            DdeQueryStringA(dwDDEInst, hszItem, (BYTE *)group, len + 1, CP_WINANSI);
+            groupW = heap_alloc((len + 1) * sizeof(WCHAR));
+            MultiByteToWideChar(CP_ACP, 0, group, -1, groupW, (len + 1) * sizeof(WCHAR)); 
+            find = get_programs_path(groupW);
+            if (!GetShortPathNameW(find, path, MAX_PATH))
+            {
+                find = get_common_programs_path(groupW);
+                if (!GetShortPathNameW(find, path, MAX_PATH))
+                {
+                    heap_free(find);
+                    heap_free(groupW);
+                    heap_free(group);
+                    return NULL;
+                }
+            }
+            heap_free(groupW);
+            find = heap_realloc(find, (lstrlenW(find) + lstrlenW(lnkW) + 1) * sizeof(WCHAR));
+            lstrcatW(find, lnkW);
 
-        len = WideCharToMultiByte(CP_ACP, 0, groups_data, -1, NULL, 0, NULL, NULL);
-        groups_dataA = heap_alloc(len * sizeof(WCHAR));
-        WideCharToMultiByte(CP_ACP, 0, groups_data, -1, groups_dataA, len, NULL, NULL);
-        ret = DdeCreateDataHandle(dwDDEInst, (BYTE *)groups_dataA, len, 0, hszItem, uFmt, 0);
-
-        heap_free(groups_dataA);
-        heap_free(groups_data);
-        heap_free(programs);
-        return ret;
+            hfind = FindFirstFileW(find, &finddata);
+            int efind = GetLastError();
+            heap_free(find);
+            if ((hfind != INVALID_HANDLE_VALUE) || (efind == ERROR_FILE_NOT_FOUND))
+            {
+                int count = 0;
+                int pos = 0;
+                int elen;
+                int pathlen = lstrlenW(path);
+                path[pathlen++] = '\\';
+                path[pathlen] = 0;
+                char *data, *ret, name[MAX_PATH];
+                IShellLinkW *link = 0;
+                IPersistFile *file;
+                HRESULT hres;
+                if (efind != ERROR_FILE_NOT_FOUND)
+                {
+                    hres = CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER,
+                            &IID_IShellLinkA, (void **)&link);
+                    if (!FAILED(hres))
+                        hres = IShellLinkA_QueryInterface(link, &IID_IPersistFile, (void **)&file);
+                    else if (FAILED(hres))
+                    {
+                        if (link) IShellLinkA_Release(link);
+                        FindClose(hfind);
+                        heap_free(group);
+                        return NULL; 
+                    }
+                    data = heap_alloc(MAX_PATH * 4 + INFOTIPSIZE);
+                    do
+                    {
+                        int icon, hotkey, min;
+                        WCHAR lnkpath[MAX_PATH];
+                        char exepath[MAX_PATH], iconpath[MAX_PATH], workdir[MAX_PATH], args[INFOTIPSIZE];
+                        len = lstrlenW(finddata.cFileName);
+                        lstrcpyW(lnkpath, path);
+                        len = WideCharToMultiByte(CP_ACP, 0, finddata.cFileName, len - 4, name, MAX_PATH, NULL, NULL);
+                        name[len] = 0; 
+                        lstrcatW(lnkpath, finddata.cFileName);
+                        hres = IPersistFile_Load(file, lnkpath, STGM_READ);
+                        if (FAILED(hres)) continue;
+                        hres = IShellLinkA_GetPath(link, exepath, MAX_PATH, NULL, SLGP_SHORTPATH);
+                        if (FAILED(hres)) continue;
+                        hres = IShellLinkA_GetArguments(link, args, INFOTIPSIZE);
+                        if (FAILED(hres)) continue;
+                        hres = IShellLinkA_GetWorkingDirectory(link, workdir, MAX_PATH);
+                        if (FAILED(hres)) continue;
+                        GetShortPathNameA(workdir, workdir, MAX_PATH);
+                        hres = IShellLinkA_GetIconLocation(link, iconpath, MAX_PATH, &icon);
+                        if (FAILED(hres)) continue;
+                        GetShortPathNameA(iconpath, iconpath, MAX_PATH);
+                        hres = IShellLinkA_GetHotkey(link, &hotkey);
+                        if (FAILED(hres)) continue;
+                        hres = IShellLinkA_GetShowCmd(link, &min);
+                        if (FAILED(hres)) continue;
+                        count++;
+                        elen = sprintf(data + pos, "\"%s\",\"%s%s%s\",%s,%s,32,%d,%d,%d,%d\r\n", name, exepath, strlen(args) ? " " : "",
+                                args, workdir, iconpath, count * 32, icon, hotkey, min == SW_SHOWMINIMIZED ? 1 : 0);
+                        pos += elen;
+                        data = heap_realloc(data, pos + MAX_PATH * 4 + INFOTIPSIZE);
+                    } while (FindNextFileW(hfind, &finddata));
+                    IPersistFile_Release(file);
+                    IShellLinkW_Release(link);
+                }
+                else
+                {
+                    data = heap_alloc(1);
+                    data[0] = 0;
+                }
+                len = WideCharToMultiByte(CP_ACP, 0, path, -1, name, MAX_PATH, NULL, NULL);
+                ret = heap_alloc(pos + MAX_PATH * 4 + INFOTIPSIZE);
+                elen = sprintf(ret, "\"%s\",%s,%d,1,0\r\n", group, name, count);
+                lstrcat(ret + elen, data);
+                HDDEDATA hret = DdeCreateDataHandle(dwDDEInst, (BYTE *)ret, lstrlen(ret), 0, hszItem, uFmt, 0);
+                FindClose(hfind);
+                heap_free(group);
+                heap_free(data);
+                heap_free(ret);
+                return hret;
+            }
+        }
     }
     FIXME( "%u %p %s %s: stub\n", uFmt, hconv, debugstr_hsz(hszTopic), debugstr_hsz(hszItem) );
     return NULL;
