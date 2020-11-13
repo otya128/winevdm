@@ -315,6 +315,13 @@ static inline HDDEDATA Dde_OnRequest(UINT uFmt, HCONV hconv, HSZ hszTopic,
                         GetShortPathNameA(workdir, workdir, MAX_PATH);
                         hres = IShellLinkA_GetIconLocation(link, iconpath, MAX_PATH, &icon);
                         if (FAILED(hres)) continue;
+                        if (!iconpath[0])
+                        {
+                            FindExecutableA(exepath, NULL, iconpath);
+                            icon = 0;
+                        }
+                        else if (icon < 0)
+                            icon = 0;
                         GetShortPathNameA(iconpath, iconpath, MAX_PATH);
                         hres = IShellLinkA_GetHotkey(link, &hotkey);
                         if (FAILED(hres)) continue;
