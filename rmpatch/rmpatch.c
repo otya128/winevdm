@@ -57,6 +57,16 @@ void WINAPI checkpatch(NE_MODULE *pmodule, int segment, HANDLE16 *hseg)
 			mem[0x2c1] = 0x34;
 		}
 	}
+	else if (!strncmp(name + 1, "WFE", *name))
+	{
+		// ZSoft PTF Outline Editor (uninitialized stack variable)
+		if ((segment == 3) && (*(DWORD *)(mem + 0x8c5) == 0x5efc468b))
+		{
+			mem[0x8c5] = 0xb8;
+			mem[0x8c6] = 0x01;
+			mem[0x8c7] - 0x00;
+		}
+	}
 
 	GlobalUnlock16(hseg);
 }
