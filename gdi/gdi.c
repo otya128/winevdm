@@ -2352,7 +2352,15 @@ DWORD WINAPI GetTextExtent16( HDC16 hdc, LPCSTR str, INT16 count )
 {
     SIZE size;
     HDC hdc32 = HDC_32(hdc);
-    if (!GetTextExtentPoint32A( hdc32, str, count, &size )) return 0;
+    __TRY
+    {
+        if (!GetTextExtentPoint32A( hdc32, str, count, &size )) return 0;
+    }
+    __EXCEPT_ALL
+    {
+        return 0;
+    }
+    __ENDTRY
     check_font_rotation( hdc32, &size ); 
     return MAKELONG( size.cx, size.cy );
 }
