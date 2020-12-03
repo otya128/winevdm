@@ -37,6 +37,7 @@
 #include "winver.h"
 #define COBJMACROS
 #include "shldisp.h"
+#include "wine/exception.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(user);
 
@@ -869,21 +870,29 @@ INT16 WINAPI DrawText16( HDC16 hdc, LPCSTR str, INT16 count, LPRECT16 rect, UINT
 {
     INT16 ret;
 
-    if (rect)
+    __TRY
     {
-        RECT rect32;
+        if (rect)
+        {
+            RECT rect32;
 
-        rect32.left   = rect->left;
-        rect32.top    = rect->top;
-        rect32.right  = rect->right;
-        rect32.bottom = rect->bottom;
-        ret = DrawTextA( HDC_32(hdc), str, count, &rect32, flags );
-        rect->left   = rect32.left;
-        rect->top    = rect32.top;
-        rect->right  = rect32.right;
-        rect->bottom = rect32.bottom;
+            rect32.left   = rect->left;
+            rect32.top    = rect->top;
+            rect32.right  = rect->right;
+            rect32.bottom = rect->bottom;
+            ret = DrawTextA( HDC_32(hdc), str, count, &rect32, flags );
+            rect->left   = rect32.left;
+            rect->top    = rect32.top;
+            rect->right  = rect32.right;
+            rect->bottom = rect32.bottom;
+        }
+        else ret = DrawTextA( HDC_32(hdc), str, count, NULL, flags);
     }
-    else ret = DrawTextA( HDC_32(hdc), str, count, NULL, flags);
+    __EXCEPT_ALL
+    {
+        ret = 0;
+    }
+    __ENDTRY
     return ret;
 }
 
