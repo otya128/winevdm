@@ -928,7 +928,18 @@ LONG WINAPI WIN16_hread( HFILE16 hFile, SEGPTR buffer, LONG count )
 
     /* Some programs pass a count larger than the allocated buffer */
     maxlen = GetSelectorLimit16( SELECTOROF(buffer) ) - OFFSETOF(buffer) + 1;
-    if (count > maxlen) count = maxlen;
+    if (count > maxlen)
+    {
+        LPVOID temp_buffer = HeapAlloc(GetProcessHeap(), 0, count);
+        HFILE result = _lread((HFILE)DosFileHandleToWin32Handle(hFile), temp_buffer, count );
+        if (result == HFILE_ERROR)
+        {
+            return HFILE_ERROR;
+        }
+        memcpy(MapSL(buffer), temp_buffer, (size_t)result);
+        HeapFree(GetProcessHeap(), 0, temp_buffer);
+        return result;
+    }
 
     return _lread((HFILE)DosFileHandleToWin32Handle(hFile), MapSL(buffer), count );
 }
