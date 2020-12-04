@@ -932,11 +932,10 @@ LONG WINAPI WIN16_hread( HFILE16 hFile, SEGPTR buffer, LONG count )
     {
         LPVOID temp_buffer = HeapAlloc(GetProcessHeap(), 0, count);
         HFILE result = _lread((HFILE)DosFileHandleToWin32Handle(hFile), temp_buffer, count );
-        if (result == HFILE_ERROR)
+        if (result != HFILE_ERROR)
         {
-            return HFILE_ERROR;
+            memcpy(MapSL(buffer), temp_buffer, (size_t)result);
         }
-        memcpy(MapSL(buffer), temp_buffer, (size_t)result);
         HeapFree(GetProcessHeap(), 0, temp_buffer);
         return result;
     }
