@@ -3472,7 +3472,7 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
             {
                 HWND hwnd = HWND_32(hwlist[i]);
                 InvalidateRect(hwnd, NULL, FALSE);
-                UpdateWindow(hwnd);
+                //UpdateWindow(hwnd);
             }
         }
     }
