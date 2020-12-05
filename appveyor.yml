@@ -231,10 +231,12 @@ for:
       }
       mkdir WINDOWS
       mkdir WINDOWS\SYSTEM
+      mkdir WINDOWS\SYSTEM32
       ni WINDOWS\WIN.INI
       ni WINDOWS\SYSTEM.INI
       mkdir dummydll
       mkdir dummydll\SYSTEM
+      mkdir dummydll\SYSTEM32
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\CTL3D.DLL
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\CTL3DV2.DLL
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\AVIFILE.DLL
@@ -276,6 +278,7 @@ for:
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WINOLDAP.MOD
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WINSOCK.DLL
       copy ..\dummydll\dummydll.dll dummydll\SYSTEM\WINSPOOL.DRV
+      copy ..\dummydll\dummydll.dll dummydll\SYSTEM32\WOWEXEC.EXE
       copy ..\dummydll\dummydll.dll WINDOWS\CTL3D.DLL
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\CTL3DV2.DLL
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\AVIFILE.DLL
@@ -317,6 +320,7 @@ for:
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINOLDAP.MOD
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSOCK.DLL
       copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM\WINSPOOL.DRV
+      copy ..\dummydll\dummydll.dll WINDOWS\SYSTEM32\WOWEXEC.EXE
       cd ..
       rename-item Release otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
       7z a otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}.zip otvdm-${env:APPVEYOR_REPO_BRANCH}-${env:APPVEYOR_BUILD_NUMBER}
