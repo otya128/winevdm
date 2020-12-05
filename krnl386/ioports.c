@@ -733,7 +733,7 @@ static BOOL IO_pp_outp(int port, DWORD* res)
 
 void DOSVM_setportcb(OUTPROC outproc, INPROC inproc, int port, OUTPROC *oldout, INPROC *oldin)
 {
-    if (port > 1024)
+    if (port < 0 || port >= ARRAY_SIZE(incb))
         return;
 
     *oldout = outcb[port];
@@ -754,7 +754,7 @@ DWORD DOSVM_inport( int port, int size )
 
     TRACE("%d-byte value from port 0x%04x\n", size, port );
 
-    if (incb[port]) return incb[port](port, size);
+    if (0 <= port && port < ARRAY_SIZE(incb) && incb[port]) return incb[port](port, size);
 
     DOSMEM_InitDosMemory();
 
@@ -951,7 +951,7 @@ void DOSVM_outport( int port, int size, DWORD value )
 {
     TRACE("IO: 0x%x (%d-byte value) to port 0x%04x\n", value, size, port );
 
-    if (outcb[port]) return outcb[port](port, size, value);
+    if (0 <= port && port < ARRAY_SIZE(outcb) && outcb[port]) return outcb[port](port, size, value);
 
     DOSMEM_InitDosMemory();
 
