@@ -5331,7 +5331,11 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
                 TRACE( "unlock handle %d offset %d length %d\n",
                        BX_reg(context), offset, length );
                 if (!UnlockFile( handle, offset, 0, length, 0 ))
+                {
                     bSetDOSExtendedError = TRUE;
+                    if (GetLastError() == ERROR_NOT_LOCKED)
+                        SetLastError(ERROR_LOCK_VIOLATION);
+                }
                 break;
 
             default:
