@@ -1459,11 +1459,14 @@ UINT16 WINAPI waveOutRestart16(HWAVEOUT16 hWaveOut16)
 UINT16 WINAPI waveOutGetPosition16(HWAVEOUT16 hWaveOut, LPMMTIME16 lpTime,
                                    UINT16 uSize)
 {
+    DWORD	level;
     UINT	ret;
     MMTIME	mmt;
 
     mmt.wType = lpTime->wType;
+    ReleaseThunkLock(&level);
     ret = waveOutGetPosition(HWAVEOUT_32(hWaveOut), &mmt, sizeof(mmt));
+    RestoreThunkLock(level);
     MMSYSTEM_MMTIME32to16(lpTime, &mmt);
     return ret;
 }

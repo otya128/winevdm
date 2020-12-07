@@ -42,7 +42,8 @@ static INTPROC oldproc;
 static OUTPROC oldout[0x20];
 static INPROC oldin[0x20];
 static HANDLE running = 0;
-static BOOL vsync;
+static BOOL vsync = FALSE;
+static BOOL hsync = FALSE;
 static LPVOID vram;
 
 static LRESULT CALLBACK ddwndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -149,6 +150,8 @@ static DWORD WINAPI ddVGAinHandler(int port, int size)
             start_retrace_timer();
             ret = vsync ? 9 : 0;
             vsync = FALSE;
+            hsync = !hsync;
+            if (!ret) ret = hsync ? 1 : 0;
             break;
         }
         default:
