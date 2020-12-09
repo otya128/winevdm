@@ -266,7 +266,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     ofn32.nMaxFileTitle     = lpofn->nMaxFileTitle;
     ofn32.lpstrInitialDir   = MapSL( lpofn->lpstrInitialDir );
     ofn32.lpstrTitle        = MapSL( lpofn->lpstrTitle );
-	ofn32.Flags             = get_ofn_flag(lpofn->Flags | OFN_ENABLEHOOK);
+    ofn32.Flags             = get_ofn_flag(lpofn->Flags | OFN_ENABLEHOOK);
     ofn32.nFileOffset       = lpofn->nFileOffset;
     ofn32.nFileExtension    = lpofn->nFileExtension;
     ofn32.lpstrDefExt       = MapSL( lpofn->lpstrDefExt );
@@ -296,12 +296,15 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         }
     }
 
+    if (ofn32.lpstrFile)
+        CharUpperBuffA(ofn32.lpstrFile, ofn32.nMaxFile);
+
     ReleaseThunkLock(&count);
     if ((ret = GetOpenFileNameA( &ofn32 )))
     {
-	lpofn->nFilterIndex   = ofn32.nFilterIndex;
-	lpofn->nFileOffset    = ofn32.nFileOffset;
-	lpofn->nFileExtension = ofn32.nFileExtension;
+        lpofn->nFilterIndex   = ofn32.nFilterIndex;
+        lpofn->nFileOffset    = ofn32.nFileOffset;
+        lpofn->nFileExtension = ofn32.nFileExtension;
     }
     RestoreThunkLock(count);
     delete_thunk(ofn32.lpfnHook);
@@ -328,6 +331,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     OPENFILENAMEA ofn32;
     BOOL ret;
     DWORD count;
+    LPCSTR filename = NULL;
 
     if (!lpofn) return FALSE;
     OPENFILENAME16 ofn16 = *lpofn;
@@ -373,12 +377,15 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
             ofn32.lpfnHook = dummy_hook;
         }
     }
+    if (ofn32.lpstrFile)
+        CharUpperBuffA(ofn32.lpstrFile, ofn32.nMaxFile);
+
     ReleaseThunkLock(&count);
     if ((ret = GetSaveFileNameA( &ofn32 )))
     {
-	lpofn->nFilterIndex   = ofn32.nFilterIndex;
-	lpofn->nFileOffset    = ofn32.nFileOffset;
-	lpofn->nFileExtension = ofn32.nFileExtension;
+        lpofn->nFilterIndex   = ofn32.nFilterIndex;
+        lpofn->nFileOffset    = ofn32.nFileOffset;
+        lpofn->nFileExtension = ofn32.nFileExtension;
     }
     RestoreThunkLock(count);
     delete_thunk(ofn32.lpfnHook);

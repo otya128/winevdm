@@ -877,15 +877,27 @@ HFILE16 WINAPI _lcreat16( LPCSTR path, INT16 attr )
 
 /***********************************************************************
  *           _llseek   (KERNEL.84)
- *
- * FIXME:
- *   Seeking before the start of the file should be allowed for _llseek16,
- *   but cause subsequent I/O operations to fail (cf. interrupt list)
- *
  */
 LONG WINAPI _llseek16( HFILE16 hFile, LONG lOffset, INT16 nOrigin )
 {
-    return SetFilePointer( DosFileHandleToWin32Handle(hFile), lOffset, NULL, nOrigin );
+    HANDLE fd = DosFileHandleToWin32Handle(hFile);
+    LONG high = 0;
+    DWORD offset = (DWORD)lOffset;
+    switch (nOrigin)
+    {
+        case FILE_BEGIN:
+            break;
+        case FILE_END:
+            offset += GetFileSize(fd, NULL);
+            break;
+        case FILE_CURRENT:
+            offset += SetFilePointer(fd, 0, NULL, FILE_CURRENT);
+            break;
+        default:
+            SetLastError(ERROR_INVALID_PARAMETER);
+            return -1;
+    }
+    return SetFilePointer(fd, offset, &high, FILE_BEGIN);
 }
 
 
