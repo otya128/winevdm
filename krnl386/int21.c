@@ -4921,7 +4921,14 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
             /* Some programs pass a count larger than the allocated buffer */
             if (DOSVM_IsWin16())
             {
-                DWORD maxcount = GetSelectorLimit16( context->SegDs )
+                WORD sel = context->SegDs;
+                if (!sel)
+                {
+                    buffer = MapSL(MAKELONG(context->Edx & 0xffff, DOSMEM_0000H));
+                    sel = DOSMEM_0000H;
+                }
+
+                DWORD maxcount = GetSelectorLimit16( sel )
                     - DX_reg(context) + 1;
                 if (count > maxcount)
                     count = maxcount;

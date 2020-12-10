@@ -583,11 +583,18 @@ BOOL rmpatch_emulate_instruction(CONTEXT *context)
                 if (instr[1] & 0x38)
                     break;
                 BYTE *addr = INSTR_GetOperandAddr(context, instr + 1, segprefix, &len);
-                switch (*instr)
+                __TRY
                 {
-                    case 0xc6: *addr = instr[2]; break;
-                    case 0xc7: *(WORD *)addr = instr[2] | (instr[3] << 8); break;
+                    switch (*instr)
+                    {
+                        case 0xc6: *addr = instr[2]; break;
+                        case 0xc7: *(WORD *)addr = instr[2] | (instr[3] << 8); break;
+                    }
                 }
+                __EXCEPT_ALL
+                {
+                }
+                __ENDTRY
                 context->Eip += prefixlen + ((*instr == 0xc7) ? 2 : 1) + len + 1;
                 return TRUE;
             }
