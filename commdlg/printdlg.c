@@ -256,7 +256,7 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
     if (lppd->Flags & PD_ENABLESETUPHOOK)
     {
         COMMDLGTHUNK *thunk = allocate_thunk(pd, (SEGPTR)lppd->lpfnSetupHook);
-        pd32.Flags |= PD_ENABLEPRINTHOOK;
+        pd32.Flags |= PD_ENABLESETUPHOOK;
         pd32.lpfnSetupHook = (LPSETUPHOOKPROC)thunk;
     }
 
