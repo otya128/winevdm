@@ -2114,14 +2114,8 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
                 ret |= RC_PALETTE;
                 break;
             case NUMCOLORS:
-            {
-                HPALETTE pal = GetCurrentObject(hdc32, OBJ_PAL);
-                if (pal)
-                    ret = GetPaletteEntries(pal, 0, 0, NULL);
-                else
-                    ret = 256;
+                ret = 20;
                 break;
-            }
         }
     }
     else if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;

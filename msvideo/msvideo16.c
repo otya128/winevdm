@@ -761,7 +761,7 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         icds16->dySrc = icds->dySrc;
         icds16->dxDst = icds->dxDst;
         icds16->dyDst = icds->dyDst;
-        icds->hicDecompressor = HIC_32(icds16->hicDecompressor);
+        icds16->hicDecompressor = HIC_16(icds->hicDecompressor);
 
         lp1 = (LPARAM)((char *)MapLS(icds16) + 4); // dwFlags doesn't exist?
         lp2 = sizeof(ICDRAWSUGGEST16) - 4;
@@ -775,9 +775,18 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         ICDRAW *icd16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAW));
         ICDRAW *icd = lp1;
 
+        DWORD size = icd->cbData;
+        int count = (size + 0xffff) / 0x10000;
+        WORD sel = AllocSelectorArray16(count);
+        for (int i = 0; i < count; i++)
+        {
+            SetSelectorBase(sel + (i << __AHSHIFT), (DWORD)icd->lpData + i * 0x10000);
+            SetSelectorLimit16(sel + (i << __AHSHIFT), size - 1);
+            size -= 0x10000;
+        }
         icd16->dwFlags = icd->dwFlags;
         icd16->lpFormat = MapLS(icd->lpFormat);
-        icd16->lpData = MapLS(icd->lpData);
+        icd16->lpData = sel << 16;
         icd16->cbData = icd->cbData;
         icd16->lTime = icd->lTime;
 
@@ -785,6 +794,9 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         lp2 = sizeof(ICDRAW);
         break;
     }
+    case ICM_DRAW_REALIZE:
+        lp1 = (LPARAM)(HDC_16(lp1));
+        break;
     }
     args[7] = HIWORD(hic);
     args[6] = LOWORD(hic);
@@ -844,9 +856,12 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
     case ICM_DRAW:
     {
         ICDRAW *icd16 = MapSL(lp1);
+        int count = (lp2 + 0xffff) / 0x10000;
+        WORD sel = SELECTOROF(icd16->lpData);
+        for (int i = 0; i < count; i++)
+            FreeSelector16(sel + (i << __AHSHIFT));
         UnMapLS(lp1);
         UnMapLS(icd16->lpFormat);
-        UnMapLS(icd16->lpData);
         HeapFree(GetProcessHeap(), 0, icd16);
         break;
     }
