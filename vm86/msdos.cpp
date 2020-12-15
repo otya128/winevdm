@@ -2081,7 +2081,7 @@ ES:%04X,CS:%04X,SS:%04X,DS:%04X,FS:%04X,GS:%04X\n\
 IP:%04X, address:%08X\n\
 EFLAGS:%08X\
 \n\n%s\n", rec->ExceptionAddress, (void*)rec->ExceptionInformation[1],
-REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG16(BP), REG16(SI), REG16(DI),
+REG32(EAX), REG32(ECX), REG32(EDX), REG32(EBX), REG32(ESP), REG32(EBP), REG32(ESI), REG32(EDI),
 SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflags, buf_pre);
         dump_all_modules();
         dump_stack_trace();
