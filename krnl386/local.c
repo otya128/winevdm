@@ -945,6 +945,7 @@ static HLOCAL16 LOCAL_GetBlock( HANDLE16 ds, DWORD size, WORD flags )
         {
             LocalInit16(ds, addr & 0xFFFF, (addr & 0xFFFF) + GlobalSize16(ds));
             GlobalUnlock16(ds);
+            pInfo = LOCAL_GetHeap(ds);
         }
         else
         {
