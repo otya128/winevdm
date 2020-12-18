@@ -517,8 +517,14 @@ static LRESULT CALLBACK call_WH_CALLWNDPROC( INT code, WPARAM wp, LPARAM lp, BOO
     struct wndproc_hook_params params;
     CWPSTRUCT *cwp32 = (CWPSTRUCT *)lp;
     LRESULT result;
-    CallNextHookEx(get_hhook(WH_CALLWNDPROC, global), code, wp, lp);
+    result = CallNextHookEx(get_hhook(WH_CALLWNDPROC, global), code, wp, lp);
 
+    // MFC can fail if it subclasses an IME window
+    char class[4];
+    int len = GetClassNameA(cwp32->hwnd, class, 4);
+    if (!strncmp(class, "IME", 4))
+        return result;
+    
     params.code   = code;
     params.wparam = wp;
     params.global = global;
