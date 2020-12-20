@@ -3004,6 +3004,11 @@ BOOL16 WINAPI PeekMessage16( MSG16 *msg, HWND16 hwnd,
         /* Sleep(1); /* yield thread */
         /* Some programs use PeekMessage instead of GetMessage, so use 100% CPU... */
         /* MsgWaitForMultipleObjects(0, NULL, FALSE, 10, QS_ALLINPUT); /**/
+        static int extra_sleep = -1;
+        if (extra_sleep == -1)
+            extra_sleep = krnl386_get_config_int("otvdm", "PeekMessageSleep", 0);
+        if (extra_sleep > 0)
+            Sleep(extra_sleep);
     }
     BOOL ret = PeekMessage32_16((MSG32_16 *)msg, hwnd, first, last, flags, FALSE);
     if (!(flags & PM_NOYIELD))
