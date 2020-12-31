@@ -1323,10 +1323,10 @@ static HDROP16 hdrop32_to_hdrop16(HDROP hdrop32)
         LPSTR filenames = (LPSTR)((LPBYTE)files + files->pFiles);
         while (TRUE)
         {
-            size_t len = strlen(filenames);
-            size16 += len + 1;
-            filenames += len + 1;
-            if (len == 0)
+            size_t len = strlen(filenames) + 1;
+            size16 += len;
+            filenames += len;
+            if (len == 1)
                 break;
         }
     }
@@ -1335,10 +1335,10 @@ static HDROP16 hdrop32_to_hdrop16(HDROP hdrop32)
         LPWSTR filenames = (LPWSTR)((LPBYTE)files + files->pFiles);
         while (TRUE)
         {
-            size_t len = wcslen(filenames);
-            size16 += WideCharToMultiByte(CP_ACP, NULL, filenames, len, NULL, 0, NULL, NULL) + 1;
-            filenames += len + 1;
-            if (len == 0)
+            size_t len = wcslen(filenames) + 1;
+            size16 += WideCharToMultiByte(CP_ACP, NULL, filenames, len, NULL, 0, NULL, NULL);
+            filenames += len;
+            if (len == 1)
                 break;
         }
     }
@@ -1354,11 +1354,11 @@ static HDROP16 hdrop32_to_hdrop16(HDROP hdrop32)
         LPSTR filenames = (LPSTR)((LPBYTE)files + files->pFiles);
         while (TRUE)
         {
-            size_t len = strlen(filenames);
-            memcpy(filenames16, filenames, len + 1);
-            filenames16 += len + 1;
-            filenames += len + 1;
-            if (len == 0)
+            size_t len = strlen(filenames) + 1;
+            memcpy(filenames16, filenames, len);
+            filenames16 += len;
+            filenames += len;
+            if (len == 1)
                 break;
         }
     }
@@ -1368,12 +1368,12 @@ static HDROP16 hdrop32_to_hdrop16(HDROP hdrop32)
         LPWSTR filenames = (LPWSTR)((LPBYTE)files + files->pFiles);
         while (TRUE)
         {
-            size_t len = wcslen(filenames);
-            int mblen = WideCharToMultiByte(CP_ACP, NULL, filenames, len, filenames16, remain_bytes, NULL, NULL) + 1;
+            size_t len = wcslen(filenames) + 1;
+            int mblen = WideCharToMultiByte(CP_ACP, NULL, filenames, len, filenames16, remain_bytes, NULL, NULL);
             remain_bytes -= mblen;
             filenames16 += mblen;
-            filenames += len + 1;
-            if (len == 0)
+            filenames += len;
+            if (len == 1)
                 break;
         }
     }
