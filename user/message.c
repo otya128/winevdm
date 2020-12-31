@@ -35,6 +35,8 @@
 #include "../krnl386/kernel16_private.h"
 #include "commctrl.h"
 #include "wine/exception.h"
+#include <shellapi.h>
+#include <shlobj.h>
 
 /*
 unknwon combobox message
@@ -1298,6 +1300,134 @@ static BOOL CALLBACK child_paint(HWND hwnd, LPARAM lparam)
     return TRUE;
 }
 
+#include <pshpack1.h>
+typedef struct {     /* structure for dropped files */
+    WORD     wSize;
+    POINT16  ptMousePos;
+    BOOL16   fInNonClientArea;
+    /* memory block with filenames follows */
+} DROPFILESTRUCT16, *LPDROPFILESTRUCT16;
+#include <poppack.h>
+
+static HDROP16 hdrop32_to_hdrop16(HDROP hdrop32)
+{
+    LPDROPFILES files = (LPDROPFILES)GlobalLock(hdrop32);
+    int size16 = sizeof(DROPFILESTRUCT16);
+    HDROP16 hdrop16;
+    LPDROPFILESTRUCT16 files16;
+    LPSTR filenames16;
+    if (!files)
+        return (HDROP16)hdrop32;
+    if (!files->fWide)
+    {
+        LPSTR filenames = (LPSTR)((LPBYTE)files + files->pFiles);
+        while (TRUE)
+        {
+            size_t len = strlen(filenames);
+            size16 += len + 1;
+            filenames += len + 1;
+            if (len == 0)
+                break;
+        }
+    }
+    else
+    {
+        LPWSTR filenames = (LPWSTR)((LPBYTE)files + files->pFiles);
+        while (TRUE)
+        {
+            size_t len = wcslen(filenames);
+            size16 += WideCharToMultiByte(CP_ACP, NULL, filenames, len, NULL, 0, NULL, NULL) + 1;
+            filenames += len + 1;
+            if (len == 0)
+                break;
+        }
+    }
+    hdrop16 = (HDROP16)GlobalAlloc16(0, size16);
+    files16 = GlobalLock16(hdrop16);
+    files16->wSize = sizeof(*files16);
+    files16->ptMousePos.x = files->pt.x;
+    files16->ptMousePos.y = files->pt.y;
+    files16->fInNonClientArea = files->fNC;
+    filenames16 = (LPSTR)((LPBYTE)files16 + files16->wSize);
+    if (!files->fWide)
+    {
+        LPSTR filenames = (LPSTR)((LPBYTE)files + files->pFiles);
+        while (TRUE)
+        {
+            size_t len = strlen(filenames);
+            memcpy(filenames16, filenames, len + 1);
+            filenames16 += len + 1;
+            filenames += len + 1;
+            if (len == 0)
+                break;
+        }
+    }
+    else
+    {
+        int remain_bytes = size16 - sizeof(*files16);
+        LPWSTR filenames = (LPWSTR)((LPBYTE)files + files->pFiles);
+        while (TRUE)
+        {
+            size_t len = wcslen(filenames);
+            int mblen = WideCharToMultiByte(CP_ACP, NULL, filenames, len, filenames16, remain_bytes, NULL, NULL) + 1;
+            remain_bytes -= mblen;
+            filenames16 += mblen;
+            filenames += len + 1;
+            if (len == 0)
+                break;
+        }
+    }
+    GlobalUnlock16(hdrop16);
+    GlobalUnlock(files);
+    DragFinish(hdrop32);
+    return hdrop16;
+}
+
+static HDROP hdrop16_to_hdrop32(HDROP16 hdrop16)
+{
+    return (HDROP)hdrop16;
+/* win32 doesnt process WM_DROPFILES */
+#if false
+    LPDROPFILESTRUCT16 files16 = (LPDROPFILESTRUCT16)GlobalLock16(hdrop16);
+    int size32 = sizeof(DROPFILES);
+    LPSTR filenames;
+    LPDROPFILES files32;
+    HDROP hdrop32;
+    LPSTR filenames32;
+    if (!files16)
+        return NULL;
+    filenames = (LPSTR)((LPBYTE)files16 + files16->wSize);
+    while (TRUE)
+    {
+        size_t len = strlen(filenames);
+        filenames += len + 1;
+        size32 += len + 1;
+        if (len == 0)
+            break;
+    }
+    hdrop32 = (HDROP)GlobalAlloc(0, size32);
+    files32 = (LPDROPFILES)GlobalLock(hdrop32);
+    files32->fWide = FALSE;
+    files32->fNC = files16->fInNonClientArea;
+    files32->pt.x = files16->ptMousePos.x;
+    files32->pt.y = files16->ptMousePos.y;
+    files32->pFiles = sizeof(*files32);
+    filenames32 = (LPSTR)((LPBYTE)files32 + files32->pFiles);
+    filenames = (LPSTR)((LPBYTE)files16 + files16->wSize);
+    while (TRUE)
+    {
+        size_t len = strlen(filenames);
+        memcpy(filenames32, filenames, len + 1);
+        filenames += len + 1;
+        filenames32 += len + 1;
+        if (len == 0)
+            break;
+    }
+    GlobalUnlock16(files16);
+    return hdrop32;
+#endif
+}
+
 /**********************************************************************
  *	     WINPROC_CallProc16To32A
  */
@@ -1792,6 +1922,9 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         break;
     case WM_PAINT:
         ret = callback(hwnd32, msg, (WPARAM)HDC_32(wParam), lParam, result, arg);
+        break;
+    case WM_DROPFILES:
+        ret = callback(hwnd32, msg, (WPARAM)hdrop16_to_hdrop32((HDROP16)wParam), lParam, result, arg);
         break;
     default:
     {
@@ -2601,6 +2734,9 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
     }
+    case WM_DROPFILES:
+        ret = callback(HWND_16(hwnd), msg, (WPARAM16)hdrop32_to_hdrop16((HDROP)wParam), lParam, result, arg);
+        break;
     default:
     {
         if (msg != WM_NULL && msg == drag_list_message)
