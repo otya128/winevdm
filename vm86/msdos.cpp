@@ -1364,6 +1364,7 @@ extern "C"
         DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode)
     {
         assert(dwFlags == WCB16_PASCAL);
+try_again:
         if (TryEnterCriticalSection(&win16_syslevel->crst))
         {
             /* There are no threads running VM. (e.g. call GetMessage) */
@@ -1391,7 +1392,13 @@ extern "C"
             ResetEvent(inject_event);
         }
         LeaveCriticalSection(&inject_crit_section);
-        WaitForSingleObject(inject_event, INFINITE);
+        HANDLE objs[2] = { inject_event, win16_syslevel->crst.LockSemaphore };
+        DWORD ret = WaitForMultipleObjects(2, objs, FALSE, INFINITE);
+        if (ret == (WAIT_OBJECT_0 + 1))
+        {
+            SetEvent(inject_event);
+            goto try_again;
+        }
         return TRUE;
     }
     void vm_inject_call(SEGPTR ret_addr, PEXCEPTION_HANDLER handler,
