@@ -2063,10 +2063,10 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
                 do
                 {
                     DWORD wret = MsgWaitForMultipleObjects(1, &chdthd->idle_event, FALSE, timeout - GetTickCount(), QS_SENDMESSAGE);
-                    if ((wret != (WAIT_OBJECT_0 + 1)) || (GetTickCount() >= timeout))
+                    if (wret != (WAIT_OBJECT_0 + 1))
                         break;
                     PeekMessage(&msg, NULL, 0, 0, PM_REMOVE | PM_QS_SENDMESSAGE);
-                } while (1);
+                } while (GetTickCount() < timeout);
                 RestoreThunkLock(count);
                 GlobalUnlock16(curtask);
                 break;

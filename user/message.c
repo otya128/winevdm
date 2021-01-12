@@ -2810,12 +2810,13 @@ static LRESULT send_message_callback_callback( HWND hwnd, UINT msg, WPARAM wp, L
         {
             MSG msg;
             DWORD ret = MsgWaitForMultipleObjects(1, &args.event, FALSE, timeout - GetTickCount(), QS_ALLINPUT);
-            if ((ret != (WAIT_OBJECT_0 + 1)) || (GetTickCount() >= timeout))
+            if (ret != (WAIT_OBJECT_0 + 1))
                 break;
             PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE);
-        } while(1);
+        } while(GetTickCount() < timeout);
         RestoreThunkLock(count);
     }
+    args.magic = 0;
     CloseHandle(args.event);
     return TRUE;
 }
