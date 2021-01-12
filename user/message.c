@@ -2776,6 +2776,50 @@ static LRESULT send_message_timeout_callback( HWND hwnd, UINT msg, WPARAM wp, LP
     }
     return *result;
 }
+
+typedef struct
+{
+    DWORD magic;
+    LRESULT *result;
+    HANDLE event;
+} send_message_callback_args;
+
+void CALLBACK send_message_callback_cb(HWND hwnd, UINT msg, ULONG_PTR param, LRESULT res)
+{
+    send_message_callback_args *args = (send_message_callback_args *)param;
+    if (args->magic != 0xBEEFBEEF)
+        return;
+    *args->result = res;
+    SetEvent(args->event);
+}
+
+static LRESULT send_message_callback_callback( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
+                                      LRESULT *result, void *arg )
+{
+    send_message_callback_args args;
+    args.result = result;
+    args.event = CreateEventA(NULL, TRUE, FALSE, NULL);
+    args.magic = 0xBEEFBEEF;
+    BOOL ret = SendMessageCallbackA(hwnd, msg, wp, lp, send_message_callback_cb, &args);
+    if (ret)
+    {
+        DWORD count;
+        ReleaseThunkLock(&count);
+        DWORD timeout = GetTickCount() + 1000;
+        do
+        {
+            MSG msg;
+            DWORD ret = MsgWaitForMultipleObjects(1, &args.event, FALSE, timeout - GetTickCount(), QS_ALLINPUT);
+            if ((ret != (WAIT_OBJECT_0 + 1)) || (GetTickCount() >= timeout))
+                break;
+            PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE);
+        } while(1);
+        RestoreThunkLock(count);
+    }
+    CloseHandle(args.event);
+    return TRUE;
+}
+
 typedef struct
 {
     UINT msg;
@@ -2847,16 +2891,17 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
 {
     LRESULT result;
     HWND hwnd = WIN_Handle32( hwnd16 );
+    DWORD pid;
+    DWORD thid = GetWindowThreadProcessId(hwnd, &pid);
     // work around for Borland Office 2.0 installer
-    if ((msg != WM_GETTEXT) || (GetWindowThreadProcessId(hwnd, NULL) != GetCurrentThreadId()))
-        SetEvent(kernel_get_thread_data()->idle_event);
+//    if ((msg != WM_GETTEXT) || (thid != GetCurrentThreadId()))
+//        SetEvent(kernel_get_thread_data()->idle_event);
 
     // SendMessageTimeout always fails with this message
     if (msg == WM_DDE_EXECUTE)
        return PostMessage16( hwnd16, msg, wparam, lparam );
 
-    if (hwnd != HWND_BROADCAST &&
-        GetWindowThreadProcessId( hwnd, NULL ) == GetCurrentThreadId())
+    if (hwnd != HWND_BROADCAST && thid == GetCurrentThreadId())
     {
         /* call 16-bit window proc directly */
         WNDPROC16 winproc;
@@ -2898,7 +2943,10 @@ LRESULT WINAPI SendMessage16( HWND16 hwnd16, UINT16 msg, WPARAM16 wparam, LPARAM
                 return result;
         }
         TRACE_(message)("(0x%04x) to 32-bit [%04x] wp=%04x lp=%08lx\n", hwnd16, msg, wparam, lparam);
-        WINPROC_CallProc16To32A( send_message_timeout_callback, hwnd16, msg, wparam, lparam, &result, NULL );
+        if (pid == GetCurrentProcessId())
+            WINPROC_CallProc16To32A( send_message_callback_callback, hwnd16, msg, wparam, lparam, &result, NULL );
+        else
+            WINPROC_CallProc16To32A( send_message_timeout_callback, hwnd16, msg, wparam, lparam, &result, NULL );
         TRACE_(message)("(0x%04x) to 32-bit [%04x] wp=%04x lp=%08lx returned %08lx\n",
             hwnd16, msg, wparam, lparam, result);
     }
