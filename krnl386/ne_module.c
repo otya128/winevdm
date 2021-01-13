@@ -2057,8 +2057,16 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
             {
                 DWORD count;
                 struct kernel_thread_data *chdthd = (struct kernel_thread_data *)TebTlsGetValue(curtdb->teb, kernel_thread_data_tls);
+                MSG msg;
+                DWORD timeout = GetTickCount() + 30000;
                 ReleaseThunkLock(&count);
-                WaitForSingleObject(chdthd->idle_event, 30000);
+                do
+                {
+                    DWORD wret = MsgWaitForMultipleObjects(1, &chdthd->idle_event, FALSE, timeout - GetTickCount(), QS_SENDMESSAGE);
+                    if (wret != (WAIT_OBJECT_0 + 1))
+                        break;
+                    PeekMessage(&msg, NULL, 0, 0, PM_REMOVE | PM_QS_SENDMESSAGE);
+                } while (GetTickCount() < timeout);
                 RestoreThunkLock(count);
                 GlobalUnlock16(curtask);
                 break;
