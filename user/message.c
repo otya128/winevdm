@@ -2306,9 +2306,17 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                 }
             }
         }
-        ret = callback( HWND_16(hwnd), msg, wParam,
-                        MAKELPARAM( HIWORD(wParam), HIWORD(wParam) & MF_SYSMENU ? (HMENU16)HMENU_16((HMENU)lParam) : 0 ), result, arg );
-        break;
+        else if(lParam == GetMenu(hwnd))
+        {
+            switch(LOWORD(wParam) & 0xfff0)
+            {
+                case SC_MINIMIZE:
+                case SC_RESTORE:
+                case SC_CLOSE:
+                    wParam |= MF_SYSMENU << 16;
+                    break;
+            }
+        }
     case WM_MENUCHAR:
         ret = callback( HWND_16(hwnd), msg, wParam,
                         MAKELPARAM( HIWORD(wParam), (HMENU16)HMENU_16((HMENU)lParam) ), result, arg );

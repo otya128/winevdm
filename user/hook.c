@@ -389,6 +389,39 @@ static LRESULT wndproc_hook_callback16( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LP
     return ret;
 }
 
+struct msgfilter_hook_params
+{
+    HHOOK  hhook;
+    INT    code;
+    DWORD  time;
+    POINT  pt;
+    WPARAM wparam;
+    BOOL   global;
+};
+
+static LRESULT msgfilter_hook_callback16( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
+                                        LRESULT *result, void *arg )
+{
+    struct msgfilter_hook_params *params = (struct msgfilter_hook_params*)arg;
+    MSG16 msg16;
+    LRESULT ret;
+
+    msg16.hwnd    = hwnd;
+    msg16.message = msg;
+    msg16.wParam  = wp;
+    msg16.lParam  = lp;
+    msg16.time    = params->time;
+    msg16.pt.x    = params->pt.x;
+    msg16.pt.y    = params->pt.y;
+
+    lp = MapLS( &msg16 );
+    ret = call_hook_16( WH_MSGFILTER, params->code, params->wparam, lp, params->global );
+    UnMapLS( lp );
+
+    *result = 0;
+    return ret;
+}
+
 /* helper for SendMessage16 */
 void call_WH_CALLWNDPROC_hook( HWND16 hwnd, UINT16 *msg, WPARAM16 *wp, LPARAM *lp )
 {
@@ -439,10 +472,18 @@ static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp, BOOL 
         ret = call_hook_16( WH_MSGFILTER, code, wp, thunk, global);
     else
     {
-        map_msg_32_to_16( msg32, &msg16 );
-        lp = MapLS( &msg16 );
-        ret = call_hook_16( WH_MSGFILTER, code, wp, lp, global);
-        UnMapLS( lp );
+        struct msgfilter_hook_params params;
+        MSG *msg = (MSG *)lp;
+        LRESULT result;
+
+        params.time   = msg->time;
+        params.pt.x   = msg->pt.x;
+        params.pt.y   = msg->pt.y;
+        params.code   = code;
+        params.wparam = wp;
+        params.global = global;
+        return WINPROC_CallProc32ATo16( msgfilter_hook_callback16, msg->hwnd, msg->message,
+                                    msg->wParam, msg->lParam, &result, &params );
     }
     return ret;
 }
