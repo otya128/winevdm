@@ -394,7 +394,11 @@ static void CALLBACK MACRO_CloseWindow(LPCSTR lpszWindow)
 
     WINE_TRACE("(%s)\n", debugstr_a(lpszWindow));
 
-    if (!lpszWindow || !lpszWindow[0]) lpszWindow = "main";
+    if (!lpszWindow || !lpszWindow[0])
+    {
+        WINHELP_ReleaseWindow(MACRO_CurrentWindow());
+        return;
+    }
 
     for (win = Globals.win_list; win; win = next)
     {
