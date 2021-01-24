@@ -1404,7 +1404,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
             short       w;
             brdr = *format++;
             // richedit won't display any borders except as part of a table
-            if ((brdr & 0x03) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
+            if ((brdr & 0x03) && (buf[0x14] != HLP_TABLE) && !HLPFILE_RtfAddControl(rd, "{\\pard\\trowd\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\cellx100000\\intbl\\f0\\fs0\\cell\\row\\pard}")) goto done;
 /*
             if ((brdr & 0x01) && !HLPFILE_RtfAddControl(rd, "\\box")) goto done;
             if ((brdr & 0x02) && !HLPFILE_RtfAddControl(rd, "\\brdrt")) goto done;
