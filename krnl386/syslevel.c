@@ -44,6 +44,12 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
 };
 static SYSLEVEL Win16Mutex = { { &critsect_debug, -1, 0, 0, 0, 0 }, 1 };
 
+HANDLE vm_idle_event;
+
+HANDLE WINAPI get_idle_event()
+{
+    return vm_idle_event;
+}
 
 /************************************************************************
  *           GetpWin16Lock    (KERNEL32.93)
@@ -135,7 +141,11 @@ VOID WINAPI _EnterSysLevel(SYSLEVEL *lock)
     TRACE("(%p, level %d): thread %x count after  %d\n",
           lock, lock->level, GetCurrentThreadId(), thread_data->sys_count[lock->level] );
 
-    if (lock == &Win16Mutex) CallTo16_TebSelector = wine_get_fs();
+    if (lock == &Win16Mutex)
+    {
+        CallTo16_TebSelector = wine_get_fs();
+        ResetEvent(vm_idle_event);
+    }
 }
 
 /************************************************************************
@@ -162,6 +172,8 @@ VOID WINAPI _LeaveSysLevel(SYSLEVEL *lock)
     }
 
     RtlLeaveCriticalSection( &lock->crst );
+    
+    if ((lock == &Win16Mutex) && !Win16Mutex.crst.OwningThread) SetEvent(vm_idle_event);
 
     TRACE("(%p, level %d): thread %x count after  %d\n",
           lock, lock->level, GetCurrentThreadId(), thread_data->sys_count[lock->level] );

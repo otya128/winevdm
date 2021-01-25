@@ -241,3 +241,4 @@ EXPORTS
   GLOBAL_FindLink
   vm_inject
   set_vm_inject_cb
+  get_idle_event

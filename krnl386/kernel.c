@@ -37,6 +37,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(module);
 extern DWORD WINAPI GetProcessFlags( DWORD processid );
 
 static DWORD process_dword;
+extern HANDLE vm_idle_event;
 
 DWORD kernel_thread_data_tls = TLS_OUT_OF_INDEXES;
 /***********************************************************************
@@ -233,6 +234,8 @@ BOOL WINAPI KERNEL_DllEntryPoint( DWORD reasion, HINSTANCE16 inst, WORD ds,
     func_wine_call_to_16_vm86 = (wine_call_to_16_vm86_t)GetProcAddress(vm, "wine_call_to_16_vm86");
     func_wine_call_to_16_regs_vm86 = (wine_call_to_16_regs_vm86_t)GetProcAddress(vm, "wine_call_to_16_regs_vm86");
     RtlAddVectoredExceptionHandler(FALSE, fflush_vectored_handler);
+
+    vm_idle_event = CreateEvent(NULL, TRUE, TRUE, NULL);
     return TRUE;
 }
 
