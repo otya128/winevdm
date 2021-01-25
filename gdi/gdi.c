@@ -2798,6 +2798,19 @@ HDC16 WINAPI CreateIC16( LPCSTR driver, LPCSTR device, LPCSTR output,
         if (GetDefaultPrinterA(tmp, &len))
             device = tmp;
     }
+    if (initData && (!driver || !stricmp(driver, "winspool")))
+    {
+        DEVMODEA dma = {0};
+        if (!IsValidDevmodeA(initData, initData->dmSize + initData->dmDriverExtra))
+            initData = NULL;
+        else
+        {
+            memcpy(&dma, initData, initData->dmSize);
+            dma.dmSize = sizeof(DEVMODEA);
+            dma.dmDriverExtra = 0;
+            return HDC_16( CreateICA( driver, device, output, &dma ) );
+        }
+    }
     return HDC_16( CreateICA( driver, device, output, initData ) );
 }
 
