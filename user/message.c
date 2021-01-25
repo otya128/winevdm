@@ -1926,6 +1926,14 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_DROPFILES:
         ret = callback(hwnd32, msg, (WPARAM)hdrop16_to_hdrop32((HDROP16)wParam), lParam, result, arg);
         break;
+    case WM_SETREDRAW:
+    {
+        BOOL redraw = !(GetWindowLongA(hwnd32, GWL_STYLE) & WS_VISIBLE);
+        ret = callback(hwnd32, msg, wParam, lParam, result, arg);
+        if (redraw)
+            RedrawWindow(hwnd32, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
+        break;
+    }
     default:
     {
         if (msg != WM_NULL && msg == drag_list_message)
