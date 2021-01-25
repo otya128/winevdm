@@ -809,6 +809,7 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
                 PostThreadMessage(GetCurrentThreadId(), WM_QUEUESYNC, 0, NULL);
                 break;
             case WM_KEYDOWN:
+            case WM_SYSKEYDOWN:
                 input.type = 1;
                 input.ki.wVk = emsg.paramL;
                 input.ki.wScan = emsg.paramH;
@@ -818,6 +819,7 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
                 SendInput( 1, &input, sizeof(input) );
                 break;
             case WM_KEYUP:
+            case WM_SYSKEYUP:
                 input.type = 1;
                 input.ki.wVk = emsg.paramL;
                 input.ki.wScan = emsg.paramH;
