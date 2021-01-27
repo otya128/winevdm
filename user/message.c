@@ -2832,6 +2832,8 @@ static LRESULT send_message_callback_callback( HWND hwnd, UINT msg, WPARAM wp, L
         } while(GetTickCount() < timeout);
         RestoreThunkLock(count);
     }
+    else if (GetLastError() == ERROR_MESSAGE_SYNC_ONLY)
+        send_message_timeout_callback(hwnd, msg, wp, lp, result, arg);
     args.magic = 0;
     CloseHandle(args.event);
     return TRUE;
