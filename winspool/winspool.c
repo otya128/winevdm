@@ -80,7 +80,7 @@ void DEVMODE32To16(LPDEVMODE16 dst, const LPDEVMODEA src, LONG extra)
     dst->dmSpecVersion = 0x30a;
     dst->dmDriverVersion = src->dmDriverVersion;
     dst->dmSize = sizeof(DEVMODE16);
-    dst->dmDriverExtra = src->dmDriverExtra;
+    dst->dmDriverExtra = 0; 
     dst->dmFields = src->dmFields & 0x7fbf;
     dst->dmOrientation = src->dmOrientation;
     dst->dmPaperSize = src->dmPaperSize;
