@@ -55,11 +55,11 @@ void DEVMODE16To32(CONST DEVMODE16 *src, LPDEVMODEA dst, LONG extra)
 {
     memcpy(dst->dmDeviceName, src->dmDeviceName, min(CCHDEVICENAME16, CCHDEVICENAME));
     dst->dmDeviceName[CCHDEVICENAME - 1] = 0;
-    dst->dmSpecVersion = src->dmSpecVersion;
+    dst->dmSpecVersion = 0x30a;
     dst->dmDriverVersion = src->dmDriverVersion;
-    dst->dmSize = src->dmSize;
-    dst->dmDriverExtra = src->dmDriverExtra;
-    dst->dmFields = src->dmFields;
+    dst->dmSize = sizeof(DEVMODEA);
+    dst->dmDriverExtra = 0;
+    dst->dmFields = src->dmFields & 0x7fbf;
     dst->dmOrientation = src->dmOrientation;
     dst->dmPaperSize = src->dmPaperSize;
     dst->dmPaperLength = src->dmPaperLength;
@@ -72,18 +72,16 @@ void DEVMODE16To32(CONST DEVMODE16 *src, LPDEVMODEA dst, LONG extra)
     dst->dmDuplex = src->dmDuplex;
     dst->dmYResolution = src->dmYResolution;
     dst->dmTTOption = src->dmTTOption;
-    if (extra > sizeof(DEVMODEA))
-        memcpy((char*)dst + sizeof(DEVMODEA), (char*)src + sizeof(DEVMODE16), extra - sizeof(DEVMODEA));
 }
 void DEVMODE32To16(LPDEVMODE16 dst, const LPDEVMODEA src, LONG extra)
 {
     memcpy(dst->dmDeviceName, src->dmDeviceName, min(CCHDEVICENAME16, CCHDEVICENAME));
     dst->dmDeviceName[CCHDEVICENAME16 - 1] = 0;
-    dst->dmSpecVersion = src->dmSpecVersion;
+    dst->dmSpecVersion = 0x30a;
     dst->dmDriverVersion = src->dmDriverVersion;
-    dst->dmSize = src->dmSize;
-    dst->dmDriverExtra = src->dmDriverExtra;
-    dst->dmFields = src->dmFields;
+    dst->dmSize = sizeof(DEVMODE16);
+    dst->dmDriverExtra = 0; 
+    dst->dmFields = src->dmFields & 0x7fbf;
     dst->dmOrientation = src->dmOrientation;
     dst->dmPaperSize = src->dmPaperSize;
     dst->dmPaperLength = src->dmPaperLength;
@@ -96,8 +94,6 @@ void DEVMODE32To16(LPDEVMODE16 dst, const LPDEVMODEA src, LONG extra)
     dst->dmDuplex = src->dmDuplex;
     dst->dmYResolution = src->dmYResolution;
     dst->dmTTOption = src->dmTTOption;
-    if (extra > sizeof(DEVMODEA))
-        memcpy((char*)dst + sizeof(DEVMODE16), (char*)src + sizeof(DEVMODEA), extra - sizeof(DEVMODEA));
 }
 int WINAPI ExtDeviceMode16(HWND16 hwnd16, HANDLE16 hDriver16, LPDEVMODE16 pDevModeOutput, LPSTR pDeviceName, LPSTR pPort, LPDEVMODE16 pDevModeInput, LPSTR pProfile, WORD fMode)
 {
@@ -110,7 +106,7 @@ int WINAPI ExtDeviceMode16(HWND16 hwnd16, HANDLE16 hDriver16, LPDEVMODE16 pDevMo
     }
     LONG size = ExtDeviceMode(HWND_32(hwnd16), (HANDLE)hDriver16, NULL, pDeviceName, pPort, NULL, pProfile, 0);
     if (!fMode)
-        return size;
+        return sizeof(DEVMODE16);
     char *devmode32 = alloca(size);
     char *input32 = alloca(size);
     if (pDevModeInput)
@@ -119,7 +115,7 @@ int WINAPI ExtDeviceMode16(HWND16 hwnd16, HANDLE16 hDriver16, LPDEVMODE16 pDevMo
     size = result;
     if (pDevModeOutput)
         DEVMODE32To16(pDevModeOutput, (LPDEVMODEA)&devmode32[0], size);
-    return result;
+    return fMode == DM_UPDATE ? result : sizeof(DEVMODE16);
 }
 void WINAPI DeviceMode16(HWND16 hwnd, HMODULE16 hModule16, LPSTR lpszDevice, LPSTR lpszOutput)
 {

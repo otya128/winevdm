@@ -3552,7 +3552,13 @@ UINT16 WINAPI GetSystemPaletteEntries16( HDC16 hdc, UINT16 start, UINT16 count,
  */
 HDC16 WINAPI ResetDC16( HDC16 hdc, const DEVMODEA *devmode )
 {
-    return HDC_16( ResetDCA(HDC_32(hdc), devmode) );
+    DEVMODEA dma = {0};
+    if (!IsValidDevmodeA(devmode, devmode->dmSize + devmode->dmDriverExtra))
+        return NULL;
+    memcpy(&dma, devmode, devmode->dmSize);
+    dma.dmSize = sizeof(DEVMODEA);
+    dma.dmDriverExtra = 0;
+    return HDC_16( ResetDCA( HDC_32(hdc), &dma ) );
 }
 
 

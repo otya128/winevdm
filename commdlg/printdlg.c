@@ -75,7 +75,7 @@ void DEVMODE16To32(CONST DEVMODE16 *src, LPDEVMODEA dst)
     dst->dmDeviceName[CCHDEVICENAME - 1] = 0;
     dst->dmSpecVersion = 0x30a;
     dst->dmDriverVersion = src->dmDriverVersion;
-    dst->dmSize = sizeof(DEVMODE16);
+    dst->dmSize = sizeof(DEVMODEA);
     dst->dmDriverExtra = 0;
     dst->dmFields = src->dmFields & 0x7fbf;
     dst->dmOrientation = src->dmOrientation;
