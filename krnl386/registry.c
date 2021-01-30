@@ -28,6 +28,7 @@
 #include "winreg.h"
 #include "wine/debug.h"
 #include "wine/winbase16.h"
+#include "wine/exception.h"
 #include "kernel16_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(reg);
@@ -269,7 +270,14 @@ DWORD WINAPI RegSetValue16( HKEY hkey, LPCSTR name, DWORD type, LPCSTR data, DWO
     if (type != REG_SZ) return 7; // ntvdm returns 7 in this case for some reason
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    count = strnlen(data, count);
+    __TRY
+    {
+        count = strlen(data);
+    }
+    __EXCEPT_ALL
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
     if (!name)
         return RegSetValueEx16(hkey, NULL, 0, type, data, count);
 
@@ -347,7 +355,6 @@ DWORD WINAPI RegSetValueEx16( HKEY hkey, LPCSTR name, DWORD reserved, DWORD type
 {
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
-    if (!count && (type==REG_SZ)) count = strlen( (const char *)data );
     DWORD result = pRegSetValueExA( hkey, name, reserved, type, data, count );
     return result;
 }
