@@ -278,6 +278,7 @@ DWORD WINAPI RegSetValue16( HKEY hkey, LPCSTR name, DWORD type, LPCSTR data, DWO
     {
         return ERROR_INVALID_PARAMETER;
     }
+    __ENDTRY
     if (!name)
         return RegSetValueEx16(hkey, NULL, 0, type, data, count);
 
