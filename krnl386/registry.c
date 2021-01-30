@@ -266,8 +266,10 @@ DWORD WINAPI RegSetValue16( HKEY hkey, LPCSTR name, DWORD type, LPCSTR data, DWO
 {
     HKEY subkey;
     DWORD result;
+    if (type != REG_SZ) return 7; // ntvdm returns 7 in this case for some reason
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
+    count = strnlen(data, count);
     if (!name)
         return RegSetValueEx16(hkey, NULL, 0, type, data, count);
 
