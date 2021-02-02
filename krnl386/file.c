@@ -665,7 +665,8 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
         {
             return HFILE_ERROR;
         }
-        name = RedirectDriveRoot(name, buf, ARRAY_SIZE(buf), FALSE);
+        if (!PathFileExists(name))
+            name = RedirectDriveRoot(name, buf, ARRAY_SIZE(buf), FALSE);
         if (mode & OF_REOPEN)
             namew = strdupOEMtoW(name);
         else
