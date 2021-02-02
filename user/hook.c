@@ -1048,17 +1048,17 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
                 input.type = 1;
                 input.ki.dwFlags = KEYEVENTF_KEYUP;
                 // check the modifers and make sure they are released if not pressed
-                if (!(GetAsyncKeyState(VK_SHIFT & 0x8000)))
+                if (!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
                 {
                     input.ki.wVk = VK_SHIFT;
                     SendInput(1, &input, sizeof(INPUT));
                 }
-                if (!(GetAsyncKeyState(VK_CONTROL & 0x8000)))
+                if (!(GetAsyncKeyState(VK_CONTROL) & 0x8000))
                 {
                     input.ki.wVk = VK_CONTROL;
                     SendInput(1, &input, sizeof(INPUT));
                 }
-                if (!(GetAsyncKeyState(VK_MENU & 0x8000)))
+                if (!(GetAsyncKeyState(VK_MENU) & 0x8000))
                 {
                     input.ki.wVk = VK_MENU;
                     SendInput(1, &input, sizeof(INPUT));
