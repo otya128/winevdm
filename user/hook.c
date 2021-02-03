@@ -800,7 +800,6 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
     INPUT input;
     lp = MapLS( &emsg );
     call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp, TRUE );
-    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0, TRUE );
     UnMapLS( lp );
     TRACE("WH_JOURNALPLAYBACK message: %x paramL: %x paramH: %x\n", emsg.message, emsg.paramL, emsg.paramH);
     switch( emsg.message )
@@ -829,6 +828,7 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
                 SendInput( 1, &input, sizeof(input) );
                 break;
         }
+    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0, TRUE );
 }
 
 
@@ -868,7 +868,11 @@ void install_global_hook()
                     if (!info->global_hhook[index])
                     {
                         if (id == WH_JOURNALPLAYBACK)
+                        {
+                            BlockInput(TRUE);
                             info->hhook[index] = SetTimer(NULL, 0, 100, journal_playback_cb);
+                            return;
+                        }
                         else
                             info->global_hhook[index] = SetWindowsHookExA(id, global_hook_procs[index], 0, *(LPDWORD)((LPBYTE)tdb->teb + 0x24));
                     }
@@ -1040,6 +1044,26 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
         {
             if (type == WH_JOURNALPLAYBACK)
             {
+                INPUT input = {0};
+                input.type = 1;
+                input.ki.dwFlags = KEYEVENTF_KEYUP;
+                // check the modifers and make sure they are released if not pressed
+                if (!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
+                {
+                    input.ki.wVk = VK_SHIFT;
+                    SendInput(1, &input, sizeof(INPUT));
+                }
+                if (!(GetAsyncKeyState(VK_CONTROL) & 0x8000))
+                {
+                    input.ki.wVk = VK_CONTROL;
+                    SendInput(1, &input, sizeof(INPUT));
+                }
+                if (!(GetAsyncKeyState(VK_MENU) & 0x8000))
+                {
+                    input.ki.wVk = VK_MENU;
+                    SendInput(1, &input, sizeof(INPUT));
+                }
+                BlockInput(FALSE);
                 KillTimer(NULL, (UINT_PTR)info->hhook[index]);
             }
             else
