@@ -5028,6 +5028,7 @@ LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
     if (wndproc16)
     {
         MSG msg = { 0 };
+        CLIENTCREATESTRUCT c32;
         msg.hwnd = hDlg;
         msg.message = Msg;
         msg.wParam = wParam;
@@ -5039,6 +5040,13 @@ LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
             if (index >= MAX_WINPROCS32)
                 index -= MAX_WINPROCS32;
             WNDPROC wndproc32 = winproc16_array[index];
+            if ((Msg == WM_CREATE) && is_mdiclient(hWnd16, hDlg))
+            {
+                CLIENTCREATESTRUCT16 *c16 = MapSL(*(DWORD *)lParam);
+                c32.idFirstChild = c16->idFirstChild;
+                c32.hWindowMenu = HMENU_32(c16->hWindowMenu);
+                ((CREATESTRUCTA *)lParam)->lpCreateParams = (LPVOID)&c32;
+            }
             return CallWindowProcA(wndproc32, hDlg, Msg, wParam, lParam);
         }
         WINPROC_CallProc32ATo16(call_window_proc16, msg.hwnd, msg.message, msg.wParam, msg.lParam,

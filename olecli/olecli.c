@@ -509,11 +509,14 @@ OLESTATUS WINAPI OleActivate16(SEGPTR oleobj, UINT uint, BOOL b1, BOOL b2, HWND1
 {
     LPOLEOBJECT oleobj32 = OLEOBJ32(oleobj);
     RECT rect32;
+    DWORD count;
     if (rect)
     {
         RECT16to32(rect, &rect32);
     }
+    ReleaseThunkLock(&count);
     OLESTATUS status = OleActivate(oleobj32, uint, b1, b2, HWND_32(hwnd), rect ? &rect32 : NULL);
+    RestoreThunkLock(count);
     return status;
 }
 
