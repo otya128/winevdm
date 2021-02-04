@@ -712,15 +712,17 @@ OLESTATUS WINAPI OleGetData16(SEGPTR oleobj16, OLECLIPFORMAT fmt, HANDLE16 *hand
         FIXME("unknown format %04x\n", fmt);
     }
     result = OleGetData(oleobj, fmt, &handle32);
-    if (result == OLE_OK && handle32)
+    if ((result == OLE_OK || result == OLE_WARN_DELETE_DATA) && handle32)
     {
         SIZE_T size = GlobalSize(handle32);
         HGLOBAL16 handle16 = GlobalAlloc16(GMEM_MOVEABLE, size);
         *handle = handle16;
         LPVOID mem = GlobalLock16(handle16);
         memcpy(mem, GlobalLock(handle32), size);
-        GlobalFree(handle32);
+        if (result == OLE_WARN_DELETE_DATA)
+            GlobalFree(handle32);
         GlobalUnlock16(handle16);
+        return OLE_WARN_DELETE_DATA;  // hopefully the client will free the handle
     }
     return result;
 }
