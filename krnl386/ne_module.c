@@ -1706,6 +1706,11 @@ BOOL16 WINAPI FreeModule16( HMODULE16 hModule )
     return NE_FreeModule( hModule, TRUE );
 }
 
+DWORD WINAPI WIN16_FreeLibrary16(HINSTANCE16 handle)
+{
+    FreeLibrary16(handle);
+    return MAKELONG(0, CURRENT_STACK16->cs);
+}
 
 /***********************************************************************
  *           FreeLibrary     (KERNEL.96)

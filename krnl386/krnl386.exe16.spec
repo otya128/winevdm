@@ -97,7 +97,7 @@
 93  pascal GetCodeHandle(segptr) GetCodeHandle16
 94  pascal -ret16 DefineHandleTable(word) DefineHandleTable16
 95  pascal -ret16 LoadLibrary(str) LoadLibrary16
-96  pascal -ret16 FreeLibrary(word) FreeLibrary16
+96  pascal FreeLibrary(word) WIN16_FreeLibrary16
 97  pascal -ret16 GetTempFileName(word str word ptr) GetTempFileName16
 98  pascal -ret16 GetLastDiskChange() KERNEL_nop
 99  stub GetLPErrMode
