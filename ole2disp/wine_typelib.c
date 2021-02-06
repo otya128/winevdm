@@ -3341,6 +3341,26 @@ static HRESULT TLB_Mapping_Open(LPCWSTR path, LPVOID *ppBase, DWORD *pdwTLBLengt
     return TYPE_E_CANTLOADLIBRARY;
 }
 
+static HRESULT TLB_FileMoniker_Open(LPCWSTR path, ITypeLib2 **ppTypeLib)
+{
+    LPBC bindctx;
+    HRESULT ret = TYPE_E_CANTLOADLIBRARY;
+    if(CreateBindCtx(0, &bindctx) == S_OK)
+    {
+        ULONG eaten;
+        LPMONIKER moniker;
+        if(MkParseDisplayName(bindctx, (LPOLESTR)path, &eaten, &moniker) == S_OK)
+        {
+            // XXX: VB4 VBX wrapper only returns a ITypeLib, should be safe because LoadTypeLib returns ITypeLib not ITypeLib2
+            if(moniker->lpVtbl->BindToObject(moniker, bindctx, NULL, &IID_ITypeLib, (void **)ppTypeLib) == S_OK)
+                ret = S_OK;
+            moniker->lpVtbl->Release(moniker);
+        }
+        bindctx->lpVtbl->Release(bindctx);
+    }
+    return ret;
+}
+
 #include <winternl.h>
 typedef struct _IO_STATUS_BLOCK {
     union {
@@ -3497,6 +3517,8 @@ static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath
             ret = TYPE_E_CANTLOADLIBRARY;
         IUnknown_Release(pFile);
     }
+    else if (ret == TYPE_E_CANTLOADLIBRARY)
+        ret = TLB_FileMoniker_Open(pszPath, ppTypeLib);
 
     if(*ppTypeLib) {
 	ITypeLibImpl *impl = impl_from_ITypeLib2(*ppTypeLib);
