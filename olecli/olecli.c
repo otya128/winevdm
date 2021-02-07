@@ -719,6 +719,7 @@ OLESTATUS WINAPI OleGetData16(SEGPTR oleobj16, OLECLIPFORMAT fmt, HANDLE16 *hand
         *handle = handle16;
         LPVOID mem = GlobalLock16(handle16);
         memcpy(mem, GlobalLock(handle32), size);
+        GlobalUnlock(handle32);
         if (result == OLE_WARN_DELETE_DATA)
             GlobalFree(handle32);
         GlobalUnlock16(handle16);
