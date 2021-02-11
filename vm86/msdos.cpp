@@ -1367,15 +1367,19 @@ extern "C"
         DWORD cbArgs, LPVOID pArgs, LPDWORD pdwRetCode)
     {
         assert(dwFlags == WCB16_PASCAL);
+        LPVOID args = HeapAlloc(GetProcessHeap(), 0, cbArgs);
+        memcpy(args, pArgs, cbArgs);
 try_again:
         if (TryEnterCriticalSection(&win16_syslevel->crst))
         {
+            vm_inject_state.inject = FALSE;
             /* There are no threads running VM. (e.g. call GetMessage) */
             EnterCriticalSection(&inject_crit_section);
             /* 16-bit stack is allocated by thread_attach(krnl386/kernel.c) */
-            BOOL result = pWOWCallback16Ex(vpfn16, dwFlags, cbArgs, pArgs, pdwRetCode);
+            BOOL result = pWOWCallback16Ex(vpfn16, dwFlags, cbArgs, args, pdwRetCode);
             LeaveCriticalSection(&inject_crit_section);
             LeaveCriticalSection(&win16_syslevel->crst);
+            HeapFree(GetProcessHeap(), 0, args);
             return result;
         }
         EnterCriticalSection(&inject_crit_section);
@@ -1389,7 +1393,7 @@ try_again:
             vm_inject_state.vpfn16 = vpfn16;
             vm_inject_state.dwFlags = dwFlags;
             vm_inject_state.cbArgs = cbArgs;
-            vm_inject_state.pArgs = pArgs;
+            vm_inject_state.pArgs = args;
             vm_inject_state.pdwRetCode = pdwRetCode;
             vm_inject_state.inject = TRUE;
             ResetEvent(inject_event);
@@ -1438,6 +1442,7 @@ try_again:
             *((SEGPTR *)stack) = ret_addr;
             vm_inject_state.cbArgs += sizeof(SEGPTR);
         }
+        HeapFree(GetProcessHeap(), 0, vm_inject_state.pArgs);
         LeaveCriticalSection(&inject_crit_section);
         ret = wine_call_to_16_vm86(vm_inject_state.vpfn16, vm_inject_state.cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, FALSE, NULL, pih);
         if (vm_inject_state.pdwRetCode)
