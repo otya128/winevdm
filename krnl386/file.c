@@ -870,8 +870,9 @@ HFILE16 WINAPI _lclose16( HFILE16 hFile )
  */
 HFILE16 WINAPI _lcreat16( LPCSTR path, INT16 attr )
 {
-	CHAR buf[MAX_PATH];
-	path = RedirectSystemDir(path, buf, MAX_PATH);
+    CHAR buf[MAX_PATH];
+    path = RedirectSystemDir(path, buf, MAX_PATH);
+    path = RedirectDriveRoot(path, buf, MAX_PATH, FALSE);
     return Win32HandleToDosFileHandle( (HANDLE)_lcreat( path, attr ) );
 }
 
@@ -906,8 +907,9 @@ LONG WINAPI _llseek16( HFILE16 hFile, LONG lOffset, INT16 nOrigin )
  */
 HFILE16 WINAPI _lopen16( LPCSTR path, INT16 mode )
 {
-	CHAR buf[MAX_PATH];
-	path = RedirectSystemDir(path, buf, MAX_PATH);
+    CHAR buf[MAX_PATH];
+    path = RedirectSystemDir(path, buf, MAX_PATH);
+    path = RedirectDriveRoot(path, buf, MAX_PATH, FALSE);
     return Win32HandleToDosFileHandle( (HANDLE)_lopen( path, mode ) );
 }
 
