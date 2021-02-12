@@ -224,6 +224,8 @@ static void INT10_FillControllerInformation( BYTE *buffer )
      */
 }
 
+extern int   vga_fb_size;
+extern char *vga_fb_data;
 
 /**********************************************************************
  *         INT10_FillModeInformation
@@ -260,7 +262,7 @@ static BOOL INT10_FillModeInformation( struct _ModeInfoBlock *mib, WORD mode )
      * 13-15 - Reserved.
      */
     {
-        WORD attr = 0x0002; /* set optional info available */
+        WORD attr = 0x0082; /* set optional info available */
         /* Enable color mode - if both Colors & Depth are 0, then assume monochrome*/
         if (ptr->Colors || ptr->Depth)
         {
@@ -444,7 +446,12 @@ static BOOL INT10_FillModeInformation( struct _ModeInfoBlock *mib, WORD mode )
     mib->DirectColorModeInfo = 0; /* not supported */
 
     /* 40 - DWORD: physical address of linear video buffer */
-    mib->PhysBasePtr = 0; /* not supported */
+    if (!vga_fb_data)
+    {
+        vga_fb_data = VirtualAlloc(NULL, 4*1024*1024, MEM_COMMIT, PAGE_READWRITE);
+        vga_fb_size = 4*1024*1024;  // enough to fix largest resolution
+    }
+    mib->PhysBasePtr = vga_fb_data;
 
     /* 44 - DWORD: reserved, always zero */
     mib->Reserved2 = 0;
@@ -695,14 +702,6 @@ static BOOL INT10_SetVideoMode( BIOSDATA *data, WORD mode )
     BOOL clearScreen = TRUE;
 
     if (!ptr)
-        return FALSE;
-
-    /*
-     * Linear framebuffer is not supported.
-     * FIXME - not sure this is valid since mode 19 is 256 color & linear
-     *   of course only 1 window is addressable.
-     */
-    if (mode & 0x4000)
         return FALSE;
 
     /*

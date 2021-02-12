@@ -90,8 +90,8 @@ static int   vga_fb_height;
 static int   vga_fb_depth;
 static int   vga_fb_pitch;
 static int   vga_fb_offset;
-static int   vga_fb_size = 0;
-static char *vga_fb_data = 0;
+int   vga_fb_size = 0;
+char *vga_fb_data = 0;
 static int   vga_fb_window = 0;
 static int   vga_fb_window_size;
 static char *vga_fb_window_data;
@@ -773,6 +773,8 @@ static void WINAPI VGA_DoExit(ULONG_PTR arg)
     VGA_DeinstallTimer();
     DestroyWindow(vga_hwnd);
     vga_hwnd = NULL;
+    VirtualFree(vga_fb_data, 0, MEM_RELEASE);
+    vga_fb_data = NULL;
 }
 
 ModeSet vga_mode;
@@ -848,12 +850,6 @@ static BOOL VGA_SetGraphicMode(WORD mode)
     newSize = vga_fb_width * vga_fb_height * ((vga_fb_depth + 7) / 8);
     if(newSize < 256 * 1024)
       newSize = 256 * 1024;
-
-    if(vga_fb_size < newSize) {
-      HeapFree(GetProcessHeap(), 0, vga_fb_data);
-      vga_fb_data = HeapAlloc(GetProcessHeap(), 0, newSize);
-      vga_fb_size = newSize;
-    }
 
     if(vga_fb_width >= 640 || vga_fb_height >= 480) {
       par.Xres = vga_fb_width;
@@ -1600,7 +1596,7 @@ static void VGA_Poll_Graphics(void)
 {
   unsigned int Pitch, Height, Width, X, Y;
   char *surf;
-  char *dat = vga_fb_data + vga_fb_offset;
+  BYTE *dat = vga_fb_data + vga_fb_offset;
   int   bpp = (vga_fb_depth + 7) / 8;
 
   surf = VGA_Lock(&Pitch,&Height,&Width,NULL);
@@ -1609,7 +1605,7 @@ static void VGA_Poll_Graphics(void)
   /*
    * Synchronize framebuffer contents.
    */
-  if (vga_fb_window != -1)
+  if (!(VGA_CurrentMode & 0x4000) && (vga_fb_window != -1))
       VGA_SyncWindow( TRUE );
 
   /*
@@ -1945,6 +1941,11 @@ static DWORD WINAPI init_vga_window()
     vga_dc = CreateCompatibleDC(GetDC(vga_hwnd));
     vga_bitmap = CreateCompatibleBitmap(GetDC(NULL), par->Xres, par->Yres);
     SelectObject(vga_dc, vga_bitmap);
+    if (!vga_fb_data)
+    {
+        vga_fb_data = VirtualAlloc(NULL, 4*1024*1024, MEM_COMMIT, PAGE_READWRITE);
+        vga_fb_size = 4*1024*1024;  // enough to fix largest resolution
+    }
     if (!vga_bitmap)
     {
         ERR("Failed to create vga_bitmap\n");
