@@ -3518,7 +3518,11 @@ static HRESULT TLB_ReadTypeLib(LPCWSTR pszFileName, LPWSTR pszPath, UINT cchPath
         IUnknown_Release(pFile);
     }
     else if (ret == TYPE_E_CANTLOADLIBRARY)
+    {
         ret = TLB_FileMoniker_Open(pszPath, ppTypeLib);
+        if (ret == S_OK)
+            return S_OK;
+    }
 
     if(*ppTypeLib) {
 	ITypeLibImpl *impl = impl_from_ITypeLib2(*ppTypeLib);
