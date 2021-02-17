@@ -495,14 +495,17 @@ typedef struct {
 	WORD rettype;	/* return type VT_?? or offset to ret type */
 	WORD vtblpos;	/* position in vtbl? */
 	WORD funcflags; /* present if magic & 0x20 */
-/* Param list starts, repeat next two as required */
 #if 0
+	WORD res20;	/* flags? this and below only present if magic & 0x10 */
+	WORD res22;	/* string? */
+/* Param list starts, repeat next two as required */
 	WORD  name;	/* offset to 2nd letter of name */
 	WORD+ type;	/* VT_ of param */
 #endif
 } SLTG_Function;
 
 #define SLTG_FUNCTION_FLAGS_PRESENT 0x20
+#define SLTG_FUNCTION_UNK_PRESENT 0x10
 #define SLTG_FUNCTION_MAGIC 0x4c
 #define SLTG_DISPATCH_FUNCTION_MAGIC 0xcb
 #define SLTG_STATIC_FUNCTION_MAGIC 0x8b

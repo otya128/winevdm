@@ -406,7 +406,7 @@ static HRESULT query_typelib_path( REFGUID guid, WORD wMaj, WORD wMin,
         }
         else
         {
-            *path = HeapAlloc(GetProcessHeap(), 0, strlen(Patha + 1));
+            *path = HeapAlloc(GetProcessHeap(), 0, strlen(Patha) + 1);
             strcpy(*path, Patha);
             hr = S_OK;
         }
@@ -4368,7 +4368,7 @@ static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
         int param;
 	WORD *pType, *pArg;
 
-        switch (pFunc->magic & ~SLTG_FUNCTION_FLAGS_PRESENT) {
+        switch (pFunc->magic & ~(SLTG_FUNCTION_FLAGS_PRESENT | SLTG_FUNCTION_UNK_PRESENT)) {
         case SLTG_FUNCTION_MAGIC:
             pFuncDesc->funcdesc.funckind = FUNC_PUREVIRTUAL;
             break;
@@ -4379,7 +4379,7 @@ static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
             pFuncDesc->funcdesc.funckind = FUNC_STATIC;
             break;
         default:
-	    FIXME("unimplemented func magic = %02x\n", pFunc->magic & ~SLTG_FUNCTION_FLAGS_PRESENT);
+	    FIXME("unimplemented func magic = %02x\n", pFunc->magic & ~(SLTG_FUNCTION_FLAGS_PRESENT | SLTG_FUNCTION_UNK_PRESENT));
 	    continue;
 	}
 	pFuncDesc->Name = SLTG_ReadName(pNameTable, pFunc->name, pTI->pTypeLib);
