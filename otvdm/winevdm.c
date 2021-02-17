@@ -48,6 +48,8 @@ static char *build_command_line( char **argv )
     int len;
     char *p, **arg, *cmd_line;
 
+    if (!argv[0])
+        return "";
     len = 0;
     for (arg = argv; *arg; arg++)
     {
