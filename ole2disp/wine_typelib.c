@@ -9013,7 +9013,7 @@ static HRESULT WINAPI ITypeInfo_fnGetRefTypeInfo(
                             ref_type->pImpTLInfo->lcid, &libnam, TRUE);
                     if (FAILED(result))
                     {
-                        libnamW = HeapAlloc(GetProcessHeap(), 0, wcslen(ref_type->pImpTLInfo->name + 1) * sizeof(WCHAR));
+                        libnamW = HeapAlloc(GetProcessHeap(), 0, (wcslen(ref_type->pImpTLInfo->name) + 1) * sizeof(WCHAR));
                         wcscpy(libnamW, ref_type->pImpTLInfo->name);
                     }
                     else
