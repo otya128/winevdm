@@ -386,18 +386,18 @@ typedef struct {
 /* we then get 0x40 bytes worth of 0xffff or small numbers followed by
    nrOfFileBlks - 2 of these */
 typedef struct {
-	WORD small_no;
 	SLTG_Name index_name; /* This refers to a name in the directory */
 	SLTG_Name other_name; /* Another one of these weird names */
 	WORD res1a;	      /* 0xffff */
 	WORD name_offs;	      /* offset to name in name table */
-	WORD more_bytes;      /* if this is non-zero we get this many
+	WORD hlpstr_len;      /* if this is non-zero we get this many
 				 bytes before the next element, which seem
 				 to reference the docstring of the type ? */
 	WORD res20;	      /* 0xffff */
 	DWORD helpcontext;
 	WORD res26;	      /* 0xffff */
         GUID uuid;
+        WORD typekind;
 } SLTG_OtherTypeInfo;
 
 /* Next we get WORD 0x0003 followed by a DWORD which if we add to
@@ -495,14 +495,17 @@ typedef struct {
 	WORD rettype;	/* return type VT_?? or offset to ret type */
 	WORD vtblpos;	/* position in vtbl? */
 	WORD funcflags; /* present if magic & 0x20 */
-/* Param list starts, repeat next two as required */
 #if 0
+	WORD res20;	/* flags? this and below only present if magic & 0x10 */
+	WORD res22;	/* string? */
+/* Param list starts, repeat next two as required */
 	WORD  name;	/* offset to 2nd letter of name */
 	WORD+ type;	/* VT_ of param */
 #endif
 } SLTG_Function;
 
 #define SLTG_FUNCTION_FLAGS_PRESENT 0x20
+#define SLTG_FUNCTION_UNK_PRESENT 0x10
 #define SLTG_FUNCTION_MAGIC 0x4c
 #define SLTG_DISPATCH_FUNCTION_MAGIC 0xcb
 #define SLTG_STATIC_FUNCTION_MAGIC 0x8b
@@ -584,7 +587,9 @@ typedef struct {
   DWORD memid;
   WORD helpcontext; /* ?? */
   WORD helpstring; /* ?? */
-  WORD varflags; /* only present if magic & 0x02 */
+  WORD varflags; /* only present if magic & 0x20 */
+  WORD res12; /* flags? this and below only present if magic & 0x10 */
+  WORD res14; /* string? */
 } SLTG_Variable;
 
 #define SLTG_VAR_MAGIC 0x0a

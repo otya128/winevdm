@@ -1030,6 +1030,7 @@ void CDECL ITypeInfo_16_32_ReleaseFuncDesc(SEGPTR This, SEGPTR args16_pFuncDesc)
     TRACE("(%04x:%04x(%p),%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_pFuncDesc);
     iface32->lpVtbl->ReleaseFuncDesc(iface32, args32_pFuncDesc);
     free_funcdesc16(&wrap->desc16);
+    UnMapLS(args16_pFuncDesc);
     HeapFree(GetProcessHeap(), 0, wrap);
 }
 #endif
@@ -1184,6 +1185,7 @@ void free_vardesc16(VARDESC16 *a16)
     if (a16->varkind == VAR_CONST)
     {
         FIXME("VAR_CONST\n");
+        UnMapLS(a16->lpvarValue);
     }
     free_elemdesc16(&a16->elemdescVar);
 }
@@ -1343,6 +1345,7 @@ void CDECL ITypeInfo_16_32_ReleaseVarDesc(SEGPTR This, SEGPTR args16_pVarDesc)
     iface32->lpVtbl->ReleaseVarDesc(iface32, args32_pVarDesc);
     /**/
     free_vardesc16(desc16);
+    UnMapLS(args16_pVarDesc);
     HeapFree(GetProcessHeap(), 0, w);
     /**/
 }
