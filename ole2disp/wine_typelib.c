@@ -1242,6 +1242,7 @@ typedef struct tagTLBFuncDesc
     int HelpStringContext;
     const TLBString *HelpString;
     const TLBString *Entry;            /* if IS_INTRESOURCE true, it's numeric; if -1 it isn't present */
+    const TLBString *HelpFile;
     struct list custdata_list;
 } TLBFuncDesc;
 
@@ -1254,6 +1255,7 @@ typedef struct tagTLBVarDesc
     int HelpContext;
     int HelpStringContext;
     const TLBString *HelpString;
+    const TLBString *HelpFile;
     struct list custdata_list;
 } TLBVarDesc;
 
@@ -4251,7 +4253,7 @@ static void SLTG_DoVars(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI, unsign
 
       if (pItem->magic != SLTG_VAR_MAGIC &&
           pItem->magic != SLTG_VAR_WITH_FLAGS_MAGIC &&
-          pItem->magic != SLTG_VAR_UNK) {
+          pItem->magic != SLTG_VAR_WITH_HELPFILE) {
 	  FIXME_(typelib)("var magic = %02x\n", pItem->magic);
           return;
       }
@@ -4269,6 +4271,12 @@ static void SLTG_DoVars(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI, unsign
       {
           pVarDesc->HelpString = decode_string(hlp_strings, pBlk + pItem->helpstring, pNameTable - pBlk, pTI->pTypeLib);
           TRACE_(typelib)("helpstring = %s\n", debugstr_w(pVarDesc->HelpString->str));
+      }
+
+      if ((pItem->magic == SLTG_VAR_WITH_HELPFILE) && (pItem->helpfile != 0xffff))
+      {
+          pVarDesc->HelpFile = decode_string(hlp_strings, pBlk + pItem->helpfile, pNameTable - pBlk, pTI->pTypeLib);
+          TRACE_(typelib)("helpfile = %s\n", debugstr_w(pVarDesc->HelpFile->str));
       }
 
       if(pItem->flags & 0x02)
@@ -4368,7 +4376,7 @@ static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
         int param;
 	WORD *pType, *pArg;
 
-        switch (pFunc->magic & ~(SLTG_FUNCTION_FLAGS_PRESENT | SLTG_FUNCTION_UNK_PRESENT)) {
+        switch (pFunc->magic & ~(SLTG_FUNCTION_FLAGS_PRESENT | SLTG_FUNCTION_HELPFILE_PRESENT)) {
         case SLTG_FUNCTION_MAGIC:
             pFuncDesc->funcdesc.funckind = FUNC_PUREVIRTUAL;
             break;
@@ -4379,7 +4387,7 @@ static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
             pFuncDesc->funcdesc.funckind = FUNC_STATIC;
             break;
         default:
-	    FIXME("unimplemented func magic = %02x\n", pFunc->magic & ~(SLTG_FUNCTION_FLAGS_PRESENT | SLTG_FUNCTION_UNK_PRESENT));
+	    FIXME("unimplemented func magic = %02x\n", pFunc->magic & ~(SLTG_FUNCTION_FLAGS_PRESENT | SLTG_FUNCTION_HELPFILE_PRESENT));
 	    continue;
 	}
 	pFuncDesc->Name = SLTG_ReadName(pNameTable, pFunc->name, pTI->pTypeLib);
@@ -4390,15 +4398,21 @@ static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
 	pFuncDesc->funcdesc.cParams = pFunc->nacc >> 3;
 	pFuncDesc->funcdesc.cParamsOpt = (pFunc->retnextopt & 0x7e) >> 1;
 	pFuncDesc->funcdesc.oVft = (pFunc->vtblpos & ~1) * sizeof(void *) / pTI->pTypeLib->ptr_size;
-        if (pFunc->helpstring != 0xffff)
-            pFuncDesc->HelpString = decode_string(hlp_strings, pBlk + pFunc->helpstring, pNameTable - pBlk, pTI->pTypeLib);
+	if (pFunc->helpstring != 0xffff)
+		pFuncDesc->HelpString = decode_string(hlp_strings, pBlk + pFunc->helpstring, pNameTable - pBlk, pTI->pTypeLib);
 
 	if(pFunc->magic & SLTG_FUNCTION_FLAGS_PRESENT)
-	    pFuncDesc->funcdesc.wFuncFlags = pFunc->funcflags;
-    if (pFunc->inv & 0x08)
-    {
-        pFuncDesc->funcdesc.wFuncFlags |= FUNCFLAG_FRESTRICTED;
-    }
+		pFuncDesc->funcdesc.wFuncFlags = pFunc->funcflags;
+	if (pFunc->inv & 0x08)
+	{
+		pFuncDesc->funcdesc.wFuncFlags |= FUNCFLAG_FRESTRICTED;
+	}
+
+	if ((pFunc->magic & SLTG_FUNCTION_HELPFILE_PRESENT) && (pFunc->helpfile != 0xffff))
+	{
+		pFuncDesc->HelpFile = decode_string(hlp_strings, pBlk + pFunc->helpfile, pNameTable - pBlk, pTI->pTypeLib);
+		TRACE_(typelib)("helpfile = %s\n", debugstr_w(pFuncDesc->HelpFile->str));
+	}
 
 	if(pFunc->retnextopt & 0x80)
 	    pType = &pFunc->rettype;
@@ -4944,8 +4958,6 @@ static ITypeLib2* ITypeLib2_Constructor_SLTG(LPVOID pLib, DWORD dwTLBLength)
 #define X(x) TRACE_(typelib)("tt "#x": %x\n",pTITail->res##x);
       X(06);
       X(16);
-      X(18);
-      X(1a);
       X(1e);
       X(24);
       X(26);
@@ -8676,7 +8688,12 @@ static HRESULT WINAPI ITypeInfo_fnGetDocumentation( ITypeInfo2 *iface,
             if(pdwHelpContext)
               *pdwHelpContext=pFDesc->helpcontext;
             if(pBstrHelpFile)
-              *pBstrHelpFile = SysAllocString(TLB_get_bstr(This->pTypeLib->HelpFile));
+            {
+              if(pFDesc->HelpFile)
+                *pBstrHelpFile = SysAllocString(TLB_get_bstr(pFDesc->HelpFile));
+              else
+                *pBstrHelpFile = SysAllocString(TLB_get_bstr(This->pTypeLib->HelpFile));
+            }
             return S_OK;
         }
         pVDesc = TLB_get_vardesc_by_memberid(This->vardescs, This->typeattr.cVars, memid);
@@ -8688,7 +8705,12 @@ static HRESULT WINAPI ITypeInfo_fnGetDocumentation( ITypeInfo2 *iface,
             if(pdwHelpContext)
               *pdwHelpContext=pVDesc->HelpContext;
             if(pBstrHelpFile)
-              *pBstrHelpFile = SysAllocString(TLB_get_bstr(This->pTypeLib->HelpFile));
+            {
+              if(pVDesc->HelpFile)
+                *pBstrHelpFile = SysAllocString(TLB_get_bstr(pVDesc->HelpFile));
+              else
+                *pBstrHelpFile = SysAllocString(TLB_get_bstr(This->pTypeLib->HelpFile));
+            }
             return S_OK;
         }
     }
