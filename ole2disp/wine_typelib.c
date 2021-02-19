@@ -1512,6 +1512,8 @@ static void dump_TLBFuncDescOne(const TLBFuncDesc * pfd)
   dump_FUNCDESC(&(pfd->funcdesc));
 
   MESSAGE("\thelpstring: %s\n", debugstr_w(TLB_get_bstr(pfd->HelpString)));
+  MESSAGE("\thelpfile: %s\n", debugstr_w(TLB_get_bstr(pfd->HelpFile)));
+  MESSAGE("\thelpcontext: %x\n", pfd->helpcontext);
   if(pfd->Entry == NULL)
       MESSAGE("\tentry: (null)\n");
   else if(pfd->Entry == (void*)-1)
@@ -3905,6 +3907,15 @@ static const TLBString *decode_string(const BYTE *table, const char *stream, DWO
     return tlbstr;
 }
 
+static DWORD calc_helpcontext(DWORD base, WORD value, char *pBlk)
+{
+    if (!(value & 1))
+        return *(DWORD *)(pBlk + value);
+    if (value & 2)
+        return base - (value >> 2);
+    return base + (value >> 2);
+}
+
 static WORD SLTG_ReadString(const char *ptr, const TLBString **pStr, ITypeLibImpl *lib)
 {
     WORD bytelen;
@@ -4236,7 +4247,7 @@ static char *SLTG_DoImpls(char *pBlk, ITypeInfoImpl *pTI,
 }
 
 static void SLTG_DoVars(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI, unsigned short cVars,
-			const char *pNameTable, const sltg_ref_lookup_t *ref_lookup, const BYTE *hlp_strings)
+			const char *pNameTable, const sltg_ref_lookup_t *ref_lookup, const BYTE *hlp_strings, DWORD helpbase)
 {
   TLBVarDesc *pVarDesc;
   const TLBString *prevName = NULL;
@@ -4271,6 +4282,12 @@ static void SLTG_DoVars(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI, unsign
       {
           pVarDesc->HelpString = decode_string(hlp_strings, pBlk + pItem->helpstring, pNameTable - pBlk, pTI->pTypeLib);
           TRACE_(typelib)("helpstring = %s\n", debugstr_w(pVarDesc->HelpString->str));
+      }
+
+      if (pItem->helpcontext != 0xfffe)
+      {
+          pVarDesc->HelpContext = calc_helpcontext(helpbase, pItem->helpcontext, pBlk);
+          TRACE_(typelib)("helpcontext = 0x%x\n", pVarDesc->HelpContext);
       }
 
       if ((pItem->magic == SLTG_VAR_WITH_HELPFILE) && (pItem->helpfile != 0xffff))
@@ -4361,7 +4378,7 @@ static void SLTG_DoVars(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI, unsign
 
 static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
 			 unsigned short cFuncs, char *pNameTable, const sltg_ref_lookup_t *ref_lookup,
-			 const BYTE *hlp_strings)
+			 const BYTE *hlp_strings, DWORD helpbase)
 {
     SLTG_Function *pFunc;
     unsigned short i;
@@ -4409,10 +4426,10 @@ static void SLTG_DoFuncs(char *pBlk, char *pFirstItem, ITypeInfoImpl *pTI,
 	}
 
 	if ((pFunc->magic & SLTG_FUNCTION_HELPFILE_PRESENT) && (pFunc->helpfile != 0xffff))
-	{
 		pFuncDesc->HelpFile = decode_string(hlp_strings, pBlk + pFunc->helpfile, pNameTable - pBlk, pTI->pTypeLib);
-		TRACE_(typelib)("helpfile = %s\n", debugstr_w(pFuncDesc->HelpFile->str));
-	}
+
+	if (pFunc->helpcontext != 0xfffe)
+		pFuncDesc->helpcontext = calc_helpcontext(helpbase, pFunc->helpcontext, pBlk);
 
 	if(pFunc->retnextopt & 0x80)
 	    pType = &pFunc->rettype;
@@ -4519,7 +4536,7 @@ static void SLTG_ProcessInterface(char *pBlk, ITypeInfoImpl *pTI,
     }
 
     if (pTITail->funcs_off != 0xffff)
-        SLTG_DoFuncs(pBlk, pBlk + pTITail->funcs_off, pTI, pTITail->cFuncs, pNameTable, ref_lookup, hlp_strings);
+        SLTG_DoFuncs(pBlk, pBlk + pTITail->funcs_off, pTI, pTITail->cFuncs, pNameTable, ref_lookup, hlp_strings, pTITail->helpctxtbase);
 
     heap_free(ref_lookup);
 
@@ -4531,7 +4548,7 @@ static void SLTG_ProcessRecord(char *pBlk, ITypeInfoImpl *pTI,
 			       const char *pNameTable, SLTG_TypeInfoHeader *pTIHeader,
 			       const SLTG_TypeInfoTail *pTITail, const BYTE *hlp_strings)
 {
-  SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, NULL, hlp_strings);
+  SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, NULL, hlp_strings, pTITail->helpctxtbase);
 }
 
 static void SLTG_ProcessAlias(char *pBlk, ITypeInfoImpl *pTI,
@@ -4572,10 +4589,10 @@ static void SLTG_ProcessDispatch(char *pBlk, ITypeInfoImpl *pTI,
                                   pNameTable);
 
   if (pTITail->vars_off != 0xffff)
-    SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, ref_lookup, hlp_strings);
+    SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, ref_lookup, hlp_strings, pTITail->helpctxtbase);
 
   if (pTITail->funcs_off != 0xffff)
-    SLTG_DoFuncs(pBlk, pBlk + pTITail->funcs_off, pTI, pTITail->cFuncs, pNameTable, ref_lookup, hlp_strings);
+    SLTG_DoFuncs(pBlk, pBlk + pTITail->funcs_off, pTI, pTITail->cFuncs, pNameTable, ref_lookup, hlp_strings, pTITail->helpctxtbase);
 
   if (pTITail->impls_off != 0xffff)
     SLTG_DoImpls(pBlk + pTITail->impls_off, pTI, FALSE, ref_lookup, pTITail->cVars);
@@ -4594,7 +4611,7 @@ static void SLTG_ProcessEnum(char *pBlk, ITypeInfoImpl *pTI,
 			     const char *pNameTable, SLTG_TypeInfoHeader *pTIHeader,
 			     const SLTG_TypeInfoTail *pTITail, const BYTE *hlp_strings)
 {
-  SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, NULL, hlp_strings);
+  SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, NULL, hlp_strings, pTITail->helpctxtbase);
 }
 
 static void SLTG_DoModuleEntry(char *pNameTable, ITypeInfoImpl *pTI, int count, int size, char *base)
@@ -4644,10 +4661,10 @@ static void SLTG_ProcessModule(char *pBlk, ITypeInfoImpl *pTI,
                                   pNameTable);
 
   if (pTITail->vars_off != 0xffff)
-    SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, ref_lookup, hlp_strings);
+    SLTG_DoVars(pBlk, pBlk + pTITail->vars_off, pTI, pTITail->cVars, pNameTable, ref_lookup, hlp_strings, pTITail->helpctxtbase);
 
   if (pTITail->funcs_off != 0xffff)
-    SLTG_DoFuncs(pBlk, pBlk + pTITail->funcs_off, pTI, pTITail->cFuncs, pNameTable, ref_lookup, hlp_strings);
+    SLTG_DoFuncs(pBlk, pBlk + pTITail->funcs_off, pTI, pTITail->cFuncs, pNameTable, ref_lookup, hlp_strings, pTITail->helpctxtbase);
 
   if (pTITail->cFuncs != 0)
     SLTG_DoModuleEntry(pNameTable, pTI, pTITail->cFuncs, pTITail->module_entry_info_size, (char*)pTITail + pTITail->module_entry_info_off - 2);

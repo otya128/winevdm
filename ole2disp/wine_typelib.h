@@ -436,7 +436,7 @@ typedef struct {
 /*12*/  WORD impls_bytes; /* bytes used by implemented type data */
 /*14*/  WORD tdescalias_vt; /* for TKIND_ALIAS */
 /*16*/  WORD res16; /* always ffff */
-/*18*/  DWORD helpctxtbase; /* base offset of member help context */
+/*18*/  DWORD helpctxtbase; /* base value of member help context */
 /*1c*/  WORD simple_alias; /* tdescalias_vt is a vt rather than an offset? */
 /*1e*/  WORD res1e; /* always 0000 */
 /*20*/  WORD cbSizeInstance;
