@@ -2285,6 +2285,7 @@ HGDIOBJ16 WINAPI GetStockObject16( INT16 obj )
     HGDIOBJ16 ret = HGDIOBJ_16( GetStockObject( obj ) );
     if (ret && (obj <= STOCK_LAST))
         stock[obj] = ret;
+    return ret;
 }
 
 
