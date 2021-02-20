@@ -61,6 +61,7 @@ struct saved_visrgn
 static struct list saved_regions = LIST_INIT( saved_regions );
 
 static HPALETTE16 hPrimaryPalette;
+static HGDIOBJ16 stock[STOCK_LAST + 1] = {0};
 
 void WINAPI DibMapGlobalMemory(WORD sel, void *base, DWORD size);
 void WINAPI DibUnmapGlobalMemory(void *base, DWORD size);
@@ -1952,6 +1953,8 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
         haxmvm_DeleteObject = (BOOL(*)(HGDIOBJ))GetProcAddress(haxmvm, "haxmvm_DeleteObject");
         init = TRUE;
     }
+    for (int i = 0; i <= STOCK_LAST; i++)
+        if (obj == stock[i]) return TRUE;
     if (type == OBJ_BITMAP) free_segptr_bits( obj );
     else if ((type == OBJ_PAL) && GetPtr16(object, 1))
     {
@@ -2279,7 +2282,9 @@ HGDIOBJ16 WINAPI GetStockObject16( INT16 obj )
 {
     if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (obj == SYSTEM_FONT))
         obj = SYSTEM_FIXED_FONT;
-    return HGDIOBJ_16( GetStockObject( obj ) );
+    HGDIOBJ16 ret = HGDIOBJ_16( GetStockObject( obj ) );
+    if (ret && (obj <= STOCK_LAST))
+        stock[obj] = ret;
 }
 
 
