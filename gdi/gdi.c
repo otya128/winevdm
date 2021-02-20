@@ -2500,7 +2500,12 @@ INT16 WINAPI SelectVisRgn16( HDC16 hdc, HRGN16 hrgn )
  */
 LONG WINAPI SetBitmapBits16( HBITMAP16 hbitmap, LONG count, LPCVOID buffer )
 {
-    return SetBitmapBits( HBITMAP_32(hbitmap), count, buffer );
+    HBITMAP hbmp32 = HBITMAP_32(hbitmap);
+    BITMAP bmp;
+    if (GetObject(hbmp32, sizeof(BITMAP), &bmp) != sizeof(BITMAP))
+        return 0;
+    DWORD size = bmp.bmHeight * bmp.bmWidthBytes;
+    return SetBitmapBits( hbmp32, min(size, count), buffer );
 }
 
 #include <pshpack1.h>
