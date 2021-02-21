@@ -1277,24 +1277,45 @@ BOOL16 WINAPI WinHelp16( HWND16 hWnd, LPCSTR lpHelpFile, UINT16 wCommand,
     DWORD mutex_count;
     BOOL success_exec = FALSE;
     //trying to 16bit WINHELP.EXE
-    ret = wine_WinHelp16A(hWnd, lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
+    switch (wCommand)
+    {
+        case HELP_CONTEXT:
+        case HELP_SETCONTENTS:
+        case HELP_CONTENTS:
+        case HELP_CONTEXTPOPUP:
+        case HELP_FORCEFILE:
+        case HELP_HELPONHELP:
+        case HELP_FINDER:
+        case HELP_QUIT:
+            break;
+        case HELP_KEY:
+        case HELP_PARTIALKEY:
+        case HELP_COMMAND:
+        case HELP_SETWINPOS:
+            dwData = (DWORD)MapSL(dwData);
+            break;
+        default:
+            FIXME("Unknown help command %d\n",wCommand);
+            return FALSE;
+    }
+    ret = wine_WinHelp16A(hWnd, lpHelpFile, wCommand, dwData, &success_exec);
     if (!success_exec)
     {
         if (!is_builtin_winhlp32_stub())
         {
             /* FIXME: some programs expect WinHelp not to yield. (wCommand=HELP_QUIT) */
             ReleaseThunkLock(&mutex_count);
-            ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData));
+            ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, dwData);
             RestoreThunkLock(mutex_count);
         }
         else
         {
-            ret = wine_WinHelp32A(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData), &success_exec);
+            ret = wine_WinHelp32A(WIN_Handle32(hWnd), lpHelpFile, wCommand, dwData, &success_exec);
             if (!success_exec)
             {
                 /* FIXME: some programs expect WinHelp not to yield. (wCommand=HELP_QUIT) */
                 ReleaseThunkLock(&mutex_count);
-                ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, (DWORD)MapSL(dwData));
+                ret = WinHelpA(WIN_Handle32(hWnd), lpHelpFile, wCommand, dwData);
                 RestoreThunkLock(mutex_count);
             }
         }

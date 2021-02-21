@@ -436,8 +436,7 @@ typedef struct {
 /*12*/  WORD impls_bytes; /* bytes used by implemented type data */
 /*14*/  WORD tdescalias_vt; /* for TKIND_ALIAS */
 /*16*/  WORD res16; /* always ffff */
-/*18*/  WORD res18; /* always 0000 */
-/*1a*/  WORD res1a; /* always 0000 */
+/*18*/  DWORD helpctxtbase; /* base value of member help context */
 /*1c*/  WORD simple_alias; /* tdescalias_vt is a vt rather than an offset? */
 /*1e*/  WORD res1e; /* always 0000 */
 /*20*/  WORD cbSizeInstance;
@@ -495,17 +494,17 @@ typedef struct {
 	WORD rettype;	/* return type VT_?? or offset to ret type */
 	WORD vtblpos;	/* position in vtbl? */
 	WORD funcflags; /* present if magic & 0x20 */
-#if 0
-	WORD res20;	/* flags? this and below only present if magic & 0x10 */
-	WORD res22;	/* string? */
+	WORD res18;	/* flags? this and below only present if magic & 0x10 */
+	WORD helpfile;	/* encoded help file name */
 /* Param list starts, repeat next two as required */
+#if 0
 	WORD  name;	/* offset to 2nd letter of name */
 	WORD+ type;	/* VT_ of param */
 #endif
 } SLTG_Function;
 
 #define SLTG_FUNCTION_FLAGS_PRESENT 0x20
-#define SLTG_FUNCTION_UNK_PRESENT 0x10
+#define SLTG_FUNCTION_HELPFILE_PRESENT 0x10
 #define SLTG_FUNCTION_MAGIC 0x4c
 #define SLTG_DISPATCH_FUNCTION_MAGIC 0xcb
 #define SLTG_STATIC_FUNCTION_MAGIC 0x8b
@@ -588,13 +587,13 @@ typedef struct {
   WORD helpcontext; /* ?? */
   WORD helpstring; /* ?? */
   WORD varflags; /* only present if magic & 0x20 */
-  WORD res12; /* flags? this and below only present if magic & 0x10 */
-  WORD res14; /* string? */
+  WORD res14; /* flags? this and below only present if magic & 0x10 */
+  WORD helpfile; /* encoded help file name */
 } SLTG_Variable;
 
 #define SLTG_VAR_MAGIC 0x0a
 #define SLTG_VAR_WITH_FLAGS_MAGIC 0x2a
-#define SLTG_VAR_UNK 0x3a // hidden?
+#define SLTG_VAR_WITH_HELPFILE 0x3a
 
 
 /* CARRAYs look like this
