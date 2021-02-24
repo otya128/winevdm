@@ -1500,17 +1500,26 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             CREATESTRUCT16 *cs16 = MapSL(lParam);
             CREATESTRUCTA cs;
             MDICREATESTRUCTA mdi_cs;
-            BOOL mdiclient = GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD || is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg));
+            CLIENTCREATESTRUCT c32;
+            BOOL mdichild = GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD ? TRUE : FALSE;
+            BOOL mdiclient = is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg));
 
             CREATESTRUCT16to32A( hwnd32, cs16, &cs );
-            if (mdiclient)
+            if (mdichild)
             {
                 MDICREATESTRUCT16 *mdi_cs16 = MapSL(cs16->lpCreateParams);
                 MDICREATESTRUCT16to32A(mdi_cs16, &mdi_cs);
                 cs.lpCreateParams = &mdi_cs;
             }
+            else if (mdiclient)
+            {
+                CLIENTCREATESTRUCT16 *c16 = MapSL(cs16->lpCreateParams);
+                c32.idFirstChild = c16->idFirstChild;
+                c32.hWindowMenu = HMENU_32(c16->hWindowMenu);
+                cs.lpCreateParams = (LPVOID)&c32;
+            }
             ret = callback( hwnd32, msg, wParam, (LPARAM)&cs, result, arg );
-            if (mdiclient)
+            if (mdiclient || mdichild)
                 cs.lpCreateParams = cs16->lpCreateParams;
             CREATESTRUCT32Ato16( hwnd32, &cs, cs16 );
         }
@@ -1531,7 +1540,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32( HIWORD(lParam) ),
                             (LPARAM)WIN_Handle32( LOWORD(lParam) ), result, arg );
         else /* message sent to MDI client */
-            ret = callback( hwnd32, msg, wParam, lParam, result, arg );
+            ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
         break;
     case WM_MDIGETACTIVE:
         {
