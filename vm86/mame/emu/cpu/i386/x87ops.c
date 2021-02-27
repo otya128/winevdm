@@ -2404,16 +2404,19 @@ void x87_fprem(UINT8 modrm)
 		floatx80 a0 = ST(0);
 		floatx80 b1 = ST(1);
 
+	 	floatx80 a0_abs = packFloatx80(0, (a0.high & 0x7FFF), a0.low);
+		floatx80 b1_abs = packFloatx80(0, (b1.high & 0x7FFF), b1.low);
 		m_x87_sw &= ~X87_SW_C2;
 
 		//int d=extractFloatx80Exp(a0)-extractFloatx80Exp(b1);
 		int d = (a0.high & 0x7FFF) - (b1.high & 0x7FFF);
 		if (d < 64) {
-			floatx80 t=floatx80_div(a0, b1);
+			floatx80 t=floatx80_div(a0_abs, b1_abs);
 			int64 q = floatx80_to_int64_round_to_zero(t);
 			floatx80 qf = int64_to_floatx80(q);
-			floatx80 tt = floatx80_mul(b1, qf);
-			result = floatx80_sub(a0, tt);
+			floatx80 tt = floatx80_mul(b1_abs, qf);
+			result = floatx80_sub(a0_abs, tt);
+	 		result.high |= a0.high & 0x8000;
 			// C2 already 0
 			m_x87_sw &= ~(X87_SW_C0|X87_SW_C3|X87_SW_C1);
 			if (q & 1)
@@ -3973,7 +3976,7 @@ void x87_fxam(UINT8 modrm)
 	{
 		m_x87_sw |= X87_SW_C3;
 	}
-	if (floatx80_is_nan(value))
+	else if (floatx80_is_nan(value))
 	{
 		m_x87_sw |= X87_SW_C0;
 	}
@@ -4797,8 +4800,7 @@ void x87_fdecstp(UINT8 modrm)
 		return;
 	m_x87_sw &= ~X87_SW_C1;
 
-	x87_dec_stack();
-	x87_check_exceptions();
+	x87_set_stack_top(ST_TO_PHYS(7));
 
 	CYCLES(3);
 }
@@ -4809,8 +4811,7 @@ void x87_fincstp(UINT8 modrm)
 		return;
 	m_x87_sw &= ~X87_SW_C1;
 
-	x87_inc_stack();
-	x87_check_exceptions();
+	x87_set_stack_top(ST_TO_PHYS(1));
 
 	CYCLES(3);
 }
@@ -5151,6 +5152,7 @@ void x87_fstenv(UINT8 modrm)
 			WRITE32(ea + 24, 0xffff0000 | m_x87_ds);
 			break;
 	}
+ 	m_x87_cw |= 0x3f;   // set all masks
 
 	CYCLES((m_cr[0] & 1) ? 56 : 67);
 }
