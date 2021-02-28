@@ -4336,3 +4336,9 @@ INT16 WINAPI SysErrorBox16(LPCSTR text, LPCSTR caption, UINT16 btn1, UINT16 btn2
     HeapFree(GetProcessHeap(), 0, wcaption);
     return result;
 }
+
+BOOL16 WINAPI LockInput16(HANDLE16 res, HWND16 hwnd, BOOL16 lock)
+{
+    FIXME("(%d, %d, %d) - stub\n", res, hwnd, lock);
+    return FALSE;
+}

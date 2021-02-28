@@ -180,7 +180,7 @@
 181 pascal -ret16 SetSysColors(word ptr ptr) SetSysColors16
 182 pascal -ret16 KillSystemTimer(word word) KillSystemTimer16 # BEAR182
 183 pascal -ret16 GetCaretPos(ptr) GetCaretPos16
-184 stub QuerySendMessage # W1.1, W2.0: SYSHASKANJI
+184 pascal -ret16 QuerySendMessage(word word word ptr) QuerySendMessage16
 185 pascal -ret16 GrayString(word word segptr segptr s_word s_word s_word s_word s_word) GrayString16
 186 pascal -ret16 SwapMouseButton(word) SwapMouseButton16
 187 pascal -ret16 EndMenu() EndMenu
@@ -223,7 +223,7 @@
 223 pascal -ret16 SetKeyboardState(ptr) SetKeyboardState16
 224 pascal -ret16 GetWindowTask(word) GetWindowTask16
 225 pascal -ret16 EnumTaskWindows(word segptr long) EnumTaskWindows16
-226 stub LockInput # not in W2.0
+226 pascal -ret16 LockInput(word word word) LockInput16
 227 pascal -ret16 GetNextDlgGroupItem(word word word) GetNextDlgGroupItem16
 228 pascal -ret16 GetNextDlgTabItem(word word word) GetNextDlgTabItem16
 229 pascal -ret16 GetTopWindow(word) GetTopWindow16

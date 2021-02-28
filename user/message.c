@@ -5094,3 +5094,9 @@ void WINAPI window_message16_32(const MSG16 *msg16, MSG *msg32)
     msg32->time = msg16->time;
     WINPROC_CallProc16To32A(LPMSG16_32_callback, msg16->hwnd, msg16->message, msg16->wParam, msg16->lParam, &ret, msg32);
 }
+
+BOOL16 WINAPI QuerySendMessage16(HANDLE16 res1, HANDLE16 res2, HANDLE16 res3, MSG16 *msg)
+{
+    WARN("not returning message\n");
+    return InSendMessage();
+}
