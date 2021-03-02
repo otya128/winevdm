@@ -80,27 +80,27 @@ int main(int argc, char* argv[])
             {
                 spec->heap_size = atoi(argv[++i]);
             }
-            if (!strcmp(argv[i], "-DEF"))
+            else if (!strcmp(argv[i], "-DEF"))
             {
                 exec_mode = MODE_DEF;
             } 
-            if (!strcmp(argv[i], "-EXE"))
+            else if (!strcmp(argv[i], "-EXE"))
             {
                 exec_mode = MODE_EXE;
             }
-            if (!strcmp(argv[i], "-32"))
+            else if (!strcmp(argv[i], "-32"))
             {
                 spec->type = SPEC_WIN32;
             }
-            if (!strcmp(argv[i], "-ver"))
+            else if (!strcmp(argv[i], "-ver"))
             {
                 add_ver = 1;
             }
-        }
-        if (exec_mode != MODE_DEF)
-        {
-            spec->main_module = xstrdup(argv[2]);
-            spec->dll_name = xstrdup(argv[2]);
+            else if (i == 2)
+            {
+                spec->main_module = xstrdup(argv[2]);
+                spec->dll_name = xstrdup(argv[2]);
+            }
         }
     }
 	else
