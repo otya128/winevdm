@@ -124,8 +124,8 @@ int main(int argc, char* argv[])
 		if (spec_file_name && !parse_input_file(spec)) break;
         if (add_ver)
         {
-            char outname[12] = {0};
-            strncpy(outname, spec->dll_name, 8);
+            char outname[13] = {0};
+            strncpy(outname, spec->dll_name, 12);
             strcpy(ver_res + 0x144, outname);
             load_res16_from_buf(ver_res, ver_res_len, spec);
         }
