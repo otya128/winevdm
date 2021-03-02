@@ -37,11 +37,13 @@ int mkstemps(char *template, int suffix_len)
 }
 #define main __main
 #include "main.c.h"
+#include "ver.h"
 char *nb_lib_paths;
 #undef main
 static int parse_input_file(DLLSPEC *spec);
 int main(int argc, char* argv[])
 {
+    int add_ver = 0;
 	if (argc <= 1)
 	{
 		printf("wine spec file convert tool\nusage: %s specfile(16bit only) module name [-EXE]\n%s specfile(16bit only) -DEF\n", argv[0], argv[0]);
@@ -70,36 +72,37 @@ int main(int argc, char* argv[])
 	output_file = stdout;
     target_cpu = CPU_x86;
     init_dll_name(spec);
-	if (argc > 2)
-	{
-        if (!strcmp(argv[2], "--heap"))
+    if (argc > 2)
+    {
+        for (int i = 2; i < argc; i++)
         {
-            spec->heap_size = atoi(argv[3]);
-            argv += 2;
-            argc -= 2;
-        }
-
-		if (!strcmp(argv[2], "-DEF"))
-		{
-			exec_mode = MODE_DEF;
-		} 
-        else
-		{
-            if (argc > 3 && !strcmp(argv[3], "-EXE"))
+            if (!strcmp(argv[i], "--heap"))
+            {
+                spec->heap_size = atoi(argv[++i]);
+            }
+            if (!strcmp(argv[i], "-DEF"))
+            {
+                exec_mode = MODE_DEF;
+            } 
+            if (!strcmp(argv[i], "-EXE"))
             {
                 exec_mode = MODE_EXE;
             }
-			spec->main_module = xstrdup(argv[2]);
-			spec->dll_name = xstrdup(argv[2]);
-		}
-		if (argc > 3)
-		{
-			if (!strcmp(argv[3], "-32"))
-			{
-				spec->type = SPEC_WIN32;
-			}
-		}
-	}
+            if (!strcmp(argv[i], "-32"))
+            {
+                spec->type = SPEC_WIN32;
+            }
+            if (!strcmp(argv[i], "-ver"))
+            {
+                add_ver = 1;
+            }
+        }
+        if (exec_mode != MODE_DEF)
+        {
+            spec->main_module = xstrdup(argv[2]);
+            spec->dll_name = xstrdup(argv[2]);
+        }
+    }
 	else
 	{
 		init_dll_name(spec);
@@ -119,6 +122,13 @@ int main(int argc, char* argv[])
 		load_resources(argv, spec);
 		load_import_libs(argv);
 		if (spec_file_name && !parse_input_file(spec)) break;
+        if (add_ver)
+        {
+            char outname[12] = {0};
+            strncpy(outname, spec->dll_name, 8);
+            strcpy(ver_res + 0x144, outname);
+            load_res16_from_buf(ver_res, ver_res_len, spec);
+        }
 		if (fake_module)
 		{
 			if (spec->type == SPEC_WIN16) output_fake_module16(spec);

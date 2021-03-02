@@ -298,6 +298,7 @@ extern void output_bin_resources( DLLSPEC *spec, unsigned int start_rva );
 extern void output_fake_module( DLLSPEC *spec );
 extern void output_def_file( DLLSPEC *spec, int include_private );
 extern void load_res16_file( const char *name, DLLSPEC *spec );
+extern void load_res16_from_buf( const unsigned char *buf, int size, DLLSPEC *spec );
 extern void output_res16_data( DLLSPEC *spec );
 extern void output_bin_res16_data( DLLSPEC *spec );
 extern void output_res16_directory( DLLSPEC *spec );

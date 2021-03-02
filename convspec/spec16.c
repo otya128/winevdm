@@ -832,11 +832,15 @@ void output_spec16_file( DLLSPEC *spec16 )
 
     needs_get_pc_thunk = 0;
     output_standard_file_header();
-    output_module( spec32 );
+    //output_module( spec32 );
     output_module16( spec16 );
     output_stubs( spec16 );
-    output_exports( spec32 );
-    output_imports( spec16 );
+    //output_exports( spec32 );
+    //output_imports( spec16 );
+    output( "\n\t%s\n", get_asm_string_section() );
+    output( "%s\n", asm_globl("__wine_spec_file_name") );
+    output( ".L__wine_spec_file_name:\n" );
+    output( "\t%s \"%s\"\n", get_asm_string_keyword(), spec16->file_name );
     if (1||is_undefined( "__wine_call_from_16" )) output_asm_relays16();
     if (needs_get_pc_thunk) output_get_pc_thunk();
     if (spec16->main_module)
@@ -848,6 +852,7 @@ void output_spec16_file( DLLSPEC *spec16 )
     output_gnu_stack_note();
     free_dll_spec( spec32 );
     output("%s:/*?*/\n", asm_name("_end"));
+    flush_output_buffer();
 }
 
 /*******************************************************************
