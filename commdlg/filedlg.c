@@ -296,8 +296,8 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         }
     }
 
-    if (ofn32.lpstrFile)
-        CharUpperBuffA(ofn32.lpstrFile, ofn32.nMaxFile);
+    if (ofn32.lpstrFile && ofn32.lpstrFile[0])
+        CharUpperBuffA(ofn32.lpstrFile, min(strlen(ofn32.lpstrFile), ofn32.nMaxFile));
 
     ReleaseThunkLock(&count);
     if ((ret = GetOpenFileNameA( &ofn32 )))
@@ -305,7 +305,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         lpofn->nFilterIndex   = ofn32.nFilterIndex;
         lpofn->nFileOffset    = ofn32.nFileOffset;
         lpofn->nFileExtension = ofn32.nFileExtension;
-        CharUpperBuffA(ofn32.lpstrFile, ofn32.nMaxFile);
+        CharUpperBuffA(ofn32.lpstrFile, min(strlen(ofn32.lpstrFile), ofn32.nMaxFile));
     }
     RestoreThunkLock(count);
     delete_thunk(ofn32.lpfnHook);
@@ -377,8 +377,8 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
             ofn32.lpfnHook = dummy_hook;
         }
     }
-    if (ofn32.lpstrFile)
-        CharUpperBuffA(ofn32.lpstrFile, ofn32.nMaxFile);
+    if (ofn32.lpstrFile && ofn32.lpstrFile[0])
+        CharUpperBuffA(ofn32.lpstrFile, min(strlen(ofn32.lpstrFile), ofn32.nMaxFile));
 
     ReleaseThunkLock(&count);
     if ((ret = GetSaveFileNameA( &ofn32 )))
@@ -386,7 +386,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
         lpofn->nFilterIndex   = ofn32.nFilterIndex;
         lpofn->nFileOffset    = ofn32.nFileOffset;
         lpofn->nFileExtension = ofn32.nFileExtension;
-        CharUpperBuffA(ofn32.lpstrFile, ofn32.nMaxFile);
+        CharUpperBuffA(ofn32.lpstrFile, min(strlen(ofn32.lpstrFile), ofn32.nMaxFile));
     }
     RestoreThunkLock(count);
     delete_thunk(ofn32.lpfnHook);
