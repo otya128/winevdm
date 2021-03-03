@@ -2522,8 +2522,8 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
     }
 
     wc32.cbSize        = sizeof(wc32);
-    wc32.style         = wc->style | (IsOldWindowsTask(GetCurrentTask()) || is_reactos() ? CS_GLOBALCLASS : 0);
-    wc32.lpfnWndProc   = WindowProc16;//WINPROC_AllocProc16( wc->lpfnWndProc );
+    wc32.style         = wc->style | CS_GLOBALCLASS;
+    wc32.lpfnWndProc   = WindowProc16;
     wc32.cbClsExtra    = wc->cbClsExtra;
     wc32.cbWndExtra    = 100;
     wc32.hInstance     = HINSTANCE_32(inst);
@@ -2572,10 +2572,10 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
         wc32.lpszClassName = buf;
     }
     /*
-    register same class:
-    Win3.1 returns 0
-    WOW returns same class atom
-    */
+     * register same class:
+     *   Win3.1 returns 0
+     *   WOW returns same class atom
+     */
     atom = RegisterClassExA( &wc32 );
     TRACE("(%08x,%08x,%04x,%04x,%04x,%04x,%04x,%04x,%s,%s,%04x) Ret:%04x\n", wc->style, wc->lpfnWndProc, wc->cbClsExtra, wc->cbWndExtra, wc->hInstance, wc->hIcon, wc->hCursor, wc->hbrBackground, debugstr_a(wc32.lpszMenuName), debugstr_a(wc32.lpszClassName), wc->hIconSm, atom);
 	if (atom)
@@ -2594,6 +2594,7 @@ ATOM WINAPI RegisterClassEx16( const WNDCLASSEX16 *wc )
         class->inst = inst;
 		class->wndproc16 = WNDCLASS16Info[atom].wndproc;
         class->classInfo = wc32;
+        class->classInfo.style = wc->style | (IsOldWindowsTask(GetCurrentTask()) ? CS_GLOBALCLASS : 0);
         class->classInfo.lpszClassName = (LPBYTE)class + sizeof(*class);
         memcpy(class->classInfo.lpszClassName, a.name, class_len);
         if (menu_len)
