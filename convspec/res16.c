@@ -126,6 +126,14 @@ void load_res16_file( const char *name, DLLSPEC *spec )
     while (input_buffer_pos < input_buffer_size) load_next_resource( spec );
 }
 
+void load_res16_from_buf( const unsigned char *buf, int size, DLLSPEC *spec )
+{
+    input_buffer = buf;
+    input_buffer_size = size;
+    input_buffer_pos = 0;
+    while (input_buffer_pos < input_buffer_size) load_next_resource( spec );
+}
+
 /* compare two strings/ids */
 static int cmp_string( const struct string_id *str1, const struct string_id *str2 )
 {
