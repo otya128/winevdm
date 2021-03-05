@@ -174,9 +174,7 @@ struct Win87EmInfoStruct
 /* FIXME: Still rather skeletal implementation only */
 
 static WORD RefCount = 0;
-static WORD CtrlWord_1 = 0;
-static WORD CtrlWord_2 = 0;
-static WORD CtrlWord_Internal = 0;
+static WORD CtrlWord = 0;
 static WORD StatusWord_1 = 0x000b;
 static WORD StatusWord_2 = 0;
 static WORD StackTop = 175;
@@ -228,6 +226,7 @@ static void WINAPI fpu_exception(CONTEXT *context)
         errcode = 0x81; // FPE_INVALID
         if (fpenv[1] & 0x40)
         {
+            ERR("Stack fault at %04x:%08x\n", context->SegCs, context->Eip);
             if (fpenv[1] & 0x200)
                 errcode = 0x8a; // FPE_STACKOVERFLOW
             else
@@ -294,25 +293,22 @@ static void WIN87_ClearStatus( CONTEXT *context )
 
 static void WIN87_SetCtrlWord( CONTEXT *context )
 {
-    CtrlWord_1 = LOWORD(context->Eax);
-    context->Eax &= ~0x00c3;
-    CtrlWord_Internal = LOWORD(context->Eax);
+    CtrlWord = LOWORD(context->Eax);
 #if USE_VM86_DLL
-    x87.fldcw(CtrlWord_Internal);
+    x87.fldcw(CtrlWord);
 #else/*USE_VM86_DLL*/
 #ifdef __i386__
 #ifndef _MSC_VER
-    __asm__("wait;fldcw %0" : : "m" (CtrlWord_Internal));
+    __asm__("wait;fldcw %0" : : "m" (CtrlWord));
 #else
     __asm
     {
             wait;
-            fldcw CtrlWord_Internal
+            fldcw CtrlWord
     }
 #endif
 #endif/*USE_VM86_DLL*/
 #endif
-    CtrlWord_2 = LOWORD(context->Eax);
 }
 
 static void WIN87_Init( CONTEXT *context )
@@ -384,13 +380,13 @@ void WINAPI _fpMath( CONTEXT *context )
         DOSVM_SetPMHandler16(0x3e, (FARPROC16)MAKESEGPTR(context->Edx, context->Eax));
         break;
 
-    case 4: /* set control word (& ~(CW_Denormal|CW_Invalid)) */
+    case 4:
         /* OUT: newset control word in AX */
         WIN87_SetCtrlWord(context);
         break;
 
     case 5: /* return internal control word in AX */
-        context->Eax = (context->Eax & ~0xffff) | CtrlWord_1;
+        context->Eax = (context->Eax & ~0xffff) | CtrlWord;
         break;
 
     case 6: /* round top of stack to integer using method AX & 0x0C00 */
