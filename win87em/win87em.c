@@ -195,7 +195,7 @@ void WINAPI fpe_return(CONTEXT *context)
     context->Eip = stkptr[5];
     context->SegCs = stkptr[6];
     context->EFlags = stkptr[7];
-    context->Esp -= 16;
+    context->Esp += 16;
 }
 
 static void WINAPI fpu_exception(CONTEXT *context)
