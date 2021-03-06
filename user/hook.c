@@ -901,7 +901,7 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
         return 0;
     }
     if (!hTask)
-        FIXME("System-global hooks (%d) broken in Win16\n", id);
+        WARN("System-global hooks (%d) broken in Win16\n", id);
     else if (hTask != GetCurrentTask())
     {
         thread = (DWORD)HTASK_32(hTask);

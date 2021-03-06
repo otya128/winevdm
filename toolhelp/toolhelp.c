@@ -498,7 +498,7 @@ BOOL16 WINAPI NotifyRegister16( HTASK16 htask, FARPROC16 lpfnCallback,
 {
     int	i;
 
-    FIXME("(%x,%x,%x), semi-stub.\n",
+    WARN("(%x,%x,%x), semi-stub.\n",
                       htask, (DWORD)lpfnCallback, wFlags );
     if (!htask) htask = GetCurrentTask();
     for (i=0;i<nrofnotifys;i++)
@@ -527,7 +527,7 @@ BOOL16 WINAPI NotifyUnRegister16( HTASK16 htask )
 {
     int	i;
 
-    FIXME("(%x), semi-stub.\n", htask );
+    WARN("(%x), semi-stub.\n", htask );
     if (!htask) htask = GetCurrentTask();
     for (i=nrofnotifys;i--;)
         if (notifys[i].htask==htask)
@@ -598,7 +598,7 @@ BOOL16 WINAPI InterruptRegister16( HTASK16 htask, FARPROC16 callback )
 {
     int	i;
 
-    FIXME("(%04x, %04x:%04x), semi-stub.\n", htask, SELECTOROF(callback), OFFSETOF(callback));
+    WARN("(%04x, %04x:%04x), semi-stub.\n", htask, SELECTOROF(callback), OFFSETOF(callback));
     if (!htask) htask = GetCurrentTask();
     for (i=0;i<nrofintcbs;i++)
         if (intcbs[i].htask==htask)
@@ -625,7 +625,7 @@ BOOL16 WINAPI InterruptUnRegister16( HTASK16 htask )
 {
     int	i;
 
-    FIXME("(%x), semi-stub.\n", htask );
+    WARN("(%x), semi-stub.\n", htask );
     if (!htask) htask = GetCurrentTask();
     for (i=nrofintcbs;i--;)
         if (intcbs[i].htask==htask)
