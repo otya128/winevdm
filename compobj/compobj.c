@@ -885,7 +885,7 @@ HRESULT WINAPI CoGetClassObject16(
         }
 
         dll = LoadLibrary16(dllpath);
-        if (!dll)
+        if (dll < 32)
         {
             ERR("couldn't load in-process dll %s\n", debugstr_a(dllpath));
             err_last = E_ACCESSDENIED16; /* FIXME: or should this be CO_E_DLLNOTFOUND? */
