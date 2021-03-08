@@ -795,10 +795,10 @@ extern "C"
                 else
                     imgname = imgname + 1;
             }
-            fprintf(stderr, "%i: %s!%s+0x%llx - 0x%llx %s(%d)\n", current_stack_frame_size - i - 1, imgname, symbol->Name, (ULONG64)current_stack_frame[i] - symbol->Address, symbol->Address, line.FileName, line.LineNumber);
+            fprintf(stderr, "%i: %s!%s+0x%llx - 0x%llx 0x%lx %s:%d\n", current_stack_frame_size - i - 1, imgname, symbol->Name, (ULONG64)current_stack_frame[i] - symbol->Address, symbol->Address, current_stack_frame[i], line.FileName, line.LineNumber);
 			if (!strcmp(symbol->Name, "KiUserExceptionDispatcher"))
 			{
-				fprintf(stderr, "=============================\n");
+				fprintf(stderr, "\n");
 			}
 		}
 
@@ -818,10 +818,11 @@ extern "C"
         for (int i = 0; i < cb / sizeof(HMODULE); i++)
         {
             WCHAR name[MAX_PATH];
-            if (GetModuleFileNameExW(hProcess, hModules[i], name, ARRAY_SIZE(name)))
+            MODULEINFO module_info;
+            if (GetModuleFileNameExW(hProcess, hModules[i], name, ARRAY_SIZE(name)) && GetModuleInformation(hProcess, hModules[i], &module_info, sizeof(module_info)))
             {
                 LPWSTR n = wcsrchr(name, L'\\');
-                fwprintf(stderr, L"%ls\t%p\n", n ? n + 1 : name, hModules[i]);
+                fwprintf(stderr, L"%p-%p %ls\n", hModules[i], (ULONG_PTR)hModules[i] + module_info.SizeOfImage, n ? n + 1 : name);
             }
         }
     exit:
@@ -2101,7 +2102,7 @@ SREG(ES), SREG(CS), SREG(SS), SREG(DS), SREG(FS), SREG(GS), m_eip, m_pc, m_eflag
         dump_all_modules();
         dump_stack_trace();
         walk_16bit_stack();
-        fprintf(stderr, "========================\n");
+        fprintf(stderr, "\n");
 #if 0
         print_stack();
 #endif

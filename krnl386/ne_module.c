@@ -332,17 +332,17 @@ __declspec(dllexport) void NE_DumpAllModules(void)
         char buffer[1024];
         buffer[0] = '\0';
         char *cbuf = buffer;
-        if (pModule->ne_flags & NE_FFLAGS_SINGLEDATA) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_SINGLEDATA | ");
-        if (pModule->ne_flags & NE_FFLAGS_MULTIPLEDATA) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_MULTIPLEDATA | ");
-        if (pModule->ne_flags & NE_FFLAGS_WIN32) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_WIN32 | ");
-        if (pModule->ne_flags & NE_FFLAGS_BUILTIN) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_BUILTIN | ");
-        if (pModule->ne_flags & NE_FFLAGS_FRAMEBUF) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_FRAMEBUF | ");
-        if (pModule->ne_flags & NE_FFLAGS_CONSOLE) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_CONSOLE | ");
-        if (pModule->ne_flags & NE_FFLAGS_GUI) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_GUI | ");
-        if (pModule->ne_flags & NE_FFLAGS_SELFLOAD) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_SELFLOAD | ");
-        if (pModule->ne_flags & NE_FFLAGS_LINKERROR) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_LINKERROR | ");
-        if (pModule->ne_flags & NE_FFLAGS_CALLWEP) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_CALLWEP | ");
-        if (pModule->ne_flags & NE_FFLAGS_LIBMODULE) cbuf += sprintf(cbuf, "%s", "NE_FFLAGS_LIBMODULE | ");
+        if (pModule->ne_flags & NE_FFLAGS_SINGLEDATA) cbuf += sprintf(cbuf, "%s", "SINGLEDATA | ");
+        if (pModule->ne_flags & NE_FFLAGS_MULTIPLEDATA) cbuf += sprintf(cbuf, "%s", "MULTIPLEDATA | ");
+        if (pModule->ne_flags & NE_FFLAGS_WIN32) cbuf += sprintf(cbuf, "%s", "WIN32 | ");
+        if (pModule->ne_flags & NE_FFLAGS_BUILTIN) cbuf += sprintf(cbuf, "%s", "BUILTIN | ");
+        if (pModule->ne_flags & NE_FFLAGS_FRAMEBUF) cbuf += sprintf(cbuf, "%s", "FRAMEBUF | ");
+        if (pModule->ne_flags & NE_FFLAGS_CONSOLE) cbuf += sprintf(cbuf, "%s", "CONSOLE | ");
+        if (pModule->ne_flags & NE_FFLAGS_GUI) cbuf += sprintf(cbuf, "%s", "GUI | ");
+        if (pModule->ne_flags & NE_FFLAGS_SELFLOAD) cbuf += sprintf(cbuf, "%s", "SELFLOAD | ");
+        if (pModule->ne_flags & NE_FFLAGS_LINKERROR) cbuf += sprintf(cbuf, "%s", "LINKERROR | ");
+        if (pModule->ne_flags & NE_FFLAGS_CALLWEP) cbuf += sprintf(cbuf, "%s", "CALLWEP | ");
+        if (pModule->ne_flags & NE_FFLAGS_LIBMODULE) cbuf += sprintf(cbuf, "%s", "LIBMODULE | ");
         
         if (cbuf != buffer)
         {
