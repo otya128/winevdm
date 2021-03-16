@@ -57,6 +57,12 @@ static void register_instance16(interface_16 *i16)
         return;
     interface16_instances[interface16_instance_cur++] = i16;
 }
+static void unregister_instance32(interface_32 *i32)
+{
+    for (int i = 0; i < interface32_instance_size; i++)
+        if (interface32_instances[i] == i32)
+            interface32_instances[i] = NULL;
+}
 static void init_interface_entry(interface_entry *e)
 {
     size_t i = 0;
@@ -214,6 +220,7 @@ void free_iface32(void *iface)
     char *i32 = (char*)iface - IFS_GUARD_SIZE;
     if (!iface)
         return;
+    unregister_instance32(iface);
     HeapFree(GetProcessHeap(), 0, i32);
 }
 HRESULT CDECL IOleInPlaceSiteWindowless_16_32_OnDefWindowMessage(SEGPTR This, DWORD args16_msg, DWORD args16_wParam, DWORD args16_lParam, SEGPTR args16_plResult)

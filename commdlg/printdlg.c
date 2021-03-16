@@ -205,7 +205,7 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
     HGLOBAL *hdma = NULL;
     if (lppd->hDevMode)
     {
-        hdma = GlobalAlloc(GMEM_MOVEABLE, sizeof(DEVMODEA));
+        hdma = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(DEVMODEA));
         DEVMODE16To32(GlobalLock16(lppd->hDevMode), GlobalLock(hdma));
         GlobalUnlock(hdma);
         GlobalUnlock16(lppd->hDevMode);
