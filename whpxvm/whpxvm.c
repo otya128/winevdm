@@ -858,7 +858,7 @@ static void trace(struct whpx_vcpu_state *state, uint16 cs, uint32 eip, uint16 s
         );
     }
 }
-BOOL has_x86_exception_err(WORD num)
+BOOL has_x86_exception_err(WORD num, DWORD code)
 {
     switch (num)
     {
@@ -873,7 +873,7 @@ BOOL has_x86_exception_err(WORD num)
     case 15:case 16:
         return FALSE;
     case 17:
-        return TRUE;
+        return code ? FALSE : TRUE; // ac exception has a null error code otherwise is equipment list
     case 18:case 19:case 20:case 21:case 22:case 23:case 24:case 25:case 26:case 27:case 28:case 29:
         return FALSE;
     case 30:
@@ -1120,7 +1120,7 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
             if (((DWORD)ptr >= (DWORD)trap_int) && ((DWORD)ptr <= ((DWORD)trap_int + 256)))
             {
                 int intvec = ((DWORD)ptr & 0xff) - 1;
-                BOOL has_err = has_x86_exception_err(intvec);
+                BOOL has_err = has_x86_exception_err(intvec, PEEK32(&state2, 0));
                 DWORD err = has_err ? PEEK32(&state2, 0) : 0;
                 DWORD eip = PEEK32(&state2, (has_err ? 1 : 0) + 0);
                 DWORD cs = PEEK32(&state2, (has_err ? 1 : 0) + 1);
