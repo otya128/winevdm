@@ -546,7 +546,7 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
 
     if ((oldsize < size) && (flags & GMEM_ZEROINIT))
         memset( (char *)ptr + oldsize, 0, size - oldsize );
-    return pNewArena->handle;
+    return handle;
 }
 
 
