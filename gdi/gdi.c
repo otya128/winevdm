@@ -3365,7 +3365,7 @@ BOOL16 WINAPI GetCharWidth16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, LPIN
             LPINT obuf32 = buf32;
             UINT i;
 
-            retVal = GetCharWidth32A( HDC_32(hdc), firstChar, lastChar, buf32);
+            retVal = GetCharWidthA( HDC_32(hdc), firstChar, lastChar, buf32);
             if (retVal)
             {
                 for (i = firstChar; i <= lastChar; i++) *buffer++ = *buf32++;
@@ -3376,7 +3376,7 @@ BOOL16 WINAPI GetCharWidth16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, LPIN
     else /* happens quite often to warrant a special treatment */
     {
         INT chWidth;
-        retVal = GetCharWidth32A( HDC_32(hdc), firstChar, lastChar, &chWidth );
+        retVal = GetCharWidthA( HDC_32(hdc), firstChar, lastChar, &chWidth );
         *buffer = chWidth;
     }
     return retVal;
