@@ -3356,6 +3356,9 @@ DWORD WINAPI SetMapperFlags16( HDC16 hdc, DWORD flags )
 BOOL16 WINAPI GetCharWidth16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, LPINT16 buffer )
 {
     BOOL retVal = FALSE;
+    TEXTMETRIC tm = {0};
+    HDC hdc32 = HDC_32(hdc);
+    GetTextMetricsA(hdc32, &tm);
 
     if( firstChar != lastChar )
     {
@@ -3365,10 +3368,10 @@ BOOL16 WINAPI GetCharWidth16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, LPIN
             LPINT obuf32 = buf32;
             UINT i;
 
-            retVal = GetCharWidth32A( HDC_32(hdc), firstChar, lastChar, buf32);
+            retVal = GetCharWidth32A( hdc32, firstChar, lastChar, buf32);
             if (retVal)
             {
-                for (i = firstChar; i <= lastChar; i++) *buffer++ = *buf32++;
+                for (i = firstChar; i <= lastChar; i++) *buffer++ = (*buf32++) + tm.tmOverhang;
             }
             HeapFree(GetProcessHeap(), 0, obuf32);
         }
@@ -3376,8 +3379,8 @@ BOOL16 WINAPI GetCharWidth16( HDC16 hdc, UINT16 firstChar, UINT16 lastChar, LPIN
     else /* happens quite often to warrant a special treatment */
     {
         INT chWidth;
-        retVal = GetCharWidth32A( HDC_32(hdc), firstChar, lastChar, &chWidth );
-        *buffer = chWidth;
+        retVal = GetCharWidth32A( hdc32, firstChar, lastChar, &chWidth );
+        *buffer = chWidth + tm.tmOverhang;
     }
     return retVal;
 }
