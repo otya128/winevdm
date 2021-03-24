@@ -735,6 +735,14 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
     pModule->ne_restab = pData - (BYTE *)pModule;
     if (!NE_READ_DATA( pModule, pData, mz_header->e_lfanew + ne_header->ne_restab,
                        ne_header->ne_modtab - ne_header->ne_restab )) goto failed;
+
+    /* The module name is CAPITALIZED. */
+
+    for (i = 1; i <= *pData; i++)
+    {
+        pData[i] = toupper(pData[i]);
+    }
+
     pData += ne_header->ne_modtab - ne_header->ne_restab;
 
     /* Get the module references table */
