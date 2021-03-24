@@ -2320,7 +2320,7 @@ COLORREF WINAPI GetTextColor16( HDC16 hdc )
 // but ignores the absolute angles
 // Windows XP is mostly the same but calculates the full extent when the relative angle is 0
 // Windows 3.1 returns the full extent but rounds the relative angle down to 0, 90, 180 or 270 degrees
-void check_font_rotation(HDC hdc, SIZE *box)
+static void check_font_rotation(HDC hdc, SIZE16 *box)
 {
     if (LOWORD(LOBYTE(GetVersion())) >= 0x6)
     {
@@ -2350,18 +2350,16 @@ void check_font_rotation(HDC hdc, SIZE *box)
  */
 DWORD WINAPI GetTextExtent16( HDC16 hdc, LPCSTR str, INT16 count )
 {
-    SIZE size;
-    HDC hdc32 = HDC_32(hdc);
+    SIZE16 size;
     __TRY
     {
-        if (!GetTextExtentPoint32A( hdc32, str, count, &size )) return 0;
+        if (!GetTextExtentPoint16( hdc, str, count, &size )) return 0;
     }
     __EXCEPT_ALL
     {
         return 0;
     }
     __ENDTRY
-    check_font_rotation( hdc32, &size ); 
     return MAKELONG( size.cx, size.cy );
 }
 
@@ -4116,13 +4114,15 @@ BOOL16 WINAPI GetTextExtentPoint16( HDC16 hdc, LPCSTR str, INT16 count, LPSIZE16
 {
     SIZE size32;
     HDC hdc32 = HDC_32(hdc);
+    TEXTMETRICA tm;
+    GetTextMetricsA(hdc32, &tm);
     BOOL ret = GetTextExtentPoint32A( hdc32, str, count, &size32 );
 
     if (ret)
     {
-        check_font_rotation( hdc32, &size32 ); 
-        size->cx = size32.cx;
+        size->cx = size32.cx + tm.tmOverhang;
         size->cy = size32.cy;
+        check_font_rotation( hdc32, size ); 
     }
     return ret;
 }
