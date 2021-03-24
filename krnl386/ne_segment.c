@@ -1089,8 +1089,9 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
         nf.wSegNum = segnum;
         nf.wType = pSeg->flags & NE_SEGFLAGS_DATA;
         nf.wcInstance = 0; /* FIXME */
-        nf.lpstrModuleName = 0xdeadbeef; /* FIXME */
+        nf.lpstrModuleName = MapLS(NE_MODULE_NAME(pModule));
         TOOLHELP_CallNotify(NFY_LOADSEG, s);
+        UnMapLS(nf.lpstrModuleName);
         UnMapLS(s);
     }
     if (!pSeg->hSeg) return FALSE;
