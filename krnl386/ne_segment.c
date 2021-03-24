@@ -343,7 +343,7 @@ static void notify_load_seg(NE_MODULE *pModule, WORD segnum, SEGTABLEENTRY *pSeg
 {
     NFYLOADSEG nf;
     SEGPTR s = MapLS(&nf);
-    nf.dwSize = sizeof(NFYSTARTDLL);
+    nf.dwSize = sizeof(NFYLOADSEG);
     nf.wSelector = pSeg->hSeg | 1;
     nf.wSegNum = segnum;
     nf.wType = pSeg->flags;
