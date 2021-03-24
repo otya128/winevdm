@@ -339,6 +339,20 @@ unknown:
 
 static void (WINAPI *checkpatch)(NE_MODULE *, int, HANDLE16) = NULL;
 
+static void notify_load_seg(NE_MODULE *pModule, WORD segnum, SEGTABLEENTRY *pSeg)
+{
+    NFYLOADSEG nf;
+    SEGPTR s = MapLS(&nf);
+    nf.dwSize = sizeof(NFYSTARTDLL);
+    nf.wSelector = pSeg->hSeg | 1;
+    nf.wSegNum = segnum;
+    nf.wType = pSeg->flags;
+    nf.wcInstance = 0; /* FIXME */
+    nf.lpstrModuleName = MAKESEGPTR(pModule->self, pModule->ne_restab + 1);
+    TOOLHELP_CallNotify(NFY_LOADSEG, s);
+    UnMapLS(s);
+}
+
 /***********************************************************************
  *           NE_LoadSegment
  */
@@ -442,6 +456,8 @@ BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum )
         checkpatch( pModule, segnum, pSeg->hSeg );
 
     pSeg->flags |= NE_SEGFLAGS_LOADED;
+
+    notify_load_seg(pModule, segnum, pSeg);
 
     /* Perform exported function prolog fixups */
     NE_FixupSegmentPrologs( pModule, segnum );
@@ -1081,18 +1097,6 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
         selflags &= ~WINE_LDT_FLAGS_32BIT;
     pSeg->hSeg = GLOBAL_Alloc( NE_Ne2MemFlags(pSeg->flags), minsize, pModule->self, selflags );
     GLOBAL_SetSeg(pSeg->hSeg, segnum, (pSeg->flags & NE_SEGFLAGS_DATA) ? 2 : 3);
-    {
-        NFYLOADSEG nf;
-        SEGPTR s = MapLS(&nf);
-        nf.dwSize = sizeof(NFYSTARTDLL);
-        nf.wSelector = pSeg->hSeg | 1;
-        nf.wSegNum = segnum;
-        nf.wType = pSeg->flags & NE_SEGFLAGS_DATA;
-        nf.wcInstance = 0; /* FIXME */
-        nf.lpstrModuleName = 0xdeadbeef; /* FIXME */
-        TOOLHELP_CallNotify(NFY_LOADSEG, s);
-        UnMapLS(s);
-    }
     if (!pSeg->hSeg) return FALSE;
 
     pSeg->flags |= NE_SEGFLAGS_ALLOCATED;
