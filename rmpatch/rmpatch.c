@@ -9,20 +9,39 @@
 
 BOOL16 WINAPI InterruptRegister16(HTASK16 htask, FARPROC16 callback);
 BOOL16 WINAPI InterruptUnRegister16(HTASK16 htask);
+BOOL16 WINAPI NotifyRegister16(HTASK16 htask, FARPROC16 lpfnCallback, WORD wFlags);
+BOOL16 WINAPI NotifyUnRegister16(HTASK16 htask);
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hinst);
 void WINAPI next_intcb(CONTEXT *context);
 
-void WINAPI checkpatch(NE_MODULE *pmodule, int segment, HANDLE16 *hseg)
+#include <pshpack1.h>
+typedef struct {
+	DWORD	dwSize;
+	WORD	wSelector;
+	WORD	wSegNum;
+	WORD	wType;		/* bit 0 set if this is a code segment */
+	WORD	wcInstance;	/* only valid for data segment */
+	SEGPTR  lpstrModuleName;
+} NFYLOADSEG;
+#include <poppack.h>
+
+BOOL WINAPI checkpatch(WORD id, DWORD data)
 {
-	char *mem = GlobalLock16(hseg);
-	char *name = (char *)pmodule + pmodule->ne_restab;
+	if (id != 1 /*NFY_LOADSEG*/)
+		return;
+	NFYLOADSEG *seg = (NFYLOADSEG *)MapSL(data);
+	char *name = (char *)MapSL(seg->lpstrModuleName);
+	if (GetExpWinVer16(GetModuleHandle16(name)) >= 0x300)
+		return;
+	char *mem = MapSL(MAKELONG(0, seg->wSelector));
+	WORD segment = seg->wSegNum;
 	if (!memcmp(mem, "MSEM87", 6)) // check for linked in MS 8087 emulator
 	{
 		FARPROC16 fpmath = GetProcAddress16(LoadLibrary16("WIN87EM.DLL"), "__FPMATH");
 		mem[0x24] = 0xea;  // JMP FAR
 		*(FARPROC16 *)(mem + 0x25) = fpmath;
 	}
-	else if (!strncmp(name + 1, "MGXWIN20", *name))
+	else if (!strncmp(name, "MGXWIN20", *name))
 	{
 		// drawing lib from Micrographics Designer 1.1 (segment arithmitic)
 		if ((segment == 13) && (*(DWORD *)(mem + 0x1e4d) == 0x000fe781))
@@ -31,7 +50,7 @@ void WINAPI checkpatch(NE_MODULE *pmodule, int segment, HANDLE16 *hseg)
 			memcpy(mem + 0x1e4d, patch, sizeof(patch));
 		}
 	}
-	else if (!strncmp(name + 1, "GLIB", *name))
+	else if (!strncmp(name, "GLIB", *name))
 	{
 		// drawing lib from Micrographics Portfolio 1.0 (segment arithmitic)
 		if ((segment == 1) && (*(DWORD *)(mem + 0x274c) == 0x000fe781))
@@ -40,13 +59,13 @@ void WINAPI checkpatch(NE_MODULE *pmodule, int segment, HANDLE16 *hseg)
 			memcpy(mem + 0x274c, patch, sizeof(patch));
 		}
 	}
-	else if (!strncmp(name + 1, "XP", *name))
+	else if (!strncmp(name, "XP", *name))
 	{
 		// Xerox Presents (calls int 13h to parse root dir unnecessarily)
 		if ((segment == 71) && (*(DWORD *)(mem + 0x11f2) == 0xec8b5545))
 			mem[0x11f2] = 0xcb;
 	}
-	else if (!strncmp(name + 1, "BOP", *name))
+	else if (!strncmp(name, "BOP", *name))
 	{
 		// use MM_ANISOTROPIC instead of MM_ISOTROPIC and fix viewport
 		if ((segment == 2) && (*(BYTE *)(mem + 0x0d) == 0x07))
@@ -57,7 +76,7 @@ void WINAPI checkpatch(NE_MODULE *pmodule, int segment, HANDLE16 *hseg)
 			mem[0x2c1] = 0x34;
 		}
 	}
-	else if (!strncmp(name + 1, "WFE", *name))
+	else if (!strncmp(name, "WFE", *name))
 	{
 		// ZSoft PTF Outline Editor (uninitialized stack variable)
 		if ((segment == 3) && (*(DWORD *)(mem + 0x8c5) == 0x5efc468b))
@@ -67,8 +86,7 @@ void WINAPI checkpatch(NE_MODULE *pmodule, int segment, HANDLE16 *hseg)
 			mem[0x8c7] - 0x00;
 		}
 	}
-
-	GlobalUnlock16(hseg);
+	return 0;
 }
 
 #include <pshpack1.h>
@@ -108,9 +126,11 @@ BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE16 hinstDLL, WORD ds,
 	case DLL_PROCESS_ATTACH:
 		LoadLibrary16("TOOLHELP");
 		InterruptRegister16(FAKE_HTASK16, GetProcAddress16(GetModuleHandle16("RMPATCH"), "intcb"));
+		NotifyRegister16(FAKE_HTASK16, GetProcAddress16(GetModuleHandle16("RMPATCH"), "checkpatch"), 0 /*NF_NORMAL*/);
 		break;
 	case DLL_PROCESS_DETACH:
 		InterruptUnRegister16(FAKE_HTASK16);
+		NotifyUnRegister16(FAKE_HTASK16);
 		FreeLibrary16("TOOLHELP");
 		break;
 	}

@@ -337,8 +337,6 @@ unknown:
     return FALSE;
 }
 
-static void (WINAPI *checkpatch)(NE_MODULE *, int, HANDLE16) = NULL;
-
 static void notify_load_seg(NE_MODULE *pModule, WORD segnum, SEGTABLEENTRY *pSeg)
 {
     NFYLOADSEG nf;
@@ -452,9 +450,6 @@ BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum )
         }
     }
     
-    if ((pModule->ne_expver < 0x300) && checkpatch)
-        checkpatch( pModule, segnum, pSeg->hSeg );
-
     pSeg->flags |= NE_SEGFLAGS_LOADED;
 
     notify_load_seg(pModule, segnum, pSeg);
@@ -488,11 +483,8 @@ BOOL NE_LoadAllSegments( NE_MODULE *pModule )
     int i;
     SEGTABLEENTRY * pSegTable = NE_SEG_TABLE(pModule);
 
-    if ((pModule->ne_expver < 0x300) && !(pModule->ne_flags & NE_FFLAGS_BUILTIN) && !checkpatch)
-    {
+    if ((pModule->ne_expver < 0x300) && !(pModule->ne_flags & NE_FFLAGS_BUILTIN) && !GetModuleHandle16("RMPATCH"))
         LoadLibrary16("RMPATCH.DLL");
-        checkpatch = GetProcAddress(GetModuleHandleA("RMPATCH.DLL16"), "checkpatch");
-    }
 
     if (pModule->ne_flags & NE_FFLAGS_SELFLOAD)
     {
