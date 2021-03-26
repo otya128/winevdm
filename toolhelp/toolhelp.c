@@ -374,9 +374,9 @@ BOOL16 WINAPI ModuleNext16( MODULEENTRY *lpme )
  */
 HMODULE16 WINAPI ModuleFindName16( MODULEENTRY *lpme, LPCSTR name )
 {
-    lpme->wNext = GetModuleHandle16( name );
-    ModuleNext16( lpme );
-    return lpme->wNext;
+    HMODULE16 hModule = GetModuleHandle16( name );
+    lpme->wNext = hModule;
+    return ModuleNext16( lpme ) ? hModule : 0;
 }
 
 
