@@ -227,8 +227,8 @@ typedef struct
 
 BOOL16 WINAPI ModuleFirst16(MODULEENTRY *lpModule);
 BOOL16 WINAPI ModuleNext16(MODULEENTRY *lpModule);
-BOOL16 WINAPI ModuleFindName16(MODULEENTRY *lpModule, LPCSTR lpstrName);
-BOOL16 WINAPI ModuleFindHandle16(MODULEENTRY *lpModule, HMODULE16 hModule);
+HMODULE16 WINAPI ModuleFindName16(MODULEENTRY *lpModule, LPCSTR lpstrName);
+HMODULE16 WINAPI ModuleFindHandle16(MODULEENTRY *lpModule, HMODULE16 hModule);
 
 /* tasks */
 

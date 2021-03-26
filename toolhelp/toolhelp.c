@@ -372,24 +372,25 @@ BOOL16 WINAPI ModuleNext16( MODULEENTRY *lpme )
 /**********************************************************************
  *	    ModuleFindName    (TOOLHELP.61)
  */
-BOOL16 WINAPI ModuleFindName16( MODULEENTRY *lpme, LPCSTR name )
+HMODULE16 WINAPI ModuleFindName16( MODULEENTRY *lpme, LPCSTR name )
 {
     lpme->wNext = GetModuleHandle16( name );
-    return ModuleNext16( lpme );
+    ModuleNext16( lpme );
+    return lpme->wNext;
 }
 
 
 /**********************************************************************
  *	    ModuleFindHandle    (TOOLHELP.62)
  */
-BOOL16 WINAPI ModuleFindHandle16( MODULEENTRY *lpme, HMODULE16 hModule )
+HMODULE16 WINAPI ModuleFindHandle16( MODULEENTRY *lpme, HMODULE16 hModule )
 {
     NE_MODULE *pModule;
-    if (!(pModule = GlobalLock16(hModule))) return FALSE;
+    if (!(pModule = GlobalLock16(hModule))) return 0;
     if (pModule->ne_magic != IMAGE_OS2_SIGNATURE)
-        return FALSE;
+        return 0;
     lpme->wNext = hModule;
-    return ModuleNext16( lpme );
+    return ModuleNext16( lpme ) ? hModule : 0;
 }
 
 
