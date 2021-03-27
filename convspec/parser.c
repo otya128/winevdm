@@ -69,6 +69,7 @@ static const char * const FlagNames[] =
     "register",    /* FLAG_REGISTER */
     "private",     /* FLAG_PRIVATE */
     "ordinal",     /* FLAG_ORDINAL */
+    "stkprolog",   /* FLAG_STKPROLOG */
     NULL
 };
 
@@ -502,6 +503,7 @@ static const char *parse_spec_flags( DLLSPEC *spec, ORDDEF *odp )
             {
             case FLAG_RET16:
             case FLAG_REGISTER:
+            case FLAG_STKPROLOG:
                 if (spec->type == SPEC_WIN32)
                     error( "Flag '%s' is not supported in Win32\n", FlagNames[i] );
                 break;
