@@ -677,7 +677,7 @@ BOOL WINHELP_ReleaseWindow(WINHELP_WINDOW* win)
 
     if (!--win->ref_count)
     {
-        DestroyWindow(win->hMainWnd);
+        PostMessageW(win->hMainWnd, WM_CLOSE, 0, 0);
         return FALSE;
     }
     return TRUE;
