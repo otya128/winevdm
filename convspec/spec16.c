@@ -768,6 +768,14 @@ static void output_module16( DLLSPEC *spec )
         if (!odp || !is_function( odp )) continue;
         output( ".L__wine_%s_%u:\n", spec->c_name, i );
         output( "\tpushw %%bp\n" );
+        if (odp->flags & FLAG_STKPROLOG)
+        {
+            output( "\tmovw %%sp, %%bp\n" );
+            output( "\tpushw $0x1234\n" );
+            output( "\tpopw %%bp\n" );
+            output( "\tpopw %%bp\n" );
+            output( "\tpushw %%bp\n" );
+        }
         output( "\tpushl $%s\n",
             odp->type == TYPE_PASCAL ? asm_name_stdcall16(odp->link_name, odp) : (odp->type == TYPE_STUB ? get_stub_name(odp, spec) : asm_name( odp->link_name )));
         output( "\tcallw .L__wine_spec_callfrom16_%s\n", get_callfrom16_name( odp ) );
