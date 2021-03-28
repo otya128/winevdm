@@ -32,7 +32,7 @@ BOOL WINAPI checkpatch(WORD id, DWORD data)
 	NFYLOADSEG *seg = (NFYLOADSEG *)MapSL(data);
 	char *name = (char *)MapSL(seg->lpstrModuleName);
 	if (GetExpWinVer16(GetModuleHandle16(name)) >= 0x300)
-		return;
+		return 0;
 	char *mem = MapSL(MAKELONG(0, seg->wSelector));
 	WORD segment = seg->wSegNum;
 	if (!memcmp(mem, "MSEM87", 6)) // check for linked in MS 8087 emulator
@@ -41,7 +41,7 @@ BOOL WINAPI checkpatch(WORD id, DWORD data)
 		mem[0x24] = 0xea;  // JMP FAR
 		*(FARPROC16 *)(mem + 0x25) = fpmath;
 	}
-	else if (!strncmp(name, "MGXWIN20", *name))
+	else if (!strcmp(name, "MGXWIN20"))
 	{
 		// drawing lib from Micrographics Designer 1.1 (segment arithmitic)
 		if ((segment == 13) && (*(DWORD *)(mem + 0x1e4d) == 0x000fe781))
@@ -50,7 +50,7 @@ BOOL WINAPI checkpatch(WORD id, DWORD data)
 			memcpy(mem + 0x1e4d, patch, sizeof(patch));
 		}
 	}
-	else if (!strncmp(name, "GLIB", *name))
+	else if (!strcmp(name, "GLIB"))
 	{
 		// drawing lib from Micrographics Portfolio 1.0 (segment arithmitic)
 		if ((segment == 1) && (*(DWORD *)(mem + 0x274c) == 0x000fe781))
@@ -59,13 +59,13 @@ BOOL WINAPI checkpatch(WORD id, DWORD data)
 			memcpy(mem + 0x274c, patch, sizeof(patch));
 		}
 	}
-	else if (!strncmp(name, "XP", *name))
+	else if (!strcmp(name, "XP"))
 	{
 		// Xerox Presents (calls int 13h to parse root dir unnecessarily)
 		if ((segment == 71) && (*(DWORD *)(mem + 0x11f2) == 0xec8b5545))
 			mem[0x11f2] = 0xcb;
 	}
-	else if (!strncmp(name, "BOP", *name))
+	else if (!strcmp(name, "BOP"))
 	{
 		// use MM_ANISOTROPIC instead of MM_ISOTROPIC and fix viewport
 		if ((segment == 2) && (*(BYTE *)(mem + 0x0d) == 0x07))
@@ -76,7 +76,7 @@ BOOL WINAPI checkpatch(WORD id, DWORD data)
 			mem[0x2c1] = 0x34;
 		}
 	}
-	else if (!strncmp(name, "WFE", *name))
+	else if (!strcmp(name, "WFE"))
 	{
 		// ZSoft PTF Outline Editor (uninitialized stack variable)
 		if ((segment == 3) && (*(DWORD *)(mem + 0x8c5) == 0x5efc468b))
