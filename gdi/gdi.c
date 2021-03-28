@@ -1764,6 +1764,8 @@ HFONT16 WINAPI CreateFontIndirect16( const LOGFONT16 *plf16 )
     {
         LOGFONTA lfA;
         logfont_16_to_A( plf16, &lfA );
+        if (lfA.lfCharSet == 0xfe)
+            lfA.lfCharSet = 0xfd;
         ret = CreateFontIndirectA( &lfA );
         TRACE("(%d, %d, %04X, %04X, %04X, %02X, %02X, %02X, %02X, %02X, %02X, %02X, %s) = %04X\n", plf16->lfHeight, plf16->lfWidth, plf16->lfEscapement, plf16->lfOrientation, plf16->lfWeight
             , plf16->lfItalic, plf16->lfUnderline, plf16->lfStrikeOut, plf16->lfCharSet, plf16->lfOutPrecision, plf16->lfClipPrecision
@@ -2641,6 +2643,8 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
             fnt->fi.dfBitsOffset = hdrsize;
             fnt->fi.dfFace = hdrsize + nbitsize;
             fnt->dfSize = fnt->fi.dfFace + namelen + 1;
+            if (fnt->fi.dfCharSet == 0xfe) // pagemaker fonts have charset 0xfe which windows 10 treats as utf-8
+                fnt->fi.dfCharSet = 0xfd;	
             int fnum;
             if (AddFontMemResourceEx(dst, fnt->dfSize, 0, &fnum))
             {
