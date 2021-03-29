@@ -3185,6 +3185,12 @@ LRESULT WINAPI DefWindowProc16( HWND16 hwnd16, UINT16 msg, WPARAM16 wParam, LPAR
 {
     LRESULT result;
     WINPROC_CallProc16To32A(defwindow_proc_callback, hwnd16, msg, wParam, lParam, &result, 0);
+    if ((msg == WM_WINDOWPOSCHANGED) && IsOldWindowsTask(GetCurrentTask()))
+    {
+        WINDOWPOS16 *wpos = (WINDOWPOS16 *)MapSL(lParam);
+        if (wpos->flags & 0x1000 /*SWP_NOCLIENTMOVE*/)
+            SendMessage16(hwnd16, WM_MOVE, 0, MAKELONG(wpos->x, wpos->y));
+    }
     return result;
 }
 
