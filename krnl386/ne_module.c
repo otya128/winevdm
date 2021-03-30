@@ -1365,7 +1365,7 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
             sei.lpFile = filename;
             sei.lpParameters = p;
             sei.nShow = startup.dwFlags ? startup.wShowWindow : SW_NORMAL;
-            sei.lpVerb = "open";
+            sei.lpVerb = "runas";
             sei.lpClass = "exefile";
             if (ShellExecuteExA(&sei))
             {
