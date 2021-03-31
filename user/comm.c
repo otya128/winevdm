@@ -336,6 +336,14 @@ INT16 WINAPI BuildCommDCB16(LPCSTR device, LPDCB16 lpdcb)
 		ERR("BUG ! COM0 can't exist!\n");
 		return -1;
 	}
+	device += 4;
+	do
+	{
+		if (!*device)
+			return -1;
+		device++;
+	}
+	while (!isalnum(*device));
 
 	memset(lpdcb, 0, sizeof(DCB16)); /* initialize */
 
