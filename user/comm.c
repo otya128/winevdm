@@ -345,8 +345,6 @@ INT16 WINAPI BuildCommDCB16(LPCSTR device, LPDCB16 lpdcb)
 	}
 	while (!isalnum(*device));
 
-	memset(lpdcb, 0, sizeof(DCB16)); /* initialize */
-
 	lpdcb->Id = port;
 	dcb.DCBlength = sizeof(DCB);
 
@@ -385,7 +383,7 @@ INT16 WINAPI OpenComm16(LPCSTR device,UINT16 cbInQueue,UINT16 cbOutQueue)
 		handle = CreateFileA(device, GENERIC_READ|GENERIC_WRITE,
 			0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0 );
 		if (handle == INVALID_HANDLE_VALUE) {
-			ERR("Open %s failed Err %d", device, GetLastError());
+			ERR("Open %s failed Err %d\n", device, GetLastError());
 			return IE_HARDWARE;
 		} else {
 			memset(COM[port].unknown, 0, sizeof(COM[port].unknown));
