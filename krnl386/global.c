@@ -841,6 +841,20 @@ BOOL16 WINAPI GlobalUnlock16(
     return pArena->lockCount;
 }
 
+BOOL16 WINAPI WIN32_GlobalUnlock16(
+              HGLOBAL16 handle /* [in] Handle of global memory object */
+) {
+    GLOBALARENA *pArena = GET_ARENA_PTR(handle);
+    if (!VALID_HANDLE(handle)) {
+	WARN("Invalid handle 0x%04x passed to GlobalUnlock16!\n",handle);
+        return FALSE;
+    }
+    TRACE("%04x\n", handle );
+    if (pArena->lockCount) pArena->lockCount--;
+    return pArena->lockCount;
+}
+
+
 /***********************************************************************
  *     GlobalChangeLockCount               (KERNEL.365)
  *

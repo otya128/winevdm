@@ -79,6 +79,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
 
 static HMODULE16 NE_GetModuleByFilename( LPCSTR name );
 
+BOOL16 WINAPI WIN32_GlobalUnlock16(HGLOBAL16 handle); 
 
 /* patch all the flat cs references of the code segment if necessary */
 static inline void patch_code_segment( NE_MODULE *pModule )
@@ -1284,7 +1285,7 @@ static HINSTANCE16 NE_CreateThread( NE_MODULE *pModule, WORD cmdShow, LPCSTR cmd
         }
         if (!(pTask = GlobalLock16( hTask ))) break;
         instance = pTask->hInstance;
-        GlobalUnlock16( hTask );
+        WIN32_GlobalUnlock16( hTask );
     } while (!instance);
 
     CloseHandle( hThread );
@@ -1437,7 +1438,7 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
                 paramBlock32.dwReserved = 0;
                 HANDLE hProcess = 0;
                 DWORD result = LoadModule_wine_implementation(name, &paramBlock32, &hProcess);/* win32 returns 33 */
-                GlobalUnlock16(params->hEnvironment);
+                WIN32_GlobalUnlock16(params->hEnvironment);
                 if (result < 32)
                     return result;
                 char cmdlineBuf[_countof("WINOLDAP.MOD -WoAWoW32XXXXXXXX")];
@@ -2078,12 +2079,12 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
                     PeekMessage(&msg, NULL, 0, 0, PM_REMOVE | PM_QS_SENDMESSAGE);
                 } while (GetTickCount() < timeout);
                 RestoreThunkLock(count);
-                GlobalUnlock16(curtask);
+                WIN32_GlobalUnlock16(curtask);
                 break;
             }
             TDB *lasttask = curtask;
             curtask = curtdb->hNext;
-            GlobalUnlock16(lasttask);
+            WIN32_GlobalUnlock16(lasttask);
         }
 
     }
