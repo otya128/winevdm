@@ -1170,7 +1170,7 @@ BOOL16 WINAPI FreeResource16( HGLOBAL16 handle )
         args[1] = handle;
         args[0] = 1;  /* CID_RESOURCE */
         WOWCallback16Ex( (SEGPTR)proc, WCB16_PASCAL, sizeof(args), args, &result );
-        return LOWORD(result);
+        return LOWORD(result) ? 0 : 1;
     }
     else
         return GlobalFree16( handle );
