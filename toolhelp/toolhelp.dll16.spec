@@ -42,5 +42,6 @@
 @ stdcall -arch=win32 next_intcb(ptr)
 @ stdcall -arch=win32 InterruptRegister16(long long)
 @ stdcall -arch=win32 InterruptUnRegister16(long)
+@ stdcall -arch=win32 NotifyRegister16(long long long)
 @ stdcall -arch=win32 NotifyUnRegister16(long)
 @ stdcall -arch=win32 TOOLHELP_CallNotify(long long)

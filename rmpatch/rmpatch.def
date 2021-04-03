@@ -2,4 +2,3 @@ LIBRARY rmpatch.dll16
 
 EXPORTS
   _wine_spec_dos_header; @1 DATA PRIVATE
-  checkpatch

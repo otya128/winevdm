@@ -8,5 +8,6 @@ EXPORTS
   next_intcb
   InterruptRegister16
   InterruptUnRegister16
+  NotifyRegister16
   NotifyUnRegister16
   TOOLHELP_CallNotify

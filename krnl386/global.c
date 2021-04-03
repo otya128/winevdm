@@ -265,20 +265,18 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
 
     /* Fixup the size */
     DWORD fixup_size = (size < 0x10000) ? 0x1f : 0xfff; // selectors larger than 64k need page granularity
-    BOOL old = IsOldWindowsTask(GetCurrentTask());
-    DWORD add_size = old ? 0x100 : 0;
 
     if (size > GLOBAL_MAX_ALLOC_SIZE) return 0;
     size = (size + fixup_size) & ~fixup_size;
 
     /* Allocate the linear memory */
-    ptr = HeapAlloc( get_win16_heap(), 0, size + add_size);
+    ptr = HeapAlloc( get_win16_heap(), 0, size);
       /* FIXME: free discardable blocks and try again? */
     if (!ptr) return 0;
 
       /* Allocate the selector(s) */
 
-    handle = GLOBAL_CreateBlock( flags, ptr, size + add_size, hOwner, selflags );
+    handle = GLOBAL_CreateBlock( flags, ptr, size, hOwner, selflags );
     if (!handle)
     {
         HeapFree( get_win16_heap(), 0, ptr );
@@ -287,8 +285,6 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
 
     if (flags & GMEM_ZEROINIT) memset( ptr, 0, size );
     else ((char *)ptr)[size - 1] = 0xff; // some programs depend on the block not being cleared
-    if (add_size)
-        GET_ARENA_PTR(handle)->size -= add_size;
     return handle;
 }
 WORD GLOBAL_GetSegNum(HGLOBAL16 hg)
