@@ -1150,6 +1150,8 @@ BOOL16 WINAPI FreeResource16( HGLOBAL16 handle )
                             return handle;
                         }
                     }
+                    else if (!pNameInfo->usage && IsOldWindowsTask(GetCurrentTask()))
+                        return TRUE;
                     return FALSE;
                 }
                 pNameInfo++;
