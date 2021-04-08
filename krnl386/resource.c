@@ -1036,7 +1036,7 @@ HGLOBAL16 WINAPI LoadResource16( HMODULE16 hModule, HRSRC16 hRsrc )
 
     if (pNameInfo)
     {
-        if (pNameInfo->handle && GlobalHandle16(pNameInfo->handle) && !(GlobalFlags16(pNameInfo->handle) & GMEM_DISCARDED))
+        if (pNameInfo->handle && GlobalHandle16(pNameInfo->handle) && !(GlobalFlags16(pNameInfo->handle) & GMEM_DISCARDED) && pNameInfo->usage)
         {
             pNameInfo->usage++;
             TRACE("  Already loaded, new count=%d\n", pNameInfo->usage );
