@@ -280,17 +280,19 @@ INT16 WINAPI WaitSoundState16(INT16 x)
 {
   if (owner != GetCurrentTask()) return 0;
   if (!playing) return 0;
-  if (thread)
+  HANDLE dup;
+  if (DuplicateHandle(GetCurrentProcess(), thread, GetCurrentProcess(), &dup, 0, FALSE, DUPLICATE_SAME_ACCESS))
   {
     BOOL exitcode;
-    GetExitCodeThread(thread, &exitcode);
+    GetExitCodeThread(dup, &exitcode);
     if (exitcode == STILL_ACTIVE)
     {
       DWORD count;
       ReleaseThunkLock(&count);
-      WaitForSingleObject(thread, INFINITE);
+      WaitForSingleObject(dup, INFINITE);
       RestoreThunkLock(count);
     }
+    CloseHandle(dup);
   }
   return 0;
 }
