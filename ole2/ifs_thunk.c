@@ -1951,3 +1951,29 @@ DWORD __stdcall OLESTREAM32_32_16_Put(OLESTREAM32 *This, const void *lpszBuf, DW
     return ret;
 }
 #endif
+#ifdef IFS3216_OVERWRITE_IMessageFilter_HandleInComingCall
+DWORD STDMETHODCALLTYPE IMessageFilter_32_16_HandleInComingCall(IMessageFilter *This, DWORD dwCallType,HTASK htaskCaller,DWORD dwTickCount,LPINTERFACEINFO lpInterfaceInfo)
+{
+    SEGPTR iface16 = get_interface16(This);
+    TYP16_DWORD result__ = {0};
+    DWORD result32__ = {0};
+    TYP16_DWORD args16_dwCallType;
+    TYP16_HTASK args16_htaskCaller;
+    TYP16_DWORD args16_dwTickCount;
+    TYP16_LPINTERFACEINFO args16_lpInterfaceInfo;
+    MAP_DWORD32_16(args16_dwCallType, dwCallType);
+    MAP_HTASK32_16(args16_htaskCaller, htaskCaller);
+    MAP_DWORD32_16(args16_dwTickCount, dwTickCount);
+    MAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
+    TRACE("(%p(%04x:%04x),%08x,%08x,%08x,%p)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), dwCallType, htaskCaller, dwTickCount, lpInterfaceInfo);
+    result__ = (TYP16_DWORD)IMessageFilter16_HandleInComingCall(iface16, args16_dwCallType, args16_htaskCaller, args16_dwTickCount, args16_lpInterfaceInfo);
+    if (result__ > 2)
+        result__ = 0;
+    MAP_DWORD16_32(result32__, result__);
+    UNMAP_DWORD32_16(args16_dwCallType, dwCallType);
+    UNMAP_HTASK32_16(args16_htaskCaller, htaskCaller);
+    UNMAP_DWORD32_16(args16_dwTickCount, dwTickCount);
+    UNMAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
+    return result32__;
+}
+#endif
