@@ -225,16 +225,21 @@ ULONG WINAPI ISTGMEDIUMRelease_32_16_Release(ISTGMEDIUMRelease *iface);
 #define UNMAP_IID_PTR32_16
 #define UNMAP_REFCLSID32_16
 #define UNMAP_REFCLSID16_32
-#define UNMAP_PTR_FORMATETC32_16
-#define UNMAP_PTR_FORMATETC16_32
+#define UNMAP_PTR_FORMATETC32_16(a16, a32) \
+	if (((FORMATETC16 *)MapSL(a16))->ptd) { \
+		HeapFree(GetProcessHeap(), 0, MapSL(((FORMATETC16 *)MapSL(a16))->ptd)); \
+		UnMapLS(((FORMATETC16 *)MapSL(a16))->ptd); \
+		UnMapLS(a16); \
+	}
+#define UNMAP_PTR_FORMATETC16_32(a32, a16) if (a32->ptd) HeapFree(GetProcessHeap(), 0, a32->ptd);
 #define UNMAP_STGMEDIUM32_16
 #define UNMAP_STGMEDIUM16_32
 #define UNMAP_LPINTERFACEINFO32_16
 #define UNMAP_LPINTERFACEINFO16_32
 #define UNMAP_PTR_STGMEDIUM32_16
 #define UNMAP_PTR_STGMEDIUM16_32
-#define MAP_PTR_FORMATETC16_32(a32, a16) map_formatetc16_32(a32 = (FORMATETC*)alloca(sizeof(FORMATETC)), (FORMATETC16*)MapSL(a16))
-#define MAP_PTR_FORMATETC32_16(a16, a32) map_formatetc32_16((FORMATETC16*)MapSL(a16 = MapLS(alloca(sizeof(FORMATETC16)))), a32);
+#define MAP_PTR_FORMATETC16_32(a32, a16) map_pformatetc16_32(a32 = (FORMATETC*)alloca(sizeof(FORMATETC)), (FORMATETC16*)MapSL(a16))
+#define MAP_PTR_FORMATETC32_16(a16, a32) map_pformatetc32_16((FORMATETC16*)MapSL(a16 = MapLS(alloca(sizeof(FORMATETC16)))), a32);
 
 #define MAP_PTR_STGMEDIUM16_32(a32, a16) map_stgmedium16_32(a32 = (STGMEDIUM*)alloca(sizeof(STGMEDIUM)), (STGMEDIUM16*)MapSL(a16))
 

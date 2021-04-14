@@ -387,6 +387,162 @@ static const ISTGMEDIUMReleaseVtbl ISTGMEDIUMRelease_VTable =
     ISTGMEDIUMRelease_QueryInterface, ISTGMEDIUMRelease_AddRef, ISTGMEDIUMRelease_Release
 };
 
+#pragma pack(push, 1)
+typedef struct {
+    char  dmDeviceName[CCHDEVICENAME];
+    UINT16  dmSpecVersion;
+    UINT16  dmDriverVersion;
+    UINT16  dmSize;
+    UINT16  dmDriverExtra;
+    DWORD dmFields;
+    INT16   dmOrientation;
+    INT16   dmPaperSize;
+    INT16   dmPaperLength;
+    INT16   dmPaperWidth;
+    INT16   dmScale;
+    INT16   dmCopies;
+    INT16   dmDefaultSource;
+    INT16   dmPrintQuality;
+    INT16   dmColor;
+    INT16   dmDuplex;
+    INT16   dmYResolution;
+    INT16   dmTTOption;
+} DEVMODE16, *LPDEVMODE16;
+#pragma pack(pop)
+
+static DVTARGETDEVICE *DVTARGETDEVICE16To32W(const DVTARGETDEVICE *src)
+{
+    int pos = 0;
+    int len;
+    int size = src->tdSize * 2 - sizeof(DVTARGETDEVICE);
+    DVTARGETDEVICE *dst = (DVTARGETDEVICE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, src->tdSize * 2 + sizeof(DEVMODEW));
+    if (src->tdDriverNameOffset)
+    {
+        len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdDriverNameOffset, -1, dst->tdData, size);
+        pos += len * 2;
+        size -= len * 2;
+    }
+    if (src->tdDeviceNameOffset)
+    {
+        len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdDeviceNameOffset, -1, dst->tdData + pos, size);
+        pos += len * 2;
+        size -= len * 2;
+    }
+    if (src->tdPortNameOffset)
+    {
+        len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdPortNameOffset, -1, dst->tdData + pos, size);
+        pos += len * 2;
+        size -= len * 2;
+    }
+    if (src->tdExtDevmodeOffset)
+    {
+        DEVMODE16 *dv16 = &src + src->tdExtDevmodeOffset;
+        DEVMODEW *dv32 = dst->tdData + pos;
+        MultiByteToWideChar(CP_ACP, 0, dv16->dmDeviceName, CCHDEVICENAME, dv32->dmDeviceName, CCHDEVICENAME);
+        dv32->dmDeviceName[CCHDEVICENAME - 1] = 0;
+        dv32->dmSpecVersion = 0x30a;
+        dv32->dmDriverVersion = dv16->dmDriverVersion;
+        dv32->dmSize = sizeof(DEVMODEW);
+        dv32->dmDriverExtra = 0;
+        dv32->dmFields = dv16->dmFields & 0x7fbf;
+        dv32->dmOrientation = dv16->dmOrientation;
+        dv32->dmPaperSize = dv16->dmPaperSize;
+        dv32->dmPaperLength = dv16->dmPaperLength;
+        dv32->dmPaperWidth = dv16->dmPaperWidth;
+        dv32->dmScale = dv16->dmScale;
+        dv32->dmCopies = dv16->dmCopies;
+        dv32->dmDefaultSource = dv16->dmDefaultSource;
+        dv32->dmPrintQuality = dv16->dmPrintQuality;
+        dv32->dmColor = dv16->dmColor;
+        dv32->dmDuplex = dv16->dmDuplex;
+        dv32->dmYResolution = dv16->dmYResolution;
+        dv32->dmTTOption = dv16->dmTTOption;
+    }
+    return dst;
+}
+
+static DVTARGETDEVICE *DVTARGETDEVICE32WTo16(const DVTARGETDEVICE *src)
+{
+    int pos = 0;
+    int len;
+    int size = src->tdSize - sizeof(DVTARGETDEVICE);
+    DVTARGETDEVICE *dst = (DVTARGETDEVICE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, src->tdSize);
+    if (src->tdDriverNameOffset)
+    {
+        len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdDriverNameOffset, -1, dst->tdData, size, NULL, NULL);
+        pos += len;
+        size -= len;
+    }
+    if (src->tdDeviceNameOffset)
+    {
+        len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdDeviceNameOffset, -1, dst->tdData + pos, size, NULL, NULL);
+        pos += len;
+        size -= len;
+    }
+    if (src->tdPortNameOffset)
+    {
+        len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdPortNameOffset, -1, dst->tdData + pos, size, NULL, NULL);
+        pos += len;
+        size -= len;
+    }
+    if (src->tdExtDevmodeOffset)
+    {
+        DEVMODEW *dv32 = &src + src->tdExtDevmodeOffset;
+        DEVMODE16 *dv16 = dst->tdData + pos;
+        WideCharToMultiByte(CP_ACP, 0, dv32->dmDeviceName, CCHDEVICENAME, dv16->dmDeviceName, CCHDEVICENAME, NULL, NULL);
+        dv16->dmDeviceName[CCHDEVICENAME - 1] = 0;
+        dv16->dmSpecVersion = 0x30a;
+        dv16->dmDriverVersion = dv32->dmDriverVersion;
+        dv16->dmSize = sizeof(DEVMODE16);
+        dv16->dmDriverExtra = 0; 
+        dv16->dmFields = dv32->dmFields & 0x7fbf;
+        dv16->dmOrientation = dv32->dmOrientation;
+        dv16->dmPaperSize = dv32->dmPaperSize;
+        dv16->dmPaperLength = dv32->dmPaperLength;
+        dv16->dmPaperWidth = dv32->dmPaperWidth;
+        dv16->dmScale = dv32->dmScale;
+        dv16->dmCopies = dv32->dmCopies;
+        dv16->dmDefaultSource = dv32->dmDefaultSource;
+        dv16->dmPrintQuality = dv32->dmPrintQuality;
+        dv16->dmColor = dv32->dmColor;
+        dv16->dmDuplex = dv32->dmDuplex;
+        dv16->dmYResolution = dv32->dmYResolution;
+        dv16->dmTTOption = dv32->dmTTOption;
+    }
+    return dst;
+}
+
+void map_pformatetc16_32(FORMATETC *a32, const FORMATETC16 *a16)
+{
+    a32->cfFormat = a16->cfFormat;
+    a32->ptd = a16->ptd ? DVTARGETDEVICE16To32W(MapSL(a16->ptd)) : NULL;
+    a32->dwAspect = a16->dwAspect;
+    a32->lindex = a16->lindex;
+    a32->tymed = a16->tymed;
+    if (TRACE_ON(ole))
+    {
+        char buf[100];
+        buf[0] = 0;
+        GetClipboardFormatNameA(a16->cfFormat, buf, 100);
+        TRACE("%s(%04x),%04x:%04x,%d,%d,%d\n", buf, a32->cfFormat, SELECTOROF(a16->ptd), OFFSETOF(a16->ptd), a32->dwAspect, a32->lindex, a32->tymed);
+    }
+}
+void map_pformatetc32_16(FORMATETC16 *a16, const FORMATETC *a32)
+{
+    a16->cfFormat = a32->cfFormat;
+    a16->ptd = a32->ptd ? MapLS(DVTARGETDEVICE32WTo16(a32->ptd)) : NULL;
+    a16->dwAspect = a32->dwAspect;
+    a16->lindex = a32->lindex;
+    a16->tymed = a32->tymed;
+    if (TRACE_ON(ole))
+    {
+        char buf[100];
+        buf[0] = 0;
+        GetClipboardFormatNameA(a32->cfFormat, buf, 100);
+        TRACE("%s(%04x),%p,%d,%d,%d\n", buf, a32->cfFormat, a32->ptd, a32->dwAspect, a32->lindex, a32->tymed);
+    }
+}
+
 void map_formatetc16_32(FORMATETC *a32, const FORMATETC16 *a16)
 {
     a32->cfFormat = a16->cfFormat;
@@ -1964,7 +2120,8 @@ DWORD STDMETHODCALLTYPE IMessageFilter_32_16_HandleInComingCall(IMessageFilter *
     MAP_DWORD32_16(args16_dwCallType, dwCallType);
     MAP_HTASK32_16(args16_htaskCaller, htaskCaller);
     MAP_DWORD32_16(args16_dwTickCount, dwTickCount);
-    MAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
+    if (lpInterfaceInfo)
+        MAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
     TRACE("(%p(%04x:%04x),%08x,%08x,%08x,%p)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), dwCallType, htaskCaller, dwTickCount, lpInterfaceInfo);
     result__ = (TYP16_DWORD)IMessageFilter16_HandleInComingCall(iface16, args16_dwCallType, args16_htaskCaller, args16_dwTickCount, args16_lpInterfaceInfo);
     if (result__ > 2)
@@ -1973,7 +2130,8 @@ DWORD STDMETHODCALLTYPE IMessageFilter_32_16_HandleInComingCall(IMessageFilter *
     UNMAP_DWORD32_16(args16_dwCallType, dwCallType);
     UNMAP_HTASK32_16(args16_htaskCaller, htaskCaller);
     UNMAP_DWORD32_16(args16_dwTickCount, dwTickCount);
-    UNMAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
+    if (lpInterfaceInfo)
+        UNMAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
     return result32__;
 }
 #endif
