@@ -783,7 +783,7 @@ void map_oleinplaceframeinfo32_16(struct TYP16_tagOleInPlaceFrameInfo *a16, cons
     a16->cb = a32->cb;
     a16->fMDIApp = a32->fMDIApp;
     a16->hwndFrame = HWND_16(a32->hwndFrame);
-    a16->haccel = HACCEL_32(a32->haccel);
+    a16->haccel = HACCEL_16(a32->haccel);
     a16->cAccelEntries = a32->cAccelEntries;
 }
 
@@ -2120,8 +2120,7 @@ DWORD STDMETHODCALLTYPE IMessageFilter_32_16_HandleInComingCall(IMessageFilter *
     MAP_DWORD32_16(args16_dwCallType, dwCallType);
     MAP_HTASK32_16(args16_htaskCaller, htaskCaller);
     MAP_DWORD32_16(args16_dwTickCount, dwTickCount);
-    if (lpInterfaceInfo)
-        MAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
+    MAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
     TRACE("(%p(%04x:%04x),%08x,%08x,%08x,%p)\n", This, SELECTOROF(iface16), OFFSETOF(iface16), dwCallType, htaskCaller, dwTickCount, lpInterfaceInfo);
     result__ = (TYP16_DWORD)IMessageFilter16_HandleInComingCall(iface16, args16_dwCallType, args16_htaskCaller, args16_dwTickCount, args16_lpInterfaceInfo);
     if (result__ > 2)
@@ -2130,8 +2129,7 @@ DWORD STDMETHODCALLTYPE IMessageFilter_32_16_HandleInComingCall(IMessageFilter *
     UNMAP_DWORD32_16(args16_dwCallType, dwCallType);
     UNMAP_HTASK32_16(args16_htaskCaller, htaskCaller);
     UNMAP_DWORD32_16(args16_dwTickCount, dwTickCount);
-    if (lpInterfaceInfo)
-        UNMAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
+    UNMAP_LPINTERFACEINFO32_16(args16_lpInterfaceInfo, lpInterfaceInfo);
     return result32__;
 }
 #endif

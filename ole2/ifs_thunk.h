@@ -277,9 +277,9 @@ typedef struct
 
 
 void map_interfaceinfo16_32(INTERFACEINFO *a32, const INTERFACEINFO16 *a16);
-#define MAP_LPINTERFACEINFO16_32(a32, a16) map_interfaceinfo16_32(a32 = (INTERFACEINFO*)alloca(sizeof(INTERFACEINFO)), (INTERFACEINFO16*)MapSL(a16))
+#define MAP_LPINTERFACEINFO16_32(a32, a16) if (a16) map_interfaceinfo16_32(a32 = (INTERFACEINFO*)alloca(sizeof(INTERFACEINFO)), (INTERFACEINFO16*)MapSL(a16)); else a32 = NULL
 void map_interfaceinfo32_16(INTERFACEINFO16 *a16, const INTERFACEINFO *a32);
-#define MAP_LPINTERFACEINFO32_16(a16, a32) map_interfaceinfo32_16((INTERFACEINFO16*)MapSL(a16 = MapLS(alloca(sizeof(INTERFACEINFO16)))), a32);
+#define MAP_LPINTERFACEINFO32_16(a16, a32) if (a32) map_interfaceinfo32_16((INTERFACEINFO16*)MapSL(a16 = MapLS(alloca(sizeof(INTERFACEINFO16)))), a32); else a16 = 0
 
 #define MAP_IID_PTR16_32(a32, a16) a32 = (const IID*)MapSL(a16)
 #define MAP_IID_PTR32_16(a16, a32) a16 = MapLS(a32)
