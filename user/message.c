@@ -1963,6 +1963,28 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     return ret;
 }
 
+static HICON16 get_default_icon(HINSTANCE16 inst)
+{
+    LPBYTE restab;
+    NE_TYPEINFO *type = get_resource_table(inst, RT_GROUP_ICON, &restab);
+    if (!type)
+        type = get_resource_table(inst, RT_ICON, &restab);
+    if (type)
+    {
+        LPCSTR id = (LPCSTR)(((NE_NAMEINFO *)((char *)type + sizeof(NE_TYPEINFO)))->id);
+        char name[32] = {0};
+        if (!((int)id & 0x8000))
+        {
+            LPBYTE pos = restab + (int)id;
+            int len = pos[0] > 31 ? 31 : pos[0];
+            strncpy(name, pos + 1, len);
+            id = name;
+        }
+        return LoadIcon16(inst, id);
+    }
+    return 0;
+}
+
 #include <uxtheme.h>
 #include <vssym32.h>
 #include "../mmsystem/winemm16.h"
@@ -2662,6 +2684,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         break;
     case WM_QUERYDRAGICON:
         ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
+        if (!*result)
+            *result = get_default_icon(GetWindowWord16(HWND_16(hwnd), GWL_HINSTANCE));
         *result = (LRESULT)get_icon_32((HICON16)*result);
         break;
     case WM_QUERYDROPOBJECT:
