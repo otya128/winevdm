@@ -72,12 +72,16 @@ INT16 WINAPI OpenSound16(void)
 {
 
   if (owner) return S_SERDVNA;
-  owner = GetCurrentTask();
 
   const WAVEFORMATEX wfmt = { WAVE_FORMAT_PCM, 1, 48000, 48000, 1, 8, 0 };
   event = CreateEventA(NULL, FALSE, FALSE, NULL);
 
-  if (waveOutOpen(&wohand, WAVE_MAPPER, &wfmt, event, 0, CALLBACK_EVENT) != MMSYSERR_NOERROR) return S_SERDVNA;
+  if (waveOutOpen(&wohand, WAVE_MAPPER, &wfmt, event, 0, CALLBACK_EVENT) != MMSYSERR_NOERROR)
+  {
+      CloseHandle(event);
+      return S_SERDVNA;
+  }
+  owner = GetCurrentTask();
   waveOutSetVolume(wohand, MAKELONG(0x1999, 0x1999)); /* 10% volume */
   queue = (NOTE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 32 * sizeof(NOTE));
   queuelen = 32 * sizeof(NOTE);
@@ -100,6 +104,9 @@ void WINAPI CloseSound16(void)
   HeapFree(GetProcessHeap(), 0, (LPVOID)queue);
   waveOutClose(wohand);
   CloseHandle(event);
+  event = NULL;
+  wohand = NULL;
+  queue = NULL;
   playing = 0;
   owner = 0;
 }
