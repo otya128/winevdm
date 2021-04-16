@@ -263,8 +263,20 @@ LRESULT WINAPI SendIMEMessageEx16(
         }
         else if (lpime32->fnc == IME_SETCONVERSIONFONTEX)
         {
-            LPLOGFONT16 l16 = (LPLOGFONT16)GlobalLock16(lpime32->lParam1);
-            logfont_16_to_A(l16, &lfont);
+            if (lpime32->lParam1)
+            {
+                LPLOGFONT16 l16 = (LPLOGFONT16)GlobalLock16(lpime32->lParam1);
+                logfont_16_to_A(l16, &lfont);
+            }
+            else
+            {
+                HFONT hFont32 = GetStockObject(SYSTEM_FONT);
+                if (!hFont32 || !GetObjectA(hFont32, sizeof(LOGFONTA), lplogfont))
+                {
+                    ret = 0;
+                    goto done;
+                }
+            }
         }
         lpime32->lParam1 = lplogfont;
         HIMC himc = ImmGetContext(hwnd32);
