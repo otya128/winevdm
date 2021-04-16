@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
     {
         for (int i = 2; i < argc; i++)
         {
-            if (!strcmp(argv[i], "--heap"))
+            if (!strcmp(argv[i], "--heap") && argc > i + 1)
             {
                 spec->heap_size = atoi(argv[++i]);
             }
@@ -96,10 +96,10 @@ int main(int argc, char* argv[])
             {
                 add_ver = 1;
             }
-            else if (i == 2)
+            else if (argv[i][0] != '-')
             {
-                spec->main_module = xstrdup(argv[2]);
-                spec->dll_name = xstrdup(argv[2]);
+                spec->main_module = xstrdup(argv[i]);
+                spec->dll_name = xstrdup(argv[i]);
             }
         }
     }
