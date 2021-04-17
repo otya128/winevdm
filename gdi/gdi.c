@@ -1486,9 +1486,9 @@ INT16 WINAPI SelectClipRgn16( HDC16 hdc, HRGN16 hrgn )
 
 
 /*
- * Prevent the GDI object selected by metafile DC from being deleted.
- * GDI32 fails to delete selected objects as documented, but seems to
- * be able to delete them if they are selected in the metafile DC.
+ * Prevent the GDI object selected by DC from being deleted.
+ * GDI32 fails to delete selected objects as documented, but sometimes it seems
+ * to be able to delete it.
  * GetCurrentObject returns the selected object, but it is unreliable
  * because sometimes it returns zero. (metafile DC?)
  */
@@ -1526,25 +1526,26 @@ HGDIOBJ16 WINAPI SelectObject16( HDC16 hdc, HGDIOBJ16 handle )
     HGDIOBJ result = SelectObject( hdc32, handle32 );
     DWORD type = GetObjectType(handle32);
     DWORD dc_type = GetObjectType(hdc32);
-    if (dc_type == OBJ_METADC)
+    if (dc_type)
     {
         LIST_FOR_EACH_ENTRY(entry, &hdc_selected_objects, struct hdc_selected_object, entry)
         {
             if (entry->hdc == hdc32)
             {
                 dc = entry;
+                break;
             }
         }
         if (!dc)
         {
             dc = (struct hdc_selected_object*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct hdc_selected_object));
             dc->hdc = hdc32;
+            list_add_head(&hdc_selected_objects, &dc->entry);
         }
         if (type >= 1 && type <= GDI_OBJ_LAST)
         {
             dc->selected_objects[type] = handle32;
         }
-        list_add_head(&hdc_selected_objects, &dc->entry);
     }
     return HGDIOBJ_16( result );
 }
@@ -2017,7 +2018,8 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
     {
         if (type >= 1 && type <= GDI_OBJ_LAST)
         {
-            if (dc->selected_objects[type] == object)
+            HGDIOBJ selected = GetCurrentObject(dc->hdc, type);
+            if ((selected && object == selected) || (!selected && dc->selected_objects[type] == object))
             {
                 if (!GetObjectType(dc->hdc))
                 {
