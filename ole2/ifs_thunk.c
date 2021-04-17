@@ -415,22 +415,25 @@ static DVTARGETDEVICE *DVTARGETDEVICE16To32W(const DVTARGETDEVICE *src)
     int pos = 0;
     int len;
     int size = src->tdSize * 2 - sizeof(DVTARGETDEVICE);
-    DVTARGETDEVICE *dst = (DVTARGETDEVICE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, src->tdSize * 2 + sizeof(DEVMODEW));
+    DVTARGETDEVICE *dst = (DVTARGETDEVICE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, src->tdSize * 2 + sizeof(DEVMODEW) + sizeof(DVTARGETDEVICE));
     if (src->tdDriverNameOffset)
     {
         len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdDriverNameOffset, -1, dst->tdData, size);
+        dst->tdDriverNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len * 2;
         size -= len * 2;
     }
     if (src->tdDeviceNameOffset)
     {
         len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdDeviceNameOffset, -1, dst->tdData + pos, size);
+        dst->tdDeviceNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len * 2;
         size -= len * 2;
     }
     if (src->tdPortNameOffset)
     {
         len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdPortNameOffset, -1, dst->tdData + pos, size);
+        dst->tdPortNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len * 2;
         size -= len * 2;
     }
@@ -438,6 +441,7 @@ static DVTARGETDEVICE *DVTARGETDEVICE16To32W(const DVTARGETDEVICE *src)
     {
         DEVMODE16 *dv16 = &src + src->tdExtDevmodeOffset;
         DEVMODEW *dv32 = dst->tdData + pos;
+        dst->tdExtDevmodeOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         MultiByteToWideChar(CP_ACP, 0, dv16->dmDeviceName, CCHDEVICENAME, dv32->dmDeviceName, CCHDEVICENAME);
         dv32->dmDeviceName[CCHDEVICENAME - 1] = 0;
         dv32->dmSpecVersion = 0x30a;
@@ -470,18 +474,21 @@ static DVTARGETDEVICE *DVTARGETDEVICE32WTo16(const DVTARGETDEVICE *src)
     if (src->tdDriverNameOffset)
     {
         len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdDriverNameOffset, -1, dst->tdData, size, NULL, NULL);
+        dst->tdDriverNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len;
         size -= len;
     }
     if (src->tdDeviceNameOffset)
     {
         len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdDeviceNameOffset, -1, dst->tdData + pos, size, NULL, NULL);
+        dst->tdDeviceNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len;
         size -= len;
     }
     if (src->tdPortNameOffset)
     {
         len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdPortNameOffset, -1, dst->tdData + pos, size, NULL, NULL);
+        dst->tdPortNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len;
         size -= len;
     }
@@ -489,6 +496,7 @@ static DVTARGETDEVICE *DVTARGETDEVICE32WTo16(const DVTARGETDEVICE *src)
     {
         DEVMODEW *dv32 = &src + src->tdExtDevmodeOffset;
         DEVMODE16 *dv16 = dst->tdData + pos;
+        dst->tdExtDevmodeOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         WideCharToMultiByte(CP_ACP, 0, dv32->dmDeviceName, CCHDEVICENAME, dv16->dmDeviceName, CCHDEVICENAME, NULL, NULL);
         dv16->dmDeviceName[CCHDEVICENAME - 1] = 0;
         dv16->dmSpecVersion = 0x30a;
