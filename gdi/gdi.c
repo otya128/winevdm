@@ -1485,12 +1485,68 @@ INT16 WINAPI SelectClipRgn16( HDC16 hdc, HRGN16 hrgn )
 }
 
 
+/*
+ * Prevent the GDI object selected by metafile DC from being deleted.
+ * GDI32 fails to delete selected objects as documented, but seems to
+ * be able to delete them if they are selected in the metafile DC.
+ * GetCurrentObject returns the selected object, but it is unreliable
+ * because sometimes it returns zero. (metafile DC?)
+ */
+
+struct hdc_selected_object
+{
+    struct list entry;
+    HDC hdc;
+    HGDIOBJ selected_objects[GDI_OBJ_LAST + 1];
+};
+
+static struct list hdc_selected_objects = LIST_INIT(hdc_selected_objects);
+
+void delete_dc_entry(HDC hdc32)
+{
+    struct hdc_selected_object *dc, *next;
+    LIST_FOR_EACH_ENTRY_SAFE(dc, next, &hdc_selected_objects, struct hdc_selected_object, entry)
+    {
+        if (dc->hdc == hdc32)
+        {
+            list_remove(&dc->entry);
+            HeapFree(GetProcessHeap(), 0, dc);
+        }
+    }
+}
+
 /***********************************************************************
  *           SelectObject    (GDI.45)
  */
 HGDIOBJ16 WINAPI SelectObject16( HDC16 hdc, HGDIOBJ16 handle )
 {
-    return HGDIOBJ_16( SelectObject( HDC_32(hdc), HGDIOBJ_32(handle) ) );
+    HDC hdc32 = HDC_32(hdc);
+    HGDIOBJ handle32 = HGDIOBJ_32(handle);
+    struct hdc_selected_object *entry, *dc = NULL;
+    HGDIOBJ result = SelectObject( hdc32, handle32 );
+    DWORD type = GetObjectType(handle32);
+    DWORD dc_type = GetObjectType(hdc32);
+    if (dc_type == OBJ_METADC)
+    {
+        LIST_FOR_EACH_ENTRY(entry, &hdc_selected_objects, struct hdc_selected_object, entry)
+        {
+            if (entry->hdc == hdc32)
+            {
+                dc = entry;
+            }
+        }
+        if (!dc)
+        {
+            dc = (struct hdc_selected_object*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct hdc_selected_object));
+            dc->hdc = hdc32;
+        }
+        if (type >= 1 && type <= GDI_OBJ_LAST)
+        {
+            dc->selected_objects[type] = handle32;
+        }
+        list_add_head(&hdc_selected_objects, &dc->entry);
+    }
+    return HGDIOBJ_16( result );
 }
 
 
@@ -1928,6 +1984,7 @@ BOOL16 WINAPI DeleteDC16( HDC16 hdc )
             DeleteObject( saved->hrgn );
             HeapFree( GetProcessHeap(), 0, saved );
         }
+        delete_dc_entry(hdc32);
         delete_dib_driver(hdc32);
         K32WOWHandle16Destroy(hdc32, WOW_TYPE_HDC /* GDIOBJ */);
         return TRUE;
@@ -1949,11 +2006,28 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
     int type = GetObjectType(object);
     static BOOL (*haxmvm_DeleteObject)(HGDIOBJ);
     static BOOL init;
+    struct hdc_selected_object *dc, *next;
     if (!init)
     {
         HMODULE haxmvm = GetModuleHandleW(L"haxmvm");
         haxmvm_DeleteObject = (BOOL(*)(HGDIOBJ))GetProcAddress(haxmvm, "haxmvm_DeleteObject");
         init = TRUE;
+    }
+    LIST_FOR_EACH_ENTRY_SAFE(dc, next, &hdc_selected_objects, struct hdc_selected_object, entry)
+    {
+        if (type >= 1 && type <= GDI_OBJ_LAST)
+        {
+            if (dc->selected_objects[type] == object)
+            {
+                if (!GetObjectType(dc->hdc))
+                {
+                    delete_dc_entry(dc);
+                    continue;
+                }
+                TRACE("GDIOBJ %p(%04x) is selected by DC %p\n", object, obj, dc->hdc);
+                return TRUE;
+            }
+        }
     }
     for (int i = 0; i <= STOCK_LAST; i++)
         if (obj == stock[i]) return TRUE;
@@ -1971,7 +2045,7 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
     {
         result = DeleteObject( object );
     }
-    if (result)
+    if (GetObjectType(object) != 0 && result)
     {
         K32WOWHandle16Destroy(object, WOW_TYPE_HDC /* GDIOBJ */);
     }

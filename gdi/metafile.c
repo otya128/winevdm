@@ -103,12 +103,19 @@ HDC16 WINAPI CreateMetaFile16( LPCSTR filename )
     return HDC_16( CreateMetaFileA( filename ) );
 }
 
+void delete_dc_entry(HDC hdc32);
 /******************************************************************
  *	     CloseMetaFile     (GDI.126)
  */
 HMETAFILE16 WINAPI CloseMetaFile16(HDC16 hdc)
 {
-    return create_metafile16( CloseMetaFile( HDC_32(hdc) ));
+    HDC hdc32 = HDC_32(hdc);
+    HMETAFILE hmf = CloseMetaFile(hdc32);
+    if (hmf)
+    {
+        delete_dc_entry(hdc32);
+    }
+    return create_metafile16( hmf );
 }
 
 /******************************************************************
