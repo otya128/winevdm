@@ -1888,6 +1888,9 @@ HPEN16 WINAPI CreatePen16( INT16 style, INT16 width, COLORREF color )
 {
     LOGPEN logpen;
 
+    if (style == PS_NULL)
+        return GetStockObject16(NULL_PEN);
+
     logpen.lopnStyle = style;
     logpen.lopnWidth.x = width;
     logpen.lopnWidth.y = 0;
@@ -1903,6 +1906,9 @@ HPEN16 WINAPI CreatePenIndirect16( const LOGPEN16 * pen )
 {
     LOGPEN logpen;
 
+    if (pen->lopnStyle == PS_NULL)
+        return GetStockObject16(NULL_PEN);
+    
     if (pen->lopnStyle > PS_INSIDEFRAME) return 0;
     logpen.lopnStyle   = pen->lopnStyle;
     logpen.lopnWidth.x = pen->lopnWidth.x;
