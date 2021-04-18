@@ -1612,6 +1612,9 @@ HBRUSH16 WINAPI CreateBrushIndirect16( const LOGBRUSH16 * brush )
     if (brush->lbStyle == BS_DIBPATTERN || brush->lbStyle == BS_DIBPATTERN8X8)
         return CreateDIBPatternBrush16( brush->lbHatch, brush->lbColor );
 
+    if (brush->lbStyle == BS_NULL)
+        return GetStockObject16(NULL_BRUSH);
+
     brush32.lbStyle = brush->lbStyle;
     brush32.lbColor = brush->lbColor;
     if (brush->lbStyle == BS_PATTERN)
