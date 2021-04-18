@@ -419,28 +419,28 @@ static DVTARGETDEVICE *DVTARGETDEVICE16To32W(const DVTARGETDEVICE *src)
     DVTARGETDEVICE *dst = (DVTARGETDEVICE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, src->tdSize * 2 + sizeof(DEVMODEW) + sizeof(DVTARGETDEVICE));
     if (src->tdDriverNameOffset)
     {
-        len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdDriverNameOffset, -1, dst->tdData, size);
+        len = MultiByteToWideChar(CP_ACP, 0, (char *)src + src->tdDriverNameOffset, -1, dst->tdData, size);
         dst->tdDriverNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len * 2;
         size -= len * 2;
     }
     if (src->tdDeviceNameOffset)
     {
-        len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdDeviceNameOffset, -1, dst->tdData + pos, size);
+        len = MultiByteToWideChar(CP_ACP, 0, (char *)src + src->tdDeviceNameOffset, -1, dst->tdData + pos, size);
         dst->tdDeviceNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len * 2;
         size -= len * 2;
     }
     if (src->tdPortNameOffset)
     {
-        len = MultiByteToWideChar(CP_ACP, 0, &src + src->tdPortNameOffset, -1, dst->tdData + pos, size);
+        len = MultiByteToWideChar(CP_ACP, 0, (char *)src + src->tdPortNameOffset, -1, dst->tdData + pos, size);
         dst->tdPortNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len * 2;
         size -= len * 2;
     }
     if (src->tdExtDevmodeOffset)
     {
-        DEVMODE16 *dv16 = &src + src->tdExtDevmodeOffset;
+        DEVMODE16 *dv16 = (char *)src + src->tdExtDevmodeOffset;
         DEVMODEW *dv32 = dst->tdData + pos;
         dst->tdExtDevmodeOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         MultiByteToWideChar(CP_ACP, 0, dv16->dmDeviceName, CCHDEVICENAME, dv32->dmDeviceName, CCHDEVICENAME);
@@ -462,7 +462,9 @@ static DVTARGETDEVICE *DVTARGETDEVICE16To32W(const DVTARGETDEVICE *src)
         dv32->dmDuplex = dv16->dmDuplex;
         dv32->dmYResolution = dv16->dmYResolution;
         dv32->dmTTOption = dv16->dmTTOption;
+        pos += sizeof(DEVMODEW);
     }
+    dst->tdSize = pos + offsetof(DVTARGETDEVICE, tdData);
     return dst;
 }
 
@@ -474,28 +476,28 @@ static DVTARGETDEVICE *DVTARGETDEVICE32WTo16(const DVTARGETDEVICE *src)
     DVTARGETDEVICE *dst = (DVTARGETDEVICE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, src->tdSize);
     if (src->tdDriverNameOffset)
     {
-        len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdDriverNameOffset, -1, dst->tdData, size, NULL, NULL);
+        len = WideCharToMultiByte(CP_ACP, 0, (char *)src + src->tdDriverNameOffset, -1, dst->tdData, size, NULL, NULL);
         dst->tdDriverNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len;
         size -= len;
     }
     if (src->tdDeviceNameOffset)
     {
-        len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdDeviceNameOffset, -1, dst->tdData + pos, size, NULL, NULL);
+        len = WideCharToMultiByte(CP_ACP, 0, (char *)src + src->tdDeviceNameOffset, -1, dst->tdData + pos, size, NULL, NULL);
         dst->tdDeviceNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len;
         size -= len;
     }
     if (src->tdPortNameOffset)
     {
-        len = WideCharToMultiByte(CP_ACP, 0, &src + src->tdPortNameOffset, -1, dst->tdData + pos, size, NULL, NULL);
+        len = WideCharToMultiByte(CP_ACP, 0, (char *)src + src->tdPortNameOffset, -1, dst->tdData + pos, size, NULL, NULL);
         dst->tdPortNameOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         pos += len;
         size -= len;
     }
     if (src->tdExtDevmodeOffset)
     {
-        DEVMODEW *dv32 = &src + src->tdExtDevmodeOffset;
+        DEVMODEW *dv32 = (char *)src + src->tdExtDevmodeOffset;
         DEVMODE16 *dv16 = dst->tdData + pos;
         dst->tdExtDevmodeOffset = pos + offsetof(DVTARGETDEVICE, tdData);
         WideCharToMultiByte(CP_ACP, 0, dv32->dmDeviceName, CCHDEVICENAME, dv16->dmDeviceName, CCHDEVICENAME, NULL, NULL);
@@ -517,7 +519,9 @@ static DVTARGETDEVICE *DVTARGETDEVICE32WTo16(const DVTARGETDEVICE *src)
         dv16->dmDuplex = dv32->dmDuplex;
         dv16->dmYResolution = dv32->dmYResolution;
         dv16->dmTTOption = dv32->dmTTOption;
+        pos += sizeof(DEVMODE16);
     }
+    dst->tdSize = pos + offsetof(DVTARGETDEVICE, tdData);
     return dst;
 }
 
