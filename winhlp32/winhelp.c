@@ -677,6 +677,26 @@ BOOL WINHELP_ReleaseWindow(WINHELP_WINDOW* win)
 
     if (!--win->ref_count)
     {
+        WINHELP_WINDOW**    w;
+
+        for (w = &Globals.win_list; *w; w = &(*w)->next)
+        {
+            if (*w == win)
+            {
+                *w = win->next;
+                break;
+            }
+        }
+
+        if (Globals.active_win == win)
+        {
+            Globals.active_win = Globals.win_list;
+            if (Globals.win_list)
+                SetActiveWindow(Globals.win_list->hMainWnd);
+        }
+
+        if (win == Globals.active_popup)
+            Globals.active_popup = NULL;
         PostMessageW(win->hMainWnd, WM_CLOSE, 0, 0);
         return FALSE;
     }
