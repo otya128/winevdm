@@ -1960,7 +1960,7 @@ HINSTANCE16 WINAPI WinExec16(LPCSTR lpCmdLine, UINT16 nCmdShow)
             {
                 int pos;
                 HWND16 hwnd;
-                sscanf(harg, "-h%x%n", &hwnd, &pos);
+                sscanf(harg, "-h%hx%n", &hwnd, &pos);
                 memcpy(fixargs, args, (int)(harg - args));
                 sprintf(fixargs + (int)(harg - args), "-h%x%s", HWND_32(hwnd), args + pos);
                 arglen = strlen(fixargs);
