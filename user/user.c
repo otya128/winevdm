@@ -1292,6 +1292,7 @@ BOOL16 WINAPI WinHelp16( HWND16 hWnd, LPCSTR lpHelpFile, UINT16 wCommand,
         case HELP_PARTIALKEY:
         case HELP_COMMAND:
         case HELP_SETWINPOS:
+        case HELP_MULTIKEY:
             dwData = (DWORD)MapSL(dwData);
             break;
         default:
