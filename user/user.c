@@ -951,14 +951,9 @@ BOOL16 WINAPI EmptyClipboard16(void)
     return ret;
 }
 
-
-/**************************************************************************
- *		SetClipboardData (USER.141)
- */
-HANDLE16 WINAPI SetClipboardData16( UINT16 format, HANDLE16 data16 )
+HANDLE convert_cb_data_16_32(int format, HANDLE16 data16)
 {
     HANDLE data32 = 0;
-
     switch (format)
     {
     case CF_BITMAP:
@@ -1012,24 +1007,24 @@ HANDLE16 WINAPI SetClipboardData16( UINT16 format, HANDLE16 data16 )
         }
         break;
     }
-
-    if (!SetClipboardData( format, data32 )) return 0;
-    return data16;
+    return data32;
 }
 
 
 /**************************************************************************
- *		GetClipboardData (USER.142)
+ *		SetClipboardData (USER.141)
  */
-HANDLE16 WINAPI GetClipboardData16( UINT16 format )
+HANDLE16 WINAPI SetClipboardData16( UINT16 format, HANDLE16 data16 )
 {
-    HANDLE data32 = GetClipboardData( format );
-    HANDLE16 data16 = 0;
+    if (!SetClipboardData( format, convert_cb_data_16_32(format, data16) )) return 0;
+    return data16;
+}
+
+HANDLE16 convert_cb_data_32_16(int format, HANDLE data32)
+{
     UINT size;
+    HANDLE16 data16 = 0;
     void *ptr;
-
-    if (!data32) return 0;
-
     switch (format)
     {
     case CF_BITMAP:
@@ -1085,6 +1080,18 @@ HANDLE16 WINAPI GetClipboardData16( UINT16 format )
         break;
     }
     return data16;
+}
+    
+
+/**************************************************************************
+ *		GetClipboardData (USER.142)
+ */
+HANDLE16 WINAPI GetClipboardData16( UINT16 format )
+{
+    HANDLE data32 = GetClipboardData( format );
+
+    if (!data32) return 0;
+    return convert_cb_data_32_16(format, data32);
 }
 
 

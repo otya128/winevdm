@@ -1428,6 +1428,49 @@ static HDROP hdrop16_to_hdrop32(HDROP16 hdrop16)
 #endif
 }
 
+// TODO: check for and fix memory leaks
+HANDLE convert_cb_data_16_32(int format, HANDLE16 data16);
+static void convert_dde_msg_16_to_32(int msg, UINT_PTR handle)
+{
+    void *ptr = (void *)GlobalLock((HGLOBAL)handle);
+    char *data = 0;
+    int format;
+    switch (msg)
+    {
+        case WM_DDE_DATA:
+            data = ((DDEDATA *)ptr)->Value;
+            format = ((DDEDATA *)ptr)->cfFormat;
+            break;
+        case WM_DDE_POKE:
+            data = ((DDEPOKE *)ptr)->Value;
+            format = ((DDEPOKE *)ptr)->cfFormat;
+            break;
+    }
+    if (data) *(HANDLE *)data = convert_cb_data_16_32(format, *(HANDLE16 *)data);
+    GlobalUnlock((HGLOBAL)handle);
+}
+
+HANDLE16 convert_cb_data_32_16(int format, HANDLE data32);
+static void convert_dde_msg_32_to_16(int msg, HANDLE16 handle)
+{
+    void *ptr = (void *)GlobalLock16(handle);
+    char *data = 0;
+    int format;
+    switch (msg)
+    {
+        case WM_DDE_DATA:
+            data = ((DDEDATA *)ptr)->Value;
+            format = ((DDEDATA *)ptr)->cfFormat;
+            break;
+        case WM_DDE_POKE:
+            data = ((DDEPOKE *)ptr)->Value;
+            format = ((DDEPOKE *)ptr)->cfFormat;
+            break;
+    }
+    if (data) *(HANDLE16 *)data = convert_cb_data_32_16(format, *(HANDLE *)data);
+    GlobalUnlock16(handle);
+}
+        
 /**********************************************************************
  *	     WINPROC_CallProc16To32A
  */
@@ -1783,6 +1826,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             HANDLE16 lo16 = LOWORD(lParam);
             UINT_PTR lo32 = 0;
             if (lo16 && !(lo32 = convert_handle_16_to_32(lo16, GMEM_DDESHARE))) break;
+            convert_dde_msg_16_to_32(msg, lo32);
             lParam = PackDDElParam( msg, lo32, topic16_32(HIWORD(lParam)) );
             ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
         }
@@ -2411,7 +2455,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
 
             UnpackDDElParam( msg, lParam, &lo32, &hi );
             if (lo32 && !(lo16 = convert_handle_32_to_16(lo32, GMEM_DDESHARE))) break;
-            lo16 = topic32_16(lo16);
+            //convert_dde_msg_32_to_16(msg, lo16);
+            hi = topic32_16(hi);
             ret = callback( HWND_16(hwnd), msg, HWND_16((HWND)wParam),
                             MAKELPARAM(lo16, hi), result, arg );
         }
