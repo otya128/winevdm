@@ -591,21 +591,23 @@ HANDLE run_shared_wow_server()
 }
 BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
 {
+    ULONG pid;
     HANDLE client = CreateFileA("\\\\.\\pipe\\otvdmpipe", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     if (client == INVALID_HANDLE_VALUE)
     {
         return FALSE;
     }
-    /* This magic brings the window to the front. */
-    FreeConsole();
+    if (GetNamedPipeServerProcessId(client, &pid))
+    {
+        AllowSetForegroundWindow(pid);
+    }
     shared_wow_exec exec_data = { 0 };
     exec_data.header = SHARED_WOW_CURDIR_SUPPORTED;
     exec_data.showCmd = showCmd;
     lstrcpynA(exec_data.cmdline, cmdline, MAX_PATH);
     lstrcpynA(exec_data.appname, appname, MAX_PATH);
     GetCurrentDirectoryA(MAX_PATH, exec_data.curdir);
-    DWORD w;
-    WriteFile(client, &exec_data, sizeof(exec_data), &w, NULL);
+    WriteFile(client, &exec_data, sizeof(exec_data), NULL, NULL);
     CloseHandle(client);
     return TRUE;
 
