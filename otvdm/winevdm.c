@@ -535,6 +535,7 @@ static void exec16(LOADPARAMS16 params, LPCSTR appname, LPCSTR cmdline, BOOL exi
     }
 
 }
+
 #include <pshpack1.h>
 #define SHARED_WOW_CURDIR_SUPPORTED 1
 typedef struct {
@@ -543,6 +544,7 @@ typedef struct {
     CHAR appname[MAX_PATH];
     CHAR cmdline[MAX_PATH];
     CHAR curdir[MAX_PATH];
+    /* environment variables... */
 } shared_wow_exec;
 #include <poppack.h>
 DWORD exec16_thread(LPVOID args)
@@ -566,29 +568,67 @@ DWORD exec16_thread(LPVOID args)
     exec16(params, exec_data.appname, exec_data.cmdline, FALSE);
     return 0;
 }
+
+/* Returns TRUE if the pipe is pending. */
+static BOOL connect_new_client(HANDLE handle, LPOVERLAPPED lpov)
+{
+    DWORD err;
+    if (ConnectNamedPipe(handle, lpov))
+    {
+        return FALSE;
+    }
+    err = GetLastError();
+    if (err == ERROR_IO_PENDING)
+    {
+        return TRUE;
+    }
+    if (err == ERROR_PIPE_CONNECTED)
+    {
+        SetEvent(lpov->hEvent);
+    }
+    return FALSE;
+}
+
 /* \\.\pipe\otvdmpipe */
 HANDLE run_shared_wow_server()
 {
-    HANDLE server = CreateNamedPipeA("\\\\.\\pipe\\otvdmpipe", PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_WAIT, 10, 0, 0, 1000, NULL);
+    OVERLAPPED overlapped = { 0 };
+    BOOL pending;
+    HANDLE server = CreateNamedPipeA("\\\\.\\pipe\\otvdmpipe", PIPE_ACCESS_INBOUND | PIPE_ACCESS_OUTBOUND | FILE_FLAG_OVERLAPPED, PIPE_TYPE_BYTE | PIPE_WAIT, 10, 0, 0, 1000, NULL);
+    HANDLE event = CreateEventA(NULL, TRUE, TRUE, NULL);
+    overlapped.hEvent = event;
+    pending = connect_new_client(server, &overlapped);
     while (TRUE)
     {
-        ConnectNamedPipe(server, NULL);
-        DWORD read;
-        shared_wow_exec exec_data = { 0 };
-        BOOL r = ReadFile(server, &exec_data, sizeof(exec_data), &read, NULL);
-        DisconnectNamedPipe(server);
-        if (r)
+        HANDLE handles[1] = { overlapped.hEvent };
+        MSG msg;
+        DWORD ret = MsgWaitForMultipleObjects(1, handles, FALSE, INFINITE, QS_ALLINPUT);
+
+        if (ret == WAIT_OBJECT_0 + 1 && PeekMessageA(&msg, NULL, 0, 0, TRUE))
         {
-            WINE_TRACE("%s %s\n", exec_data.appname, exec_data.cmdline);
-            DWORD threadId;
-            LPVOID data = HeapAlloc(GetProcessHeap(), 0, sizeof(exec_data));
-            memcpy(data, &exec_data, sizeof(exec_data));
-            /* LoadModule16 blocks thread */
-            HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)exec16_thread, data, 0, &threadId);
-            CloseHandle(hThread);
+            TranslateMessage(&msg);
+            DispatchMessageA(&msg);
+        }
+        else if (pending)
+        {
+            DWORD read;
+            shared_wow_exec exec_data = { 0 };
+            BOOL r = ReadFile(server, &exec_data, sizeof(exec_data), &read, NULL);
+            DisconnectNamedPipe(server);
+            if (r)
+            {
+                WINE_TRACE("%s %s\n", exec_data.appname, exec_data.cmdline);
+                LPVOID data = HeapAlloc(GetProcessHeap(), 0, sizeof(exec_data));
+                memcpy(data, &exec_data, sizeof(exec_data));
+                /* LoadModule16 blocks thread */
+                HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)exec16_thread, data, 0, NULL);
+                CloseHandle(hThread);
+            }
+            pending = connect_new_client(server, &overlapped);
         }
     }
 }
+
 BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
 {
     ULONG pid;
@@ -628,6 +668,7 @@ int main( int argc, char *argv[] )
     const char *cmdline1 = strstr(argv[0], "  --ntvdm64:");
     char **argv_copy = HeapAlloc(GetProcessHeap(), 0, sizeof(*argv) * (argc + 1));
     BOOL compat_success = set_peb_compatible_flag();
+    BOOL use_shared_wow_server;
 #ifdef __CI_VERSION
 #define STR(x) #x
 #define STRSTR(x) STR(x)
@@ -800,7 +841,8 @@ int main( int argc, char *argv[] )
 
     params.hEnvironment = 0;
 
-    if (run_shared_wow(appname, showCmd[1], cmdline))
+    use_shared_wow_server = !krnl386_get_config_int("otvdm", "SeparateWOWVDM", TRUE);
+    if (use_shared_wow_server && run_shared_wow(appname, showCmd[1], cmdline))
     {
         return 0;
     }
@@ -838,9 +880,9 @@ int main( int argc, char *argv[] )
     exec16(params, appname, cmdline, TRUE);
     /* wait forever; the process will be killed when the last task exits */
     ReleaseThunkLock(&count);
-    if (!krnl386_get_config_int("otvdm", "SeparateWOWVDM", TRUE))
+    if (use_shared_wow_server)
         run_shared_wow_server();
-    while (TRUE) /* FIXME:shred_wow_server */
+    while (TRUE)
     {
         MSG msg;
         GetMessageA(&msg, NULL, 0, 0);
