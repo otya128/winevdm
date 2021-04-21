@@ -484,7 +484,8 @@ HANDLE WINAPI K32WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
     case WOW_TYPE_HMENU:
     case WOW_TYPE_HDWP:
     case WOW_TYPE_HDROP:
-	case WOW_TYPE_HACCEL:
+    case WOW_TYPE_HACCEL:
+    case WOW_TYPE_FULLHWND:
 #ifdef WOW64
 		return K32WOWHandle32HWND(handle);
 #else
@@ -508,10 +509,6 @@ HANDLE WINAPI K32WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
         if (!tdb) return 0;
         return tdb->teb->ClientId.UniqueThread;
     }
-
-    case WOW_TYPE_FULLHWND:
-        FIXME( "conversion of full window handles not supported yet\n" );
-        return (HANDLE)(ULONG_PTR)handle;
 
     default:
         ERR( "handle 0x%04x of unknown type %d\n", handle, type );
