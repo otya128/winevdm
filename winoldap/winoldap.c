@@ -27,30 +27,6 @@ LRESULT WINAPI DialogProc(HWND16 hwnd16, UINT16 msg, WPARAM16 wParam, LPARAM lPa
     ERR("dialogproc");
 }
 
-//WINE_DEFAULT_DEBUG_CHANNEL(module);
-/***********************************************************************
-*           wait_input_idle
-*
-* user32.WaitForInputIdle releases the win16 lock, so here is a replacement.
-*/
-static DWORD wait_input_idle(HANDLE process, DWORD timeout)
-{
-    DWORD ret = 0;
-    HANDLE handles[2];
-
-    handles[0] = process;
-    /*SERVER_START_REQ(get_process_idle_event)
-    {
-        req->handle = wine_server_obj_handle(process);
-        if (!(ret = wine_server_call_err(req))) handles[1] = wine_server_ptr_handle(reply->event);
-    }
-    SERVER_END_REQ;*/
-    if (ret) return WAIT_FAILED;  /* error */
-    if (!handles[1]) return 0;  /* no event to wait on */
-
-    return WaitForMultipleObjects(2, handles, FALSE, timeout);
-}
-
 /*** PIF file structures ***/
 #include "pshpack1.h"
 
@@ -147,7 +123,7 @@ static VOID start_dos_exe( LPCSTR filename, LPCSTR cmdline )
         ExitThread(1);
     }
     /* Give 10 seconds to the app to come up */
-    if (wait_input_idle(pi.hProcess, 10000) == WAIT_FAILED)
+    if (WaitForInputIdle(pi.hProcess, 10000) == WAIT_FAILED)
         WINE_WARN("WaitForInputIdle failed: Error %d\n", GetLastError());
     ReleaseThunkLock(&count);
     WaitForSingleObject(pi.hProcess, INFINITE);
