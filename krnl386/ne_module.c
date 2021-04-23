@@ -1775,13 +1775,7 @@ HMODULE16 WINAPI GetModuleHandle16( LPCSTR name )
         if (pModule->ne_flags & NE_FFLAGS_WIN32) continue;
 
         name_table = (BYTE *)pModule + pModule->ne_restab;
-	/* FIXME: the strncasecmp is WRONG. It should not be case insensitive,
-	 * but case sensitive! (Unfortunately Winword 6 and subdlls have
-	 * lowercased module names, but try to load uppercase DLLs, so this
-	 * 'i' compare is just a quickfix until the loader handles that
-	 * correctly. -MM 990705
-	 */
-        if ((*name_table == len) && !NE_strncasecmp(tmpstr, (const char*)name_table+1, len))
+        if ((*name_table == len) && !strncmp(tmpstr, (const char*)name_table+1, len))
             return hModule;
     }
 
