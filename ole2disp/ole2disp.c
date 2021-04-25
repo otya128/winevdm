@@ -51,7 +51,7 @@ typedef struct
 static SEGPTR safearray_alloc(ULONG size)
 {
     HANDLE16 h;
-    return WOWGlobalAllocLock16(GPTR, size, &h);
+    return MAKESEGPTR(WOWGlobalAlloc16(GPTR, size), 0);
 }
 
 static void safearray_free(SEGPTR ptr)
