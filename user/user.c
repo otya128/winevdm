@@ -1431,6 +1431,11 @@ HACCEL16 WINAPI LoadAccelerators16(HINSTANCE16 instance, LPCSTR lpTableName)
                 table[i].fVirt = table16[i].fVirt & 0x7f;
                 table[i].key   = table16[i].key;
                 table[i].cmd   = table16[i].cmd;
+                if (table16[i].fVirt & 0x80)
+                {
+                    count = i + 1;
+                    break;
+                }
             }
             ret = CreateAcceleratorTableA( table, count );
             HeapFree( GetProcessHeap(), 0, table );
