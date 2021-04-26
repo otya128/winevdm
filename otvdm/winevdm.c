@@ -633,11 +633,12 @@ BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
 {
     ULONG pid;
     HANDLE client = CreateFileA("\\\\.\\pipe\\otvdmpipe", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    BOOL (WINAPI *pGetNamedPipeServerProcessId)(HANDLE, PULONG) = (BOOL(WINAPI *)(HANDLE, PULONG))GetProcAddress(GetModuleHandleA("kernel32"), "GetNamedPipeServerProcessId");
     if (client == INVALID_HANDLE_VALUE)
     {
         return FALSE;
     }
-    if (GetNamedPipeServerProcessId(client, &pid))
+    if (pGetNamedPipeServerProcessId && pGetNamedPipeServerProcessId(client, &pid))
     {
         AllowSetForegroundWindow(pid);
     }
