@@ -82,7 +82,6 @@ INT16 WINAPI OpenSound16(void)
       return S_SERDVNA;
   }
   owner = GetCurrentTask();
-  waveOutSetVolume(wohand, MAKELONG(0x1999, 0x1999)); /* 10% volume */
   queue = (NOTE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 32 * sizeof(NOTE));
   queuelen = 32 * sizeof(NOTE);
   playing = 0;
@@ -237,7 +236,7 @@ static DWORD WINAPI play(LPVOID param)
     if (notelen)
     {
       int hwavelen = max(1, (int)((1000.0f / ((float)queue[i].freq * mspersamp)) / 2));
-      char samp = 0xff;
+      char samp = 0x99;
       for (int j = 0; j < notelen; j++)
       {
         wavbuf[k + j] = samp;
