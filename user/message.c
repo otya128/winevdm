@@ -1446,7 +1446,8 @@ static void convert_dde_msg_16_to_32(int msg, UINT_PTR handle)
             format = ((DDEPOKE *)ptr)->cfFormat;
             break;
     }
-    if (data && (format < 0xc000) && *(HANDLE16 *)data) *(HANDLE *)data = convert_cb_data_16_32(format, *(HANDLE16 *)data);
+    if (data && (format < 0xc000) && (format != CF_TEXT) && (format != CF_OEMTEXT) && *(HANDLE16 *)data)
+        *(HANDLE *)data = convert_cb_data_16_32(format, *(HANDLE16 *)data);
     GlobalUnlock((HGLOBAL)handle);
 }
 
@@ -1467,7 +1468,8 @@ static void convert_dde_msg_32_to_16(int msg, HANDLE16 handle)
             format = ((DDEPOKE *)ptr)->cfFormat;
             break;
     }
-    if (data && (format < 0xc000) && *(HANDLE *)data) *(HANDLE16 *)data = convert_cb_data_32_16(format, *(HANDLE *)data);
+    if (data && (format < 0xc000) && (format != CF_TEXT) && (format != CF_OEMTEXT) && *(HANDLE *)data)
+        *(HANDLE16 *)data = convert_cb_data_32_16(format, *(HANDLE *)data);
     GlobalUnlock16(handle);
 }
         
