@@ -84,8 +84,8 @@ BOOL WINAPI Ole2_LibMain(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
 }
 int WINAPI Ole2_WEP(HINSTANCE16 hInstance, WORD wDataSeg, WORD cbHeapSize, LPSTR lpCmdLine)
 {
-    FreeLibrary16("STORAGE.DLL");
-    FreeLibrary16("COMPOBJ.DLL");
+    FreeLibrary16(GetModuleHandle16("STORAGE"));
+    FreeLibrary16(GetModuleHandle16("COMPOBJ"));
     return TRUE;
 }
 /******************************************************************************
