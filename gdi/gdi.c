@@ -2589,6 +2589,25 @@ LONG WINAPI SetBitmapBits16( HBITMAP16 hbitmap, LONG count, LPCVOID buffer )
     BITMAP bmp;
     if (GetObject(hbmp32, sizeof(BITMAP), &bmp) != sizeof(BITMAP))
         return 0;
+    if (krnl386_get_compat_mode("256color") && (bmp.bmBitsPixel > 8))
+    {
+        HDC dc = CreateCompatibleDC(NULL);
+        BITMAPINFO *bmap = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 256*2 + sizeof(BITMAPINFOHEADER));
+        UINT16 *colors = (UINT16 *)bmap->bmiColors;
+        VOID *section;
+        bmap->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmap->bmiHeader.biWidth = bmp.bmWidth;
+        bmap->bmiHeader.biHeight = -(count / bmp.bmWidth);
+        bmap->bmiHeader.biPlanes = 1;
+        bmap->bmiHeader.biBitCount = 8;
+        for (int i = 0; i < 256; i++)
+            colors[i] = i;
+        int ret = SetDIBits(dc, hbmp32, 0, bmap->bmiHeader.biHeight, buffer, bmap, DIB_PAL_COLORS);
+        HeapFree(GetProcessHeap(), 0, bmap);
+        DeleteDC(dc);
+        return ret * bmp.bmWidth;
+    }
+
     DWORD size = bmp.bmHeight * bmp.bmWidthBytes;
     return SetBitmapBits( hbmp32, min(size, count), buffer );
 }
