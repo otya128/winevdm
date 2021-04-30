@@ -1,5 +1,5 @@
-file(GLOB SOURCE *.c *.cpp *.rc)
-add_executable(winhlp32 WIN32 ${SOURCE})
 include_directories(../wine)
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN=)
+flex_target(winhlp_scanner macro.lex.l ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c COMPILE_FLAGS)
+add_executable(winhlp32 WIN32 callback.c hlpfile.c macro.c string.c winhelp.c winhlp32.rc ${FLEX_winhlp_scanner_OUTPUTS})
 target_link_libraries(winhlp32 libwine comctl32.lib)

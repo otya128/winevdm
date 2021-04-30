@@ -30,9 +30,6 @@
     <ClCompile Include="winhelp.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="lex.yy.c">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hlpfile.h">
@@ -49,5 +46,10 @@
     <ResourceCompile Include="winhlp32.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="macro.lex.l">
+      <Filter>ソース ファイル</Filter>
+    </None>
   </ItemGroup>
 </Project>

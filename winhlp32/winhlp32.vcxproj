@@ -13,7 +13,6 @@
   <ItemGroup>
     <ClCompile Include="callback.c" />
     <ClCompile Include="hlpfile.c" />
-    <ClCompile Include="lex.yy.c" />
     <ClCompile Include="macro.c" />
     <ClCompile Include="string.c" />
     <ClCompile Include="winhelp.c" />
@@ -25,6 +24,17 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="winhlp32.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="macro.lex.l">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(AsmPath)flex" -d "%(FileName)%(Extension)" </Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lex.yy.c</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ClCompile</OutputItemType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(AsmPath)flex" -d "%(FileName)%(Extension)" </Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lex.yy.c</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClCompile</OutputItemType>
+    </CustomBuild>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
