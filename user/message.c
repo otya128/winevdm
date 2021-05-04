@@ -4813,17 +4813,21 @@ LRESULT CALLBACK WndProcRetHook(int code, WPARAM wParam, LPARAM lParam)
                     {
                     case SS_ICON:
                     {
+                        char rsc_id[32];
+                        sprintf(rsc_id, "#%d", (int)cs->lpCreateParams);
                         SetWindowTextA(hwnd, "");
-                        HICON16 icon = LoadIcon16(HINSTANCE_16(cs->hInstance), cs->lpszName);
-                        if (!icon) icon = LoadCursor16(HINSTANCE_16(cs->hInstance), cs->lpszName);
+                        HICON16 icon = LoadIcon16(HINSTANCE_16(cs->hInstance), rsc_id);
+                        if (!icon) icon = LoadCursor16(HINSTANCE_16(cs->hInstance), rsc_id);
                         if (icon) wow_handlers32.static_proc(hwnd, STM_SETIMAGE, IMAGE_ICON,
                             (LPARAM)get_icon_32(icon), FALSE);
                         break;
                     }
                     case SS_BITMAP:
                     {
+                        char rsc_id[32];
+                        sprintf(rsc_id, "#%d", (int)cs->lpCreateParams);
                         SetWindowTextA(hwnd, "");
-                        HBITMAP16 bitmap = LoadBitmap16(HINSTANCE_16(cs->hInstance), cs->lpszName);
+                        HBITMAP16 bitmap = LoadBitmap16(HINSTANCE_16(cs->hInstance), rsc_id);
                         if (bitmap) wow_handlers32.static_proc(hwnd, STM_SETIMAGE, IMAGE_BITMAP,
                             (LPARAM)HBITMAP_32(bitmap), FALSE);
                         break;
