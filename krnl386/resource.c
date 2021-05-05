@@ -222,9 +222,16 @@ static DWORD NE_FindNameTableId( NE_MODULE *pModule, LPCSTR typeId, LPCSTR resId
 
                 if (p[2] & 0x8000)
                 {
-                    if (!HIWORD(resId)) continue;
-                    if (strcasecmp( resId, (char*)(p+3)+strlen((char*)(p+3))+1 )) continue;
-
+                    if (HIWORD(resId))
+                    {
+                        if (strcasecmp( resId, (char*)(p+3)+strlen((char*)(p+3))+1 ))
+                            continue;
+                    }
+                    else
+                    {
+                        if (LOWORD(resId) != p[2])
+                            continue;
+                    }
                 }
                 else if (HIWORD(resId) || ((LOWORD(resId) & ~0x8000) != p[2]))
                   continue;
