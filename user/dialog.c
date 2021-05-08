@@ -417,11 +417,18 @@ void paddingDWORD(DWORD **d)
 {
 	*d = (BYTE*)(((DWORD)*d + 3) & ~((DWORD)3));
 }
-void copy_widestr(LPCSTR name, LPWSTR *templatew)
+void copy_widestr(LPCSTR name, LPWSTR *templatew, DLGTEMPLATEEX **template32)
 {
 	int len = 0;
-	if (strlen(name))
+	int slen;
+	if (slen = strlen(name))
 	{
+		if (slen > 256)
+		{
+			UINT_PTR off = (char *)*templatew - (char *)*template32;
+			*template32 = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, *template32, HeapSize(GetProcessHeap(), 0, *template32) + slen * 2);
+			*templatew = (char *)*template32 + off;
+		}
 		len = MultiByteToWideChar(CP_ACP, NULL, name, -1, *templatew, strlen(name) * 4)
 			* 2;
 	}
@@ -441,7 +448,7 @@ void copy_widestr(LPCSTR name, LPWSTR *templatew)
 * Create the control windows for a dialog.
 */
 static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
-	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATEEX *dlgItemTemplate32, SEGPTR base16, SIZE_T base32)
+	const DLG_TEMPLATE *dlgTemplate, HINSTANCE16 hInst, DLGITEMTEMPLATEEX *dlgItemTemplate32, SEGPTR base16, SIZE_T base32, DLGTEMPLATEEX **template32)
 {
 	DLG_CONTROL_INFO info;
 	HWND hwndCtrl, hwndDefButton = 0;
@@ -463,14 +470,14 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
 		dlgItemTemplate32->id = info.id;
 		dlgItemTemplatew = (WORD*)(dlgItemTemplate32 + 1);
         info.className = win32classname(hInst, info.className);
-		copy_widestr(info.className, &dlgItemTemplatew);
+		copy_widestr(info.className, &dlgItemTemplatew, template32);
         if (!HIWORD(info.windowName))
         {
             char buffer[512];
             if (((dlgItemTemplate32->style & 0xF) == SS_ICON || (dlgItemTemplate32->style & 0xF) == SS_BITMAP) && stricmp(info.className, "STATIC") == 0)
             {
                 sprintf(buffer, "#%d", (int)info.windowName);
-                copy_widestr(buffer, &dlgItemTemplatew);
+                copy_widestr(buffer, &dlgItemTemplatew, template32);
             }
             else
             {
@@ -478,12 +485,12 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
                     info.windowName = buffer;
                 else
                     info.windowName = "dialog error: invalid window name";
-                copy_widestr(info.windowName, &dlgItemTemplatew);
+                copy_widestr(info.windowName, &dlgItemTemplatew, template32);
             }
         }
         else
         {
-            copy_widestr(info.windowName, &dlgItemTemplatew);
+            copy_widestr(info.windowName, &dlgItemTemplatew, template32);
         }
 		if (info.data)
 		{
@@ -636,7 +643,7 @@ DLGTEMPLATEEX *WINAPI dialog_template16_to_template32(HINSTANCE16 hInst, SEGPTR 
         DeleteObject( hUserFont );
         TRACE("units = %d,%d\n", xBaseUnit, yBaseUnit );
 	}
-	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew, dlgTemplate16, (SIZE_T)base32);
+	DIALOG_CreateControls16Ex(NULL, dlgTemplate, &template, hInst, templatew, dlgTemplate16, (SIZE_T)base32, &template32);
 	WNDCLASSEXA wc2 = { 0 };
 	GetClassInfoExA(hInst32, template.className, &wc2);
 	if (!wc2.lpszClassName)
