@@ -554,7 +554,7 @@ void WINAPI next_intcb(CONTEXT *context)
         context->Esp += 12;
         context->Eip = stkptr[3];
         context->SegCs = stkptr[4];
-        context->ContextFlags = stkptr[5];
+        context->EFlags = stkptr[5];
         lastaddr = MAKESEGPTR(context->SegCs, context->Eip);
         return;
     }
