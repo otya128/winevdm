@@ -1100,6 +1100,11 @@ static void WINAPI DOSVM_Int01Handler(CONTEXT *context)
     flags = context->EFlags;
     context->EFlags = flags & ~0x100; /* TF */
     SEGPTR stack = MAKESEGPTR(context->SegSs, context->Esp);
+    if (!toolhelp)
+    {
+        ERR("INT01\n");
+        return;
+    }
     FARPROC16 intcb = ((FARPROC16(WINAPI *)(SEGPTR *, SEGPTR, WORD, WORD, WORD))GetProcAddress(toolhelp, "get_intcb"))(&stack, MAKESEGPTR(context->SegCs, context->Eip), flags, 1, context->Eax);
     if (intcb)
     {
