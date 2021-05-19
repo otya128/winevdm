@@ -2406,6 +2406,9 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
 #if defined(_MSC_VER)
     __asm
     {
+        mov eax, fs:[0]
+        mov eax, [eax]
+        mov fs:[0], eax
         mov ecx, dword ptr context
         mov eax, frame32
         mov edi, dword ptr [eax + 0x14]
