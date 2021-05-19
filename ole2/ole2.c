@@ -814,7 +814,7 @@ HRESULT WINAPI OleTranslateAccelerator16(SEGPTR lpFrame, LPOLEINPLACEFRAMEINFO16
     OLEINPLACEFRAMEINFO frameInfo32;
     void WINAPI window_message16_32(const MSG16 *msg16, MSG *msg32);
     TRACE("(%08x,%p,%p)\n", lpFrame, lpFrameInfo, lpmsg16);
-    map_oleinplaceframeinfo16_32(&lpFrame32, lpFrameInfo);
+    map_oleinplaceframeinfo16_32(&frameInfo32, lpFrameInfo);
     window_message16_32(lpmsg16, &msg32);
     result = OleTranslateAccelerator(lpFrame32, &frameInfo32, &msg32);
     return hresult32_16(result);
