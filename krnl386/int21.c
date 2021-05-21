@@ -4057,7 +4057,7 @@ static BOOL INT21_FindNext( CONTEXT *context )
     {
         dta->fileattr = entry.dwFileAttributes;
         dta->filesize = entry.nFileSizeLow;
-        FileTimeToDosDateTime( &entry.ftLastWriteTime, &dta->filedate, &dta->filetime );
+        FileTimeToDosDateTime( entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? &entry.ftCreationTime : &entry.ftLastWriteTime, &dta->filedate, &dta->filetime );
         memset(dta->filename, 0, 13);
         if (entry.cAlternateFileName[0])
             WideCharToMultiByte(CP_OEMCP, 0, entry.cAlternateFileName, -1,
