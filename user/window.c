@@ -2802,13 +2802,14 @@ BOOL16 WINAPI TrackPopupMenu16( HMENU16 hMenu, UINT16 wFlags, INT16 x, INT16 y,
         r.right  = lpRect->right;
         r.bottom = lpRect->bottom;
     }
-    ret = TrackPopupMenu( HMENU_32(hMenu), wFlags, x, y, nReserved,
+    ret = TrackPopupMenu( HMENU_32(hMenu), wFlags | TPM_RETURNCMD, x, y, nReserved,
                            WIN_Handle32(hwnd), lpRect ? &r : NULL );
-    if (ret)
+    if (ret && !(wFlags & TPM_RETURNCMD))
     {
-        MSG16 msg;
-        if (PeekMessage16(&msg, hwnd, WM_COMMAND, WM_COMMAND, PM_REMOVE | PM_NOYIELD))
-            DispatchMessage16(&msg);
+        if (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a)
+            SendMessage16(hwnd, WM_COMMAND, ret, 0);
+        else
+            PostMessage16(hwnd, WM_COMMAND, ret, 0);
     }
     return ret;
 }
