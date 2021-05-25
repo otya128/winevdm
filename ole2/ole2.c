@@ -832,7 +832,7 @@ HRESULT WINAPI OleRegGetMiscStatus16(REFCLSID clsid, DWORD dwAspect, DWORD *pdwS
     return hresult32_16(OleRegGetMiscStatus(clsid, dwAspect, pdwStatus));
 }
 
-SEGPTR WINAPI dynamic_get_task_imalloc16(SEGPTR *lpMalloc)
+HRESULT WINAPI dynamic_get_task_imalloc16(SEGPTR *lpMalloc)
 {
     static HRESULT(WINAPI*pget_task_imalloc16)(SEGPTR *lpMalloc);
     if (!pget_task_imalloc16)
@@ -843,7 +843,10 @@ SEGPTR WINAPI dynamic_get_task_imalloc16(SEGPTR *lpMalloc)
             compobj = LoadLibraryW(L"COMPOBJ.DLL16");
         }
         pget_task_imalloc16 = (HRESULT(WINAPI*)(SEGPTR *lpMalloc))GetProcAddress(compobj, "get_task_imalloc16");
-        return E_FAIL;
+        if (!pget_task_imalloc16)
+        {
+            return E_FAIL;
+        }
     }
     return pget_task_imalloc16(lpMalloc);
 }
