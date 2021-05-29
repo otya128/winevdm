@@ -819,7 +819,7 @@ HRESULT WINAPI OleTranslateAccelerator16(SEGPTR lpFrame, LPOLEINPLACEFRAMEINFO16
 {
     MSG msg32;
     HRESULT result;
-    IOleInPlaceFrame *lpFrame32 = (IOleInPlaceFrame*)iface16_32(&IID_IOleInPlaceFrame, lpFrameInfo);
+    IOleInPlaceFrame *lpFrame32 = (IOleInPlaceFrame*)iface16_32(&IID_IOleInPlaceFrame, lpFrame);
     OLEINPLACEFRAMEINFO frameInfo32;
     void WINAPI window_message16_32(const MSG16 *msg16, MSG *msg32);
     TRACE("(%08x,%p,%p)\n", lpFrame, lpFrameInfo, lpmsg16);

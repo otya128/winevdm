@@ -507,8 +507,6 @@ void map_oleverb32_16(OLEVERB16* a16, const OLEVERB *a32);
 #define INMAP_PTR_STGMEDIUM32_16(a16, a32) map_stgmedium32_16(&a16, a32)
 #define INMAP_LPOLEMENUGROUPWIDTHS16_32(a32, a16) *(LPOLEMENUGROUPWIDTHS)&a32 = *(LPOLEMENUGROUPWIDTHS)MapSL(a16)
 #define INMAP_LPOLEMENUGROUPWIDTHS32_16(a16, a32) *(LPOLEMENUGROUPWIDTHS)&a16 = *a32
-void map_oleinplaceframeinfo16_32(OLEINPLACEFRAMEINFO *a32, const struct TYP16_tagOleInPlaceFrameInfo *a16);
-void map_oleinplaceframeinfo32_16(struct TYP16_tagOleInPlaceFrameInfo *a16, const OLEINPLACEFRAMEINFO *a32);
 #define INMAP_LPOLEINPLACEFRAMEINFO16_32(a32, a16) map_oleinplaceframeinfo16_32(&a32, (struct TYP16_tagOleInPlaceFrameInfo*)MapSL(a16))
 #define INMAP_LPOLEINPLACEFRAMEINFO32_16(a16, a32) map_oleinplaceframeinfo32_16(&a16, a32)
 #define INMAP_PTR_DWORD16_32(a32, a16) a32 = *(DWORD*)MapSL(a16)
