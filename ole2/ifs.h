@@ -137,6 +137,14 @@ void map_stgmedium16_32(STGMEDIUM *a32, const STGMEDIUM16 *a16);
 void map_formatetc16_32(FORMATETC *a32, const FORMATETC16 *a16);
 void map_formatetc32_16(FORMATETC16 *a16, const FORMATETC *a32);
 
+struct TYP16_tagOleInPlaceFrameInfo
+{
+    UINT16 cb;
+    BOOL16 fMDIApp;
+    HWND16 hwndFrame;
+    HACCEL16 haccel;
+    INT16 cAccelEntries;
+};
 void map_oleinplaceframeinfo16_32(OLEINPLACEFRAMEINFO *a32, const struct TYP16_tagOleInPlaceFrameInfo *a16);
 void map_oleinplaceframeinfo32_16(struct TYP16_tagOleInPlaceFrameInfo *a16, const OLEINPLACEFRAMEINFO *a32);
 #endif /* __WINE_OLE_IFS_H */

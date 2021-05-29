@@ -475,7 +475,7 @@ extern BYTE SB_ioport_in( WORD port ) DECLSPEC_HIDDEN;
 /* timer.c */
 extern void WINAPI DOSVM_Int08Handler(CONTEXT*) DECLSPEC_HIDDEN;
 
-char *DOSMEM_dosmem;
+extern char *DOSMEM_dosmem;
 
 extern void *dosvm_vm86_teb_info;
 

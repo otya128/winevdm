@@ -316,14 +316,6 @@ struct tagOleInPlaceFrameInfo
     HACCEL haccel;
     INT cAccelEntries;
 };
-struct TYP16_tagOleInPlaceFrameInfo
-{
-    UINT16 cb;
-    BOOL16 fMDIApp;
-    HWND16 hwndFrame;
-    HACCEL16 haccel;
-    INT16 cAccelEntries;
-};
 struct TYP16_tagRECT
 {
     INT16  left;

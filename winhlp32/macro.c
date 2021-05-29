@@ -126,7 +126,7 @@ static BOOL MACRO_Load(struct MacroDesc *macro)
     {
         /* FIXME: internationalisation for error messages */
         WINE_FIXME("Cannot find proc %s in dll %s\n", debugstr_a(dll_name), debugstr_a(macro->name));
-        ret == FALSE;
+        ret = FALSE;
     }
     HeapFree(GetProcessHeap(),0,dll_name);
     macro->alias = NULL;

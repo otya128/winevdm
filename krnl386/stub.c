@@ -93,12 +93,9 @@ HANDLE WINAPI ConvertToGlobalHandle(HANDLE hSrc)
     }
     return func(hSrc);
 }
-DWORD CallTo16_DataSelector DECLSPEC_HIDDEN;
-DWORD CallTo16_TebSelector DECLSPEC_HIDDEN;
-SEGPTR CALL32_CBClient_RetAddr DECLSPEC_HIDDEN;
-SEGPTR CALL32_CBClientEx_RetAddr DECLSPEC_HIDDEN;
+
 WINE_DECLARE_DEBUG_CHANNEL(disasm);
-char *DOSMEM_dosmem;
+
 static int get_debug_mode()
 {
     return TRACE_ON(disasm);

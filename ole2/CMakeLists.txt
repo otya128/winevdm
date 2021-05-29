@@ -1,4 +1,4 @@
-file(GLOB SOURCE *.c *.cpp *.rc)
+file(GLOB SOURCE hglobalstream.c ifs_thunk.c  memlockbytes.c  ole2.c)
 add_library(ole2 SHARED ${SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/ole2.def ole2.dll16.obj ${CMAKE_BINARY_DIR}/ifs_16.c)
 include_directories(../wine ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)

@@ -83,7 +83,7 @@ BOOL WINAPI checkpatch(WORD id, DWORD data)
 		{
 			mem[0x8c5] = 0xb8;
 			mem[0x8c6] = 0x01;
-			mem[0x8c7] - 0x00;
+			mem[0x8c7] = 0x00;
 		}
 	}
 	return 0;
