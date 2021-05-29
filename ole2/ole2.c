@@ -51,6 +51,8 @@ WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
 #define E_INVALIDARG16 MAKE_SCODE(SEVERITY_ERROR, FACILITY_NULL, 3)
 
+static SEGPTR taskmem_strdupWtoA(LPCWSTR str);
+
 static HICON convert_icon_to_32( HICON16 icon16 )
 {
     CURSORICONINFO *info = GlobalLock16( icon16 );
@@ -572,13 +574,20 @@ HRESULT WINAPI ReadFmtUserTypeStg16(/*LPSTORAGE16*/SEGPTR pstg, CLIPFORMAT *pcf,
     LPOLESTR lpszUserType = NULL;
     HRESULT result;
     TRACE("(%p,%p,%p)\n", pstg, pcf, lplpszUserType);
-    result = hresult32_16(ReadFmtUserTypeStg((IStorage*)iface16_32(&IID_IStorage, pstg), pcf, lplpszUserType ? lpszUserType : NULL));
+    result = hresult32_16(ReadFmtUserTypeStg((IStorage*)iface16_32(&IID_IStorage, pstg), pcf, lplpszUserType ? &lpszUserType : NULL));
     if (lplpszUserType)
     {
-        LPOLESTR16 a = strdupWtoA(lpszUserType);
-        TRACE("%s\n", a);
-        *lplpszUserType = MapLS(a);
-        CoTaskMemFree(lpszUserType);
+        if (lpszUserType)
+        {
+            SEGPTR a = taskmem_strdupWtoA(lpszUserType);
+            TRACE("%s\n", MapSL(a));
+            *lplpszUserType = a;
+            CoTaskMemFree(lpszUserType);
+        }
+        else
+        {
+            *lplpszUserType = 0;
+        }
     }
     if (!SUCCEEDED(result))
     {
