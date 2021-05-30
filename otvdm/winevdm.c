@@ -460,13 +460,13 @@ static BOOL set_peb_compatible_flag()
     APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;
     APPCOMPAT_USERFLAGS flags2 = (APPCOMPAT_USERFLAGS)teb->Peb->AppCompatFlagsUser.LowPart;
     APPCOMPAT_USERFLAGS_HIGHPART flags3 = (APPCOMPAT_USERFLAGS_HIGHPART)teb->Peb->AppCompatFlagsUser.HighPart;
-    APPCOMPAT_FLAGS f = NoPaddedBorder | NoGhost;
+    APPCOMPAT_FLAGS f = NoPaddedBorder;
     HMODULE user32 = GetModuleHandleA("user32.dll");
     set_dll_path();
     /* is old windows? */
     if (GetProcAddress(GetModuleHandleA("kernel32"), "GetFileInformationByHandleEx") == NULL)
         return TRUE;
-    if ((flags2 & f) != f  && user32 != NULL)
+    if ((flags2 & f) != f && user32 != NULL)
     {
         WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");
         WINE_ERR("Some compatibility flags can not be applied.\n");
