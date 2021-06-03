@@ -474,6 +474,8 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
     static const WCHAR delete_itemW[] = {'D','e','l','e','t','e','I','t','e','m',0};
     static const WCHAR replace_itemW[] = {'R','e','p','l','a','c','e','I','t','e','m',0};
     static const WCHAR exit_progmanW[] = {'E','x','i','t','P','r','o','g','m','a','n',0};
+    static const WCHAR winhelpW[] = {'w','i','n','h','e','l','p','.','e','x','e',0};
+    static const WCHAR winhlp32W[] = {'w','i','n','h','l','p','3','2','.','e','x','e',0};
 
     static const WCHAR dotexeW[] = {'.','e','x','e',0};
     static const WCHAR dotlnkW[] = {'.','l','n','k',0};
@@ -569,6 +571,11 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
             {
                 defdirpath = TRUE;
                 len = SearchPathW(argv[6], prg_name, dotexeW, 0, NULL, NULL);
+            }
+            if (!wcsicmp(prg_name, winhelpW))
+            {
+                prg_name = winhlp32W;
+                len = SearchPathW(NULL, prg_name, dotexeW, 0, NULL, NULL);
             }
             if (len == 0)
             {
