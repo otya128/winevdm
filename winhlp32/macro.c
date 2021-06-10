@@ -465,13 +465,18 @@ static void CALLBACK MACRO_EndMPrint(void)
 
 static void CALLBACK MACRO_ExecFile(LPCSTR pgm, LPCSTR args, LONG cmd_show, LPCSTR topic)
 {
-    HINSTANCE ret;
+    HINSTANCE ret = 0;
+    char buffer[256];
+    HWND hwnd = Globals.active_win ? Globals.active_win->hMainWnd : NULL;
 
     WINE_TRACE("(%s, %s, %u, %s)\n",
                debugstr_a(pgm), debugstr_a(args), cmd_show, debugstr_a(topic));
 
-    ret = ShellExecuteA(Globals.active_win ? Globals.active_win->hMainWnd : NULL, "open",
-                        pgm, args, ".", cmd_show);
+    strcpy(buffer, "The help file is asking to run the program below.  Say no if you don't recognize it.\n");
+    strncat(buffer, pgm, 256 - strlen(buffer));
+    int but = MessageBoxA(hwnd, buffer, "Notice", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2);
+    if (but == IDYES)
+        ret = ShellExecuteA(hwnd, "open", pgm, args, ".", cmd_show);
     if ((DWORD_PTR)ret < 32)
     {
         WINE_WARN("Failed with %p\n", ret);
@@ -481,7 +486,23 @@ static void CALLBACK MACRO_ExecFile(LPCSTR pgm, LPCSTR args, LONG cmd_show, LPCS
 
 static void CALLBACK MACRO_ExecProgram(LPCSTR str, LONG u)
 {
-    WINE_FIXME("(%s, %u)\n", debugstr_a(str), u);
+    HWND hwnd = Globals.active_win ? Globals.active_win->hMainWnd : NULL;
+    char buffer[256];
+    WINE_TRACE("(%s, %u)\n", debugstr_a(str), u);
+    strcpy(buffer, "The help file is asking to run the program below.  Say no if you don't recognize it.\n");
+    strncat(buffer, str, 256 - strlen(buffer));
+    int ret = MessageBoxA(hwnd, buffer, "Notice", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2);
+    if (ret == IDYES)
+    {
+        STARTUPINFOA si = {0};
+        PROCESS_INFORMATION pi;
+        si.cb = sizeof(STARTUPINFOA);
+        si.dwFlags = STARTF_USESHOWWINDOW;
+        si.wShowWindow = u;
+        CreateProcessA(NULL, str, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
 }
 
 void CALLBACK MACRO_Exit(void)
