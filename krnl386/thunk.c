@@ -2455,6 +2455,8 @@ static DWORD DSI_InitializeDirectSound = 0;
 static DWORD DSI_InitializeSound = 0;
 // workaround for user32.dll
 static DWORD USER32_SetScrollInfo = 0;
+// workaround for wsock32.dll
+static DWORD WSOCK32_WSAAsyncSelect = 0;
 
 /***********************************************************************
  *           GetProcAddress32W     (KERNEL.515)
@@ -2468,6 +2470,8 @@ DWORD WINAPI GetProcAddress32W16( DWORD hModule, LPCSTR lpszProc )
         DSI_InitializeSound = ret;
     else if(!strcmp(lpszProc, "SetScrollInfo"))
         USER32_SetScrollInfo = ret;
+    else if(!strcmp(lpszProc, "WSAAsyncSelect"))
+        WSOCK32_WSAAsyncSelect = ret;
     return ret;
 }
 
@@ -2496,6 +2500,11 @@ static DWORD WOW_CallProc32W16( FARPROC proc32, DWORD nrofargs, DWORD *args )
 {
     DWORD ret;
     DWORD mutex_count;
+
+    if ((proc32 == DSI_InitializeDirectSound) || (proc32 == DSI_InitializeSound) || (proc32 == USER32_SetScrollInfo))
+        args[0] = HWND_32(args[0]);
+    else if (proc32 == WSOCK32_WSAAsyncSelect)
+        args[1] = HWND_32(args[1]);
 
     ReleaseThunkLock( &mutex_count );
     if (!proc32) ret = 0;
@@ -2538,8 +2547,6 @@ DWORD WINAPIV CallProc32W16( DWORD nrofargs, DWORD argconvmask, FARPROC proc32, 
     /* POP nrofargs DWORD arguments and 3 DWORD parameters */
     stack16_pop( (3 + nrofargs) * sizeof(DWORD) );
 
-    if ((proc32 == DSI_InitializeDirectSound) || (proc32 == DSI_InitializeSound) || (proc32 == USER32_SetScrollInfo))
-        args[0] = HWND_32(args[0]);
     return WOW_CallProc32W16( proc32, nrofargs, args );
 }
 
