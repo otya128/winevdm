@@ -3828,9 +3828,9 @@ LONG WINAPI stub_USER_496(void)
     return 0;
 }
 
-LONG WINAPI stub_USER_485(void)
+BOOL WINAPI MakeMenuRToL16(HMENU16 hmenu, BOOL16 rol)
 {
-    FIXME("stub\n");
+    FIXME("stub(%04x,%d\n)", hmenu, rol);
     return 0;
 }
 

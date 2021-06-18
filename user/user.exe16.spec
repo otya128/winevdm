@@ -441,7 +441,7 @@
 483 pascal -ret16 SystemParametersInfo(word word ptr word) SystemParametersInfo16
 #484 __GP
 # Stubs for Hebrew version
-485 pascal -ret16 MakeMenuRToL() stub_USER_485
+485 pascal -ret16 MakeMenuRToL(word word) MakeMenuRToL16 
 486 pascal -ret16 RawGetTabbedTextExtent() stub_USER_486
 487 pascal -ret16 RawDrawText(word str s_word ptr word) RawDrawText16
 488 pascal -ret16 RawTabbedTextOut() stub_USER_488
