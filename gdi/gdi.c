@@ -2438,16 +2438,24 @@ static void check_font_rotation(HDC hdc, SIZE16 *box)
 DWORD WINAPI GetTextExtent16( HDC16 hdc, LPCSTR str, INT16 count )
 {
     SIZE16 size;
+    DWORD ret;
     __TRY
     {
-        if (!GetTextExtentPoint16( hdc, str, count, &size )) return 0;
+        if (!GetTextExtentPoint16( hdc, str, count, &size ))
+        {
+            ret = 0;
+        }
+        else
+        {
+            ret = MAKELONG( size.cx, size.cy );
+        }
     }
     __EXCEPT_ALL
     {
         return 0;
     }
     __ENDTRY
-    return MAKELONG( size.cx, size.cy );
+    return ret;
 }
 
 
@@ -3818,6 +3826,7 @@ HFONT16 WINAPI GetCurLogFont16( HDC16 hdc )
 
 static DWORD rle_size(int type, const VOID *bits)
 {
+    DWORD ret = 0;
     __TRY
     {
         DWORD offset = 0;
@@ -3832,7 +3841,8 @@ static DWORD rle_size(int type, const VOID *bits)
                     case 0:
                         break;
                     case 1:
-                        return offset;
+                        ret = offset;
+                        break;
                     default:
                         offset += byte / type;
                         offset = (offset + 1) & ~1;
@@ -3849,7 +3859,7 @@ static DWORD rle_size(int type, const VOID *bits)
         ERR("bad bitmap, type %d", type);
     }
     __ENDTRY
-    return 0;
+    return ret;
 }
 
 
