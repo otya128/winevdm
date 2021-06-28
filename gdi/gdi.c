@@ -3831,6 +3831,7 @@ static DWORD rle_size(int type, const VOID *bits)
     {
         DWORD offset = 0;
         BYTE *data = (BYTE *)bits;
+        BOOL loop = TRUE;
         do
         {
             if (!data[offset++])
@@ -3842,6 +3843,7 @@ static DWORD rle_size(int type, const VOID *bits)
                         break;
                     case 1:
                         ret = offset;
+                        loop = FALSE;
                         break;
                     default:
                         offset += byte / type;
@@ -3852,7 +3854,7 @@ static DWORD rle_size(int type, const VOID *bits)
             else
                 offset++;
         }
-        while (1);
+        while (loop);
     }
     __EXCEPT_ALL
     {
