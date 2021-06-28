@@ -1217,6 +1217,7 @@ extern "C"
 
     static int disassemble(char *buffer)
     {
+        int ret;
         __TRY
         {
 #if defined(HAS_I386)
@@ -1230,20 +1231,21 @@ extern "C"
 #if defined(HAS_I386)
             if (m_sreg[CS].d)
             {
-                return CPU_DISASSEMBLE_CALL(x86_32) & 0xff;
+                ret = CPU_DISASSEMBLE_CALL(x86_32) & 0xff;
             }
             else
 #endif
             {
-                return i386_dasm_one_ex(buffer, m_eip, oprom, 16) & 0xff;//CPU_DISASSEMBLE_CALL(x86_16);
+                ret = i386_dasm_one_ex(buffer, m_eip, oprom, 16) & 0xff;//CPU_DISASSEMBLE_CALL(x86_16);
             }
         }
         __EXCEPT_PAGE_FAULT
         {
             *buffer = 0;
-            return 0;
+            ret = 0;
         }
         __ENDTRY
+        return ret;
     }
 
 
