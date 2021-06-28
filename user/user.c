@@ -708,15 +708,17 @@ BOOL16 WINAPI CopyRect16( RECT16 *dest, const RECT16 *src )
  */
 BOOL16 WINAPI IsRectEmpty16( const RECT16 *rect )
 {
+    BOOL16 ret;
     __TRY
     {
-        return ((rect->left >= rect->right) || (rect->top >= rect->bottom));
+        ret = ((rect->left >= rect->right) || (rect->top >= rect->bottom));
     }
     __EXCEPT_ALL
     {
-        return TRUE;
+        ret = TRUE;
     }
     __ENDTRY
+    return ret;
 }
 
 

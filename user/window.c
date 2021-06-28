@@ -196,6 +196,7 @@ BOOL is_dialog(HWND hwnd)
         DWORD style;
         /*...*/
     };
+    BOOL ret = FALSE;
     if (is_reactos())
     {
         /* see dialog.c DIALOG_CreateIndirect16 */
@@ -208,13 +209,13 @@ BOOL is_dialog(HWND hwnd)
     __TRY
     {
         if (ww->stateFlags.WFDIALOGWINDOW)
-            return TRUE;
+            ret = TRUE;
     }
     __EXCEPT_ALL
     {
     }
     __ENDTRY
-    return FALSE;
+    return ret;
 }
 
 struct ThreadWindows
