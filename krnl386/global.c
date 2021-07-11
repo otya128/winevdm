@@ -958,8 +958,8 @@ UINT16 WINAPI GlobalFlags16(
     }
     pArena = GET_ARENA_PTR(handle);
     return pArena->lockCount |
-           ((pArena->flags & GA_DISCARDABLE) ? GMEM_DISCARDABLE : 0) |
-           ((pArena->base == 0) ? GMEM_DISCARDED : 0);
+           ((pArena->flags & GA_DISCARDABLE) ? (GMEM_DISCARDABLE |
+           ((pArena->base == 0) ? GMEM_DISCARDED : 0)) : 0);
 }
 
 
