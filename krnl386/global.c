@@ -1362,7 +1362,7 @@ void WINAPI DibUnmapGlobalMemory(void *base, DWORD size)
 void WINAPI GlobalMapInternal(WORD sel, void *base, DWORD size)
 {
     GLOBALARENA *pArena = GET_ARENA_PTR(sel);
-    if (!sel || pArena->base)
+    if (!sel)
         return;
     if (!base || !size)
     {
