@@ -778,6 +778,7 @@
 @ cdecl -arch=win32 krnl386_search_executable_file(str ptr long long)
 @ stdcall -arch=win32 DibMapGlobalMemory(long ptr long)
 @ stdcall -arch=win32 DibUnmapGlobalMemory(ptr long)
+@ stdcall -arch=win32 GlobalMapInternal(long ptr long)
 @ cdecl -arch=win32 make_thunk_32(ptr str str long long long)
 @ cdecl -arch=win32 free_thunk_32(long)
 @ cdecl -arch=win32 get_resource_table(long str ptr)

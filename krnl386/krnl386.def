@@ -225,6 +225,7 @@ EXPORTS
   get_aflags
   DibMapGlobalMemory
   DibUnmapGlobalMemory
+  GlobalMapInternal
   make_thunk_32
   free_thunk_32
   get_resource_table
