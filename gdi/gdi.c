@@ -65,6 +65,7 @@ static HGDIOBJ16 stock[STOCK_LAST + 1] = {0};
 
 void WINAPI DibMapGlobalMemory(WORD sel, void *base, DWORD size);
 void WINAPI DibUnmapGlobalMemory(void *base, DWORD size);
+void WINAPI GlobalMapInternal(WORD sel, void *base, DWORD size);
 struct dib_driver
 {
     struct list entry;
@@ -651,6 +652,7 @@ static SEGPTR alloc_segptr_bits( HBITMAP bmp, void *bits32 )
     bits->bmp   = HBITMAP_16( bmp );
     bits->count = (size + 0xffff) / 0x10000;
     bits->sel   = AllocSelectorArray16( bits->count );
+    GlobalMapInternal(bits->sel, bits32, size);
 
     for (i = 0; i < bits->count; i++)
     {
@@ -672,6 +674,7 @@ static void free_segptr_bits( HBITMAP16 bmp )
         if (bits->bmp != bmp) continue;
         for (i = 0; i < bits->count; i++) FreeSelector16( bits->sel + (i << __AHSHIFT) );
 
+        GlobalMapInternal(bits->sel, NULL, 0);
         list_remove( &bits->entry );
         HeapFree( GetProcessHeap(), 0, bits );
         return;
@@ -1588,6 +1591,28 @@ HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
         ReleaseDC(NULL, dc);
         return HBITMAP_16(ret);
     }
+    else if ((planes == 1) && ((bpp > 8)))
+    {
+        HDC dc = GetDC(NULL);
+        if (bpp == GetDeviceCaps(dc, BITSPIXEL))
+        {
+            BITMAPINFO bmpinfo = {0};
+            VOID *bmp;
+            HDC16 dc16 = HDC_16(dc);
+            bmpinfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bmpinfo.bmiHeader.biWidth = width;
+            bmpinfo.bmiHeader.biHeight = -height;
+            bmpinfo.bmiHeader.biPlanes = 1;
+            bmpinfo.bmiHeader.biBitCount = bpp;
+            HBITMAP16 ret = CreateDIBSection16(dc16, &bmpinfo, DIB_RGB_COLORS, &bmp, NULL, NULL);
+            if (bits)
+                SetDIBits(dc, HBITMAP_32(ret), 0, height, bits, &bmpinfo, DIB_RGB_COLORS);
+            ReleaseDC(NULL, dc);
+            return ret;
+        }
+        ReleaseDC(NULL, dc);
+    }
+
     return HBITMAP_16( CreateBitmap( width, height, planes & 0xff, bpp & 0xff, bits ) );
 }
 

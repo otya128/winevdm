@@ -383,6 +383,8 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
     }
     pArena = GET_ARENA_PTR( handle );
 
+    if (pArena->wType == GT_INTERNAL)
+        return 0;
       /* Discard the block if requested */
 
     if ((size == 0) && (flags & GMEM_MOVEABLE) && !(flags & GMEM_MODIFY))
@@ -563,10 +565,13 @@ HGLOBAL16 WINAPI GlobalFree16(
         WARN("Invalid handle 0x%04x passed to GlobalFree16!\n",handle);
         return 0;
     }
-    ptr = GET_ARENA_PTR(handle)->base;
+    GLOBALARENA *pArena = GET_ARENA_PTR(handle);
+    ptr = pArena->base;
+    if (pArena->wType == GT_INTERNAL)
+        return 0;
 
     TRACE("%04x\n", handle );
-    if (GET_ARENA_PTR(handle)->dib_avail_size)
+    if (pArena->dib_avail_size)
     {
         FIXME("DIB.DRV\n");
         return 0;
@@ -1352,4 +1357,19 @@ void WINAPI DibUnmapGlobalMemory(void *base, DWORD size)
             SetSelectorBase(pArena->handle, pArena->base);
         }
     }
+}
+
+void WINAPI GlobalMapInternal(WORD sel, void *base, DWORD size)
+{
+    GLOBALARENA *pArena = GET_ARENA_PTR(sel);
+    if (!sel)
+        return;
+    if (!base || !size)
+    {
+        memset(pArena, 0, sizeof(GLOBALARENA));
+        return;
+    }
+    pArena->base = base;
+    pArena->size = size;
+    pArena->wType = GT_INTERNAL;
 }
