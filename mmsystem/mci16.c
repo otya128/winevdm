@@ -114,6 +114,21 @@ char *WINAPI xlate_str_handle(const char *origstr, char *newstr)
 
     return origstr;
 }
+
+static void xlate_stat_handle(const char *cmdstr, char *retstr)
+{
+    if (strstr(cmdstr, "window handle"))
+    {
+        DWORD handle = strtoul(retstr, NULL, 10);
+        itoa(HWND_16(handle), retstr, 10);
+    }
+    else if (strstr(cmdstr, "palette handle"))
+    {
+        DWORD handle = strtoul(retstr, NULL, 10);
+        itoa(HPALETTE_16(handle), retstr, 10);
+    }
+}
+
 /**************************************************************************
  * 			MCI_MessageToString			[internal]
  */
@@ -1002,7 +1017,10 @@ DWORD WINAPI mciSendString16(LPCSTR lpstrCommand, LPSTR lpstrRet,
 			     UINT16 uRetLen, HWND16 hwndCallback)
 {
     char newstr[128];
-    return mciSendStringA(xlate_str_handle(lpstrCommand, newstr), lpstrRet, uRetLen, HWND_32(hwndCallback));
+    DWORD ret = mciSendStringA(xlate_str_handle(lpstrCommand, newstr), lpstrRet, uRetLen, HWND_32(hwndCallback));
+    if (!ret && lpstrRet && !strncmp(lpstrCommand, "status ", 7))
+        xlate_stat_handle(lpstrCommand, lpstrRet);
+    return ret;
 }
 
 /**************************************************************************
