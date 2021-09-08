@@ -27,7 +27,9 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "wownt32.h"
+#define ExtDeviceMode WINAPI ExtDeviceMode
 #include "winspool.h"
+#undef ExtDeviceMode
 #include "wine/wingdi16.h"
 #include "wine/list.h"
 #if 0
@@ -1771,13 +1773,20 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
         return HDC_16(memdc);
     }
 #endif
-    if (initData && (!driver || !stricmp(driver, "winspool")))
+    if (!driver || !stricmp(driver, "winspool"))
     {
-        DEVMODEA dma = {0};
-        if (!IsValidDevmodeA(initData, initData->dmSize + initData->dmDriverExtra))
-            initData = NULL;
+        if (!initData || !IsValidDevmodeA(initData, initData->dmSize + initData->dmDriverExtra))
+        {
+            LONG size = ExtDeviceMode(NULL, NULL, NULL, device, output, NULL, NULL, 0);
+            char *dma = (char *)malloc(size);
+            ExtDeviceMode(NULL, NULL, dma, device, output, NULL, NULL, DM_COPY);
+            HDC16 ret = HDC_16(CreateDCA(driver, device, output, dma));
+            free(dma);
+            return ret;
+        }
         else
         {
+            DEVMODEA dma = {0};
             memcpy(&dma, initData, initData->dmSize);
             dma.dmSize = sizeof(DEVMODEA);
             dma.dmDriverExtra = 0;
