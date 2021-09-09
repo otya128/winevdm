@@ -1778,10 +1778,10 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
         if (!initData || !IsValidDevmodeA(initData, initData->dmSize + initData->dmDriverExtra))
         {
             LONG size = ExtDeviceMode(NULL, NULL, NULL, device, output, NULL, NULL, 0);
-            char *dma = (char *)malloc(size);
-            ExtDeviceMode(NULL, NULL, dma, device, output, NULL, NULL, DM_COPY);
-            HDC16 ret = HDC_16(CreateDCA(driver, device, output, dma));
-            free(dma);
+            char *dma = (char *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+            ExtDeviceMode(NULL, NULL, (LPDEVMODEA)dma, device, output, NULL, NULL, DM_COPY);
+            HDC16 ret = HDC_16(CreateDCA(driver, device, output, (LPDEVMODEA)dma));
+            HeapFree(GetProcessHeap(), 0, (LPVOID)dma);
             return ret;
         }
         else
