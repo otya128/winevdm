@@ -119,6 +119,7 @@ int WINAPI ExtDeviceMode16(HWND16 hwnd16, HANDLE16 hDriver16, LPDEVMODE16 pDevMo
 }
 void WINAPI DeviceMode16(HWND16 hwnd, HMODULE16 hModule16, LPSTR lpszDevice, LPSTR lpszOutput)
 {
+    ExtDeviceMode16(hwnd, hModule16, NULL, lpszDevice, lpszOutput, NULL, NULL, DM_PROMPT|DM_UPDATE);
     return;
 }
 DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapability, LPSTR pOutput, CONST DEVMODE16 *pDevMode)
