@@ -2970,6 +2970,8 @@ HDC16 WINAPI CreateIC16( LPCSTR driver, LPCSTR device, LPCSTR output,
             return HDC_16( CreateICA( driver, device, output, &dma ) );
         }
     }
+    else if (!stricmp(driver, "dib"))
+        driver = "DISPLAY";
     return HDC_16( CreateICA( driver, device, output, initData ) );
 }
 
