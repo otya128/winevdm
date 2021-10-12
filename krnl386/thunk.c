@@ -2431,7 +2431,7 @@ void WINAPI Throw16( LPCATCHBUF lpbuf, INT16 retval, CONTEXT *context )
  */
 DWORD WINAPI GetVDMPointer32W16( SEGPTR vp, UINT16 fMode )
 {
-    GlobalPageLock16(GlobalHandle16(SELECTOROF(vp)));
+    //GlobalPageLock16(GlobalHandle16(SELECTOROF(vp))); // FIXME: needed for win95 compat?
     return (DWORD)K32WOWGetVDMPointer( vp, 0, (DWORD)fMode );
 }
 
