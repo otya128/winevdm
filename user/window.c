@@ -2211,7 +2211,12 @@ HDWP16 WINAPI DeferWindowPos16( HDWP16 hdwp, HWND16 hwnd, HWND16 hwndAfter,
  */
 BOOL16 WINAPI EndDeferWindowPos16( HDWP16 hdwp )
 {
-    return EndDeferWindowPos(HDWP_32(hdwp));
+    DWORD count;
+    BOOL result;
+    ReleaseThunkLock(&count);
+    result = EndDeferWindowPos(HDWP_32(hdwp));
+    RestoreThunkLock(count);
+    return result;
 }
 
 
