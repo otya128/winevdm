@@ -125,6 +125,13 @@ void WINAPI DeviceMode16(HWND16 hwnd, HMODULE16 hModule16, LPSTR lpszDevice, LPS
 DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapability, LPSTR pOutput, CONST DEVMODE16 *pDevMode)
 {
     char devmode32[65536] = { 0 };
+    char tmp[256];
+    if (pDevice && !strcmp(pDevice, "DefaultPrinter"))
+    {
+        int len = 256;
+        if (GetDefaultPrinterA(tmp, &len))
+            pDevice = tmp;
+    }
     if (pDevMode)
         DEVMODE16To32(pDevMode, (LPDEVMODEA)&devmode32[0], 0);
     DWORD result = 0;
