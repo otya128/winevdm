@@ -1,5 +1,9 @@
-Param([parameter(mandatory)] [string]$root, [parameter(mandatory)] [string]$src, [parameter(mandatory)] [string]$dst, [parameter(mandatory)] [string]$objcopy, [parameter(mandatory)] [string]$as) 
+Param([parameter(mandatory)] [string]$root, [parameter(mandatory)] [string]$src, [parameter(mandatory)] [string]$dst, [parameter(mandatory)] [string]$objcopy, [parameter(mandatory)] [string]$as, [string]$dll)
 $ErrorActionPreference = "Stop"
+if (!($dll))
+{
+  $dll = (Join-Path $dst "dll/")
+}
 function Make-Dll([string]$spec, [string]$name, [string]$dst)
 {
   Write-Host $name
@@ -19,13 +23,13 @@ copy (Join-Path $root "install.lnk") $dst
 copy (Join-Path $root "installw.inf") $dst
 copy (Join-Path $root "install (no console).lnk") $dst
 copy (Join-Path $root "uninstall.reg") $dst
-mkdir (Join-Path $dst "dll/") -ErrorAction SilentlyContinue > $null
-copy (Join-Path $src "*16") (Join-Path $dst "dll/")
-copy (Join-Path $src "haxmvm.dll") (Join-Path $dst "dll/")
-copy (Join-Path $src "gvm.dll") (Join-Path $dst "dll/")
-copy (Join-Path $src "whpxvm.dll") (Join-Path $dst "dll/")
-copy (Join-Path $src "vm86.dll") (Join-Path $dst "dll/")
-copy (Join-Path $src "wow32.dll") (Join-Path $dst "dll/")
+mkdir $dll -ErrorAction SilentlyContinue > $null
+copy (Join-Path $src "*16") $dll
+copy (Join-Path $src "haxmvm.dll") $dll
+copy (Join-Path $src "gvm.dll") $dll
+copy (Join-Path $src "whpxvm.dll") $dll
+copy (Join-Path $src "vm86.dll") $dll
+copy (Join-Path $src "wow32.dll") $dll
 copy (Join-Path $src "libwine.dll") $dst
 mkdir (Join-Path $dst "WINDOWS") -ErrorAction SilentlyContinue > $null
 ni (Join-Path $dst "WINDOWS/WIN.INI") -ErrorAction SilentlyContinue > $null
