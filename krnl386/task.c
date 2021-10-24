@@ -826,12 +826,7 @@ void TASK_ExitTask(void)
 void WINAPI ExitKernel16(void)
 {
     WriteOutProfiles16();
-#if defined(_MSC_VER) || defined(__MINGW32__)
-    _flushall();
-#else
-    fflush(stderr); /* _flushlbf */
-#endif
-    TerminateProcess( GetCurrentProcess(), 0 );
+    exit(0);
 }
 
 
