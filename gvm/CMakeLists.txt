@@ -1,0 +1,5 @@
+add_library(gvm SHARED gvm.c)
+include_directories(../wine)
+add_definitions(-D__i386__ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN=)
+target_link_libraries(gvm libwine)
+set_target_properties(gvm PROPERTIES PREFIX "")

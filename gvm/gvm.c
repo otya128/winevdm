@@ -16,7 +16,11 @@ DWORD WINAPI panic_msgbox(LPVOID data)
     return 0;
 }
 #define PANIC_HRESULT(msg, hresult) panic_hresult(msg, hresult, __FUNCTION__, __LINE__)
+#ifdef _MSC_VER
 #define PANIC(msg, ...) panic("%s:%d\n" msg, __FUNCTION__, __LINE__, __VA_ARGS__)
+#else
+#define PANIC(msg, ...) panic("%s:%d\n" msg, __FUNCTION__, __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#endif
 
 /* _Noreturn */
 void panic(const char *msg, ...)
