@@ -25,9 +25,9 @@ copy (Join-Path $root "install (no console).lnk") $dst
 copy (Join-Path $root "uninstall.reg") $dst
 mkdir $dll -ErrorAction SilentlyContinue > $null
 copy (Join-Path $src "*16") $dll
-copy (Join-Path $src "haxmvm.dll") $dll
-copy (Join-Path $src "gvm.dll") $dll
-copy (Join-Path $src "whpxvm.dll") $dll
+copy (Join-Path $src "haxmvm.dll") $dll -ErrorAction SilentlyContinue > $null
+copy (Join-Path $src "gvm.dll") $dll -ErrorAction SilentlyContinue > $null
+copy (Join-Path $src "whpxvm.dll") $dll -ErrorAction SilentlyContinue > $null
 copy (Join-Path $src "vm86.dll") $dll
 copy (Join-Path $src "wow32.dll") $dll
 copy (Join-Path $src "libwine.dll") $dst

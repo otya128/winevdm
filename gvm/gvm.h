@@ -3,13 +3,7 @@
 #include "gvm-interface.h"
 #include <stdio.h>
 #include <windows.h>
-#define WHV_PARTITION_HANDLE WHV_PARTITION_HANDLE32 /* hack! */
-#include <WinHvPlatformDefs.h>
-#undef WHV_PARTITION_HANDLE
-typedef UINT64 WHV_PARTITION_HANDLE;
-#include <WinHvPlatform.h>
 
-#include <WinHvEmulation.h>
 struct gvm_vcpu_state
 {
     struct gvm_regs regs;
