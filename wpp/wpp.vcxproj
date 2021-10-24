@@ -36,10 +36,12 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheet.props" />
+    <Import Project="..\BuildToolProperty.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheet.props" />
+    <Import Project="..\BuildToolProperty.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -94,8 +96,8 @@
   <ItemGroup>
     <CustomBuild Include="ppl.l">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(AsmPath)flex" "%(FileName)%(Extension)" </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(AsmPath)flex" "%(FileName)%(Extension)" </Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(FlexPath)flex" "%(FileName)%(Extension)" </Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(FlexPath)flex" "%(FileName)%(Extension)" </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lex.ppy_.c</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lex.ppy_.c</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ClCompile</OutputItemType>
@@ -103,9 +105,9 @@
     </CustomBuild>
     <CustomBuild Include="ppy.y">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(AsmPath)bison" -p ppy_ -d "%(FileName)%(Extension)" </Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(BisonPath)bison" -p ppy_ -d "%(FileName)%(Extension)" </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ppy.tab.c</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(AsmPath)bison" -p ppy_ -d "%(FileName)%(Extension)" </Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(BisonPath)bison" -p ppy_ -d "%(FileName)%(Extension)" </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ppy.tab.c</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ClCompile</OutputItemType>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClCompile</OutputItemType>

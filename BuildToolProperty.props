@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <!-- BisonPath should point the directory containing bison.exe -->
+    <BisonPath>$(AsmPath)</BisonPath>
+    <!-- FlexPath should point the directory containing flex.exe -->
+    <FlexPath>$(AsmPath)</FlexPath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_PropertySheetDisplayName>BuildToolProperty</_PropertySheetDisplayName>
+  </PropertyGroup>
+  <ItemDefinitionGroup />
+  <ItemGroup>
+    <BuildMacro Include="BisonPath">
+      <Value>$(BisonPath)</Value>
+    </BuildMacro>
+    <BuildMacro Include="FlexPath">
+      <Value>$(FlexPath)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

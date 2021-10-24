@@ -28,10 +28,10 @@
   <ItemGroup>
     <CustomBuild Include="macro.lex.l">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(AsmPath)flex" -d "%(FileName)%(Extension)" </Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(FlexPath)flex" -d "%(FileName)%(Extension)" </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lex.yy.c</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ClCompile</OutputItemType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(AsmPath)flex" -d "%(FileName)%(Extension)" </Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(FlexPath)flex" -d "%(FileName)%(Extension)" </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lex.yy.c</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClCompile</OutputItemType>
     </CustomBuild>
@@ -65,10 +65,12 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheet.props" />
+    <Import Project="..\BuildToolProperty.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheet.props" />
+    <Import Project="..\BuildToolProperty.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

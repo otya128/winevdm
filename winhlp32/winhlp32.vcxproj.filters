@@ -48,8 +48,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="macro.lex.l">
-      <Filter>ソース ファイル</Filter>
-    </None>
+    <CustomBuild Include="macro.lex.l" />
   </ItemGroup>
 </Project>
