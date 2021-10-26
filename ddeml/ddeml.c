@@ -344,7 +344,18 @@ BOOL16 WINAPI DdeDisconnectList16(HCONVLIST hConvList)
 DWORD WINAPI DdeQueryString16(DWORD idInst, HSZ hsz, LPSTR lpsz, DWORD cchMax,
                               INT16 codepage)
 {
-    return DdeQueryStringA(idInst, hsz, lpsz, cchMax, codepage);
+    if (codepage != CP_WINANSI)
+    {
+        if (!codepage || (codepage == GetKBCodePage()))
+            WARN("Codepage %x supplied but only CP_WINANSI is supported\n", codepage);
+        else
+        {
+            ERR("Invalid codepage %x\n", codepage);
+            return DMLERR_INVALIDPARAMETER;
+        }
+    }
+
+    return DdeQueryStringA(idInst, hsz, lpsz, cchMax, CP_WINANSI);
 }
 
 /*****************************************************************
