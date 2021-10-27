@@ -34,7 +34,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define inline __inline
+
 struct _GUID;
 
 /*
@@ -131,21 +131,13 @@ struct __wine_debug_channel
 #endif
 
 #else  /* !__GNUC__ && !__SUNPRO_C */
-#ifdef _MSC_VER
-#define __WINE_DPRINTF(dbcl,dbch) \
-    (!__WINE_GET_DEBUGGING(dbcl,(dbch)) || \
-     (wine_dbg_log(__WINE_DBCL##dbcl,(dbch),__FUNCTION__,"%d: ",__LINE__) == -1)) ? \
-     (void)0 : (void)wine_dbg_printf
 
-#define __WINE_PRINTF_ATTR(fmt, args)
-#else
 #define __WINE_DPRINTF(dbcl,dbch) \
     (!__WINE_GET_DEBUGGING(dbcl,(dbch)) || \
      (wine_dbg_log(__WINE_DBCL##dbcl,(dbch),__FILE__,"%d: ",__LINE__) == -1)) ? \
      (void)0 : (void)wine_dbg_printf
 
 #define __WINE_PRINTF_ATTR(fmt, args)
-#endif
 
 #endif  /* !__GNUC__ && !__SUNPRO_C */
 
