@@ -75,7 +75,7 @@ Make-Dll (Join-Path $root "wing/wing.dll16.spec") "WING" (Join-Path $dst "dummyd
 Make-Dll (Join-Path $root "winnls/winnls.dll16.spec") "WINNLS" (Join-Path $dst "dummydll/SYSTEM/WINNLS.DLL")
 Make-Dll (Join-Path $root "winoldap/winoldap.mod16.spec") "WINOLDAP" (Join-Path $dst "dummydll/SYSTEM/WINOLDAP.MOD")
 Make-Dll (Join-Path $root "winsock/winsock.dll16.spec") "WINSOCK" (Join-Path $dst "dummydll/SYSTEM/WINSOCK.DLL")
-Make-Dll (Join-Path $root "winspool/winspool.drv16.spec") "WINSPOOL" (Join-Path $dst "dummydll/SYSTEM/WINSPOOL.DRV")copy $root/dummydll/dummydll.dll $dst/dummydll/SYSTEM/KRNL286.EXE -ErrorAction SilentlyContinue
+Make-Dll (Join-Path $root "winspool/winspool.drv16.spec") "WINSPOOL" (Join-Path $dst "dummydll/SYSTEM/WINSPOOL.DRV")
 copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM/KRNL286.EXE") -ErrorAction SilentlyContinue
 copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM/VGA.DRV") -ErrorAction SilentlyContinue
 copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM32/WOWEXEC.EXE") -ErrorAction SilentlyContinue
