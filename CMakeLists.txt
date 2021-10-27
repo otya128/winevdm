@@ -5,7 +5,6 @@ set(ASM_TOOL_DIR )
 # prevent wine error
 if (NOT(MSVC))
     string(APPEND CMAKE_CXX_FLAGS " -Wno-narrowing ")
-    add_definitions(-D__inline=inline)
 else()
     add_definitions(-DUSE_COMPILER_EXCEPTIONS -Dinline=__inline)
 endif()

@@ -25,7 +25,6 @@
 #include <sys/types.h>
 
 #include "windef.h"
-#define inline __inline
 #include "wine/library.h"
 #include "wine/windef16.h"
 #include "winbase.h"
