@@ -526,15 +526,10 @@ static LRESULT CALLBACK global_call_WH_KEYBOARD(INT code, WPARAM wp, LPARAM lp)
  */
 static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
-    MSG *msg32 = (MSG *)lp;
-    MSG16 msg16;
-    MSG16 *thunk;
-    LRESULT ret;
-    CallNextHookEx(get_hhook(WH_GETMESSAGE, global), code, wp, lp);
-
     struct msgfilter_hook_params params;
     MSG *msg = (MSG *)lp;
     LRESULT result;
+    CallNextHookEx(get_hhook(WH_GETMESSAGE, global), code, wp, lp);
 
     params.time   = msg->time;
     params.pt.x   = msg->pt.x;
