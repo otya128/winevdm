@@ -397,6 +397,7 @@ struct msgfilter_hook_params
     POINT  pt;
     WPARAM wparam;
     BOOL   global;
+    INT    type;
 };
 
 static LRESULT msgfilter_hook_callback16( HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
@@ -415,7 +416,7 @@ static LRESULT msgfilter_hook_callback16( HWND16 hwnd, UINT16 msg, WPARAM16 wp, 
     msg16.pt.y    = params->pt.y;
 
     lp = MapLS( &msg16 );
-    ret = call_hook_16( WH_MSGFILTER, params->code, params->wparam, lp, params->global );
+    ret = call_hook_16( params->type, params->code, params->wparam, lp, params->global );
     UnMapLS( lp );
 
     *result = 0;
@@ -482,6 +483,7 @@ static LRESULT CALLBACK call_WH_MSGFILTER( INT code, WPARAM wp, LPARAM lp, BOOL 
         params.code   = code;
         params.wparam = wp;
         params.global = global;
+        params.type   = WH_MSGFILTER; 
         return WINPROC_CallProc32ATo16( msgfilter_hook_callback16, msg->hwnd, msg->message,
                                     msg->wParam, msg->lParam, &result, &params );
     }
@@ -526,17 +528,23 @@ static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp, BOOL
 {
     MSG *msg32 = (MSG *)lp;
     MSG16 msg16;
+    MSG16 *thunk;
     LRESULT ret;
     CallNextHookEx(get_hhook(WH_GETMESSAGE, global), code, wp, lp);
 
-    map_msg_32_to_16( msg32, &msg16 );
+    struct msgfilter_hook_params params;
+    MSG *msg = (MSG *)lp;
+    LRESULT result;
 
-    lp = MapLS( &msg16 );
-    ret = call_hook_16( WH_GETMESSAGE, code, wp, lp, global );
-    UnMapLS( lp );
-
-    map_msg_16_to_32( &msg16, msg32 );
-    return ret;
+    params.time   = msg->time;
+    params.pt.x   = msg->pt.x;
+    params.pt.y   = msg->pt.y;
+    params.code   = code;
+    params.wparam = wp;
+    params.global = global;
+    params.type   = WH_GETMESSAGE; 
+    return WINPROC_CallProc32ATo16( msgfilter_hook_callback16, msg->hwnd, msg->message,
+                    msg->wParam, msg->lParam, &result, &params );
 }
 
 
