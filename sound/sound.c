@@ -254,12 +254,16 @@ static DWORD WINAPI play(LPVOID param)
   }
 
   WAVEHDR whdr = { wavbuf, buflen, 0, 0, 0, 0, NULL, NULL };
-  waveOutPrepareHeader(wohand, &whdr, sizeof(whdr));
-  waveOutWrite(wohand, &whdr, sizeof(whdr));
-  do
-    WaitForSingleObject(event, INFINITE);
-  while (!(whdr.dwFlags & WHDR_DONE));
-  waveOutUnprepareHeader(wohand, &whdr, sizeof(whdr));
+  if (waveOutPrepareHeader(wohand, &whdr, sizeof(whdr)) == MMSYSERR_NOERROR)
+  {
+      if (waveOutWrite(wohand, &whdr, sizeof(whdr)) == MMSYSERR_NOERROR)
+      {
+          do
+              WaitForSingleObject(event, INFINITE);
+          while (!(whdr.dwFlags & WHDR_DONE));
+      }
+      waveOutUnprepareHeader(wohand, &whdr, sizeof(whdr));
+  }
   HeapFree(GetProcessHeap(), 0, wavbuf);
 
   nextnote = 0;
