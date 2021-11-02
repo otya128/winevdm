@@ -105,7 +105,7 @@ struct __wine_debug_channel
 #define WINE_FIXME_(ch) WINE_FIXME
 #endif
 
-#elif defined(__SUNPRO_C) || defined(_MSC_VER)
+#elif defined(__SUNPRO_C)
 
 #define __WINE_DPRINTF(dbcl,dbch) \
   do { if(__WINE_GET_DEBUGGING(dbcl,(dbch))) { \
@@ -130,7 +130,32 @@ struct __wine_debug_channel
 #define WINE_FIXME_(ch) WINE_FIXME
 #endif
 
-#else  /* !__GNUC__ && !__SUNPRO_C */
+#elif defined(_MSC_VER)
+
+#define __WINE_DPRINTF(dbcl,dbch) \
+  do { if(__WINE_GET_DEBUGGING(dbcl,(dbch))) { \
+       struct __wine_debug_channel * const __dbch = (dbch); \
+       const enum __wine_debug_class __dbcl = __WINE_DBCL##dbcl; \
+       __WINE_DBG_LOG
+
+#define __WINE_DBG_LOG(...) \
+   wine_dbg_log( __dbcl, __dbch, __FUNCTION__, __VA_ARGS__); } } while(0)
+
+#define __WINE_PRINTF_ATTR(fmt,args)
+
+#ifdef WINE_NO_TRACE_MSGS
+#define WINE_TRACE(...) do { } while(0)
+#define WINE_TRACE_(ch) WINE_TRACE
+#endif
+
+#ifdef WINE_NO_DEBUG_MSGS
+#define WINE_WARN(...) do { } while(0)
+#define WINE_WARN_(ch) WINE_WARN
+#define WINE_FIXME(...) do { } while(0)
+#define WINE_FIXME_(ch) WINE_FIXME
+#endif
+
+#else  /* !__GNUC__ && !__SUNPRO_C && !_MSC_VER */
 
 #define __WINE_DPRINTF(dbcl,dbch) \
     (!__WINE_GET_DEBUGGING(dbcl,(dbch)) || \
@@ -139,7 +164,7 @@ struct __wine_debug_channel
 
 #define __WINE_PRINTF_ATTR(fmt, args)
 
-#endif  /* !__GNUC__ && !__SUNPRO_C */
+#endif  /* !__GNUC__ && !__SUNPRO_C && !_MSC_VER */
 
 struct __wine_debug_functions
 {
