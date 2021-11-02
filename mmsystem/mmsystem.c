@@ -2225,7 +2225,7 @@ BOOL16	WINAPI	mmShowMMCPLPropertySheet16(HWND hWnd, LPCSTR lpStrDevice,
 
     TRACE("(%p \"%s\" \"%s\" \"%s\")\n", hWnd, lpStrDevice, lpStrTab, lpStrTitle);
 
-    hndl = LoadLibraryAWrapper("MMSYS.CPL");
+    hndl = LoadLibraryA("MMSYS.CPL");
     if (hndl != 0) {
 	MMCPLCALLBACK	fp = (MMCPLCALLBACK)GetProcAddress(hndl, "ShowMMCPLPropertySheet");
 	if (fp != NULL) {

@@ -104,6 +104,4 @@ EXPORTS
 	wine_ldt_free_entries
 	wine_ldt DATA
 
-	LoadLibraryAWrapper
-
 	set_intel_vt_x_workaround

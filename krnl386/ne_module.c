@@ -1137,7 +1137,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
         if (krnl386_search_executable_file(dllname, path32, sizeof(path32), TRUE) != dllname)
         {
             ReleaseThunkLock(&count);
-            mod32 = LoadLibraryAWrapper( dllname );
+            mod32 = LoadLibraryA( dllname );
         }
         if (mod32 && !builtin_override(basename))
         {
@@ -1155,7 +1155,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
                 if ((main_module = (void *)GetProcAddress( mod32, "__wine_spec_main_module" )))
                 {
                     LDR_MODULE *ldr;
-                    HMODULE main_owner = LoadLibraryAWrapper( main_module );
+                    HMODULE main_owner = LoadLibraryA( main_module );
 
                     if (!main_owner)
                     {
@@ -2415,7 +2415,7 @@ HMODULE WINAPI LoadLibrary32_16( LPCSTR libname )
     DWORD count;
 
     ReleaseThunkLock( &count );
-    hModule = LoadLibraryAWrapper( libname );
+    hModule = LoadLibraryA( libname );
     RestoreThunkLock( count );
     return hModule;
 }
