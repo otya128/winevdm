@@ -1281,7 +1281,7 @@ static HINSTANCE16 NE_CreateThread( NE_MODULE *pModule, WORD cmdShow, LPCSTR cmd
             }
             RestoreThunkLock(count);
             CloseHandle( hThread );
-            return exit_code;
+            return hTask; // return something that looks like an hinstance
         }
         if (!(pTask = GlobalLock16( hTask ))) break;
         instance = pTask->hInstance;
