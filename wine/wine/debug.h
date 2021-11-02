@@ -105,7 +105,7 @@ struct __wine_debug_channel
 #define WINE_FIXME_(ch) WINE_FIXME
 #endif
 
-#elif defined(__SUNPRO_C)
+#elif defined(__SUNPRO_C) || defined(_MSC_VER)
 
 #define __WINE_DPRINTF(dbcl,dbch) \
   do { if(__WINE_GET_DEBUGGING(dbcl,(dbch))) { \
