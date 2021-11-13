@@ -4940,6 +4940,7 @@ BOOL WINAPI DllMain(
 
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
+        load_user32_functions();
         window_type_table = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536);
         aero_diasble = krnl386_get_config_int("otvdm", "DisableAero", TRUE);
         if (!IsThemeActive())
