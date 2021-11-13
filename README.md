@@ -10,6 +10,25 @@
 
 An altered version of winevdm (a 16-bit Windows emulator), ported to 64-bit Windows.
 
+# How to run
+
++ If you get an error that VCRUNTIME140.dll is missing, install [Microsoft Visual C++ Redistributable for Visual Studio 2017 (32-bit)](https://aka.ms/vs/15/release/vc_redist.x86.exe)
++ Drag and drop Win16 executable file to otvdm.exe or execute otvdmw.exe.
+
+# How to install
+
++ Download or compile
++ Run "install" shortcut or right-click on install.inf and select "Install"
++ You can execute Win16 binaries directly!
+
+If the registry is initialized by Windows Update, perform the above procedure again.
+
+You can uninstall it by running uninstall.reg.
+
+# Configuration
+
+See [otvdm.ini](otvdm.ini).
+
 # How to compile(Visual Studio)
 
 + Install Visual Studio 2017
@@ -25,26 +44,6 @@ mkdir build
 cd build
 cmake ..
 make
-```
-
-# How to run
-
-+ If you get an error that VCRUNTIME140.dll is missing, install [Microsoft Visual C++ Redistributable for Visual Studio 2017 (32-bit)](https://aka.ms/vs/15/release/vc_redist.x86.exe)
-+ Drag and drop Win16 executable file to otvdm.exe or execute otvdmw.exe.
-
-# How to install
-
-+ Download or compile
-+ Edit install.inf
-+ Right-click on install.inf and select "Install"
-+ You can execute Win16 binaries directly!
-
-**If you install v0.4.x, you should replace [Strings] section of install.inf with these and install install.inf again.**
-```ini
-[Strings]
-NtVdm64=SOFTWARE\Microsoft\Windows NT\CurrentVersion\NtVdm64
-CommandLine="""%m"" %c"
-MappedExeName=otvdm.exe
 ```
 
 # How does it work?
@@ -87,3 +86,4 @@ winevdm.exe CALC.EXE
 It can also run DOS executables (DOS emulator-like).
 You can set the DOS version with the VDMDOSVER environment variable.
 
+DOS emulation is incomplete and it is recommended to use DOSBox or [MS-DOS Player](http://takeda-toshiya.my.coocan.jp/msdos/).
