@@ -1,7 +1,3 @@
-extern "C"
-{
-#define new _new
-
 #include "wine/debug.h"
 #include "user_private.h"
 
@@ -160,5 +156,4 @@ LONG WINAPI GdiGetCharDimensions(HDC hdc, LPTEXTMETRICW lptm, LONG *height)
 
     if (height) *height = sz.cy;
     return (sz.cx / 26 + 1) / 2;
-}
 }

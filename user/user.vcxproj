@@ -96,7 +96,7 @@
     <ClCompile Include="hook.c" />
     <ClCompile Include="message.c" />
     <ClCompile Include="network.c" />
-    <ClCompile Include="stub.cpp">
+    <ClCompile Include="stub.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="user.c" />

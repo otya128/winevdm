@@ -39,13 +39,13 @@
     <ClCompile Include="dialog.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="stub.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="winhelp.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="dde.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="stub.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
