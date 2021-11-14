@@ -1530,16 +1530,16 @@ try_again:
                 {
                     vm_inject_call(ret_addr, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih);
                 }
-				if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
-				{
-					break;//return VM
-				}
                 if (SREG(CS) == native_wndproc_segment)
                 {
                     CONTEXT context;
                     save_context(&context);
                     call_native_wndproc_context(&context);
                     load_context(&context);
+                }
+                if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
+                {
+                    break;//return VM
                 }
 				bool reg = false;
 				if (m_pc >= (UINT)iret && m_pc <= (UINT)iret + 255)
