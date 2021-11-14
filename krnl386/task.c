@@ -817,6 +817,11 @@ void TASK_ExitTask(void)
     ReleaseThunkLock( &lockCount );
 }
 
+static DWORD WINAPI call_exit(LPVOID params)
+{
+    exit(0);
+    return 0;
+}
 
 /***********************************************************************
  *           ExitKernel (KERNEL.2)
@@ -826,7 +831,7 @@ void TASK_ExitTask(void)
 void WINAPI ExitKernel16(void)
 {
     WriteOutProfiles16();
-    exit(0);
+    CloseHandle(CreateThread(NULL, 0, call_exit, NULL, 0, NULL));
 }
 
 
