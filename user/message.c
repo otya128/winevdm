@@ -215,7 +215,6 @@ typedef struct
 #define MAX_WINPROCS16 1024
 
 static WNDPROC16 winproc16_array[MAX_WINPROCS16];
-static BOOL winproc16_native[MAX_WINPROCS16];
 static unsigned int winproc16_used;
 
 static WINPROC_THUNK *thunk_array;
