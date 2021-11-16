@@ -1373,7 +1373,7 @@ HBITMAP16 WINAPI LoadBitmap16(HINSTANCE16 hInstance, LPCSTR name)
  */
 INT16 WINAPI LoadString16( HINSTANCE16 instance, UINT16 resource_id, LPSTR buffer, INT16 buflen )
 {
-    HGLOBAL16 hmem;
+    HGLOBAL16 hmem = 0;
     HRSRC16 hrsrc;
     unsigned char *p;
     int string_num;
@@ -1381,33 +1381,42 @@ INT16 WINAPI LoadString16( HINSTANCE16 instance, UINT16 resource_id, LPSTR buffe
 
     TRACE("inst=%04x id=%04x buff=%p len=%d\n", instance, resource_id, buffer, buflen);
 
-    if (buflen && buffer)
-        buffer[0] = 0;
     hrsrc = FindResource16( instance, MAKEINTRESOURCEA((resource_id>>4)+1), (LPSTR)RT_STRING );
     if (!hrsrc) return 0;
     hmem = LoadResource16( instance, hrsrc );
     if (!hmem) return 0;
-
-    p = LockResource16(hmem);
-    string_num = resource_id & 0x000f;
-    while (string_num--) p += *p + 1;
-
-    if (buffer == NULL) ret = *p;
-    else
+    __TRY
     {
-        ret = min(buflen - 1, *p);
-        if (ret > 0)
+        if (buflen && buffer)
+            buffer[0] = 0;
+
+        p = LockResource16(hmem);
+        string_num = resource_id & 0x000f;
+        while (string_num--) p += *p + 1;
+
+        if (buffer == NULL) ret = *p;
+        else
         {
-            memcpy(buffer, p + 1, ret);
-            buffer[ret] = '\0';
+            ret = min(buflen - 1, *p);
+            if (ret > 0)
+            {
+                memcpy(buffer, p + 1, ret);
+                buffer[ret] = '\0';
+            }
+            else if (buflen > 1)
+            {
+                buffer[0] = '\0';
+                ret = 0;
+            }
+            TRACE( "%s loaded\n", debugstr_a(buffer));
         }
-        else if (buflen > 1)
-        {
-	    buffer[0] = '\0';
-	    ret = 0;
-	}
-        TRACE( "%s loaded\n", debugstr_a(buffer));
     }
+    __EXCEPT_ALL
+    {
+        ret = 0;
+    }
+    __ENDTRY
+
     FreeResource16( hmem );
     return ret;
 }

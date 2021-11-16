@@ -657,6 +657,7 @@ INT16 WINAPI GetWindowText16( HWND16 hwnd, SEGPTR lpString, INT16 nMaxCount )
  */
 BOOL16 WINAPI SetWindowText16( HWND16 hwnd, SEGPTR lpString )
 {
+    if (IsBadReadPtr16(lpString, 1)) return FALSE;
     return SendMessage16( hwnd, WM_SETTEXT, 0, lpString );
 }
 
