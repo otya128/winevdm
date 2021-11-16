@@ -590,8 +590,6 @@
 @ stdcall -arch=win32 CreateIconFromResourceEx16(ptr long long long long long long)
 @ stdcall -arch=win32 dialog_template16_to_template32(long long ptr ptr)
 @ stdcall -arch=win32 DIALOG_CallDialogProc(ptr long ptr ptr ptr)
-@ cdecl -arch=win32 get_native_wndproc_segment()
-@ cdecl -arch=win32 call_native_wndproc_context(ptr)
 @ stdcall -arch=win32 __wine_call_wndproc(long long long long long)
 @ stdcall -arch=win32 LoadBitmap16(long str)
 @ stdcall -arch=win32 window_message16_32(ptr ptr)

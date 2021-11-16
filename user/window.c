@@ -73,7 +73,6 @@ BOOL is_win_menu_disallowed(DWORD style)
 {
     return (style & (WS_CHILD | WS_POPUP)) == WS_CHILD;
 }
-WNDPROC16 WINPROC_AllocNativeProc_2(WNDPROC func);
 
 static HWND16 hwndSysModal;
 
@@ -312,7 +311,7 @@ static TIMERTHUNK *init_timer_thunk_data(LPVOID param, int i, LPVOID func)
     timer_thunk_array[i].param = param;
     return timer_thunk_array + i;
 }
-WNDPROC WINPROC_AllocNativeProc(WNDPROC16 func);
+
 static TIMERPROC allocate_timer_thunk(LPVOID param, LPVOID func, BOOL re)
 {
     init_timer_thunk();
@@ -334,13 +333,15 @@ static TIMERPROC allocate_timer_thunk(LPVOID param, LPVOID func, BOOL re)
         }
     }
     ERR("could not allocate timer thunk!\n");
-    return WINPROC_AllocNativeProc(func);
+    return NULL;
 }
+
 VOID CALLBACK TimerProc_Thunk(TIMERTHUNK *data, HWND hWnd, UINT msg, UINT_PTR wp, DWORD lp)
 {
     CallWindowProc16(data->param, HWND_16(hWnd), msg, wp, lp);
     return;
 }
+
 /***********************************************************************
  *		SetTimer (USER.10)
  */
@@ -1379,7 +1380,7 @@ LONG WINAPI GetClassLong16( HWND16 hwnd16, INT16 offset )
     {
         ATOM atom = GetClassWord(WIN_Handle32(hwnd16), GCW_ATOM);
         WNDPROC proc = GetClassLongPtrA(WIN_Handle32(hwnd16), GCLP_WNDPROC);
-        return WNDCLASS16Info[atom].wndproc ? WNDCLASS16Info[atom].wndproc : WINPROC_AllocNativeProc_2(proc);//(LONG_PTR)WINPROC_GetProc16((WNDPROC)ret, FALSE);
+        return WNDCLASS16Info[atom].wndproc ? WNDCLASS16Info[atom].wndproc : (LONG_PTR)WINPROC_GetProc16((WNDPROC)ret, FALSE);
     }
     case GCLP_MENUNAME:
         return MapLS( (void *)ret );  /* leak */
@@ -1627,11 +1628,9 @@ LONG WINAPI GetWindowLong16( HWND16 hwnd16, INT16 offset )
         }
         if (retvalue)
             return retvalue;
-        retvalue = GetWindowLongA(hwnd, offset);
-        retvalue = WINPROC_AllocNativeProc_2(retvalue);
+        retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
         return retvalue;
-    }//krnl386.exe
-    //if (is_winproc) retvalue = (LONG_PTR)WINPROC_GetProc16( (WNDPROC)retvalue, FALSE );
+    }
     if (offset >= 0)
     {
         size_t siz = get_actual_cbwndextra(hwnd16);
@@ -2703,7 +2702,7 @@ BOOL16 WINAPI GetClassInfoEx16( HINSTANCE16 hInst16, SEGPTR name, WNDCLASSEX16 *
 
     if (ret)
     {
-        wc->lpfnWndProc = WNDCLASS16Info[ret].wndproc ? WNDCLASS16Info[ret].wndproc : WINPROC_AllocNativeProc(wc32.lpfnWndProc);//WINPROC_GetProc16( wc32.lpfnWndProc, FALSE );
+        wc->lpfnWndProc = WNDCLASS16Info[ret].wndproc ? WNDCLASS16Info[ret].wndproc : WINPROC_GetProc16( wc32.lpfnWndProc, FALSE );
         wc->style         = wc32.style;
         wc->cbClsExtra    = wc32.cbClsExtra;
         BOOL f;

@@ -968,11 +968,6 @@ extern "C"
             capture_stack_trace();
         return EXCEPTION_CONTINUE_SEARCH;
     }
-    typedef WORD(*get_native_wndproc_segment_t)();
-    typedef DWORD(*call_native_wndproc_context_t)(CONTEXT *context);
-    get_native_wndproc_segment_t get_native_wndproc_segment;
-    call_native_wndproc_context_t call_native_wndproc_context;
-    WORD native_wndproc_segment;
     LPCWSTR(WINAPI*MB_GetString)(int);
     HANDLE inject_event;
     CRITICAL_SECTION inject_crit_section;
@@ -993,13 +988,6 @@ extern "C"
         SymInitialize(GetCurrentProcess(), NULL, TRUE);
         HMODULE user32 = GetModuleHandleW(L"user32.dll");
         MB_GetString = (LPCWSTR(WINAPI*)(int))GetProcAddress(user32, "MB_GetString");
-        HMODULE user = LoadLibraryW(L"user.exe16");
-        if (user)
-        {
-            call_native_wndproc_context = (call_native_wndproc_context_t)GetProcAddress(user, "call_native_wndproc_context");
-            get_native_wndproc_segment = (get_native_wndproc_segment_t)GetProcAddress(user, "get_native_wndproc_segment");
-            native_wndproc_segment = get_native_wndproc_segment();
-        }
         if (!krnl386)
             krnl386 = LoadLibraryA(KRNL386);
         DOSVM_inport = (DOSVM_inport_t)GetProcAddress(krnl386, "DOSVM_inport");
@@ -1529,13 +1517,6 @@ try_again:
                 if (vm_inject_state.inject && m_IF)
                 {
                     vm_inject_call(ret_addr, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, pih);
-                }
-                if (SREG(CS) == native_wndproc_segment)
-                {
-                    CONTEXT context;
-                    save_context(&context);
-                    call_native_wndproc_context(&context);
-                    load_context(&context);
                 }
                 if ((m_eip & 0xFFFF) == (ret_addr & 0xFFFF) && SREG(CS) == ret_addr >> 16)
                 {

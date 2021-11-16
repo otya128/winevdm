@@ -7,7 +7,7 @@ BOOL initflag;
 UINT8 *mem;
 #define KRNL386 "krnl386.exe16"
 BOOL is_single_step = FALSE;
-WORD native_wndproc_seg = 0xffff;
+
 HRESULT(WINAPI *pWHvCreatePartition)(WHV_PARTITION_HANDLE *Partition);
 HRESULT(WINAPI *pWHvSetupPartition)(WHV_PARTITION_HANDLE Partition);
 HRESULT(WINAPI *pWHvMapGpaRange)(
@@ -147,17 +147,6 @@ void dynamic__wine_call_int_handler(CONTEXT *context, BYTE intnum)
         __wine_call_int_handler = (void(*)(CONTEXT *context, BYTE intnum))GetProcAddress(krnl386, "__wine_call_int_handler");
     }
     __wine_call_int_handler(context, intnum);
-}
-void dynamic__call_native_wndproc_context(CONTEXT *context)
-{
-    static void(*call_native_wndproc_context)(CONTEXT *context) = NULL;
-    if (!call_native_wndproc_context)
-    {
-        HMODULE user = LoadLibraryW(L"user.exe16");
-        if (user)
-            call_native_wndproc_context = (void(*)(CONTEXT *context))GetProcAddress(user, "call_native_wndproc_context");
-    }
-    call_native_wndproc_context(context);
 }
 
 /***********************************************************************
@@ -485,12 +474,6 @@ BOOL init_vm86(BOOL vm86)
     pGetpWin16Lock(&win16_syslevel);
     DOSVM_inport = (DOSVM_inport_t)GetProcAddress(krnl386, "DOSVM_inport");
     DOSVM_outport = (DOSVM_outport_t)GetProcAddress(krnl386, "DOSVM_outport");
-    HMODULE user = LoadLibraryW(L"user.exe16");
-    if (user)
-    {
-        WORD(*get_native_wndproc_segment)() = (WORD(*)())GetProcAddress(user, "get_native_wndproc_segment");
-        native_wndproc_seg = get_native_wndproc_segment();
-    }
     return TRUE;
 }
 
@@ -1189,29 +1172,7 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
                 {
                     if (intvec == 13)
                     {
-                        if (cs == native_wndproc_seg)
-                        {
-                            load_seg(get_ss(&state2), (WORD)old_ss);
-                            set_esp(&state2, old_esp);
-                            load_seg(get_cs(&state2), (WORD)cs);
-                            set_eip(&state2, eip);
-                            CONTEXT ctx;
-                            save_context_from_state(&ctx, &state2);
-                            if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
-                            {
-
-                            }
-                            LeaveCriticalSection(&running_critical_section);
-                            dynamic__call_native_wndproc_context(&ctx);
-                            EnterCriticalSection(&running_critical_section);
-                            load_context_to_state(&ctx, &state2);
-                            if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
-                            {
-
-                            }
-                            break;
-                        }
-                        else if (err == 0x40)
+                        if (err == 0x40)
                         {
                             /* many startups access the BDA directly */
                             static WORD dosmem_0040H = 0;
