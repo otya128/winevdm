@@ -166,6 +166,28 @@ static int get_bitmap_width_bytes( int width, int bpp )
     return -1;
 }
 
+static HPALETTE realizedpal = 0;
+
+int WINAPI set_realized_palette(HDC hdc)
+{
+    HPALETTE hpal = GetCurrentObject(hdc, OBJ_PAL);
+    if (!hpal)
+        return 0;
+    realizedpal = hpal;
+    return GetPaletteEntries(hpal, 0, 0, NULL); //TODO: adjust palette for usage
+}
+
+HPALETTE WINAPI get_realized_palette()
+{
+    if (!realizedpal || (GetObjectType(realizedpal) != OBJ_PAL))
+    {
+        realizedpal = 0;
+        return GetStockObject(DEFAULT_PALETTE);
+    }
+    return realizedpal;
+}
+
+
 /***********************************************************************
  * Helper for wsprintf16
  */
@@ -2133,30 +2155,43 @@ HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBack
     HDC hdc32 = HDC_32(hdc);
     if ((GetObjectType(hpal32) != OBJ_PAL) || ((GetObjectType(hdc32) != OBJ_DC) && (GetObjectType(hdc32) != OBJ_MEMDC)))
         return NULL;
-    if (krnl386_get_compat_mode("256color") && WindowFromDC(hdc32))
+    if (krnl386_get_compat_mode("256color") && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
     {
-        WORD *hwlist = (WORD *)GetPtr16(hpal, 1);
-        HWND16 hwnd = HWND_16(WindowFromDC(hdc32));
+        DWORD *dclist = (WORD *)GetPtr16(hpal, 1);
         int found = -1;
-        if (!hwlist)
+        if (!dclist)
         {
-            hwlist = (WORD *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 10 * sizeof(WORD));
-            SetPtr16(hpal, hwlist, 1);
+            dclist = (WORD *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 20 * sizeof(DWORD));
+            SetPtr16(hpal, dclist, 1);
         }
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 20; i++)
         {
-            if (!hwlist[i] && (found == -1))
+            if ((!dclist[i] || !GetObjectType(HDC_32(dclist[i])) || (GetCurrentObject(HDC_32(dclist[i]), OBJ_PAL) != hpal32)) && (found == -1))
                 found = i;
-            if (hwlist[i] == hwnd)
-            {
-                found = -2;
-                break;
-            }
-        }
+            if ((dclist[i] & 0xffff) == hdc)
+        	found = i;
+	}
         if (found == -1)
             ERR("No space in pal->dc list hpal: %x\n", hpal);
         else if (found != -2)
-            hwlist[found] = hwnd;
+            dclist[found] = (DWORD)hdc | (bForceBackground << 16);
+
+        DIBSECTION dib;
+        HBITMAP bitmap = GetCurrentObject(hdc32, OBJ_BITMAP);
+        int ret = GetObject(bitmap, sizeof(DIBSECTION), &dib);
+        if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (ret == sizeof(DIBSECTION)) && (dib.dsBmih.biBitCount == 8)
+                && !dib.dshSection && (GetPtr16(HBITMAP_16(bitmap), 1) == 0xd1b00001))
+        {
+            PALETTEENTRY pal[256] = {0};
+            GetPaletteEntries(hpal32, 0, 256, &pal);
+            for (int i = 0; i < 256; i++)
+            {
+                BYTE tmp = pal[i].peRed;
+                pal[i].peRed = pal[i].peBlue;
+                pal[i].peBlue = tmp;
+            }
+            SetDIBColorTable(hdc32, 0, 256, &pal);
+        }
     }
     return HPALETTE_16( SelectPalette( hdc32, hpal32, bForceBackground ));
 }
@@ -2166,7 +2201,11 @@ HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBack
  */
 UINT16 WINAPI RealizePalette16( HDC16 hdc )
 {
-    return UserRealizePalette( HDC_32(hdc) );
+    HDC hdc32 = HDC_32(hdc);
+    if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE)
+            && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY) && (GetObjectType(hdc32) == OBJ_DC))
+        set_realized_palette(hdc32);
+    return UserRealizePalette(hdc32);
 }
 
 

@@ -595,3 +595,5 @@
 @ stdcall -arch=win32 window_message16_32(ptr ptr)
 @ stdcall -arch=win32 window_message32_16(ptr ptr)
 @ stdcall -arch=win32 LoadString16(long long ptr long)
+@ stdcall -arch=win32 set_realized_palette(long)
+@ stdcall -arch=win32 get_realized_palette()

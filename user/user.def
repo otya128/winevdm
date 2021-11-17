@@ -13,4 +13,5 @@ EXPORTS
   window_message16_32
   window_message32_16
   LoadString16
-
+  set_realized_palette
+  get_realized_palette
