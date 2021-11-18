@@ -303,6 +303,12 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
     if ((ULONG_PTR)winproc >> 16 != WINPROC_HANDLE) return (WNDPROC16)winproc;
     return alloc_win16_thunk( winproc );
 #else
+    if (!proc)
+        return NULL;
+
+    if (proc == WindowProc16)
+        proc = DefWindowProcA;
+
     return alloc_win16_thunk(proc);
 #endif
 }
