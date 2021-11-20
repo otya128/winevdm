@@ -105,6 +105,8 @@ int WINAPI ExtDeviceMode16(HWND16 hwnd16, HANDLE16 hDriver16, LPDEVMODE16 pDevMo
             pDeviceName = tmp;
     }
     LONG size = ExtDeviceMode(HWND_32(hwnd16), (HANDLE)hDriver16, NULL, pDeviceName, pPort, NULL, pProfile, 0);
+    if (size < 0)
+        return size;
     if (!fMode)
         return sizeof(DEVMODE16);
     char *devmode32 = alloca(size);
