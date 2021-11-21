@@ -678,6 +678,15 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
         {
             /* empty path => cwd */
             result = GetCurrentDirectoryW(sizeof(ofs->szPathName), pathname);
+            if (result)
+            {
+                size_t len = wcslen(pathname);
+                if (len < sizeof(ofs->szPathName) - 1 && pathname[len - 1] != '\\' && pathname[len - 1] != '/')
+                {
+                    pathname[len] = '\\';
+                    pathname[len + 1] = 0;
+                }
+            }
             if (result && !(mode & OF_PARSE))
             {
                 SetLastError(ERROR_FILE_NOT_FOUND);
