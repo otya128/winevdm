@@ -820,13 +820,6 @@ static BOOL INT21_GetCurrentDirectory( CONTEXT *context, BOOL islong )
         return FALSE;
     }
 
-    len = strlen(pathA);
-    if (len < sizeof(pathA) - 1 && pathA[len - 1] != '\\')
-    {
-        pathA[len] = '\\';
-        pathA[len + 1] = '\0';
-    }
-
     /*
      * Success.
      */
