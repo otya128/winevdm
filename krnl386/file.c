@@ -611,7 +611,7 @@ HFILE16 WINAPI WIN16_OpenFile16( LPCSTR name, SEGPTR ofs, UINT16 mode )
 
 HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
 {
-    HFILE hFileRet;
+    HFILE hFileRet = 0;
     HANDLE handle = INVALID_HANDLE_VALUE;
     FILETIME filetime;
     WORD filedatetime[2];
@@ -793,7 +793,13 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
         }
 
         GetShortPathNameW(pathname, pathname, ARRAY_SIZE(pathname));
-        if (!(mode & OF_PARSE))
+        if (pathname[0] && pathname[wcslen(pathname) - 1] == '\\')
+        {
+            SetLastError(ERROR_FILE_NOT_FOUND);
+            handle = INVALID_HANDLE_VALUE;
+            hFileRet = HFILE_ERROR16;
+        }
+        else
         {
             handle = create_file_OF(pathname, mode);
         }
@@ -840,10 +846,6 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
     {
         hFileRet = Win32HandleToDosFileHandle(handle);
         TRACE("(%s): OK, return = %p\n", name, handle);
-    }
-    else
-    {
-        hFileRet = 0;
     }
     if (hFileRet == HFILE_ERROR16) goto error;
     HeapFree(GetProcessHeap(), 0, namew);
