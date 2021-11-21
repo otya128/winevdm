@@ -729,6 +729,7 @@ static BOOL INT21_GetCurrentDirectory( CONTEXT *context, BOOL islong )
     WCHAR  pathW[MAX_PATH];
     char   pathA[MAX_PATH];
     WCHAR *ptr = pathW;
+    size_t len;
 
     TRACE( "drive %d\n", DL_reg(context) );
 
@@ -819,6 +820,13 @@ static BOOL INT21_GetCurrentDirectory( CONTEXT *context, BOOL islong )
         return FALSE;
     }
 
+    len = strlen(pathA);
+    if (len < sizeof(pathA) - 1 && pathA[len - 1] != '\\')
+    {
+        pathA[len] = '\\';
+        pathA[len + 1] = '\0';
+    }
+
     /*
      * Success.
      */
@@ -835,6 +843,7 @@ static BOOL INT21_GetCurrentDirectory( CONTEXT *context, BOOL islong )
     TRACE( "%c:=%s\n", 'A' + drive, pathA );
 
     strcpy( buffer, pathA );
+    while (*buffer) { *buffer = toupper(*buffer); buffer++; }
     return TRUE;
 }
 
