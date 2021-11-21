@@ -140,7 +140,6 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
     switch (fwCapability)
     {
     case DC_FIELDS:
-    case DC_PAPERS:
     case DC_MINEXTENT:
     case DC_MAXEXTENT:
     case DC_BINS:
@@ -152,27 +151,86 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
     case DC_ENUMRESOLUTIONS:
     case DC_FILEDEPENDENCIES:
     case DC_TRUETYPE:
-    case DC_PAPERNAMES:
     case DC_ORIENTATION:
     case DC_COPIES:
         result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
         break;
+    case DC_PAPERS:
+    {
+        LPWORD papers;
+        result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, NULL, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        if (result)
+        {
+            LPWORD output = (LPWORD)pOutput;
+            DWORD i, j = 0;
+            papers = (LPWORD)HeapAlloc(GetProcessHeap(), 0, result * sizeof(WORD));
+            result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, (LPSTR)papers, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+            for (i = 0; i < result; i++)
+            {
+                /* WINVER < 0x0500 */
+                if (papers[i] <= DMPAPER_A3_EXTRA_TRANSVERSE)
+                {
+                    if (output)
+                    {
+                        output[j] = papers[i];
+                    }
+                    j++;
+                }
+            }
+            HeapFree(GetProcessHeap(), 0, papers);
+            return j;
+        }
+    }
+    case DC_PAPERNAMES:
+    {
+        DWORD papers_count = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        LPDWORD papers = (LPDWORD)HeapAlloc(GetProcessHeap(), 0, papers_count * sizeof(WORD));
+        DWORD i, j = 0;
+        char (*names)[CCHPAPERNAME16] = !pOutput ? NULL : (char(*)[CCHPAPERNAME16])HeapAlloc(GetProcessHeap(), 0, papers_count * CCHPAPERNAME16);
+        char (*names16)[CCHPAPERNAME16] = (char(*)[CCHPAPERNAME16])pOutput;
+        DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, (LPSTR)papers, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, (LPSTR)names, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        for (i = 0; i < result; i++)
+        {
+            /* WINVER < 0x0500 */
+            if (papers[i] <= DMPAPER_A3_EXTRA_TRANSVERSE)
+            {
+                if (pOutput)
+                {
+                    memcpy(names16 + j, names + i, sizeof(names16[j]));
+                }
+                j++;
+            }
+        }
+        HeapFree(GetProcessHeap(), 0, names);
+        HeapFree(GetProcessHeap(), 0, papers);
+        return j;
+    }
     case DC_PAPERSIZE:
     {
-        DWORD papers = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
-        LPPOINT points32 = !pOutput ? NULL : (LPPOINT)HeapAlloc(GetProcessHeap(), 0, papers * sizeof(POINT));
-        result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, points32, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
-        if (pOutput)
+        DWORD papers_count = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        LPDWORD papers = (LPDWORD)HeapAlloc(GetProcessHeap(), 0, result * sizeof(WORD));
+        DWORD i, j = 0;
+        LPPOINT points32 = !pOutput ? NULL : (LPPOINT)HeapAlloc(GetProcessHeap(), 0, papers_count * sizeof(POINT));
+        LPPOINT16 points16 = (LPPOINT16)pOutput;
+        DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, (LPSTR)papers, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, (LPSTR)points32, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        for (i = 0; i < result; i++)
         {
-            LPPOINT16 points16 = (LPPOINT16)pOutput;
-            for (int i = 0; i < result; i++)
+            /* WINVER < 0x0500 */
+            if (papers[i] <= DMPAPER_A3_EXTRA_TRANSVERSE)
             {
-                points16[i].x = points32[i].x;
-                points16[i].y = points32[i].y;
+                if (pOutput)
+                {
+                    points16[j].x = (INT16)points32[i].x;
+                    points16[j].y = (INT16)points32[i].y;
+                }
+                j++;
             }
-            HeapFree(GetProcessHeap(), 0, points32);
         }
-        break;
+        HeapFree(GetProcessHeap(), 0, points32);
+        HeapFree(GetProcessHeap(), 0, papers);
+        return j;
     }
     case DC_EXTRA:
         result = DeviceCapabilitiesA(pDevice, pPort, fwCapability, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
