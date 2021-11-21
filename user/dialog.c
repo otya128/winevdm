@@ -785,7 +785,12 @@ INT16 WINAPI DialogBox16( HINSTANCE16 hInst, LPCSTR dlgTemplate,
  */
 BOOL16 WINAPI EndDialog16( HWND16 hwnd, INT16 retval )
 {
-    return EndDialog( WIN_Handle32(hwnd), retval );
+    DWORD count;
+    BOOL result;
+    ReleaseThunkLock(&count);
+    result = EndDialog( WIN_Handle32(hwnd), retval );
+    RestoreThunkLock(count);
+    return (BOOL16)result;
 }
 
 
