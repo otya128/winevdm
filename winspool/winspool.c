@@ -197,7 +197,7 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
             {
                 if (pOutput)
                 {
-                    lstrcpynA(names16 + j, names + i, sizeof(names16[j]), CCHPAPERNAME16);
+                    lstrcpynA(names16 + j, names + i, sizeof(names16[j]));
                 }
                 j++;
             }
