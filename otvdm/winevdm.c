@@ -666,7 +666,11 @@ BOOL run_shared_wow(LPCSTR appname, WORD showCmd, LPCSTR cmdline)
 /***********************************************************************
  *           main
  */
+#ifdef _CONSOLE
 int main( int argc, char *argv[] )
+#else
+int entry_point( int argc, char *argv[] )
+#endif
 {
     DWORD count;
     LOADPARAMS16 params;
@@ -915,6 +919,7 @@ int main( int argc, char *argv[] )
     return 0;
 }
 
+#ifndef _CONSOLE
 /* otvdmw.exe entry point */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpszCmdLine, int nShowCmd)
 {
@@ -948,7 +953,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpszCmdLine, 
             WINE_ERR("%s is a win32 executable file!\n", argv[1]);
             MessageBoxA(NULL, buf, NULL, MB_OK | MB_ICONWARNING);
         }
-        return main(2, argv);
+        return entry_point(2, argv);
     }
-    return main(__argc, __argv);
+    return entry_point(__argc, __argv);
 }
+#endif
