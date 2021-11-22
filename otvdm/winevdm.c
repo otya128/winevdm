@@ -423,11 +423,12 @@ static BOOL set_peb_compatible_flag()
         return TRUE;
     if ((flags2 & f) != f && user32 != NULL)
     {
-        WINE_ERR("user32.dll has already been loaded."
-#ifdef _MSC_VER /* Lazy loading currently only works with MSVC. */
-            " (Anti-virus software may be the cause.)"
+        /* Lazy loading currently only works with MSVC. */
+#ifdef _MSC_VER
+        WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");
+#else
+        WINE_ERR("user32.dll has already been loaded.\n");
 #endif
-            "\n");
         WINE_ERR("Some compatibility flags can not be applied.\n");
         success = FALSE;
     }
@@ -452,10 +453,6 @@ static BOOL fix_compatible(void)
 #ifdef SET_COMPAT_LAYER
     {
         HKEY hkey;
-        /*
-         *  HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers
-         * HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM
-         */
         LSTATUS stat = RegOpenKeyW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", &hkey);
         if (stat)
             return FALSE;
