@@ -24,6 +24,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #include "windef.h"
 #include "winbase.h"
@@ -158,52 +159,6 @@ static void usage(void)
     ExitProcess(1);
 }
 
-static void fix_compatible(int argc, char *argv[])
-{
-    HKEY hkey;
-    /*
-       HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers
-       HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM
-    */
-    LSTATUS stat = RegOpenKeyW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", &hkey);
-    if (stat)
-        return;
-    WCHAR image_path[MAX_PATH];
-    GetModuleFileNameW(NULL, image_path, sizeof(image_path));
-    LPWSTR reg_value = L"VistaRTM";// L"~ Win7RTM";
-    stat = RegSetValueExW(hkey, image_path, 0, REG_SZ, reg_value, strlenW(reg_value) * sizeof(WCHAR));
-    if (stat)
-        return;
-    RegCloseKey(hkey);
-    LPWSTR arg = GetCommandLineW();
-    DWORD pid = GetCurrentProcessId();
-    LPWSTR compat_arg = L"--fix-compat-mode ";
-    
-    PWSTR arg2 = (PWSTR)malloc(sizeof(WCHAR) * (11 + strlenW(arg) + strlenW(compat_arg)));
-    sprintfW(arg2, L"%s%d %s", compat_arg, pid, arg);
-    PROCESS_INFORMATION proc_inf;
-    STARTUPINFOW start_inf = { sizeof(STARTUPINFOW) };
-    CreateProcessW(image_path, arg2, NULL, NULL, FALSE, 0, NULL, NULL, &start_inf, &proc_inf);
-    WaitForSingleObject(proc_inf.hProcess, INFINITE);
-    CloseHandle(proc_inf.hProcess);
-    CloseHandle(proc_inf.hThread);
-}
-DWORD WINAPI fix_compat_mode_wait_process(LPVOID ppid)
-{
-    DWORD pid = *(DWORD*)ppid;
-    HANDLE proc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    WaitForSingleObject(proc, INFINITE);
-    DWORD exitcode;
-    BOOL result = GetExitCodeProcess(proc, &exitcode);
-    CloseHandle(proc);
-    if (!result)
-    {
-        ExitProcess(0);
-    }
-    ExitProcess(exitcode);
-    return 0;
-
-}
 #include <winternl.h>
 
 typedef struct _CURDIR
@@ -468,17 +423,74 @@ static BOOL set_peb_compatible_flag()
         return TRUE;
     if ((flags2 & f) != f && user32 != NULL)
     {
-        WINE_ERR("user32.dll has already been loaded. (Anti-virus software may be the cause.)\n");
+        WINE_ERR("user32.dll has already been loaded."
+#ifdef _MSC_VER /* Lazy loading currently only works with MSVC. */
+            " (Anti-virus software may be the cause.)"
+#endif
+            "\n");
         WINE_ERR("Some compatibility flags can not be applied.\n");
         success = FALSE;
     }
-    //ExtractAssociatedIcon
     teb->Peb->AppCompatFlagsUser.LowPart |= f;
     //teb->Peb->AppCompatFlagsUser.LowPart = -1;
     //teb->Peb->AppCompatFlagsUser.HighPart = -1;
     //teb->Peb->AppCompatFlags.LowPart = -1;
     return success;
 }
+
+static BOOL fix_compatible(void)
+{
+    WCHAR image_path[MAX_PATH];
+    LPWSTR arg = GetCommandLineW();
+    DWORD pid = GetCurrentProcessId();
+    LPWSTR compat_arg = L"--fix-compat-mode ";
+    PROCESS_BASIC_INFORMATION pbi;
+    PWSTR arg2;
+    PROCESS_INFORMATION proc_inf;
+    STARTUPINFOW start_inf = { sizeof(STARTUPINFOW) };
+    GetModuleFileNameW(NULL, image_path, sizeof(image_path));
+#ifdef SET_COMPAT_LAYER
+    {
+        HKEY hkey;
+        /*
+         *  HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers
+         * HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NtVdm64\OTVDM
+         */
+        LSTATUS stat = RegOpenKeyW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", &hkey);
+        if (stat)
+            return FALSE;
+        LPWSTR reg_value = L"VistaRTM";// L"~ Win7RTM";
+        stat = RegSetValueExW(hkey, image_path, 0, REG_SZ, reg_value, strlenW(reg_value) * sizeof(WCHAR));
+        if (stat)
+            return FALSE;
+        RegCloseKey(hkey);
+    }
+#endif
+    arg2 = (PWSTR)malloc(sizeof(WCHAR) * (11 + strlenW(arg) + strlenW(compat_arg)));
+    sprintfW(arg2, L"%s%d %s", compat_arg, pid, arg);
+    if (!CreateProcessW(image_path, arg2, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &start_inf, &proc_inf))
+    {
+        free(arg2);
+        return FALSE;
+    }
+    free(arg2);
+    WINE_ERR("child pid = %d\n", proc_inf.dwProcessId);
+    if (NT_SUCCESS(NtQueryInformationProcess(proc_inf.hProcess, ProcessBasicInformation, &pbi, sizeof(pbi), NULL)))
+    {
+        ULARGE_INTEGER AppCompatFlagsUser;
+        if (ReadProcessMemory(proc_inf.hProcess, (ULONG_PTR)pbi.PebBaseAddress + offsetof(PEB2, AppCompatFlagsUser), &AppCompatFlagsUser, sizeof(AppCompatFlagsUser), NULL))
+        {
+            AppCompatFlagsUser.LowPart |= NoPaddedBorder;
+            WriteProcessMemory(proc_inf.hProcess, (ULONG_PTR)pbi.PebBaseAddress + offsetof(PEB2, AppCompatFlagsUser), &AppCompatFlagsUser, sizeof(AppCompatFlagsUser), NULL);
+        }
+    }
+    ResumeThread(proc_inf.hThread);
+    WaitForSingleObject(proc_inf.hProcess, INFINITE);
+    CloseHandle(proc_inf.hProcess);
+    CloseHandle(proc_inf.hThread);
+    return TRUE;
+}
+
 static BOOL is_win32_exe(LPCSTR appname)
 {
     HANDLE file = CreateFileA(appname, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -785,10 +797,10 @@ int main( int argc, char *argv[] )
     if (!strcmp(argv[0], "--fix-compat-mode"))
     {
         pid = atoi(argv[1]);
-        DWORD threadId;
-        HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)fix_compat_mode_wait_process, &pid, 0, &threadId);
+        WINE_ERR("parent pid = %d\n", pid);
         argv += 2;
         argc -= 2;
+        compat_success = TRUE;
     }
     //compatible mode
     else if ((!compat_success
@@ -796,11 +808,25 @@ int main( int argc, char *argv[] )
 #ifdef FIX_COMPAT_MODE
             || 1
 #endif
-            ) && getenv("__COMPAT_LAYER") == NULL)
+            )
+#ifdef SET_COMPAT_LAYER
+        && getenv("__COMPAT_LAYER") == NULL
+#endif
+        )
     {
-        printf("set compatible mode to VistaRTM\n");
-        fix_compatible(argc, argv);
-        return 0;
+#ifdef SET_COMPAT_LAYER
+        WINE_ERR("Set compatible mode to VistaRTM\n");
+#else
+        WINE_ERR("Spawn a child process to apply compatible flags.\n");
+#endif
+        if (fix_compatible())
+        {
+            return 0;
+        }
+        else
+        {
+            WINE_ERR("failed");
+        }
     }
 
     if (!argv[1]) usage();
