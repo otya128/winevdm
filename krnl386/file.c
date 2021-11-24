@@ -799,7 +799,7 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
             handle = INVALID_HANDLE_VALUE;
             hFileRet = HFILE_ERROR16;
         }
-        else
+        else if (!(mode & OF_PARSE))
         {
             handle = create_file_OF(pathname, mode);
         }
