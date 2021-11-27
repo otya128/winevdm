@@ -1380,6 +1380,11 @@ const char *GetRedirectWindowsDir()
     krnl386_get_config_string("otvdm", "WINDIR", "WINDOWS", ini, sizeof(ini));
     PathCombineA(windowsPath, windowsPath, ini);
     GetShortPathNameA(windowsPath, windowsPath, sizeof(windowsPath));
+    PathRemoveBackslashA(windowsPath);
+    if (strstr(windowsPath, "\\\\") || strstr(windowsPath, "/"))
+    {
+        ERR("WINDIR %s is not a correct path.\n", windowsPath);
+    }
     return windowsPath;
 #else
     GetWindowsDirectoryA(windowsPath, sizeof(windowsPath));
