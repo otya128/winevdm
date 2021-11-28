@@ -2054,7 +2054,7 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
     if (!init)
     {
         HMODULE haxmvm = GetModuleHandleW(L"haxmvm");
-        haxmvm_DeleteObject = (BOOL(*)(HGDIOBJ))GetProcAddress(haxmvm, "haxmvm_DeleteObject");
+        haxmvm_DeleteObject = haxmvm ? (BOOL(*)(HGDIOBJ))GetProcAddress(haxmvm, "haxmvm_DeleteObject") : NULL;
         init = TRUE;
     }
     LIST_FOR_EACH_ENTRY_SAFE(dc, next, &hdc_selected_objects, struct hdc_selected_object, entry)
