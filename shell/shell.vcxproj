@@ -62,7 +62,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;shell32.lib;gdi32.lib;user32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;shell32.lib;gdi32.lib;user32.lib;advapi32.lib</AdditionalDependencies>
       <ModuleDefinitionFile>shell.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -84,7 +84,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>shell.def</ModuleDefinitionFile>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;shell32.lib;gdi32.lib;user32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;shell32.lib;gdi32.lib;user32.lib;advapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

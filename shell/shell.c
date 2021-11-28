@@ -661,10 +661,37 @@ UINT16 WINAPI DriveType16( UINT16 drive )
     return ret;
 }
 
+BOOL is_reactos_or_wine()
+{
+    static BOOL detected;
+    static BOOL is;
+    HKEY hKey;
+    CHAR name[100];
+    DWORD dwType, dwSize = sizeof(name);
+    if (detected)
+        return is;
+    detected = TRUE;
+    if (ERROR_SUCCESS != RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey))
+        return FALSE;
+    if (ERROR_SUCCESS != RegQueryValueExA(hKey, "ProductName", NULL, &dwType, (LPBYTE)name, &dwSize))
+    {
+        RegCloseKey(hKey);
+        return FALSE;
+    }
+    RegCloseKey(hKey);
+    if (dwType != REG_SZ)
+        return FALSE;
+    is = strstr(name, "ReactOS") != NULL;
+    if (!is)
+    {
+        is = GetProcAddress(GetModuleHandleW("ntdll"), "wine_get_version") != NULL;
+    }
+    return is;
+}
+
 /*************************************************************************
  *           SHELL_Execute16 [Internal]
  */
-/*
 static UINT_PTR SHELL_Execute16(const WCHAR *lpCmd, WCHAR *env, BOOL shWait,
 			    const SHELLEXECUTEINFOW *psei, LPSHELLEXECUTEINFOW psei_out)
 {
@@ -675,9 +702,8 @@ static UINT_PTR SHELL_Execute16(const WCHAR *lpCmd, WCHAR *env, BOOL shWait,
     psei_out->hInstApp = HINSTANCE_32(ret);
     return ret;
 }
-*/
-//??????????????
-static UINT_PTR WINAPI SHELL_Execute16(const CHAR *lpCmd, int nShowCmd, const CHAR *lpDir)
+
+static UINT_PTR WINAPI SHELL_Execute16_Windows(const CHAR *lpCmd, int nShowCmd, const CHAR *lpDir)
 {
 	UINT ret;
 	ret = WinExec16(lpCmd, nShowCmd);
@@ -691,8 +717,9 @@ HINSTANCE16 WINAPI ShellExecute16( HWND16 hWnd, LPCSTR lpOperation,
                                    LPCSTR lpFile, LPCSTR lpParameters,
                                    LPCSTR lpDirectory, INT16 iShowCmd )
 {
+    void *callback = is_reactos_or_wine() ? (void*)SHELL_Execute16 : (void*)SHELL_Execute16_Windows;
     HINSTANCE rret1632 = WOWShellExecute(HWND_32(hWnd), lpOperation, lpFile, lpParameters,
-        lpDirectory, iShowCmd, SHELL_Execute16);
+        lpDirectory, iShowCmd, callback);
     if (rret1632 >= 32)
     {
         return HINSTANCE_16(rret1632);
@@ -713,7 +740,6 @@ HINSTANCE16 WINAPI ShellExecute16( HWND16 hWnd, LPCSTR lpOperation,
 			return HINSTANCE_16(rret);
 		return (HINSTANCE16)rret;
 	}
-    //
 }
 
 
