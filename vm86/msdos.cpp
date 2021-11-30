@@ -1489,7 +1489,7 @@ try_again:
 			SREG(ES) = (WORD)context->SegEs;
 			SREG(CS) = (WORD)context->SegCs;
 			SREG(SS) = (WORD)context->SegSs;
-			SREG(DS) = wine_ldt_copy.flags[(WORD)context->SegDs >> 3] & WINE_LDT_FLAGS_ALLOCATED ? (WORD)context->SegDs : 0;
+			SREG(DS) = (context->EFlags & 0x20000) || (wine_ldt_copy.flags[(WORD)context->SegDs >> 3] & WINE_LDT_FLAGS_ALLOCATED) ? (WORD)context->SegDs : 0;
             /* Some programs expect that gs is not a valid selector! */
             /* Some programs expect that fs is not a valid selector! */
             SREG(FS) = (WORD)context->SegFs == reg_fs ? 0 : context->SegFs;
