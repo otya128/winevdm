@@ -494,7 +494,7 @@ static BOOL DIALOG_CreateControls16Ex(HWND hwnd, LPCSTR template,
         }
 		if (info.data)
 		{
-			*dlgItemTemplatew++ = sizeof(WORD) + sizeof(info.data);
+			*dlgItemTemplatew++ = sizeof(info.data);
             /* reference to 16-bit dialog template */
             *((LPCVOID*)dlgItemTemplatew) = MAKESEGPTR(SELECTOROF(base16), OFFSETOF(base16) + (WORD)((SIZE_T)info.data - base32));
 			dlgItemTemplatew += 2;
