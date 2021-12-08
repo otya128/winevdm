@@ -3792,7 +3792,11 @@ static HLOCAL16 edit_get_handle( HWND hwnd )
     HANDLE16 oldDS;
     HLOCAL16 hloc16 = GetWindowWord16( HWND_16(hwnd), GWW_HANDLE16 );
 
-    if (hloc16) return hloc16;
+    if (hloc16) 
+    {
+        edit_unlock_buffer(hwnd);
+        return hloc16;
+    }
 
     if (!(hloc = (HLOCAL)wow_handlers32.edit_proc( hwnd, EM_GETHANDLE, 0, 0, FALSE ))) return 0;
     alloc_size = LocalSize( hloc );
