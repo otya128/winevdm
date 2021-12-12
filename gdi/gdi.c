@@ -3909,9 +3909,23 @@ INT16 WINAPI StretchDIBits16( HDC16 hdc, INT16 xDst, INT16 yDst, INT16 widthDst,
                               INT16 heightSrc, const VOID *bits,
                               const BITMAPINFO *info, UINT16 wUsage, DWORD dwRop )
 {
-    return StretchDIBits( HDC_32(hdc), xDst, yDst, widthDst, heightDst,
+    BITMAPINFO *bmp = NULL;
+    HBITMAP16 ret;
+    if (((info->bmiHeader.biCompression == BI_RLE4) || (info->bmiHeader.biCompression == BI_RLE8)) && !info->bmiHeader.biSizeImage)
+    {
+        int hdrsize = info->bmiHeader.biSize + ((info->bmiHeader.biClrUsed ? info->bmiHeader.biClrUsed :
+                        (info->bmiHeader.biBitCount == 4 ? 16 : 256)) * (wUsage == DIB_PAL_COLORS ? 2 : 4));
+
+        bmp = HeapAlloc(GetProcessHeap(), 0, hdrsize);
+        memcpy(bmp, info, hdrsize);
+        bmp->bmiHeader.biSizeImage = rle_size(info->bmiHeader.biCompression, bits);
+    }
+    ret = StretchDIBits( HDC_32(hdc), xDst, yDst, widthDst, heightDst,
                           xSrc, ySrc, widthSrc, heightSrc, bits,
-                          info, wUsage, dwRop );
+                          bmp ? bmp : info, wUsage, dwRop );
+    if (bmp)
+        HeapFree(GetProcessHeap(), 0, bmp);
+    return ret;
 }
 
 
@@ -3954,8 +3968,22 @@ INT16 WINAPI SetDIBits16( HDC16 hdc, HBITMAP16 hbitmap, UINT16 startscan,
             return lines;
         }
     }
+    BITMAPINFO *bmp = NULL;
+    HBITMAP16 ret;
+    if (((info->bmiHeader.biCompression == BI_RLE4) || (info->bmiHeader.biCompression == BI_RLE8)) && !info->bmiHeader.biSizeImage)
+    {
+        int hdrsize = info->bmiHeader.biSize + ((info->bmiHeader.biClrUsed ? info->bmiHeader.biClrUsed :
+                        (info->bmiHeader.biBitCount == 4 ? 16 : 256)) * (coloruse == DIB_PAL_COLORS ? 2 : 4));
 
-    return SetDIBits( HDC_32(hdc), hbitmap32, startscan, lines, bits, info, coloruse );
+        bmp = HeapAlloc(GetProcessHeap(), 0, hdrsize);
+        memcpy(bmp, info, hdrsize);
+        bmp->bmiHeader.biSizeImage = rle_size(info->bmiHeader.biCompression, bits);
+    }
+
+    ret = SetDIBits( HDC_32(hdc), hbitmap32, startscan, lines, bits, bmp ? bmp : info, coloruse );
+    if (bmp)
+        HeapFree(GetProcessHeap(), 0, bmp);
+    return ret;
 }
 
 
