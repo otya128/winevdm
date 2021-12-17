@@ -1352,6 +1352,7 @@ extern "C"
         DWORD dwFlags;
         DWORD cbArgs;
         LPVOID pArgs;
+        volatile LONG *freed;
         LPDWORD pdwRetCode;
     } vm_inject_state;
     BOOL WINAPI vm_inject(DWORD vpfn16, DWORD dwFlags,
@@ -1360,12 +1361,11 @@ extern "C"
         assert(dwFlags == WCB16_PASCAL);
         LPVOID args = HeapAlloc(GetProcessHeap(), 0, cbArgs);
         memcpy(args, pArgs, cbArgs);
+        EnterCriticalSection(&inject_crit_section);
 try_again:
         if (TryEnterCriticalSection(&win16_syslevel->crst))
         {
-            vm_inject_state.inject = FALSE;
             /* There are no threads running VM. (e.g. call GetMessage) */
-            EnterCriticalSection(&inject_crit_section);
             /* 16-bit stack is allocated by thread_attach(krnl386/kernel.c) */
             BOOL result = pWOWCallback16Ex(vpfn16, dwFlags, cbArgs, args, pdwRetCode);
             LeaveCriticalSection(&inject_crit_section);
@@ -1373,7 +1373,7 @@ try_again:
             HeapFree(GetProcessHeap(), 0, args);
             return result;
         }
-        EnterCriticalSection(&inject_crit_section);
+        volatile LONG freed = 0;
         {
             if (vm_inject_state.inject)
             {
@@ -1387,16 +1387,20 @@ try_again:
             vm_inject_state.pArgs = args;
             vm_inject_state.pdwRetCode = pdwRetCode;
             vm_inject_state.inject = TRUE;
+            vm_inject_state.freed = &freed;
             ResetEvent(inject_event);
         }
         LeaveCriticalSection(&inject_crit_section);
         HANDLE objs[2] = { inject_event, vm_idle_event };
         DWORD ret = WaitForMultipleObjects(2, objs, FALSE, INFINITE);
-        if (ret == (WAIT_OBJECT_0 + 1))
+        EnterCriticalSection(&inject_crit_section);
+        if (ret == (WAIT_OBJECT_0 + 1) && !freed)
         {
+            vm_inject_state.inject = FALSE;
             SetEvent(inject_event);
             goto try_again;
         }
+        LeaveCriticalSection(&inject_crit_section);
         return TRUE;
     }
     void vm_inject_call(SEGPTR ret_addr, PEXCEPTION_HANDLER handler,
@@ -1434,6 +1438,7 @@ try_again:
             vm_inject_state.cbArgs += sizeof(SEGPTR);
         }
         HeapFree(GetProcessHeap(), 0, vm_inject_state.pArgs);
+        InterlockedIncrement(vm_inject_state.freed);
         LeaveCriticalSection(&inject_crit_section);
         ret = wine_call_to_16_vm86(vm_inject_state.vpfn16, vm_inject_state.cbArgs, handler, from16_reg, __wine_call_from_16, relay_call_from_16, __wine_call_to_16_ret, dasm, FALSE, NULL, pih);
         if (vm_inject_state.pdwRetCode)
