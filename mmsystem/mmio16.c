@@ -59,6 +59,8 @@ WINE_DEFAULT_DEBUG_CHANNEL(mmsys);
  */
 #include <pshpack1.h>
 #define MMIO_MAX_THUNKS      64
+#define SEGOFF_SHIFT(a) (((DWORD)(a) & 0xffff) | (((DWORD)(a) << 3) & 0xfff80000))
+#define SEGOFF_UNSHIFT(a) (((DWORD)(a) & 0xffff) | (((DWORD)(a) >> 3) & 0xffff0000))
 
 static struct mmio_thunk
 {
@@ -459,9 +461,9 @@ MMRESULT16 WINAPI mmioGetInfo16(HMMIO16 hmmio, MMIOINFO16* lpmmioinfo, UINT16 uF
     lpmmioinfo->hTask       = HTASK_16(mmioinfo.htask);
     lpmmioinfo->cchBuffer   = mmioinfo.cchBuffer;
     lpmmioinfo->pchBuffer   = (void*)thunk->segbuffer;
-    lpmmioinfo->pchNext     = (void*)(thunk->segbuffer + (mmioinfo.pchNext - mmioinfo.pchBuffer));
-    lpmmioinfo->pchEndRead  = (void*)(thunk->segbuffer + (mmioinfo.pchEndRead - mmioinfo.pchBuffer));
-    lpmmioinfo->pchEndWrite = (void*)(thunk->segbuffer + (mmioinfo.pchEndWrite - mmioinfo.pchBuffer));
+    lpmmioinfo->pchNext     = (void*)(thunk->segbuffer + SEGOFF_SHIFT(mmioinfo.pchNext - mmioinfo.pchBuffer));
+    lpmmioinfo->pchEndRead  = (void*)(thunk->segbuffer + SEGOFF_SHIFT(mmioinfo.pchEndRead - mmioinfo.pchBuffer));
+    lpmmioinfo->pchEndWrite = (void*)(thunk->segbuffer + SEGOFF_SHIFT(mmioinfo.pchEndWrite - mmioinfo.pchBuffer));
     lpmmioinfo->lBufOffset  = mmioinfo.lBufOffset;
     lpmmioinfo->lDiskOffset = mmioinfo.lDiskOffset;
     lpmmioinfo->adwInfo[0]  = mmioinfo.adwInfo[0];
@@ -493,18 +495,23 @@ MMRESULT16 WINAPI mmioSetInfo16(HMMIO16 hmmio, const MMIOINFO16* lpmmioinfo, UIN
         mmioinfo.pchBuffer != MapSL((DWORD)lpmmioinfo->pchBuffer))
 	return MMSYSERR_INVALPARAM;
 
-    /* check pointers coherence */
-    if (lpmmioinfo->pchNext < lpmmioinfo->pchBuffer ||
-	lpmmioinfo->pchNext > lpmmioinfo->pchBuffer + lpmmioinfo->cchBuffer ||
-	lpmmioinfo->pchEndRead < lpmmioinfo->pchBuffer ||
-	lpmmioinfo->pchEndRead > lpmmioinfo->pchBuffer + lpmmioinfo->cchBuffer ||
-	lpmmioinfo->pchEndWrite < lpmmioinfo->pchBuffer ||
-	lpmmioinfo->pchEndWrite > lpmmioinfo->pchBuffer + lpmmioinfo->cchBuffer)
-	return MMSYSERR_INVALPARAM;
+    DWORD pchBuffer = SEGOFF_UNSHIFT(lpmmioinfo->pchBuffer); 
+    DWORD pchNext = SEGOFF_UNSHIFT(lpmmioinfo->pchNext);
+    DWORD pchEndRead = SEGOFF_UNSHIFT(lpmmioinfo->pchEndRead);
+    DWORD pchEndWrite = SEGOFF_UNSHIFT(lpmmioinfo->pchEndWrite);
 
-    mmioinfo.pchNext     = mmioinfo.pchBuffer + (lpmmioinfo->pchNext     - lpmmioinfo->pchBuffer);
-    mmioinfo.pchEndRead  = mmioinfo.pchBuffer + (lpmmioinfo->pchEndRead  - lpmmioinfo->pchBuffer);
-    mmioinfo.pchEndWrite = mmioinfo.pchBuffer + (lpmmioinfo->pchEndWrite - lpmmioinfo->pchBuffer);
+    /* check pointers coherence */
+    if (pchNext < pchBuffer || pchNext > pchBuffer + lpmmioinfo->cchBuffer ||
+    pchEndRead < pchBuffer || pchEndRead > pchBuffer + lpmmioinfo->cchBuffer ||
+    pchEndWrite < pchBuffer || pchEndWrite > pchBuffer + lpmmioinfo->cchBuffer)
+        return MMSYSERR_INVALPARAM;
+
+    mmioinfo.dwFlags     = lpmmioinfo->dwFlags & ~MMIO_ALLOCBUF;
+    mmioinfo.pchNext     = mmioinfo.pchBuffer + (pchNext - pchBuffer);
+    mmioinfo.pchEndRead  = mmioinfo.pchBuffer + (pchEndRead - pchBuffer);
+    mmioinfo.pchEndWrite = mmioinfo.pchBuffer + (pchEndWrite - pchBuffer);
+    mmioinfo.lBufOffset  = lpmmioinfo->lBufOffset;
+    mmioinfo.lDiskOffset = lpmmioinfo->lDiskOffset;
 
     return mmioSetInfo(HMMIO_32(hmmio), &mmioinfo, uFlags);
 }
