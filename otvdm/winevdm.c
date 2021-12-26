@@ -415,7 +415,7 @@ static BOOL set_peb_compatible_flag()
     APPCOMPAT_FLAGS flags1 = (APPCOMPAT_FLAGS)teb->Peb->AppCompatFlags.LowPart;
     APPCOMPAT_USERFLAGS flags2 = (APPCOMPAT_USERFLAGS)teb->Peb->AppCompatFlagsUser.LowPart;
     APPCOMPAT_USERFLAGS_HIGHPART flags3 = (APPCOMPAT_USERFLAGS_HIGHPART)teb->Peb->AppCompatFlagsUser.HighPart;
-    APPCOMPAT_FLAGS f = NoPaddedBorder;
+    APPCOMPAT_FLAGS f = NoPaddedBorder | NoGhost;
     HMODULE user32 = GetModuleHandleA("user32.dll");
     set_dll_path();
     /* is old windows? */
