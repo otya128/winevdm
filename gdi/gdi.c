@@ -3911,7 +3911,7 @@ INT16 WINAPI StretchDIBits16( HDC16 hdc, INT16 xDst, INT16 yDst, INT16 widthDst,
 {
     BITMAPINFO *bmp = NULL;
     HBITMAP16 ret;
-    if (((info->bmiHeader.biCompression == BI_RLE4) || (info->bmiHeader.biCompression == BI_RLE8)) && !info->bmiHeader.biSizeImage)
+    if ((info->bmiHeader.biCompression == BI_RLE4) || (info->bmiHeader.biCompression == BI_RLE8))
     {
         int hdrsize = info->bmiHeader.biSize + ((info->bmiHeader.biClrUsed ? info->bmiHeader.biClrUsed :
                         (info->bmiHeader.biBitCount == 4 ? 16 : 256)) * (wUsage == DIB_PAL_COLORS ? 2 : 4));
@@ -4011,7 +4011,7 @@ HBITMAP16 WINAPI CreateDIBitmap16( HDC16 hdc, const BITMAPINFOHEADER * header,
 {
     BITMAPINFO *bmp = NULL;
     HBITMAP16 ret;
-    if (((data->bmiHeader.biCompression == BI_RLE4) || (data->bmiHeader.biCompression == BI_RLE8)) && !data->bmiHeader.biSizeImage)
+    if ((data->bmiHeader.biCompression == BI_RLE4) || (data->bmiHeader.biCompression == BI_RLE8))
     {
         int hdrsize = data->bmiHeader.biSize + ((data->bmiHeader.biClrUsed ? data->bmiHeader.biClrUsed :
                         (data->bmiHeader.biBitCount == 4 ? 16 : 256)) * (coloruse == DIB_PAL_COLORS ? 2 : 4));
