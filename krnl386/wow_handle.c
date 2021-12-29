@@ -118,6 +118,7 @@ WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
 		return h;
 	}
 	WORD fhandle = 0;
+    DWORD type = GetObjectType(h) << 16;
 
     WORD s = HANDLE_RESERVED;
 retry:
@@ -127,7 +128,7 @@ retry:
             break;
         if (hs->align2 && (i & -hs->align2) == i)
             continue;
-		if (!hs->handles[i].handle32 && !fhandle)
+		if ((!hs->handles[i].handle32 || (hs->handles[i].handle32 == type)) && !fhandle)
 		{
 			fhandle = i;
 		}
@@ -161,7 +162,9 @@ void destroy_handle16(HANDLE_STORAGE *hs, WORD h)
     {
         return;
     }
+    DWORD type = GetObjectType(hs->handles[h].handle32) << 16;
     memset(hs->handles + h, 0, sizeof(*hs->handles));
+    hs->handles[h].handle32 = type;
 }
 BOOL get_handle32_data(WORD h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
 {
