@@ -272,7 +272,7 @@
 272 pascal -ret16 IsZoomed(word) IsZoomed16
 273 pascal -ret16 ControlPanelInfo(word word str) ControlPanelInfo16
 274 stub GetNextQueueWindow
-275 stub RepaintScreen
+275 pascal -ret16 RepaintScreen() RepaintScreen16
 276 stub LockMyTask
 277 pascal -ret16 GetDlgCtrlID(word) GetDlgCtrlID16
 278 pascal -ret16 GetDesktopHwnd() GetDesktopHwnd16

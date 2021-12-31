@@ -4364,3 +4364,8 @@ BOOL16 WINAPI LockInput16(HANDLE16 res, HWND16 hwnd, BOOL16 lock)
     FIXME("(%d, %d, %d) - stub\n", res, hwnd, lock);
     return FALSE;
 }
+
+void WINAPI RepaintScreen16()
+{
+    FIXME(" - stub\n");
+}
