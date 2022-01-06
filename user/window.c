@@ -2079,9 +2079,9 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
     }
     if (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a)
     {
-	    if (flags & SWP_NOREDRAW)
+        RECT rect;
+        if (flags & SWP_NOREDRAW)
         {
-            RECT rect;
             GetWindowRect(hwnd32, &rect);
             /* top-level window */
             if (GetAncestor(hwnd32, GA_PARENT) == GetDesktopWindow())
@@ -2094,7 +2094,11 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
             }
         }
         if (!(flags & SWP_NOMOVE))
-    	    flags |= SWP_FRAMECHANGED; // force WM_NCCALCSIZE
+        {
+            GetClientRect(hwnd32, &rect);
+            if ((cx != rect.right) || (cy != rect.bottom))
+                flags |= SWP_FRAMECHANGED; // force WM_NCCALCSIZE
+        }
     }
     DWORD count;
     ReleaseThunkLock(&count);
