@@ -1089,8 +1089,13 @@ static void WINAPI DOSVM_Int5cHandler( CONTEXT *context )
 {
     BYTE* ptr;
     ptr = MapSL( MAKESEGPTR(context->SegEs,BX_reg(context)) );
-    FIXME("(%p): command code %02x (ignored)\n",context, *ptr);
-    *(ptr+0x01) = 0xFB; /* NetBIOS emulator not found */
+    if (!ptr)
+        ERR("Invalid context\n");
+    else
+    {
+        FIXME("(%p): command code %02x (ignored)\n",context, *ptr);
+        *(ptr+0x01) = 0xFB; /* NetBIOS emulator not found */
+    }
     SET_AL( context, 0xFB );
 }
 static void WINAPI DOSVM_Int01Handler(CONTEXT *context)
