@@ -1087,7 +1087,7 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
         case WHvRunVpExitReasonMemoryAccess:
             if (exit.MemoryAccess.AccessInfo.GpaUnmapped)
             {
-                if (exit.MemoryAccess.Gva == exit.VpContext.Rip && exit.VpContext.Cs.Selector == seg_cs)
+                if (exit.VpContext.Cs.Selector == seg_cs)
                 {
                     BOOL is_reg = ptr == from16_reg;
                     if (is_reg || ptr == __wine_call_from_16)
