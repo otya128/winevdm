@@ -77,6 +77,14 @@ void init_wow_handle()
     handle_list[HANDLE_TYPE_HGDI].clean_up = hgdi_clean_up;
 }
 WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o);
+
+static DWORD get_handle_type(HANDLE h, HANDLE_STORAGE *hs)
+{
+    if (hs != &handle_list[HANDLE_TYPE_HGDI])
+        return 0;
+    return GetObjectType(h) << 16;
+}
+
 BOOL is_reserved_handle32(HANDLE h)
 {
     SSIZE_T signedh = (SSIZE_T)h;
@@ -118,6 +126,7 @@ WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
 		return h;
 	}
 	WORD fhandle = 0;
+    DWORD type = get_handle_type(h, hs);
 
     WORD s = HANDLE_RESERVED;
 retry:
@@ -127,7 +136,7 @@ retry:
             break;
         if (hs->align2 && (i & -hs->align2) == i)
             continue;
-		if (!hs->handles[i].handle32 && !fhandle)
+		if ((!hs->handles[i].handle32 || (hs->handles[i].handle32 == type)) && !fhandle)
 		{
 			fhandle = i;
 		}
@@ -161,7 +170,9 @@ void destroy_handle16(HANDLE_STORAGE *hs, WORD h)
     {
         return;
     }
+    DWORD type = get_handle_type(hs->handles[h].handle32, hs);
     memset(hs->handles + h, 0, sizeof(*hs->handles));
+    hs->handles[h].handle32 = type;
 }
 BOOL get_handle32_data(WORD h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
 {
