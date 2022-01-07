@@ -696,7 +696,15 @@ void WINAPI SetRectEmpty16( LPRECT16 rect )
  */
 BOOL16 WINAPI CopyRect16( RECT16 *dest, const RECT16 *src )
 {
-    *dest = *src;
+    __TRY
+    {
+        *dest = *src;
+    }
+    __EXCEPT_ALL
+    {
+        return FALSE;
+    }
+    __ENDTRY
     return TRUE;
 }
 
