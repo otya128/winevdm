@@ -4599,6 +4599,11 @@ LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
             set_window_app_id(hWnd);
         }
         detect_window_type(HWND_16(hWnd), hWnd);
+
+        if (create->lpcs->lpszName && !strcmp(create->lpcs->lpszName, "Default IME"))
+        {
+            SetWindowLongA(hWnd, GWL_HINSTANCE, 0);
+        }
     }
     return FALSE;
 }
