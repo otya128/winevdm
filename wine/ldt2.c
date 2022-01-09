@@ -244,6 +244,7 @@ int wine_ldt_is_system(unsigned short sel)
 }
 
 
+#if USE_SREG_WORKAROUND
 /***********************************************************************
  *           selector access functions
  */
@@ -284,3 +285,4 @@ __DEFINE_SET_SEG(fs)
 __DEFINE_SET_SEG(gs)
 #undef __DEFINE_GET_SEG
 #undef __DEFINE_SET_SEG
+#endif

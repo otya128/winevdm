@@ -174,14 +174,15 @@ static inline int wine_ldt_is_empty( const LDT_ENTRY *ent )
 
 /* segment register access */
 
-# if 0 && defined(__GNUC__) && ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 2)))
+#define USE_SREG_WORKAROUND 1
+# if !USE_SREG_WORKAROUND && (defined(__GNUC__) && ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 2))))
 #  define __DEFINE_GET_SEG(seg) \
     static FORCEINLINE unsigned short wine_get_##seg(void) \
     { unsigned short res; __asm__ __volatile__("movw %%" #seg ",%w0" : "=r"(res)); return res; }
 #  define __DEFINE_SET_SEG(seg) \
     static FORCEINLINE void wine_set_##seg(int val) \
     { __asm__("movw %w0,%%" #seg : : "r" (val)); }
-# elif 0 && defined(_MSC_VER)
+# elif !USE_SREG_WORKAROUND && defined(_MSC_VER)
 #  define __DEFINE_GET_SEG(seg) \
     static inline unsigned short wine_get_##seg(void) \
     { unsigned short res; __asm { mov res, seg } return res; }
