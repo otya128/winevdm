@@ -81,8 +81,6 @@ typedef struct
 /*
  * We make addr = 4n + 2 and set *((WORD *)addr - 1) = &addr like Windows does
  * in case something actually relies on this.
- * Note that if the architecture does not allow unaligned accesses, we make
- * addr = 4n + 4 to avoid returning unaligned pointers from LocalAlloc etc.
  *
  * An unused handle has lock = flags = 0xff. In windows addr is that of next
  * free handle, at the moment in wine we set it to 0.
@@ -91,11 +89,7 @@ typedef struct
  * (LMEM_DISCARDED >> 8)
  */
 
-#ifdef ALLOW_UNALIGNED_ACCESS
-# define MOVEABLE_PREFIX sizeof(HLOCAL16)
-#else
-# define MOVEABLE_PREFIX sizeof(int)
-#endif
+#define MOVEABLE_PREFIX sizeof(HLOCAL16)
 
 
 #include "pshpack1.h"
@@ -645,7 +639,7 @@ static HLOCAL16 LOCAL_FreeArena( WORD ds, WORD arena )
  * Shrink an arena by creating a free block at its end if possible.
  * 'size' includes the arena header, and must be aligned.
  */
-static void LOCAL_ShrinkArena( WORD ds, WORD arena, WORD size )
+static WORD LOCAL_ShrinkArena( WORD ds, WORD arena, WORD size, BOOL fromend )
 {
     char *ptr = MapSL( MAKESEGPTR( ds, 0 ) );
     LOCALARENA *pArena = ARENA_PTR( ptr, arena );
@@ -654,10 +648,21 @@ static void LOCAL_ShrinkArena( WORD ds, WORD arena, WORD size )
     {
         LOCALHEAPINFO *pInfo = LOCAL_GetHeap( ds );
         if (!pInfo) return;
-        LOCAL_AddBlock( ptr, arena, arena + size );
         pInfo->items++;
-        LOCAL_FreeArena( ds, arena + size );
+        if (!fromend)
+        {
+            LOCAL_AddBlock( ptr, arena, arena + size );
+            LOCAL_FreeArena( ds, arena + size );
+            return arena;
+        }
+        else
+        {
+            LOCAL_AddBlock( ptr, arena, arena + pArena->size - size );
+            pArena->size -= size;
+            return arena + pArena->size;
+        }
     }
+    return arena;
 }
 
 
@@ -690,7 +695,7 @@ static void LOCAL_GrowArenaDownward( WORD ds, WORD arena, WORD newsize )
         size -= offset;
     }
     if (size) memcpy( p, p + offset, size );
-    LOCAL_ShrinkArena( ds, prevArena, newsize );
+    LOCAL_ShrinkArena( ds, prevArena, newsize, FALSE );
 }
 
 
@@ -711,7 +716,7 @@ static void LOCAL_GrowArenaUpward( WORD ds, WORD arena, WORD newsize )
     if (!(pInfo = LOCAL_GetHeap( ds ))) return;
     LOCAL_RemoveBlock( ptr, nextArena );
     pInfo->items--;
-    LOCAL_ShrinkArena( ds, arena, newsize );
+    LOCAL_ShrinkArena( ds, arena, newsize, FALSE );
 }
 
 
@@ -816,7 +821,7 @@ static UINT16 LOCAL_Compact( HANDLE16 ds, UINT16 minfree, UINT16 flags )
                     pFinalArena = ARENA_PTR(ptr, finalarena);
                     size = pFinalArena->size;
                     LOCAL_RemoveFreeBlock(ptr, finalarena);
-                    LOCAL_ShrinkArena( ds, finalarena, movesize );
+                    LOCAL_ShrinkArena( ds, finalarena, movesize, FALSE );
                     /* Copy the arena to its new location */
                     memcpy((char *)pFinalArena + ARENA_HEADER_SIZE,
                            (char *)pMoveArena + ARENA_HEADER_SIZE,
@@ -875,12 +880,12 @@ static UINT16 LOCAL_Compact( HANDLE16 ds, UINT16 minfree, UINT16 flags )
 /***********************************************************************
  *           LOCAL_FindFreeBlock
  */
-static HLOCAL16 LOCAL_FindFreeBlock( HANDLE16 ds, WORD size )
+static HLOCAL16 LOCAL_FindFreeBlock( HANDLE16 ds, WORD size, WORD flags )
 {
     char *ptr = MapSL( MAKESEGPTR( ds, 0 ) );
     LOCALHEAPINFO *pInfo;
     LOCALARENA *pArena;
-    WORD arena;
+    WORD arena, found = 0;
 
     if (!(pInfo = LOCAL_GetHeap( ds )))
     {
@@ -894,9 +899,13 @@ static HLOCAL16 LOCAL_FindFreeBlock( HANDLE16 ds, WORD size )
     for (;;) {
         arena = pArena->free_next;
         pArena = ARENA_PTR( ptr, arena );
-	if (arena == pArena->free_next) break;
-        if (pArena->size >= size) return arena;
+        if (arena == pArena->free_next) break;
+        if (pArena->size >= size) {
+            if (!(flags & LMEM_MOVEABLE)) return arena;
+            else found = arena;
+        }
     }
+    if (found) return found;
     TRACE("not enough space\n" );
     LOCAL_PrintHeap(ds);
     return 0;
@@ -966,11 +975,11 @@ static HLOCAL16 LOCAL_GetBlock( HANDLE16 ds, DWORD size, WORD flags )
 notify_done:
 #endif
       /* Find a suitable free block */
-    arena = LOCAL_FindFreeBlock( ds, size );
+    arena = LOCAL_FindFreeBlock( ds, size, flags );
     if (arena == 0) {
 	/* no space: try to make some */
 	LOCAL_Compact( ds, size, flags );
-	arena = LOCAL_FindFreeBlock( ds, size );
+	arena = LOCAL_FindFreeBlock( ds, size, flags );
     }
     if (arena == 0) {
 	/* still no space: try to grow the segment */
@@ -988,7 +997,7 @@ notify_done:
 	}
 	ptr = MapSL( MAKESEGPTR( ds, 0 ) );
 	pInfo = LOCAL_GetHeap( ds );
-	arena = LOCAL_FindFreeBlock( ds, size );
+	arena = LOCAL_FindFreeBlock( ds, size, flags );
     }
     if (arena == 0) {
         ERR( "not enough space in %s heap %04x for %d bytes\n",
@@ -1003,8 +1012,19 @@ notify_done:
       /* Make a block out of the free arena */
     pArena = ARENA_PTR( ptr, arena );
     TRACE("size = %04x, arena %04x size %04x\n", size, arena, pArena->size );
-    LOCAL_RemoveFreeBlock( ptr, arena );
-    LOCAL_ShrinkArena( ds, arena, size );
+    if (flags & LMEM_MOVEABLE)
+    {
+        WORD narena = LOCAL_ShrinkArena( ds, arena, size, TRUE );
+        if (narena == arena)
+            LOCAL_RemoveFreeBlock( ptr, arena );
+        arena = narena;
+        pArena = ARENA_PTR( ptr, arena );
+    }
+    else
+    {
+        LOCAL_RemoveFreeBlock( ptr, arena );
+        LOCAL_ShrinkArena( ds, arena, size, FALSE );
+    }
 
     if (flags & LMEM_ZEROINIT)
 	memset((char *)pArena + ARENA_HEADER_SIZE, 0, size-ARENA_HEADER_SIZE);
@@ -1357,7 +1377,7 @@ HLOCAL16 WINAPI LocalReAlloc16( HLOCAL16 handle, WORD size, UINT16 flags )
     if (nextarena <= pArena->next)
     {
 	TRACE("size reduction, making new free block\n");
-	LOCAL_ShrinkArena(ds, arena, nextarena - arena);
+	LOCAL_ShrinkArena(ds, arena, nextarena - arena, FALSE);
         TRACE("returning %04x\n", handle );
         return handle;
     }
