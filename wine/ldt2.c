@@ -242,3 +242,45 @@ int wine_ldt_is_system(unsigned short sel)
 	TRACE("wine_ldt_is_system(%04X)\n", sel);
 	return 0;
 }
+
+
+/***********************************************************************
+ *           selector access functions
+ */
+# if defined(__GNUC__) && ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 2)))
+#  define __DEFINE_GET_SEG(seg) \
+    unsigned short wine_get_##seg(void) \
+    { unsigned short res; __asm__ __volatile__("movw %%" #seg ",%w0" : "=r"(res)); return res; }
+#  define __DEFINE_SET_SEG(seg) \
+    void wine_set_##seg(int val) \
+    { __asm__("movw %w0,%%" #seg : : "r" (val)); }
+# elif defined(_MSC_VER)
+/* This cache is a workaround for ARM64 mac.  */
+#  define __DEFINE_GET_SEG(seg) \
+    unsigned short wine_get_##seg(void) \
+    {\
+        static int cache;\
+        static unsigned short res;\
+        if (!cache)\
+        {\
+            cache = 1;\
+            __asm { mov res, seg }\
+        }\
+        return res;\
+    }
+#  define __DEFINE_SET_SEG(seg) \
+    void wine_set_##seg(unsigned short val) { __asm { mov seg, val } }
+# else  /* __GNUC__ || _MSC_VER */
+
+# endif /* __GNUC__ || _MSC_VER */
+
+__DEFINE_GET_SEG(cs)
+__DEFINE_GET_SEG(ds)
+__DEFINE_GET_SEG(es)
+__DEFINE_GET_SEG(fs)
+__DEFINE_GET_SEG(gs)
+__DEFINE_GET_SEG(ss)
+__DEFINE_SET_SEG(fs)
+__DEFINE_SET_SEG(gs)
+#undef __DEFINE_GET_SEG
+#undef __DEFINE_SET_SEG

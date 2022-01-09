@@ -1039,24 +1039,12 @@ extern "C"
             *(BYTE*)&table[i * 8 + 5] = 0x66 | 0x80;
             *(WORD*)&table[i * 8 + 6] = 0;
         }
-#ifdef _MSC_VER
-        __asm
-        {
-            mov reg_fs, fs;
-            mov reg_gs, gs;
-            mov reg_cs, cs;
-            mov reg_ss, ss;
-            mov reg_ds, ds;
-            mov reg_es, es;
-        }
-#else
         reg_fs = wine_get_fs();
         reg_gs = wine_get_gs();
         reg_cs = wine_get_cs();
         reg_ss = wine_get_ss();
         reg_ds = wine_get_ds();
         reg_es = wine_get_es();
-#endif
 
         wine_ldt[reg_gs >> 3].HighWord.Bits.Type = 0x18;
         wine_ldt[reg_gs >> 3].HighWord.Bits.Pres = 1;

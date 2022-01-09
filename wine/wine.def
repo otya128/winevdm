@@ -105,3 +105,10 @@ EXPORTS
 	wine_ldt DATA
 
 	set_intel_vt_x_workaround
+
+    wine_get_cs
+    wine_get_ds
+    wine_get_es
+    wine_get_fs
+    wine_get_gs
+    wine_get_ss
