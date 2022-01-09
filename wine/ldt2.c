@@ -253,7 +253,7 @@ int wine_ldt_is_system(unsigned short sel)
     unsigned short wine_get_##seg(void) \
     { unsigned short res; __asm__ __volatile__("movw %%" #seg ",%w0" : "=r"(res)); return res; }
 #  define __DEFINE_SET_SEG(seg) \
-    void wine_set_##seg(int val) \
+    void wine_set_##seg(unsigned int val) \
     { __asm__("movw %w0,%%" #seg : : "r" (val)); }
 # elif defined(_MSC_VER)
 /* This cache is a workaround for ARM64 mac.  */
@@ -270,7 +270,7 @@ int wine_ldt_is_system(unsigned short sel)
         return res;\
     }
 #  define __DEFINE_SET_SEG(seg) \
-    void wine_set_##seg(unsigned short val) { __asm { mov seg, val } }
+    void wine_set_##seg(unsigned int val) { __asm { mov seg, val } }
 # else  /* __GNUC__ || _MSC_VER */
 
 # endif /* __GNUC__ || _MSC_VER */
