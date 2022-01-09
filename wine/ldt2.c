@@ -270,7 +270,7 @@ int wine_ldt_is_system(unsigned short sel)
         return res;\
     }
 #  define __DEFINE_SET_SEG(seg) \
-    void wine_set_##seg(unsigned int val) { __asm { mov seg, val } }
+    void wine_set_##seg(unsigned int val) { __asm { mov seg, word ptr [val] } }
 # else  /* __GNUC__ || _MSC_VER */
 
 # endif /* __GNUC__ || _MSC_VER */
