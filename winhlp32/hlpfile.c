@@ -408,18 +408,18 @@ HLPFILE_PAGE *HLPFILE_PageByOffset(HLPFILE* hlpfile, LONG offset, ULONG* relativ
 static HLPFILE_PAGE* HLPFILE_Contents(HLPFILE *hlpfile, ULONG* relative)
 {
     HLPFILE_PAGE*       page = NULL;
+    *relative = 0;
 
     if (!hlpfile) return NULL;
-
-    if (hlpfile->version <= 16)
+    
+    if (hlpfile->cnt_page)
+        page = hlpfile->cnt_page;
+    else if (hlpfile->version <= 16)
         page = HLPFILE_PageByOffset(hlpfile, hlpfile->TOMap[0], relative);
     else
         page = HLPFILE_PageByOffset(hlpfile, hlpfile->contents_start, relative);
     if (!page)
-    {
         page = hlpfile->first_page;
-        *relative = 0;
-    }
     return page;
 }
 
@@ -560,17 +560,30 @@ LONG HLPFILE_Hash(LPCSTR lpszContext)
 {
     LONG lHash = 0;
     CHAR c;
+    static char hashtab[] =
+        {
+            0x00, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
+            0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
+            0xF0, 0x0B, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0x0C, 0xFF,
+            0x0A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+            0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0D,
+            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+            0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
+            0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
+            0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
+            0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
+            0x80, 0x81, 0x82, 0x83, 0x0B, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
+            0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
+            0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+            0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
+            0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF
+        };
 
+    if (!*lpszContext) return 1;
     while ((c = *lpszContext++))
     {
-        CHAR x = 0;
-        if (c >= 'A' && c <= 'Z') x = c - 'A' + 17;
-        if (c >= 'a' && c <= 'z') x = c - 'a' + 17;
-        if (c >= '1' && c <= '9') x = c - '0';
-        if (c == '0') x = 10;
-        if (c == '.') x = 12;
-        if (c == '_') x = 13;
-        if (x) lHash = lHash * 43 + x;
+        lHash = lHash * 43 + hashtab[c];
     }
     return lHash;
 }
@@ -1808,6 +1821,15 @@ BOOL    HLPFILE_BrowsePage(HLPFILE_PAGE* page, struct RtfData* rd,
     const char* ck = NULL;
     BOOL        found = FALSE;
 
+    if (page == page->file->cnt_page)
+    {
+        memset(rd, 0, sizeof(struct RtfData));
+        rd->data = HeapAlloc(GetProcessHeap(), 0, page->offset);
+        memcpy(rd->data, page->file->cnt_rtf, page->offset);
+        rd->ptr = rd->data + page->offset;
+        return TRUE;
+    }
+
     rd->in_text = TRUE;
     rd->data = rd->ptr = HeapAlloc(GetProcessHeap(), 0, rd->allocated = 32768);
     rd->char_pos = 0;
@@ -2123,9 +2145,11 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
     BYTE *buf, *ptr, *end;
     HLPFILE_MACRO *macro, **m;
     LPSTR p;
+    int len;
     unsigned short magic, minor, major, flags, lcid = 0;
 
     hlpfile->lpszTitle = NULL;
+    hlpfile->lpszCntPath = NULL;
 
     if (!HLPFILE_FindSubFile(hlpfile, "|SYSTEM", &buf, &end)) return FALSE;
 
@@ -2282,6 +2306,17 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
         case 9:
                lcid = GET_USHORT(ptr, 12);
                break;
+        case 10:
+               len = strlen(hlpfile->lpszPath);
+               if (hlpfile->lpszCntPath) {WINE_WARN("cnt\n"); break;}
+               hlpfile->lpszCntPath = HeapAlloc(GetProcessHeap(), 0, len + 1);
+               if (!hlpfile->lpszCntPath) return FALSE;
+               lstrcpyA(hlpfile->lpszCntPath, hlpfile->lpszPath);
+               hlpfile->lpszCntPath[len-3] = 'C';
+               hlpfile->lpszCntPath[len-2] = 'N';
+               hlpfile->lpszCntPath[len-1] = 'T';
+               WINE_TRACE("CNT: '%s'\n", hlpfile->lpszCntPath);
+               break;               
         case 11:
                hlpfile->charset = ptr[4];
                WINE_TRACE("Charset: %d\n", hlpfile->charset);
@@ -2358,7 +2393,16 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
             hlpfile->charset = info.ciCharset;
         }
     }
-
+    if (!hlpfile->lpszCntPath)
+    {
+        len = strlen(hlpfile->lpszPath);
+        hlpfile->lpszCntPath = HeapAlloc(GetProcessHeap(), 0, len+1);
+        lstrcpyA(hlpfile->lpszCntPath, hlpfile->lpszPath);
+        hlpfile->lpszCntPath[len-3] = 'C';
+        hlpfile->lpszCntPath[len-2] = 'N';
+        hlpfile->lpszCntPath[len-1] = 'T';
+        WINE_TRACE("CNT not found, assuming '%s'\n", hlpfile->lpszCntPath);
+    }
     return TRUE;
 }
 
@@ -2526,6 +2570,18 @@ static void HLPFILE_DeleteMacro(HLPFILE_MACRO* macro)
     }
 }
 
+static void HLPFILE_DeleteLink(HLPFILE_LINK *link)
+{
+    HLPFILE_LINK*       next;
+
+    while(link)
+    {
+        next = link->next;
+        HeapFree(GetProcessHeap(), 0, link);
+        link = next;
+    }
+}
+
 /***********************************************************************
  *
  *           DeletePage
@@ -2538,6 +2594,7 @@ static void HLPFILE_DeletePage(HLPFILE_PAGE* page)
     {
         next = page->next;
         HLPFILE_DeleteMacro(page->first_macro);
+        HLPFILE_DeleteLink(page->first_link);
         HeapFree(GetProcessHeap(), 0, page);
         page = next;
     }
@@ -2580,6 +2637,7 @@ void HLPFILE_FreeHlpFile(HLPFILE* hlpfile)
 
     DestroyIcon(hlpfile->hIcon);
     if (hlpfile->numWindows)    HeapFree(GetProcessHeap(), 0, hlpfile->windows);
+    if (hlpfile->lpszCntPath)   HeapFree(GetProcessHeap(), 0, hlpfile->lpszCntPath);
     HeapFree(GetProcessHeap(), 0, hlpfile->Context);
     HeapFree(GetProcessHeap(), 0, hlpfile->Map);
     HeapFree(GetProcessHeap(), 0, hlpfile->lpszTitle);
@@ -2598,13 +2656,18 @@ void HLPFILE_FreeHlpFile(HLPFILE* hlpfile)
         }
     }
     if (hlpfile->TOMap)
-	    HeapFree(GetProcessHeap(), 0, hlpfile->TOMap);
+        HeapFree(GetProcessHeap(), 0, hlpfile->TOMap);
     if (hlpfile->ttlbtree)
-	    HeapFree(GetProcessHeap(), 0, hlpfile->ttlbtree);
+        HeapFree(GetProcessHeap(), 0, hlpfile->ttlbtree);
     if (hlpfile->viola)
-	    HeapFree(GetProcessHeap(), 0, hlpfile->viola);
+        HeapFree(GetProcessHeap(), 0, hlpfile->viola);
     if (hlpfile->rose)
-	    HeapFree(GetProcessHeap(), 0, hlpfile->rose);
+        HeapFree(GetProcessHeap(), 0, hlpfile->rose);
+    if (hlpfile->cnt_page)
+    {
+        HeapFree(GetProcessHeap(), 0, hlpfile->cnt_rtf);
+        HLPFILE_DeletePage(hlpfile->cnt_page);
+    }
     HeapFree(GetProcessHeap(), 0, hlpfile);
 }
 
@@ -2927,6 +2990,161 @@ static BOOL HLPFILE_SkipParagraph(HLPFILE *hlpfile, const BYTE *buf, const BYTE 
 
 /***********************************************************************
  *
+ *           HLPFILE_ReadCntFile
+ *
+ */
+static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
+{
+    char *str, *next_str;
+    char *buf;
+    int l, len, read, curl = 1;
+    struct RtfData rd = {0};
+    HANDLE h;
+    char tmp[256];
+    WCHAR tmpW[512];
+    HLPFILE_PAGE *cnt;
+
+    rd.in_text = TRUE;
+
+    h = CreateFileA(hlpfile->lpszCntPath, GENERIC_READ, FILE_SHARE_READ,
+                   NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return NULL;
+
+    len = GetFileSize(h, NULL);
+    if (len == INVALID_FILE_SIZE)
+    {
+        CloseHandle(h);
+        return;
+    }
+    buf = HeapAlloc(GetProcessHeap(), 0, len + 1);
+    buf[len] = 0;
+    if (!buf)
+    {
+        CloseHandle(h);
+        return;
+    }
+    if (!ReadFile(h, buf, len, &read, NULL))
+    {
+        CloseHandle(h);
+        HeapFree(GetProcessHeap(), 0, buf);
+        return;
+    }
+    CloseHandle(h);
+    rd.ptr = rd.data = HeapAlloc(GetProcessHeap(), 0, 1024);
+    rd.allocated = 1024;
+    cnt = (HLPFILE_PAGE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(HLPFILE_PAGE));
+    if (!HLPFILE_RtfAddControl(&rd, "{\\rtf1\\ansi\\urtf0\\deff0{\\fonttbl{\\f0\\fcharset0 Times New Roman;}}", tmp)) goto errexit;
+    if (!HLPFILE_RtfAddControl(&rd, "{\\stylesheet{ Normal;}{\\s1 heading 1;}{\\s2 heading 2;}{\\s3 heading 3;}{\\s4 heading 4;}{\\s5 heading 5;}{\\s6 heading 6;}{\\s7 heading 7;}{\\s8 heading 8;}{\\s9 heading 9;}}")) goto errexit;
+    if (!HLPFILE_RtfAddControl(&rd, "\\viewkind2")) goto errexit;
+    str = buf;
+    while (str)
+    {
+        char *start, *end;
+
+        next_str = strchr(str, '\n');
+        if (next_str)
+        {
+            end = next_str-1;
+            while (end > str && isspace(*end)) *end--=0;
+            next_str++;
+        }
+
+        start = str;
+        while (isspace(*start)) start++;
+        if (*start == ':' || *start == 0)
+        {
+            // TODO: handle index
+            if (!strncmp(start, ":Title ", 7))
+            {
+                start += 7;
+                while (isspace(*start)) start++;
+                len = strlen(start);
+                cnt = HeapReAlloc(GetProcessHeap(), 0, cnt, sizeof(HLPFILE_PAGE) + (len + 1) * 2);
+                cnt->lpszTitle = ((BYTE *)cnt) + sizeof(HLPFILE_PAGE);
+                MultiByteToWideChar(hlpfile->codepage, 0, start, -1, cnt->lpszTitle, len);
+            }
+            str = next_str;
+            continue;
+        }
+        l = strtol(start, NULL, 10);
+        if ((l <= 0) || (l > 9))
+        {
+            str = next_str;
+            continue;
+        }
+        while (isdigit(*start)) start++;
+        while (isspace(*start)) start++;
+        end = strchr(start, '=');
+        if (!end)
+        {
+            if (l > curl) curl++;
+            else curl = l;
+        }
+        else if (l < curl) curl = l + 1;
+        if (curl == 1)
+            sprintf(tmp, "\\pard\\s%d ", curl);
+        else            
+            sprintf(tmp, "\\pard\\collapsed\\s%d ", curl);
+        if (!HLPFILE_RtfAddControl(&rd, tmp)) goto errexit;
+        if (end)
+        {
+            char *index = end + 1;
+            char *file = strchr(index, '@');
+            char *wnd = strchr(index, '>');
+            int w = -2;
+            *end = 0;
+            if (file)
+            {
+                *file = 0;
+                file++;
+            }
+            if (wnd)
+            {
+               *wnd = 0;
+               wnd++;
+               for (int w = hlpfile->numWindows - 1; w >= 0; w--)
+               {
+                   if (!stricmp(wnd, hlpfile->windows[w].name)) break;
+               }
+            }
+            HLPFILE_AllocLink(&rd, hlp_link_link, file ? file : hlpfile->lpszPath, -1, HLPFILE_Hash(index), FALSE, FALSE, w);
+            sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd.current_link);
+            if (!HLPFILE_RtfAddControl(&rd, tmp)) goto errexit;
+            rd.current_link = NULL;
+        }
+        else curl++;
+        // outline only works with utf8 codepage
+        MultiByteToWideChar(hlpfile->codepage, 0, start, -1, tmpW, 512);
+        tmpW[511] = 0;
+        WideCharToMultiByte(CP_UTF8, 0, tmpW, -1, tmp, 256, NULL, NULL);
+        tmp[255] = 0;
+        if (!HLPFILE_RtfAddControl(&rd, tmp)) goto errexit;
+        if (end && !HLPFILE_RtfAddControl(&rd, "}}}")) goto errexit;
+        if (!HLPFILE_RtfAddControl(&rd, "\\par")) goto errexit;
+        str = next_str;
+    }
+    if (!HLPFILE_RtfAddControl(&rd, "}")) goto errexit;
+    hlpfile->cnt_rtf = rd.data;
+    hlpfile->cnt_page = cnt;
+    cnt->file = hlpfile;
+    cnt->first_link = rd.first_link;
+    cnt->offset = rd.ptr - rd.data;
+    if (!cnt->lpszTitle) 
+    {
+        const WCHAR deftitle[] = {'C', 'o', 'n', 't', 'e', 'n', 't', 's', 0};
+        cnt->lpszTitle = deftitle;
+    }
+    HeapFree(GetProcessHeap(), 0, buf);
+    return;
+errexit:
+    HeapFree(GetProcessHeap(), 0, buf);
+    HeapFree(GetProcessHeap(), 0, rd.data);
+    HeapFree(GetProcessHeap(), 0, cnt);
+    return;
+}
+
+/***********************************************************************
+ *
  *           HLPFILE_DoReadHlpFile
  */
 static BOOL HLPFILE_DoReadHlpFile(HLPFILE *hlpfile, LPCSTR lpszPath)
@@ -3024,6 +3242,7 @@ static BOOL HLPFILE_DoReadHlpFile(HLPFILE *hlpfile, LPCSTR lpszPath)
     HLPFILE_GetTree(hlpfile, "|TTLBTREE", &hlpfile->ttlbtree);
     HLPFILE_GetTree(hlpfile, "|Viola", &hlpfile->viola);
     HLPFILE_GetTree(hlpfile, "|Rose", &hlpfile->rose);
+    HLPFILE_ReadCntFile(hlpfile);
     if (hlpfile->version <= 16) return TRUE;
     return HLPFILE_GetContext(hlpfile);
 }
