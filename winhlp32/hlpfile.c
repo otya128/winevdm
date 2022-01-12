@@ -3033,7 +3033,7 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
     rd.ptr = rd.data = HeapAlloc(GetProcessHeap(), 0, 1024);
     rd.allocated = 1024;
     cnt = (HLPFILE_PAGE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(HLPFILE_PAGE));
-    if (!HLPFILE_RtfAddControl(&rd, "{\\rtf1\\ansi\\urtf0\\deff0{\\fonttbl{\\f0\\fcharset0 Times New Roman;}}", tmp)) goto errexit;
+    if (!HLPFILE_RtfAddControl(&rd, "{\\rtf1\\ansi\\urtf0\\deff0{\\fonttbl{\\f0\\fcharset0 Times New Roman;}}")) goto errexit;
     if (!HLPFILE_RtfAddControl(&rd, "{\\stylesheet{ Normal;}{\\s1 heading 1;}{\\s2 heading 2;}{\\s3 heading 3;}{\\s4 heading 4;}{\\s5 heading 5;}{\\s6 heading 6;}{\\s7 heading 7;}{\\s8 heading 8;}{\\s9 heading 9;}}")) goto errexit;
     if (!HLPFILE_RtfAddControl(&rd, "\\viewkind2")) goto errexit;
     str = buf;
