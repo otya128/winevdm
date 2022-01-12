@@ -3001,7 +3001,7 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
     struct RtfData rd = {0};
     HANDLE h;
     char tmp[256];
-    WCHAR tmpW[512];
+    WCHAR tmpW[256];
     HLPFILE_PAGE *cnt;
 
     rd.in_text = TRUE;
@@ -3114,8 +3114,8 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
         }
         else curl++;
         // outline only works with utf8 codepage
-        MultiByteToWideChar(hlpfile->codepage, 0, start, -1, tmpW, 512);
-        tmpW[511] = 0;
+        MultiByteToWideChar(hlpfile->codepage, 0, start, -1, tmpW, 256);
+        tmpW[255] = 0;
         WideCharToMultiByte(CP_UTF8, 0, tmpW, -1, tmp, 256, NULL, NULL);
         tmp[255] = 0;
         if (!HLPFILE_RtfAddControl(&rd, tmp)) goto errexit;
