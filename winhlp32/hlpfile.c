@@ -3039,7 +3039,7 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
     str = buf;
     while (str)
     {
-        char *start, *end;
+        unsigned char *start, *end;
 
         next_str = strchr(str, '\n');
         if (next_str)
@@ -3130,10 +3130,7 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
     cnt->first_link = rd.first_link;
     cnt->offset = rd.ptr - rd.data;
     if (!cnt->lpszTitle) 
-    {
-        const WCHAR deftitle[] = {'C', 'o', 'n', 't', 'e', 'n', 't', 's', 0};
-        cnt->lpszTitle = deftitle;
-    }
+        cnt->lpszTitle = (WCHAR*)L"Contents";
     HeapFree(GetProcessHeap(), 0, buf);
     return;
 errexit:
