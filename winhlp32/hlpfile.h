@@ -113,6 +113,7 @@ typedef struct tagHlpFileFile
     LPSTR                       lpszPath;
     LPSTR                       lpszTitle;
     LPSTR                       lpszCopyright;
+    LPSTR                       lpszCntPath;
     HLPFILE_PAGE*               first_page;
     HLPFILE_PAGE*               last_page;
     HLPFILE_MACRO*              first_macro;
@@ -126,6 +127,9 @@ typedef struct tagHlpFileFile
     BYTE*                       ttlbtree;
     BYTE*                       rose;
     BYTE*                       viola;
+
+    BYTE*                       cnt_rtf;
+    HLPFILE_PAGE*               cnt_page;
 
     struct tagHlpFileFile*      prev;
     struct tagHlpFileFile*      next;
