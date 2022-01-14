@@ -353,7 +353,7 @@ HLPFILE_WINDOWINFO*     WINHELP_GetWindowInfo(HLPFILE* hlpfile, LPCSTR name)
             if (!lstrcmpiA(hlpfile->windows[i].name, name))
                 return &hlpfile->windows[i];
 
-    if (strcmp(name, "main") != 0)
+    if (lstrcmpiA(name, "main") != 0)
     {
         WINE_FIXME("Couldn't find window info for %s\n", debugstr_a(name));
         assert(0);
