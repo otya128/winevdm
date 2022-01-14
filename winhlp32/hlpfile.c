@@ -1205,13 +1205,14 @@ static  BOOL    HLPFILE_RtfAddGfxByIndex(struct RtfData* rd, HLPFILE *hlpfile,
 }
 
 /******************************************************************
- *		HLPFILE_AllocLink
+ *		HLPFILE_AllocLink2
  *
  *
  */
-static HLPFILE_LINK*       HLPFILE_AllocLink(struct RtfData* rd, int cookie,
-                                             const char* str, unsigned len, LONG hash,
-                                             BOOL clrChange, BOOL bHotSpot, unsigned wnd)
+static HLPFILE_LINK*       HLPFILE_AllocLink2(struct RtfData* rd, int cookie,
+                                              const char* str, unsigned len, LONG hash,
+                                              BOOL clrChange, BOOL bHotSpot, unsigned wnd,
+                                              const char* windowName)
 {
     HLPFILE_LINK*  link;
     char*          link_str;
@@ -1221,7 +1222,7 @@ static HLPFILE_LINK*       HLPFILE_AllocLink(struct RtfData* rd, int cookie,
      * they are reallocated for each link
      */
     if (len == -1) len = strlen(str);
-    link = HeapAlloc(GetProcessHeap(), 0, asz + len + 1);
+    link = HeapAlloc(GetProcessHeap(), 0, asz + len + 1 + (windowName ? strlen(windowName) + 1 : 0));
     if (!link) return NULL;
 
     link->cookie     = cookie;
@@ -1241,10 +1242,31 @@ static HLPFILE_LINK*       HLPFILE_AllocLink(struct RtfData* rd, int cookie,
         link->cpMax = rd->char_pos;
     else
         rd->current_link = link;
+    if (windowName)
+    {
+        link->windowName = (const char*)link + asz + len + 1;
+        memcpy(link->windowName, windowName, strlen(windowName) + 1);
+    }
+    else
+    {
+        link->windowName = NULL;
+    }
 
     WINE_TRACE("Link[%d] to %s@%08x:%d\n",
                link->cookie, debugstr_a(link->string), link->hash, link->window);
     return link;
+}
+
+/******************************************************************
+ *		HLPFILE_AllocLink
+ *
+ *
+ */
+static HLPFILE_LINK*       HLPFILE_AllocLink(struct RtfData* rd, int cookie,
+                                             const char* str, unsigned len, LONG hash,
+                                             BOOL clrChange, BOOL bHotSpot, unsigned wnd)
+{
+    return HLPFILE_AllocLink2(rd, cookie, str, len, hash, clrChange, bHotSpot, wnd, NULL);
 }
 
 static unsigned HLPFILE_HalfPointsScale(HLPFILE_PAGE* page, unsigned pts)
@@ -3091,7 +3113,6 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
             char *index = end + 1;
             char *file = strchr(index, '@');
             char *wnd = strchr(index, '>');
-            int w = -2;
             *end = 0;
             if (file)
             {
@@ -3100,14 +3121,10 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
             }
             if (wnd)
             {
-               *wnd = 0;
-               wnd++;
-               for (int w = hlpfile->numWindows - 1; w >= 0; w--)
-               {
-                   if (!stricmp(wnd, hlpfile->windows[w].name)) break;
-               }
+                *wnd = 0;
+                wnd++;
             }
-            HLPFILE_AllocLink(&rd, hlp_link_link, file ? file : hlpfile->lpszPath, -1, HLPFILE_Hash(index), FALSE, FALSE, w);
+            HLPFILE_AllocLink2(&rd, hlp_link_link, file ? file : hlpfile->lpszPath, -1, HLPFILE_Hash(index), FALSE, FALSE, -2, wnd);
             sprintf(tmp, "{\\field{\\*\\fldinst{ HYPERLINK \"%p\" }}{\\fldrslt{", rd.current_link);
             if (!HLPFILE_RtfAddControl(&rd, tmp)) goto errexit;
             rd.current_link = NULL;

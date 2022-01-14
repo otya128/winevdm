@@ -1150,8 +1150,8 @@ static void WINHELP_DoLink(WINHELP_WINDOW* win, HLPFILE_LINK* link, DWORD pos)
         case hlp_link_link:
             if ((hlpfile = WINHELP_LookupHelpFile(link->string)))
             {
-                if (link->window == -1)
-                    wi = WINHELP_GetWindowInfo(hlpfile, "main");
+                if (link->window == -1 || link->windowName)
+                    wi = WINHELP_GetWindowInfo(hlpfile, link->windowName ? link->windowName : "main");
                 else if (link->window == -2)
                 {
                     wi = win->info;

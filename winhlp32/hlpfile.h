@@ -47,6 +47,7 @@ typedef struct tagHlpFileLink
     DWORD       cpMin;
     DWORD       cpMax;
     struct tagHlpFileLink* next;
+    LPCSTR      windowName;
 } HLPFILE_LINK;
 
 typedef struct tagHlpFileHotSpotLink
