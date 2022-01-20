@@ -213,7 +213,7 @@ static void init_hook()
     if (hook_free)
         return;
     hook_free = HeapAlloc(GetProcessHeap(), 0, HOOK_MAX * sizeof(struct hook_entry));
-    for (int i = 0; i < HOOK_MAX; i++)
+    for (int i = 1; i < HOOK_MAX; i++)
     {
         list_add_tail(&hook_free_list, &hook_free[i].entry);
         hook_free[i].deleted = TRUE;
@@ -250,6 +250,7 @@ static void free_hook(struct hook_entry *entry)
  * HHOOK (Windows 3.1~)
  * HIWORD: 'HK'
  * LOWORD: near pointer?
+ * LOWORD: index (NTVDM)
  */
 static HHOOK entry_to_hhook(struct hook_entry *entry)
 {
