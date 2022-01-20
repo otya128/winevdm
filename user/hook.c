@@ -937,6 +937,11 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
         {
             struct list *head = &info->hook_entry[index];
             entry = (struct hook_entry*)allocate_hook();
+            if (!entry)
+            {
+                ERR("failed to allocate hook\n");
+                return 0;
+            }
             if (!head->next)
             {
                 list_init(head);
@@ -952,6 +957,11 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
     else
     {
         entry = (struct hook_entry*)allocate_hook();
+        if (!entry)
+        {
+            ERR("failed to allocate hook\n");
+            return 0;
+        }
         entry->proc16 = proc;
         entry->hinst16 = GetExePtr(hInst);
         entry->htask16 = hTask;
