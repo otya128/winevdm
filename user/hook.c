@@ -244,13 +244,13 @@ static void free_hook(struct hook_entry *entry)
 }
 
 /*
-HHOOK (~Windows 3.0)
-https://blogs.msdn.microsoft.com/oldnewthing/20060809-18/?p=30183
-https://blogs.msdn.microsoft.com/oldnewthing/20060810-06/?p=30173
-HHOOK (Windows 3.1~)
-HIWORD: 'HK'
-LOWORD: near pointer?
-*/
+ * HHOOK (~Windows 3.0)
+ * https://devblogs.microsoft.com/oldnewthing/20060809-18/?p=30183
+ * https://devblogs.microsoft.com/oldnewthing/20060810-06/?p=30173
+ * HHOOK (Windows 3.1~)
+ * HIWORD: 'HK'
+ * LOWORD: near pointer?
+ */
 static HHOOK entry_to_hhook(struct hook_entry *entry)
 {
     if (entry->deleted)
@@ -1148,7 +1148,11 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
  */
 LRESULT WINAPI DefHookProc16( INT16 code, WPARAM16 wparam, LPARAM lparam, HHOOK *hhook )
 {
-    return CallNextHookEx16( *hhook, code, wparam, lparam );
+    if (!hhook)
+    {
+        return 0;
+    }
+    return CallNextHookEx( *hhook, code, wparam, lparam );
 }
 
 
