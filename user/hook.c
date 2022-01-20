@@ -1146,13 +1146,13 @@ LRESULT WINAPI CallNextHookEx16( HHOOK hhook, INT16 code, WPARAM16 wparam, LPARA
 /***********************************************************************
  *		DefHookProc (USER.235)
  */
-LRESULT WINAPI DefHookProc16( INT16 code, WPARAM16 wparam, LPARAM lparam, HHOOK *hhook )
+LRESULT WINAPI DefHookProc16( INT16 code, WPARAM16 wparam, LPARAM lparam, HHOOK *lphhook )
 {
-    if (!hhook)
+    if (!((LONG_PTR)lphhook >> 16))
     {
         return 0;
     }
-    return CallNextHookEx( *hhook, code, wparam, lparam );
+    return CallNextHookEx16( *lphhook, code, wparam, lparam );
 }
 
 
