@@ -39,9 +39,9 @@
 #include "shellapi.h"
 #include "richedit.h"
 #include "richole.h"
-#include "tom.h"
 #include "commctrl.h"
 #include "psapi.h"
+#include "tom.h"
 
 #ifdef _DEBUG
 #include "wine/debug.h"
