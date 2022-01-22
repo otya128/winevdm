@@ -39,6 +39,7 @@
 #include "shellapi.h"
 #include "richedit.h"
 #include "richole.h"
+#include "tom.h"
 #include "commctrl.h"
 #include "psapi.h"
 
@@ -58,6 +59,10 @@ WINHELP_GLOBALS Globals = {3, NULL, TRUE, NULL, NULL, NULL, NULL, NULL, {{{NULL,
 
 #define CTL_ID_BUTTON   0x700
 #define CTL_ID_TEXT     0x701
+
+#include "initguid.h"
+
+DEFINE_GUID(IID_ITextDocument2, 0xc241f5e0, 0x7206, 0x11d8, 0xa2, 0xc7, 0x00, 0xa0, 0xd1, 0xd6, 0xc6, 0xb3);
 
 static void comp_xWBTreeKey(void *p, const void *key, int leaf, void **next);
 static INT_PTR CALLBACK WINHELP_TopicDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -202,11 +207,11 @@ static void WINHELP_SetupText(HWND hTextWnd, WINHELP_WINDOW* win, ULONG relative
         SendMessageW(hTextWnd, EM_POSFROMCHAR, (WPARAM)&ptl, cp || (cp != -1) ? cp - 1 : 0);
         pt.x = 0; pt.y = ptl.y;
         SendMessageW(hTextWnd, EM_SETSCROLLPOS, 0, (LPARAM)&pt);
+        IRichEditOle *reole;
+        SendMessageW(hTextWnd, EM_GETOLEINTERFACE, 0, &reole);
         if (rd.first_hs)
         {
-            IRichEditOle *reole;
             REOBJECT obj = {sizeof(REOBJECT)};
-            SendMessageW(hTextWnd, EM_GETOLEINTERFACE, 0, &reole);
             for(int i = 0; i < rd.imgcnt; i++)
             {
                 HLPFILE_HOTSPOTLINK* hs = rd.first_hs;
@@ -218,8 +223,59 @@ static void WINHELP_SetupText(HWND hTextWnd, WINHELP_WINDOW* win, ULONG relative
                     hs = hs->next;
                 }
             }
-            reole->lpVtbl->Release(reole);
-         }
+        }
+        if (win->page->first_var_row)
+        {
+            ITextDocument2 *doc;
+            HRESULT result = reole->lpVtbl->QueryInterface(reole, &IID_ITextDocument2, &doc);
+            if (SUCCEEDED(result))
+            {
+                SendMessageW(hTextWnd, EM_SETOPTIONS, ECOOP_AND, ~ECO_READONLY);
+                ITextRange2 *range;
+                result = doc->lpVtbl->Range(doc, 0, 0, &range);
+                if (SUCCEEDED(result))
+                {
+                    HLPFILE_ROW *next = win->page->first_var_row;
+                    BSTR rowtag = SysAllocString(L"var_wid_row");
+                    RECT rect;
+                    GetClientRect(hTextWnd, &rect);
+                    rect.right -= GetSystemMetrics(SM_CXVSCROLL);
+                    while (next->next) next = next->next;
+                    while (next)
+                    {
+                        ITextRow *row;
+                        long len = 0;
+                        long start;
+                        range->lpVtbl->FindText(range, rowtag, tomForward, tomMatchCase, &len);
+                        if (!len) break;
+                        range->lpVtbl->Move(range, tomRow, 1, &len);
+                        if (!len) break;
+                        range->lpVtbl->GetStart(range, &start);
+                        range->lpVtbl->SetStart(range, ++start);
+                        result = range->lpVtbl->GetRow(range, &row);
+                        if (FAILED(result)) break;
+                        next->cpos = start;
+                        WORD last = 0, tot = next->width[next->cols - 1];
+                        for (int i = 0; i < next->cols; i++)
+                        {
+                            WORD curr = ((long)(next->width[i] - last) * 100) / tot;
+                            last = next->width[i];
+                            next->width[i] = curr;
+                            row->lpVtbl->SetCellIndex(row, i);
+                            row->lpVtbl->SetCellWidth(row, (rect.right * 15 * next->width[i]) / 100);
+                        }
+                        row->lpVtbl->Apply(row, 1, tomCellStructureChangeOnly);
+                        row->lpVtbl->Release(row);
+                        next = next->prev;
+                    }
+                    range->lpVtbl->Release(range);
+                    SysFreeString(rowtag);
+                }
+                doc->lpVtbl->Release(doc);
+                SendMessageW(hTextWnd, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
+            }
+        }
+        reole->lpVtbl->Release(reole);
     }
     SendMessageW(hTextWnd, WM_SETREDRAW, TRUE, 0);
     RedrawWindow(hTextWnd, NULL, NULL, RDW_FRAME|RDW_INVALIDATE);
@@ -830,6 +886,47 @@ static LRESULT CALLBACK WINHELP_RicheditWndProc(HWND hWnd, UINT msg,
             }
         default:
             return CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
+        case WM_SIZE:
+            result = CallWindowProcA(win->origRicheditWndProc, hWnd, msg, wParam, lParam);
+            if (win->page && win->page->first_var_row)
+            {
+                IRichEditOle *reole;
+                ITextDocument2 *doc;
+                SendMessageW(hWnd, EM_GETOLEINTERFACE, 0, &reole);
+                HRESULT res = reole->lpVtbl->QueryInterface(reole, &IID_ITextDocument2, &doc);
+                if (SUCCEEDED(res))
+                {
+                    ITextRange2 *range;
+                    SendMessageW(hWnd, EM_SETOPTIONS, ECOOP_AND, ~ECO_READONLY);
+                    res = doc->lpVtbl->Range(doc, 0, 0, &range);
+                    if (SUCCEEDED(res))
+                    {
+                        long width = LOWORD(lParam) - GetSystemMetrics(SM_CXVSCROLL);
+                        HLPFILE_ROW *next = win->page->first_var_row;
+                        while (next->next) next = next->next;
+                        while (next)
+                        {
+                            ITextRow *row;
+                            range->lpVtbl->SetStart(range, next->cpos);
+                            res = range->lpVtbl->GetRow(range, &row);
+                            if (FAILED(res)) break;
+                            for (int i = 0; i < next->cols; i++)
+                            {
+                                row->lpVtbl->SetCellIndex(row, i);
+                                row->lpVtbl->SetCellWidth(row, (width * 15 * next->width[i]) / 100);
+                            }
+                            row->lpVtbl->Apply(row, 1, tomCellStructureChangeOnly);
+                            row->lpVtbl->Release(row);
+                            next = next->prev;
+                        }
+                        range->lpVtbl->Release(range);
+                    }
+                    doc->lpVtbl->Release(doc);
+                    SendMessageW(hWnd, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
+                }
+                reole->lpVtbl->Release(reole);
+            }
+            return result;
         case WM_KEYDOWN:
         case WM_KEYUP:
         case WM_LBUTTONDOWN:

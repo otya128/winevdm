@@ -67,6 +67,15 @@ typedef struct tagHlpFileMacro
     struct tagHlpFileMacro*     next;
 } HLPFILE_MACRO;
 
+typedef struct tagHlpFileRow
+{
+    char cols;
+    long cpos;
+    struct tagHlpFileRow* next;
+    struct tagHlpFileRow* prev;
+    WORD width[1];
+} HLPFILE_ROW;
+
 typedef struct tagHlpFilePage
 {
     WCHAR*                      lpszTitle;
@@ -74,6 +83,7 @@ typedef struct tagHlpFilePage
 
     HLPFILE_LINK*               first_link;
     HLPFILE_HOTSPOTLINK*        first_hs;
+    HLPFILE_ROW*                first_var_row;
 
     unsigned                    wNumber;
     unsigned                    offset;
