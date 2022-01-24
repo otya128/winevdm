@@ -1290,6 +1290,7 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
     short              nc, lastcol, table_width, lastfont = 0;
     char               tmp[256];
     BOOL               ret = FALSE;
+    HLPFILE_ROW       *lastrow;
 
     if (buf + 0x19 > end) {WINE_WARN("header too small\n"); return FALSE;};
 
@@ -1335,20 +1336,27 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
 
         ncol = *format++;
 
-        if (!HLPFILE_RtfAddControl(rd, "\\trowd")) goto done;
         type = *format++;
         if (type == 0 || type == 2)
         {
             table_width = GET_SHORT(format, 0);
             format += 2;
+            HLPFILE_ROW* row = HeapAlloc(GetProcessHeap(), 0, sizeof(HLPFILE_ROW) + 2 * ncol);
+            row->cols = ncol;
+            row->prev = NULL;
+            if (page->first_var_row) page->first_var_row->prev = row;
+            row->next = page->first_var_row;
+            page->first_var_row = row;
+            if (!HLPFILE_RtfAddControl(rd, "{\\v\\pard var_wid_row}")) goto done;
         }
         else
             table_width = 32767;
+        if (!HLPFILE_RtfAddControl(rd, "\\trowd")) goto done;
         WINE_TRACE("New table: cols=%d type=%x width=%d\n",
                    ncol, type, table_width);
         if (ncol > 1)
         {
-            int     pos;
+            int     pos, width;
             sprintf(tmp, "\\trgaph%d\\trleft%d",
                     MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 6)), table_width, 32767),
                     MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 2) - GET_SHORT(format, 6)), table_width, 32767) - 1);
@@ -1360,19 +1368,25 @@ static BOOL HLPFILE_BrowseParagraph(HLPFILE_PAGE* page, struct RtfData* rd,
                            nc, ncol, GET_SHORT(format, nc*4),
                            GET_SHORT(format, nc*4+2));
                 pos += GET_SHORT(format, nc * 4) + GET_SHORT(format, nc * 4 + 2);
-                sprintf(tmp, "\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\brdrcf2\\cellx%d",
-                        MulDiv(HLPFILE_HalfPointsScale(page, pos), table_width, 32767));
+                width = MulDiv(HLPFILE_HalfPointsScale(page, pos), table_width, 32767);
+                sprintf(tmp, "\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\brdrcf2\\cellx%d", width);
                 if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
+                if (type == 0 || type == 2)
+                    page->first_var_row->width[nc] = width;
             }
         }
         else
         {
+            int twidth, cwidth;
             WINE_TRACE("column(0/%d) gap=%d width=%d\n",
                        ncol, GET_SHORT(format, 0), GET_SHORT(format, 2));
+            twidth = MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 2)), table_width, 32767) - 1;
+            cwidth = MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 0)), table_width, 32767);
             sprintf(tmp, "\\trleft%d\\clbrdrl\\brdrw1\\brdrcf2\\clbrdrt\\brdrw1\\brdrcf2\\clbrdrr\\brdrw1\\brdrcf2\\clbrdrb\\brdrw1\\brdrcf2\\cellx%d ",
-                    MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 2)), table_width, 32767) - 1,
-                    MulDiv(HLPFILE_HalfPointsScale(page, GET_SHORT(format, 0)), table_width, 32767));
+                       twidth, cwidth);
             if (!HLPFILE_RtfAddControl(rd, tmp)) goto done;
+            if (type == 0 || type == 2)
+                page->first_var_row->width[0] = cwidth;
         }
         format += ncol * 4;
     }
@@ -2493,7 +2507,6 @@ HLPFILE_XW *HLPFILE_GetTreeData(HLPFILE *hlpfile, char keyfile)
     xw->data = HeapAlloc(GetProcessHeap(), 0, clen);
     if (!xw->data)
     {
-        HeapFree(GetProcessHeap(), 0, xw->data);
         HeapFree(GetProcessHeap(), 0, xw->tree);
         return NULL;
     }
@@ -2604,6 +2617,18 @@ static void HLPFILE_DeleteLink(HLPFILE_LINK *link)
     }
 }
 
+static void HLPFILE_DeleteRow(HLPFILE_ROW *row)
+{
+    HLPFILE_ROW*       next;
+
+    while(row)
+    {
+        next = row->next;
+        HeapFree(GetProcessHeap(), 0, row);
+        row = next;
+    }
+}
+
 /***********************************************************************
  *
  *           DeletePage
@@ -2617,6 +2642,7 @@ static void HLPFILE_DeletePage(HLPFILE_PAGE* page)
         next = page->next;
         HLPFILE_DeleteMacro(page->first_macro);
         HLPFILE_DeleteLink(page->first_link);
+        HLPFILE_DeleteRow(page->first_var_row);
         HeapFree(GetProcessHeap(), 0, page);
         page = next;
     }
@@ -2941,6 +2967,7 @@ static BOOL HLPFILE_AddPage(HLPFILE *hlpfile, const BYTE *buf, const BYTE *end, 
     page->next            = NULL;
     page->first_macro     = NULL;
     page->first_link      = NULL;
+    page->first_var_row   = NULL;
     page->wNumber         = GET_UINT(buf, 0x21);
     page->offset          = offset;
     page->reference       = ref;
@@ -3025,6 +3052,7 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
     char tmp[256];
     WCHAR tmpW[256];
     HLPFILE_PAGE *cnt;
+    BOOL cnt_found = FALSE;
 
     rd.in_text = TRUE;
 
@@ -3094,9 +3122,11 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
             str = next_str;
             continue;
         }
+	cnt_found = TRUE;
         while (isdigit(*start)) start++;
         while (isspace(*start)) start++;
         end = strchr(start, '=');
+        while (end && (*(end - 1) == '\\')) end = strchr(end + 1, '=');
         if (!end)
         {
             if (l > curl) curl++;
@@ -3140,6 +3170,7 @@ static void HLPFILE_ReadCntFile(HLPFILE *hlpfile)
         if (!HLPFILE_RtfAddControl(&rd, "\\par")) goto errexit;
         str = next_str;
     }
+    if (!cnt_found) goto errexit; // empty cnt file
     if (!HLPFILE_RtfAddControl(&rd, "}")) goto errexit;
     hlpfile->cnt_rtf = rd.data;
     hlpfile->cnt_page = cnt;
