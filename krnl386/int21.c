@@ -1134,6 +1134,9 @@ static BOOL INT21_CreateFile( CONTEXT *context,
     retry:
     MultiByteToWideChar(CP_OEMCP, 0, pathA, -1, pathW, MAX_PATH);
 
+    if (dosAction == 0x12)
+        DeleteFileW(pathW);
+
     if ((winHandle = INT21_OpenMagicDevice( pathW, winAccess )))
     {
         dosStatus = 1;
