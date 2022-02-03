@@ -46,11 +46,56 @@ static BOOL vsync = FALSE;
 static BOOL hsync = FALSE;
 static LPVOID vram;
 
+static void draw()
+{
+    RECT rect;
+    int new_width, new_height;
+    const double r = 4.0 / 3.0;
+    HDC dc = GetDC(ddhwnd);
+    GetClientRect(ddhwnd, &rect);
+    /* aspect */
+    if (rect.right / r > rect.bottom)
+    {
+        new_height = rect.bottom;
+        new_width = rect.bottom * r;
+        RECT frect = rect;
+        frect.left = 0;
+        frect.right = (rect.right - new_width) / 2;
+        FillRect(dc, &frect, GetStockObject(DKGRAY_BRUSH));
+        frect.left = rect.right - (rect.right - new_width) / 2;
+        frect.right = rect.right;
+        FillRect(dc, &frect, GetStockObject(DKGRAY_BRUSH));
+    }
+    else
+    {
+        new_width = rect.right;
+        new_height = rect.right / r;
+        RECT frect = rect;
+        frect.top = 0;
+        frect.bottom = (rect.bottom - new_height) / 2;
+        FillRect(dc, &frect, GetStockObject(DKGRAY_BRUSH));
+        frect.top = rect.bottom - (rect.bottom - new_height) / 2;
+        frect.bottom = rect.bottom;
+        FillRect(dc, &frect, GetStockObject(DKGRAY_BRUSH));
+    }
+    StretchBlt(dc, (rect.right - new_width) / 2, (rect.bottom - new_height) / 2, new_width, new_height, dddc, 0, 0, width, height, SRCCOPY);
+    ReleaseDC(ddhwnd, dc);
+}
+
 static LRESULT CALLBACK ddwndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    static BOOL focus = FALSE, showcur = TRUE;
     HWND parhwnd = (HWND)GetWindowLongA(hwnd, GWL_HWNDPARENT);
     switch (uMsg)
     {
+        case WM_KILLFOCUS:
+            if (!showcur)
+            {
+                ShowCursor(TRUE);
+                showcur = TRUE;
+            }
+        case WM_SETFOCUS:
+            focus = uMsg == WM_SETFOCUS;
         case WM_KEYDOWN:
         case WM_KEYUP:
         case WM_CHAR:
@@ -61,12 +106,22 @@ static LRESULT CALLBACK ddwndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
         case WM_SYSDEADCHAR:
         case WM_UNICHAR:
         case WM_TIMER:
-        case WM_SETFOCUS:
-        case WM_KILLFOCUS:
         case WM_CLOSE:
             return CallWindowProcA((WNDPROC)GetWindowLongA(parhwnd, GWL_WNDPROC), parhwnd, uMsg, wParam, lParam);
+        case WM_SETCURSOR:
+            if ((LOWORD(lParam) == HTCLIENT) && focus && showcur)
+            {
+                ShowCursor(FALSE);
+                showcur = FALSE;
+            }
+            else if (((LOWORD(lParam) != HTCLIENT) || !focus) && !showcur)
+            {
+                ShowCursor(TRUE);
+                showcur = TRUE;
+            }
+            break;
     }
-    if (uMsg >= MM_JOY1MOVE)
+    if ((uMsg >= WM_MOUSEMOVE && uMsg <= WM_MBUTTONDOWN) || uMsg >= MM_JOY1MOVE)
         return CallWindowProcA((WNDPROC)GetWindowLongA(parhwnd, GWL_WNDPROC), parhwnd, uMsg, wParam, lParam);
     return DefWindowProcA(hwnd, uMsg, wParam, lParam);
 }
@@ -79,12 +134,8 @@ static void CALLBACK retrace_cb(LPVOID arg, DWORD low, DWORD high)
         SetEvent(running);
         ExitThread(0);
     }
-    RECT ddrect;
-    GetClientRect(ddhwnd, &ddrect);
-    HDC dc = GetDC(ddhwnd);
     SetBitmapBits(GetCurrentObject(dddc, OBJ_BITMAP), width * height, vram);
-    StretchBlt(dc, 0, 0, ddrect.right, ddrect.bottom, dddc, 0, 0, width, height, SRCCOPY);
-    ReleaseDC(ddhwnd, dc);
+    draw();
 }
 
 static DWORD CALLBACK retrace_th(LPVOID arg)
@@ -288,7 +339,7 @@ WORD WINAPI DisplayDib(
         GetWindowTextA(parhwnd, title, 32);
         if (title[0] == '\0') GetModuleName16(GetCurrentTask(), title, 32);
         ddhwnd = CreateWindowExA(0, "DispDibClass", title, WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT,
-                        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parhwnd, NULL, GetModuleHandleA(NULL), NULL);
+                        CW_USEDEFAULT, 640, 480, parhwnd, NULL, GetModuleHandleA(NULL), NULL);
         if (!ddhwnd)
         {
             owner = 0;
@@ -328,12 +379,8 @@ WORD WINAPI DisplayDib(
     {
         if (!lpBits)
             return DISPLAYDIB_INVALIDDIB;
-        RECT ddrect;
-        GetClientRect(ddhwnd, &ddrect);
-        HDC dc = GetDC(ddhwnd);
         SetDIBitsToDevice(dddc, 0, 0, width, height, 0, 0, 0, height, lpBits, lpbi, DIB_RGB_COLORS);
-        StretchBlt(dc, 0, 0, ddrect.right, ddrect.bottom, dddc, 0, 0, width, height, SRCCOPY);
-        ReleaseDC(ddhwnd, dc);
+        draw();
     }
     return DISPLAYDIB_NOERROR;
 }
