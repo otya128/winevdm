@@ -136,7 +136,8 @@ VOID WINAPI _EnterSysLevel(SYSLEVEL *lock)
     switch_directory(thread_data);
     thread_data->sys_count[lock->level]++;
     thread_data->sys_mutex[lock->level] = lock;
-    SetEvent(thread_data->yield_event);
+    if (thread_data->yield_event)
+        SetEvent(thread_data->yield_event);
 
     TRACE("(%p, level %d): thread %x count after  %d\n",
           lock, lock->level, GetCurrentThreadId(), thread_data->sys_count[lock->level] );
