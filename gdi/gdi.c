@@ -3837,6 +3837,7 @@ HDC16 WINAPI ResetDC16( HDC16 hdc, const DEVMODEA *devmode )
     memcpy(&dma, devmode, devmode->dmSize);
     dma.dmSize = sizeof(DEVMODEA);
     dma.dmDriverExtra = 0;
+    if (!dma.dmDeviceName[0]) dma.dmDeviceName[0] = '.';
     return HDC_16( ResetDCA( HDC_32(hdc), &dma ) );
 }
 
