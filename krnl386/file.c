@@ -188,8 +188,11 @@ void UnredirectDriveRoot(LPSTR buf, SIZE_T buf_len)
     }
     return;
 }
-//SYSTEM DIR
-//%WINDIR%->
+
+/*
+ * C:\WINDOWS-> redirected windows dir
+ * C:\WINDOWS\SYSTEM32 -> redirected windows dir\SYSTEM
+ */
 __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len)
 {
 	char dirbuf[240];
@@ -199,15 +202,10 @@ __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max
 	{
 		return path;
 	}
-	//\SYSTEM32
-	const char *windir = getenv("windir");
-	if (strlen(windir) + 10 >= MAX_PATH)
-	{
-		return path;
-	}
 	char bufwdir[MAX_PATH];
-	strcpy(bufwdir, windir);
-	if (PathCommonPrefixA(buf, bufwdir, NULL) < strlen(bufwdir))//if (strncmp(buf, windir, strlen(windir)))
+    GetWindowsDirectoryA(bufwdir, MAX_PATH);
+    size_t windir_len = strlen(bufwdir);
+	if (PathCommonPrefixA(buf, bufwdir, NULL) < windir_len)
 	{
 		return path;
 	}
@@ -216,23 +214,19 @@ __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max
 		return path;
 	}
 	//system32->system
-	if (PathCommonPrefixA(buf, bufwdir, NULL) >= strlen(bufwdir))//if (strncmp(buf, windir, strlen(windir)))
+	if (PathCommonPrefixA(buf, bufwdir, NULL) >= strlen(bufwdir))
 	{
 		memcpy(buf + strlen(bufwdir) - 2, buf + strlen(bufwdir), strlen(buf) - strlen(bufwdir) + 1);
 	}
 	//.\windir\ 
 	dirbuf[0] = '\0';
-	char*dir = &dirbuf[0];
+	char *dir = &dirbuf[0];
 	GetModuleFileNameA(GetModuleHandleA("otvdm.exe"), dir, MAX_PATH);
 	char *file = PathFindFileNameA(dir);
 	if (file != dir) *file = '\0';
 	if (!PathAppendA(dir, GetRedirectWindowsDir()))
 		return path;
-		//FIXME:dir//wine_get_server_dir();
-//	size_t len = strlen(dir);
-//	if (len >= max_len) return path;
-//	strcpy(to, dir);
-	if (!PathAppendA(dir, buf + strlen(windir)))
+	if (!PathAppendA(dir, buf + windir_len))
 		return path;
 	if (strlen(dir) >= max_len)
 		return path;
@@ -242,7 +236,6 @@ __declspec(dllexport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max
 	GetShortPathNameA(dir, to, max_len);
 	*file = f;
 	PathCombineA(to, to, file);
-//	strcpy(to, dir);
 	return to;
 }
 

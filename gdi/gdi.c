@@ -5286,11 +5286,11 @@ BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
         char syspath[MAX_PATH];
         char fonfile[MAX_PATH];
         char origsyspath[MAX_PATH];
-        strncpy(origsyspath, getenv("windir"), MAX_PATH);
-        strcat(origsyspath, "\\system\\");
+        GetWindowsDirectoryA(origsyspath, MAX_PATH);
+        StringCchCatA(origsyspath, MAX_PATH, "\\system\\");
         RedirectSystemDir(origsyspath, syspath, MAX_PATH);
         strcpy(fonfile, syspath);
-        strcat(fonfile, "*.*");
+        StringCchCatA(fonfile, MAX_PATH, "*.*");
         HANDLE file = FindFirstFileA(fonfile, &fileinfo);
         if (file == INVALID_HANDLE_VALUE)
             break;
