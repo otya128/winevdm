@@ -805,7 +805,7 @@ DWORD WINAPI WIN16_GlobalUnlock16(HGLOBAL16 handle)
     {
         static void (*regen_icon)(HICON16) = 0;
         if (!regen_icon)
-            (FARPROC)regen_icon = GetProcAddress(GetModuleHandle("user.exe16"), "regen_icon");
+            regen_icon = (void (*)(HICON16))GetProcAddress(GetModuleHandle("user.exe16"), "regen_icon");
         regen_icon((HICON16)handle);
     }
     return ret;
