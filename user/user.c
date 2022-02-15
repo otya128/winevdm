@@ -390,6 +390,44 @@ HICON get_icon_32( HICON16 icon16 )
     return ret;
 }
 
+struct hicons
+{
+    HICON oldicon;
+    HICON newicon;
+};
+
+BOOL CALLBACK enum_cur_wnd(HWND hwnd, LPARAM lparam)
+{
+    struct hicons *icons = (struct hicons *)lparam;
+    if (GetClassLongA(hwnd, GCL_HCURSOR) == icons->oldicon)
+        SetClassLongA(hwnd, GCL_HCURSOR, icons->newicon);
+    return TRUE;
+}
+
+void regen_icon(HICON16 icon)
+{
+    CURSORICONINFO *ptr = get_icon_ptr( icon );
+    if (ptr)
+    {
+        unsigned int and_size = ptr->nHeight * get_bitmap_width_bytes( ptr->nWidth, 1 );
+        unsigned int xor_size = ptr->nHeight * get_bitmap_width_bytes( ptr->nWidth, ptr->bBitsPerPixel );
+        if (GlobalSize16( icon ) >= sizeof(*ptr) + sizeof(ULONG_PTR) + xor_size + and_size )
+        {
+            DWORD *hiconptr = (DWORD *)((char *)(ptr + 1) + xor_size + and_size);
+            HICON oldicon = *(HICON *)hiconptr, newicon;
+            *hiconptr = 0;
+            if (newicon = get_icon_32(icon))
+            {
+                struct hicons icons = {oldicon, newicon};
+                // TODO: all window classes
+                EnumThreadWindows(GetCurrentThreadId(), enum_cur_wnd, (LPARAM)&icons);
+                DestroyIcon(oldicon);
+            }
+        }
+    }
+}
+        
+
 /* retrieve the 16-bit counterpart of a 32-bit icon, creating it if needed */
 HICON16 get_icon_16( HICON icon )
 {
@@ -2902,6 +2940,7 @@ HANDLE16 WINAPI LoadImage16(HINSTANCE16 hinst, LPCSTR name, UINT16 type, INT16 c
         FreeResource16(handle);
 
         if (hIcon && (flags & LR_SHARED)) add_shared_icon( hinst, hRsrc, hGroupRsrc, hIcon );
+        GLOBAL_SetSeg(hIcon, 0, 5 | (type == IMAGE_ICON ? 14 : 12) << 4); // GT_RESOURCE | (GD_ICON || GD_CURSOR)
         return hIcon;
     }
     default:

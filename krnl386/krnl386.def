@@ -240,6 +240,7 @@ EXPORTS
   GLOBAL_GetLink
   GLOBAL_SetLink
   GLOBAL_FindLink
+  GLOBAL_SetSeg
   vm_inject
   set_vm_inject_cb
   get_idle_event

@@ -597,3 +597,4 @@
 @ stdcall -arch=win32 LoadString16(long long ptr long)
 @ stdcall -arch=win32 set_realized_palette(long)
 @ stdcall -arch=win32 get_realized_palette()
+@ cdecl   -arch=win32 regen_icon(long)
