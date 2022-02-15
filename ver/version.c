@@ -508,14 +508,14 @@ DWORD WINAPI GetFileVersionInfoSize16( LPCSTR lpszFileName, LPDWORD lpdwHandle )
 {
     BOOL ret;
     TRACE("(%s, %p)\n", debugstr_a(lpszFileName), lpdwHandle );
-    ret = GetFileResourceSize16( lpszFileName, VS_FILE_INFO, VS_VERSION_INFO, NULL );
+    ret = GetFileResourceSize16( lpszFileName, VS_FILE_INFO, VS_VERSION_INFO, lpdwHandle );
     if (!ret)
     {
         char path[MAX_PATH];
         if (findfile( lpszFileName, path, MAX_PATH ))
-            ret = GetFileResourceSize16( lpszFileName, VS_FILE_INFO, VS_VERSION_INFO, NULL );
+            ret = GetFileResourceSize16( lpszFileName, VS_FILE_INFO, VS_VERSION_INFO, lpdwHandle );
     }
-    *lpdwHandle = NULL;
+    if (!ret) *lpdwHandle = NULL;
     return ret;
 }
 
