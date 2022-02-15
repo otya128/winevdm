@@ -1180,6 +1180,14 @@ INT16 WINAPI ReleaseDC16( HWND16 hwnd, HDC16 hdc )
         {
             K32WOWHandle16DestroyHint(HDC_32(oldhdc), WOW_TYPE_HDC);
         }
+        for (int i = 0; i < 5; i++)
+        {
+            if (dcc.dcs[i] == oldhdc)
+            {
+                dcc.dcs[i] = 0;
+                dcc.wnds[i] = 0;
+            }
+        }
     }
     dcc.dcs[dcc.next] = hdc;
     dcc.wnds[dcc.next] = hwnd;
