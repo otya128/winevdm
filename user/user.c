@@ -415,13 +415,20 @@ void regen_icon(HICON16 icon)
         {
             DWORD *hiconptr = (DWORD *)((char *)(ptr + 1) + xor_size + and_size);
             HICON oldicon = *(HICON *)hiconptr, newicon;
-            *hiconptr = 0;
-            if (newicon = get_icon_32(icon))
+            if (oldicon)
             {
-                struct hicons icons = {oldicon, newicon};
-                // TODO: all window classes
-                EnumThreadWindows(GetCurrentThreadId(), enum_cur_wnd, (LPARAM)&icons);
-                DestroyIcon(oldicon);
+                *hiconptr = 0;
+                if (newicon = get_icon_32(icon))
+                {
+                    struct hicons icons = {oldicon, newicon};
+                    // TODO: all window classes
+                    EnumThreadWindows(GetCurrentThreadId(), enum_cur_wnd, (LPARAM)&icons);
+                    if (GetCursor() == oldicon)
+                        SetCursor(newicon);
+                    DestroyIcon(oldicon);
+                }
+                else
+                    *hiconptr = oldicon;
             }
         }
     }
