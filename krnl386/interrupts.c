@@ -36,6 +36,7 @@ WINE_DECLARE_DEBUG_CHANNEL(relay);
 
 static void WINAPI DOSVM_Int01Handler(CONTEXT*);
 static void WINAPI DOSVM_Int03Handler(CONTEXT*);
+static void WINAPI DOSVM_Int06Handler(CONTEXT*);
 static void WINAPI DOSVM_Int11Handler(CONTEXT*);
 static void WINAPI DOSVM_Int12Handler(CONTEXT*);
 static void WINAPI DOSVM_Int17Handler(CONTEXT*);
@@ -54,7 +55,7 @@ static FARPROC48     DOSVM_Vectors48[256];
 static INTPROC DOSVM_VectorsBuiltin[] =
 {
   /* 00 */ 0,                  DOSVM_Int01Handler, 0,                  DOSVM_Int03Handler,
-  /* 04 */ 0,                  0,                  0,                  0,
+  /* 04 */ 0,                  0,                  DOSVM_Int06Handler, 0,
   /* 08 */ DOSVM_Int08Handler, DOSVM_Int09Handler, 0,                  0,
   /* 0C */ 0,                  0,                  0,                  0,
   /* 10 */ DOSVM_Int10Handler, DOSVM_Int11Handler, DOSVM_Int12Handler, DOSVM_Int13Handler,
@@ -1133,5 +1134,60 @@ static void WINAPI DOSVM_Int03Handler(CONTEXT *context)
         context->Esp = OFFSETOF(stack);
         context->SegCs = SELECTOROF(intcb);
         context->Eip = OFFSETOF(intcb);
+    }
+}
+
+
+/* NTVDM BOP stub */
+static void WINAPI DOSVM_Int06Handler(CONTEXT *context)
+{
+    LPBYTE insn = (LPBYTE)CTX_SEG_OFF_TO_LIN(context, context->SegCs, context->Eip);
+    /*
+     * RegisterModule
+     * DS:SI DLL
+     * ES:DI init func name
+     * DS:BX dispatch routine name
+     */
+    if (insn[0] == 0xc4 && insn[1] == 0xc4 && insn[2] == 0x58 && insn[3] == 0x00)
+    {
+        LPCSTR dll = (LPCSTR)CTX_SEG_OFF_TO_LIN(context, context->SegDs, context->Esi);
+        LPCSTR init = (LPCSTR)CTX_SEG_OFF_TO_LIN(context, context->SegEs, context->Edi);
+        LPCSTR dispatch = (LPCSTR)CTX_SEG_OFF_TO_LIN(context, context->SegDs, context->Ebx);
+        context->Eip += 4;
+#if 0
+        /* NOTE: VDD DLL references ntvdm.exe */
+        HMODULE hVdd = LoadLibraryA(dll);
+        if (!hVdd)
+        {
+            SET_CFLAG(context);
+            SET_AX(context, GetLastError());
+            return;
+        }
+        FARPROC pfnInit = GetProcAddress(hVdd, init);
+        FARPROC pfnDispatch = GetProcAddress(hVdd, dispatch);
+        RESET_CFLAG(context);
+        if (pfnInit)
+        {
+            pfnInit();
+        }
+#else
+        SET_CFLAG(context);
+        SET_AX(context, 1);
+        ERR("VDD RegisterModule not implemented. %s %s %s\n", debugstr_a(dll), debugstr_a(init), debugstr_a(dispatch));
+#endif
+    }
+    /* UnregisterModule */
+    else if (insn[0] == 0xc4 && insn[1] == 0xc4 && insn[2] == 0x58 && insn[3] == 0x01)
+    {
+        WORD handle = LOWORD(context->Eax);
+        context->Eip += 4;
+        ERR("VDD UnregisterModule not implemented. %04x\n", handle);
+    }
+    /* DispatchCall */
+    else if (insn[0] == 0xc4 && insn[1] == 0xc4 && insn[2] == 0x58 && insn[3] == 0x02)
+    {
+        WORD handle = LOWORD(context->Eax);
+        context->Eip += 4;
+        ERR("VDD DispatchCall not implemented. %04x\n", handle);
     }
 }

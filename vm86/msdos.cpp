@@ -1528,7 +1528,6 @@ try_again:
                         case 0:name = "#DE"; break;
                         case 2:name = "int 2h"; break;
                         case 4:name = "#OF"; break;
-                        case FAULT_UD:name = "#UD"; break;
                         case FAULT_NM:name = "#NM"; break;
                         case FAULT_DF:name = "#DF"; break;
                         case FAULT_TS:name = "#TS"; break;
@@ -1553,6 +1552,15 @@ try_again:
                         if ((num == FAULT_MF) && (m_x87_sw & 0x80))
                             num = 2;  // redirect fpu error to nmi
                         dynamic__wine_call_int_handler(&context, num);
+                        if (num == FAULT_UD)
+                        {
+                            if (context.Eip == return_ip && context.SegCs == return_cs)
+                            {
+                                name = "#UD";
+                                protected_mode_exception_handler(num, name, pih);
+                                continue;
+                            }
+                        }
                         mem = memory_base;
                         load_context(&context);
                         continue;
