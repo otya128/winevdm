@@ -41,6 +41,8 @@
 #include "winternl.h"
 #include "kernel16_private.h"
 #include "wine/debug.h"
+#include "winuser.h"
+#include "wingdi.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(global);
 
@@ -792,10 +794,21 @@ DWORD WINAPI WIN16_GlobalFree16(HGLOBAL16 handle)
     CURRENT_STACK16->es = 0;
     return GlobalFree16(handle);
 }
+void regen_icon(HICON16 icon);
 DWORD WINAPI WIN16_GlobalUnlock16(HGLOBAL16 handle)
 {
+    DWORD ret = MAKELONG(GlobalUnlock16(handle), handle);
     CURRENT_STACK16->es = 0;
-    return MAKELONG(GlobalUnlock16(handle), handle);
+    if (!ret) return 0;
+    GLOBALARENA *pArena = GET_ARENA_PTR(handle);
+    if (pArena->wType == (GT_RESOURCE | (12 << 4))) // GD_CURSOR
+    {
+        static void (*regen_icon)(HICON16) = 0;
+        if (!regen_icon)
+            regen_icon = (void (*)(HICON16))GetProcAddress(GetModuleHandle("user.exe16"), "regen_icon");
+        regen_icon((HICON16)handle);
+    }
+    return ret;
 }
 
 
