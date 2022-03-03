@@ -181,6 +181,24 @@ static void WINAPI ddInt10Handler(CONTEXT *context)
                     break;
              }
              break;
+        case 0x10:
+             switch (AL_reg(context))
+             {
+                case 0x12:
+                {
+                    BYTE *ptr = MapSL(MAKESEGPTR(context->SegEs, DX_reg(context)));
+                    for (int i = BX_reg(context); i < CX_reg(context); i++)
+                    {
+                        RGBQUAD color;
+                        color.rgbRed =   (ptr[i * 3] << 2) | (ptr[i * 3] >> 6);
+                        color.rgbGreen = (ptr[i * 3 + 1] << 2) | (ptr[i * 3 + 1] >> 6);
+                        color.rgbBlue =  (ptr[i * 3 + 2] << 2) | (ptr[i * 3 + 2] >> 6);
+                        color.rgbReserved = 0;
+                        SetDIBColorTable(dddc, i & 0xff, 1, &color);
+                    }
+                }
+             }
+             break;       
         default:
             FIXME("Int 10 func: %#x unimplemented\n", AH_reg(context));
             break;
