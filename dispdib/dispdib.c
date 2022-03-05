@@ -190,9 +190,9 @@ static void WINAPI ddInt10Handler(CONTEXT *context)
                     for (int i = BX_reg(context); i < CX_reg(context); i++)
                     {
                         RGBQUAD color;
-                        color.rgbRed =   (ptr[i * 3] << 2) | (ptr[i * 3] >> 6);
-                        color.rgbGreen = (ptr[i * 3 + 1] << 2) | (ptr[i * 3 + 1] >> 6);
-                        color.rgbBlue =  (ptr[i * 3 + 2] << 2) | (ptr[i * 3 + 2] >> 6);
+                        color.rgbRed =   (ptr[i * 3] << 2) | (ptr[i * 3] >> 4);
+                        color.rgbGreen = (ptr[i * 3 + 1] << 2) | (ptr[i * 3 + 1] >> 4);
+                        color.rgbBlue =  (ptr[i * 3 + 2] << 2) | (ptr[i * 3 + 2] >> 4);
                         color.rgbReserved = 0;
                         SetDIBColorTable(dddc, i & 0xff, 1, &color);
                     }
