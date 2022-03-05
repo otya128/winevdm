@@ -1424,6 +1424,7 @@ HLOCAL16 WINAPI LocalReAlloc16( HLOCAL16 handle, WORD size, UINT16 flags )
 
     hmem = LOCAL_GetBlock( ds, size, flags );
     ptr = MapSL( MAKESEGPTR( ds, 0 ));  /* Reload ptr                             */
+    pEntry = (LOCALHANDLEENTRY *)(ptr + handle);
     if(HANDLE_MOVEABLE(handle))         /* LOCAL_GetBlock might have triggered    */
     {                                   /* a compaction, which might in turn have */
       blockhandle = pEntry->addr - MOVEABLE_PREFIX; /* moved the very block we are resizing */

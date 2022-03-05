@@ -850,7 +850,7 @@ void map_bstr16_32(BSTR *a32, const SEGPTR *a16)
     MultiByteToWideChar(CP_ACP, 0, MapSL(*a16), len16 + 1, *a32, len32 + 1);
 }
 
-static int dynamic_SysAllocStringLen16(const char *oleStr, int len);
+static int dynamic_SysAllocStringLen16(SEGPTR bstr, int len);
 void map_bstr32_16(SEGPTR *a16, const BSTR *a32)
 {
     UINT len;
@@ -1967,16 +1967,16 @@ static int dynamic_SysStringLen16(SEGPTR bstr)
     return pSysStringLen16(bstr);
 }
 
-static int dynamic_SysAllocStringLen16(const char *oleStr, int len)
+static int dynamic_SysAllocStringLen16(SEGPTR bstr, int len)
 {
-    static int (WINAPI*pSysAllocStringLen16)(const char *oleStr, int len);
+    static int (WINAPI*pSysAllocStringLen16)(SEGPTR bstr, int len);
     if (!pSysAllocStringLen16)
     {
         pSysAllocStringLen16 = GetProcAddress(get_hmodule_helper("OLE2DISP.DLL16"), "SysAllocStringLen16");
     }
     if (!pSysAllocStringLen16)
         return 0;
-    return pSysAllocStringLen16(oleStr, len);
+    return pSysAllocStringLen16(bstr, len);
 }
 
 void free_excepinfo16(const EXCEPINFO16 *a16)
