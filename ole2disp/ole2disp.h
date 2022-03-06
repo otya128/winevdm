@@ -130,7 +130,7 @@ HRESULT WINAPI SafeArrayDestroyData16(SAFEARRAY16 *sa);
 HRESULT WINAPI SafeArrayCopy16(SAFEARRAY16 *sa, SAFEARRAY16 **ppsaout);
 SEGPTR WINAPI SysAllocString16(LPCOLESTR16 oleStr);
 INT16 WINAPI SysReAllocString16(SEGPTR *pbstr, LPCOLESTR16 oleStr);
-SEGPTR WINAPI SysAllocStringLen16(SEGPTR *oleStr, int len);
+SEGPTR WINAPI SysAllocStringLen16(SEGPTR oleStr, int len);
 int WINAPI SysReAllocStringLen16(SEGPTR *old, SEGPTR in, int len);
 void WINAPI SysFreeString16(SEGPTR str);
 int WINAPI SysStringLen16(SEGPTR str);
