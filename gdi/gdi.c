@@ -2315,7 +2315,7 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
                 break;
         }
     }
-    else if ((cap == NUMCOLORS) && (ret == -1)) ret = 2048;
+    else if (((cap == NUMCOLORS) || (cap == NUMPENS)) && (ret == -1)) ret = 2048;
     if (krnl386_get_compat_mode("640X480") && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
     {
         switch (cap)
