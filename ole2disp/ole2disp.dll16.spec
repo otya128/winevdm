@@ -1,8 +1,8 @@
 1 stub DLLGETCLASSOBJECT
 2 pascal SysAllocString(str)		SysAllocString16
 3 pascal SysReallocString(ptr str)	SysReAllocString16
-4 pascal SysAllocStringLen(str word)	SysAllocStringLen16
-5 pascal SysReAllocStringLen(ptr str word) SysReAllocStringLen16
+4 pascal SysAllocStringLen(segstr word)	SysAllocStringLen16
+5 pascal SysReAllocStringLen(ptr segstr word) SysReAllocStringLen16
 6 pascal SysFreeString(segstr)		SysFreeString16
 7 pascal SysStringLen(segstr)		SysStringLen16
 8 pascal VariantInit(ptr) VariantInit16

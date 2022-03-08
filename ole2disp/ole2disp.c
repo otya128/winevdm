@@ -735,11 +735,32 @@ INT16 WINAPI SysReAllocString16(SEGPTR *pbstr,LPCOLESTR16 oleStr)
  */
 SEGPTR WINAPI SysAllocStringByteLen16(const char *oleStr, int len)
 {
-    return SysAllocStringLen16(oleStr, len);
+    SEGPTR out=BSTR_AllocBytes(len+1);
+
+    if (!out)
+        return 0;
+
+    /*
+    * Copy the information in the buffer.
+    * Since it is valid to pass a NULL pointer here, we'll initialize the
+    * buffer to nul if it is the case.
+    */
+    if (oleStr != 0)
+    {
+        memcpy(BSTR_GetAddr(out), oleStr, len);
+        ((char*)BSTR_GetAddr(out))[len] = '\0';
+    }
+    else
+    {
+        memset(BSTR_GetAddr(out), 0, len+1);
+    }
+
+    return out;
 }
-SEGPTR WINAPI SysAllocStringLen16(const char *oleStr, int len)
+SEGPTR WINAPI SysAllocStringLen16(SEGPTR bstr, int len)
 {
     SEGPTR out=BSTR_AllocBytes(len+1);
+    char *oleStr=MapSL(bstr); // BSTR_AllocBytes might cause the segment bstr is in to move
 
     if (!out)
         return 0;
@@ -780,7 +801,7 @@ SEGPTR WINAPI SysAllocStringLen16(const char *oleStr, int len)
  *  See SysAllocStringByteLen16().
  *  *pbstr may be changed by this function.
  */
-int WINAPI SysReAllocStringLen16(SEGPTR *old,const char *in,int len)
+int WINAPI SysReAllocStringLen16(SEGPTR *old,SEGPTR in,int len)
 {
 	/* FIXME: Check input length */
 	SEGPTR new=SysAllocStringLen16(in,len);

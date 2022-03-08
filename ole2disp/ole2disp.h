@@ -37,10 +37,10 @@ typedef OLECHAR16 *BSTR16;
 typedef BSTR16 *LPBSTR16;
 
 SEGPTR WINAPI SysAllocString16(LPCOLESTR16);
-SEGPTR WINAPI SysAllocStringLen16(const char*, int);
+SEGPTR WINAPI SysAllocStringLen16(SEGPTR, int);
 VOID   WINAPI SysFreeString16(SEGPTR);
 INT16  WINAPI SysReAllocString16(SEGPTR*,LPCOLESTR16);
-int    WINAPI SysReAllocStringLen16(SEGPTR*, const char*,  int);
+int    WINAPI SysReAllocStringLen16(SEGPTR*, SEGPTR,  int);
 int    WINAPI SysStringLen16(SEGPTR);
 
 typedef struct tagVARIANT16 {
@@ -130,8 +130,8 @@ HRESULT WINAPI SafeArrayDestroyData16(SAFEARRAY16 *sa);
 HRESULT WINAPI SafeArrayCopy16(SAFEARRAY16 *sa, SAFEARRAY16 **ppsaout);
 SEGPTR WINAPI SysAllocString16(LPCOLESTR16 oleStr);
 INT16 WINAPI SysReAllocString16(SEGPTR *pbstr, LPCOLESTR16 oleStr);
-SEGPTR WINAPI SysAllocStringLen16(const char *oleStr, int len);
-int WINAPI SysReAllocStringLen16(SEGPTR *old, const char *in, int len);
+SEGPTR WINAPI SysAllocStringLen16(SEGPTR oleStr, int len);
+int WINAPI SysReAllocStringLen16(SEGPTR *old, SEGPTR in, int len);
 void WINAPI SysFreeString16(SEGPTR str);
 int WINAPI SysStringLen16(SEGPTR str);
 int WINAPI SysStringByteLen16(SEGPTR str);
