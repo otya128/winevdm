@@ -809,7 +809,10 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
     switch( emsg.message )
        {
             case WM_QUEUESYNC:
-                PostThreadMessage(GetCurrentThreadId(), WM_QUEUESYNC, 0, NULL);
+                if (GetActiveWindow16())
+                    PostMessage16(GetActiveWindow16(), WM_QUEUESYNC, 0, NULL);
+                else
+                    PostThreadMessage(GetCurrentThreadId(), WM_QUEUESYNC, 0, NULL);
                 break;
             case WM_KEYDOWN:
             case WM_SYSKEYDOWN:
