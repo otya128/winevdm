@@ -1397,7 +1397,7 @@ static void RedirectPrivateProfileStringWindowsDir(LPCSTR filename, LPCSTR outpu
 {
     if (!filename)
         filename = "win.ini";
-    if (PathIsFileSpecA(filename))
+    if (PathIsFileSpecA(filename) && !strchr(filename, '/'))
     {
         PathCombineA(output, GetRedirectWindowsDir(), filename);
     }
