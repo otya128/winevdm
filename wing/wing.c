@@ -180,7 +180,7 @@ HBITMAP16 WINAPI WinGCreateBitmap16(HDC16 hdc, BITMAPINFO *bmpi, SEGPTR *bits)
     DWORD oldsize = bmpi->bmiHeader.biSizeImage;
     bmpi->bmiHeader.biSizeImage = 0;
 
-    if ((oldheight >= 32768) && (oldheight < 65536))
+    if (oldheight >= 32768)
         bmpi->bmiHeader.biHeight = (INT16)(oldheight & 0xffff);
 
     TRACE("(%d,%p,%p): create %dx%dx%d bitmap\n", hdc, bmpi, bits,
