@@ -176,6 +176,12 @@ HBITMAP16 WINAPI WinGCreateBitmap16(HDC16 hdc, BITMAPINFO *bmpi, SEGPTR *bits)
 {
     LPVOID bits32;
     HBITMAP hbitmap;
+    LONG oldheight = bmpi->bmiHeader.biHeight;
+    DWORD oldsize = bmpi->bmiHeader.biSizeImage;
+    bmpi->bmiHeader.biSizeImage = 0;
+
+    if (oldheight >= 32768)
+        bmpi->bmiHeader.biHeight = (INT16)(oldheight & 0xffff);
 
     TRACE("(%d,%p,%p): create %dx%dx%d bitmap\n", hdc, bmpi, bits,
           bmpi->bmiHeader.biWidth, bmpi->bmiHeader.biHeight, bmpi->bmiHeader.biPlanes);
@@ -186,6 +192,8 @@ HBITMAP16 WINAPI WinGCreateBitmap16(HDC16 hdc, BITMAPINFO *bmpi, SEGPTR *bits)
         SEGPTR segptr = alloc_segptr_bits( hbitmap, bits32, (bmpi->bmiHeader.biHeight < 0) );
         if (bits) *bits = segptr;
     }
+    bmpi->bmiHeader.biHeight = oldheight;
+    bmpi->bmiHeader.biSizeImage = oldsize;
     return HBITMAP_16(hbitmap);
 }
 
