@@ -405,7 +405,33 @@ static void LOCAL_PrintHeap( HANDLE16 ds )
     }
 }
 
+#ifdef HEAP_VALIDATE
+static BOOL LOCAL_Validate(WORD ds, HANDLE16 handle)
+{
+    char *ptr;
+    LOCALHEAPINFO *pInfo;
+    ptr = MapSL(MAKESEGPTR(ds, 0));
+    if(!(pInfo = LOCAL_GetHeap(ds)))
+        return FALSE;
+    if (IsBadReadPtr16(MAKESEGPTR(ds, handle), 2))
+        goto fail;
 
+    if(HANDLE_MOVEABLE(handle))
+    {
+        LOCALHANDLEENTRY *pEntry = (LOCALHANDLEENTRY *)(ptr + handle);
+        HANDLE16 nhandle = pEntry->addr - MOVEABLE_PREFIX;
+        if (ARENA_PTR(ptr, ARENA_HEADER(nhandle))->size != handle) goto fail;
+        handle = nhandle;
+    }
+    handle = ARENA_HEADER(handle);
+    if (ARENA_NEXT(ptr, ARENA_PREV(ptr, handle)) != handle) goto fail;
+    if (ARENA_PREV(ptr, ARENA_NEXT(ptr, handle)) != handle) goto fail;
+    return TRUE;
+fail:
+    ERR("invalid handle %04x\n", handle);
+    return FALSE;
+}
+#endif
 /***********************************************************************
  *           LocalInit   (KERNEL.4)
  */
@@ -1027,7 +1053,7 @@ notify_done:
     }
 
     if (flags & LMEM_ZEROINIT)
-	memset((char *)pArena + ARENA_HEADER_SIZE, 0, size-ARENA_HEADER_SIZE);
+	memset((char *)pArena + ARENA_HEADER_SIZE, 0, pArena->next - arena - ARENA_HEADER_SIZE);
     return arena + ARENA_HEADER_SIZE;
 }
 
@@ -1183,6 +1209,9 @@ HLOCAL16 WINAPI LocalFree16( HLOCAL16 handle )
     TRACE("%04x ds=%04x\n", handle, ds );
 
     if (!handle) { WARN("Handle is 0.\n" ); return 0; }
+#ifdef HEAP_VALIDATE
+    if (!LOCAL_Validate(ds, handle)) return handle;
+#endif
     if (HANDLE_FIXED( handle ))
     {
         if (!LOCAL_FreeArena( ds, ARENA_HEADER( handle ) )) return 0;  /* OK */
@@ -1424,9 +1453,9 @@ HLOCAL16 WINAPI LocalReAlloc16( HLOCAL16 handle, WORD size, UINT16 flags )
 
     hmem = LOCAL_GetBlock( ds, size, flags );
     ptr = MapSL( MAKESEGPTR( ds, 0 ));  /* Reload ptr                             */
-    pEntry = (LOCALHANDLEENTRY *)(ptr + handle);
     if(HANDLE_MOVEABLE(handle))         /* LOCAL_GetBlock might have triggered    */
     {                                   /* a compaction, which might in turn have */
+      pEntry = (LOCALHANDLEENTRY *)(ptr + handle);
       blockhandle = pEntry->addr - MOVEABLE_PREFIX; /* moved the very block we are resizing */
       arena = ARENA_HEADER( blockhandle );   /* thus, we reload arena, too        */
     }
