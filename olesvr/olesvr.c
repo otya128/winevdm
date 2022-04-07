@@ -355,7 +355,7 @@ static LPOLEOBJECT register_oleobject(SEGPTR obj16)
     return obj;
 }
 
-INT16 CALLBACK ItemCallBack16(LPOLECLIENT client, OLE_NOTIFICATION16 notif, LPOLEOBJECT16 oleobject);
+INT16 CALLBACK ItemCallBack16(LPOLECLIENT client, OLE_NOTIFICATION16 notif, SEGPTR oleobject);
 
 typedef struct _OLESERVERDOCVTBL16 {
     SEGPTR Save;
@@ -762,7 +762,7 @@ DWORD WINAPI OleQueryServerVersion16()
 INT16 CALLBACK ItemCallBack16(LPOLECLIENT client, OLE_NOTIFICATION16 notif, SEGPTR oleobject)
 {
     static INT (CALLBACK *ItemCallBack)(LPOLECLIENT, OLE_NOTIFICATION, LPOLEOBJECT) = NULL;
-    if (!ItemCallBack) (FARPROC)ItemCallBack = GetProcAddress(GetModuleHandleA("olesvr32"), "ItemCallBack");
+    if (!ItemCallBack) ItemCallBack = (INT (CALLBACK *)(LPOLECLIENT, OLE_NOTIFICATION, LPOLEOBJECT))GetProcAddress(GetModuleHandleA("olesvr32"), "ItemCallBack");
     // oleobject must have been created with GetObject
     return ItemCallBack(client, notif, &find_oleobject(oleobject)->obj);
 }
