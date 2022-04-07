@@ -4594,7 +4594,8 @@ LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
             SetThemeAppProperties(0);
             SetWindowTheme(hWnd, L"", L"");
         }
-        if (separate_taskbar)
+        // olesvr doesn't like window properties not set by itself on its windows
+        if (separate_taskbar && GetModuleHandle("olesvr32") && (create->lpcs->hInstance != GetModuleHandle("olesvr32")))
         {
             set_window_app_id(hWnd);
         }
