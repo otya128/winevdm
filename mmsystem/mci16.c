@@ -906,6 +906,7 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
     BOOL                to32;
     DWORD_PTR           dwParam2 = p2;
     DWORD count;
+    BOOL  dowait = FALSE;
 
     TRACE("(%04X, %s, %08X, %08lX)\n", wDevID, MCI_MessageToString(wMsg), dwParam1, dwParam2);
 
@@ -917,6 +918,19 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
     case MCI_SOUND:
         to32 = TRUE;
 	break;
+    case MCI_PLAY:
+        if ((dwParam1 & (MCI_WAIT | MCI_NOTIFY)) == MCI_WAIT)
+        {
+            MCI_GETDEVCAPS_PARMS devcaps = {0};
+            devcaps.dwItem = MCI_GETDEVCAPS_DEVICE_TYPE;
+            mciSendCommand(wDevID, MCI_GETDEVCAPS, 0, &devcaps);
+            // handle the wait ourselves so to prevent the thread from being blocked for 300ms
+            if (devcaps.dwReturn == MCI_DEVTYPE_DIGITAL_VIDEO)
+            {
+                dwParam1 = (dwParam1 & ~(MCI_WAIT)) | MCI_NOTIFY;
+                dowait = TRUE;
+            }
+        }
     default:
         /* FIXME: this is suboptimal. If MCI driver is a 16bit one, we'll be
          * doing 16=>32W, then 32W=>16 conversions.
@@ -972,6 +986,19 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
             if (MCI_Thunks[i].id == wDevID)
                 MCI_Thunks[i].yield16 = NULL;
         }
+    }
+    if (dowait)
+    {
+        while (1)
+        {
+            MCI_GENERIC_PARMS genparm = {0};
+            MSG msg;
+            if (mciDriverYield(wDevID))
+                mciSendCommand(wDevID, MCI_STOP, 0, &genparm);
+            MsgWaitForMultipleObjects(0, 0, FALSE, 300, QS_POSTMESSAGE | QS_SENDMESSAGE);
+            if (PeekMessageA(&msg, NULL, MM_MCINOTIFY, MM_MCINOTIFY, PM_REMOVE))
+                break;
+         }
     }
     return dwRet;
 }
