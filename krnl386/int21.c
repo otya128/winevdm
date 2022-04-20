@@ -279,6 +279,8 @@ struct magic_device
 static void INT21_IoctlScsiMgrHandler( CONTEXT * );
 static void INT21_IoctlHPScanHandler( CONTEXT * );
 
+BOOL16 WINAPI WIN32_GlobalUnlock16(HGLOBAL16 handle); 
+
 static struct magic_device magic_devices[] =
 {
     { {'s','c','s','i','m','g','r','$',0}, NULL, { { 0, 0 } }, INT21_IoctlScsiMgrHandler },
@@ -3194,7 +3196,7 @@ static void INT21_LongFilename( CONTEXT *context )
             {
                 HANDLE* ptr = GlobalLock16( h16 );
                 *ptr = handle;
-                GlobalUnlock16( h16 );
+                WIN32_GlobalUnlock16( h16 );
                 SET_AX( context, h16 );
                 INT21_ConvertFindDataWtoA(dataA, &dataW);
             }
@@ -3223,7 +3225,7 @@ static void INT21_LongFilename( CONTEXT *context )
             {
                 if (!FindNextFileW(*ptr, &dataW)) bSetDOSExtendedError = TRUE;
                 else INT21_ConvertFindDataWtoA(dataA, &dataW);
-                GlobalUnlock16( h16 );
+                WIN32_GlobalUnlock16( h16 );
             }
             else
             {
@@ -3327,7 +3329,7 @@ static void INT21_LongFilename( CONTEXT *context )
             if (h16 != INVALID_HANDLE_VALUE16 && (ptr = GlobalLock16( h16 )))
             {
                 if (!FindClose( *ptr )) bSetDOSExtendedError = TRUE;
-                GlobalUnlock16( h16 );
+                WIN32_GlobalUnlock16( h16 );
                 GlobalFree16( h16 );
             }
             else
