@@ -1004,7 +1004,7 @@ static WORD NE_Ne2MemFlags(WORD flags)
  */
 DWORD WINAPI MyAlloc16( WORD wFlags, WORD wSize, WORD wElem )
 {
-    WORD size = wSize << wElem;
+    DWORD size = wSize << wElem;
     HANDLE16 hMem = 0;
     WORD gflags = NE_Ne2MemFlags(wFlags);
 
