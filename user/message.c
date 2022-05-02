@@ -2982,6 +2982,10 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
         if (hmod)
         {
             atom_UserAdapterWindowClass = GetClassInfoA(hmod, "UserAdapterWindowClass", &c);
+            if (!atom_UserAdapterWindowClass)
+            {
+                atom_UserAdapterWindowClass = GetClassInfoA(hmod, "SystemUserAdapterWindowClass", &c);
+            }
         }
     }
     if ((flags & PM_REMOVE) && atom_UserAdapterWindowClass != 0 && msg.hwnd != NULL && GetClassWord(msg.hwnd, GCW_ATOM) == atom_UserAdapterWindowClass)
