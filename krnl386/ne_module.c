@@ -1344,7 +1344,6 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
         /* Give 30 seconds to the app to come up */
         if (WaitForInputIdle(info.hProcess, 30000) == WAIT_FAILED)
             WARN("WaitForInputIdle failed: Error %d\n", GetLastError());
-        ret = info.hProcess;
         /* Close off the handles */
         CloseHandle(info.hThread);
         *result = info.hProcess;
@@ -1362,21 +1361,17 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
         {
             SHELLEXECUTEINFOA sei = { 0 };
             sei.cbSize = sizeof(sei);
-            sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_CLASSNAME;
+            sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_CLASSNAME | SEE_MASK_WAITFORINPUTIDLE;
             sei.lpFile = filename;
             sei.lpParameters = p;
             sei.nShow = startup.dwFlags ? startup.wShowWindow : SW_NORMAL;
             sei.lpVerb = "open";
             sei.lpClass = "exefile";
             if (ShellExecuteExA(&sei))
-            {
-                /* Give 30 seconds to the app to come up */
-                if (WaitForInputIdle(info.hProcess, 30000) == WAIT_FAILED)
-                    WARN("WaitForInputIdle failed: Error %d\n", GetLastError());
-                ret = sei.hProcess;
                 *result = sei.hProcess;
-                ret = 33;
-            }
+            else 
+                ERR("ShellExecute Failed err = %u, %d\n", GetLastError(), sei.hInstApp);
+            ret = sei.hInstApp;
         }
         /**/
     }
