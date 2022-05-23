@@ -1367,7 +1367,8 @@ void WINAPI DibUnmapGlobalMemory(void *base, DWORD size)
         {
             pArena->dib_avail_size = 0;
             pArena->base = (LPBYTE)heap + ((SIZE_T)pArena->base - (SIZE_T)base);
-            SetSelectorBase(pArena->handle, pArena->base);
+            for (i = 0; i < pArena->selCount; i++)
+                SetSelectorBase(pArena->handle + i * 8, (LPBYTE)pArena->base + i * 0x10000);
         }
     }
 }
