@@ -1852,7 +1852,7 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
             for (int i = 0; i < chkcolor; i++)
             {
                 if (((WORD *)bmi->bmiColors)[i] != i) break;
-                if (i == (maxcolor - 1))
+                if (i == (chkcolor - 1))
                 {
                     dib_pal_colors_hack.bmi.biWidth = bmi->bmiHeader.biWidth;
                     dib_pal_colors_hack.bmi.biHeight = bmi->bmiHeader.biHeight;
