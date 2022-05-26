@@ -1057,7 +1057,7 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
     if ( (pSeg->flags & NE_SEGFLAGS_ALLOCATED) && segnum != pModule->ne_autodata )
         return TRUE;    /* all but DGROUP only allocated once */
 
-    minsize = pSeg->minsize ? pSeg->minsize : 0x10000;
+    minsize = pSeg->minsize || !pSeg->filepos ? pSeg->minsize : 0x10000;
 
     minsize += 2;
 
