@@ -1133,6 +1133,7 @@ BOOL16 WINAPI FreeResource16( HGLOBAL16 handle )
     FARPROC16 proc;
     HMODULE16 user;
     NE_MODULE *pModule = NE_GetPtr( FarGetOwner16( handle ) );
+    handle = GlobalHandleToSel16(handle);
 
     TRACE("(%04x)\n", handle );
 

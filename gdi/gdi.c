@@ -1771,6 +1771,19 @@ struct dib_driver *find_dib_driver(WORD selector)
     }
     return NULL;
 }
+
+struct
+{
+    BITMAPINFOHEADER bmi;
+    RGBQUAD colors[16];
+}  dib_pal_colors_hack =
+{
+    {0x28, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+    {{0, 0, 0}, {0, 0, 0x80}, {0, 0x80, 0}, {0, 0x80, 0x80}, {0x80, 0, 0}, {0x80, 0, 0x80},
+     {0x80, 0x80, 0}, {0xc0, 0xc0, 0xc0}, {0x80, 0x80, 0x80}, {0, 0, 0xff}, {0, 0xff, 0},
+     {0, 0xff, 0xff}, {0xff, 0, 0}, {0xff, 0, 0xff}, {0xff, 0xff, 0}, {0xff, 0xff, 0xff}}
+};
+
 /***********************************************************************
  *           CreateDC    (GDI.53)
  */
@@ -1830,7 +1843,28 @@ HDC16 WINAPI CreateDC16( LPCSTR driver, LPCSTR device, LPCSTR output,
             FIXME("Multiple DIB mappings on the same segment are not supported.\n");
             return HDC_16(memdc);
         }
-        offset_bits = offset + bmi->bmiHeader.biSize + bmi->bmiHeader.biClrUsed * sizeof(RGBQUAD);
+        // check for dib_pal_colors hack
+        if (bmi->bmiHeader.biBitCount <= 8) // does dib.drv support direct color modes?
+        {
+            int maxcolor = bmi->bmiHeader.biClrUsed ? bmi->bmiHeader.biClrUsed : 1 << bmi->bmiHeader.biBitCount;
+            offset_bits = offset + bmi->bmiHeader.biSize + maxcolor * sizeof(RGBQUAD);
+            int chkcolor = bmi->bmiHeader.biClrImportant ? bmi->bmiHeader.biClrImportant : maxcolor;
+            for (int i = 0; i < chkcolor; i++)
+            {
+                if (((WORD *)bmi->bmiColors)[i] != i) break;
+                if (i == (chkcolor - 1))
+                {
+                    dib_pal_colors_hack.bmi.biWidth = bmi->bmiHeader.biWidth;
+                    dib_pal_colors_hack.bmi.biHeight = bmi->bmiHeader.biHeight;
+                    dib_pal_colors_hack.bmi.biBitCount = bmi->bmiHeader.biBitCount;
+                    dib_pal_colors_hack.bmi.biClrUsed = min(maxcolor, 16);
+                    bmi = (BITMAPINFO *)&dib_pal_colors_hack;
+                    break;
+                }
+            }
+        }
+        else
+            offset_bits = offset + bmi->bmiHeader.biSize;
 #define DWORD_PADDING(x) (((x) + 3) & -4)
         offset_align = DWORD_PADDING(offset_bits) - offset_bits;
         avail_size = max(0x10000, limit);
