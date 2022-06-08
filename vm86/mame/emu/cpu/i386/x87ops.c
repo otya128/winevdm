@@ -5207,6 +5207,7 @@ void x87_fsave(UINT8 modrm)
 
 	for (int i = 0; i < 8; ++i)
 		WRITE80(ea + i*10, ST(i));
+	x87_reset();
 
 	CYCLES((m_cr[0] & 1) ? 56 : 67);
 }
