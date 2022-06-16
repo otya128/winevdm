@@ -80,3 +80,4 @@ copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM/
 copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM/VGA.DRV") -ErrorAction SilentlyContinue
 copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM32/WOWEXEC.EXE") -ErrorAction SilentlyContinue
 Copy-Item -Filter * -Path (Join-Path $dst "dummydll/*") -Recurse -Destination (Join-Path $dst "WINDOWS/") -ErrorAction SilentlyContinue
+ni (Join-Path $dst "WINDOWS/SYSTEM/MIDIMAP.CFG") -ErrorAction SilentlyContinue > $null
