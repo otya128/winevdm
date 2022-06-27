@@ -394,6 +394,11 @@ UINT16 WINAPI GetProfileInt16( LPCSTR section, LPCSTR entry, INT16 def_val )
     return GetPrivateProfileInt16( section, entry, def_val, "win.ini" );
 }
 
+int CALLBACK enum_ini_font(const LOGFONT *lf, const TEXTMETRIC *tm, DWORD type, LPARAM lParam)
+{
+    char *name = (char *)lParam;
+    return strncmp(name, lf->lfFaceName, strlen(lf->lfFaceName));
+}
 
 /***********************************************************************
  *           GetProfileString   (KERNEL.58)
@@ -430,6 +435,19 @@ INT16 WINAPI GetProfileString16( LPCSTR section, LPCSTR entry, LPCSTR def_val,
             strcpy(buffer + 14, comma);
         }
         ret = strlen(buffer);
+    }
+    else if (!ret && section && !stricmp(section, "fonts"))
+    {
+        LOGFONTA lf;
+        HDC hdc = GetDC(0);
+        lf.lfCharSet = DEFAULT_CHARSET;
+        lf.lfPitchAndFamily = 0;
+        lf.lfFaceName[0] = 0;
+        ret = EnumFontFamiliesExA(hdc, &lf, enum_ini_font, entry, 0);
+        ReleaseDC(0, hdc);
+        if (!ret)
+            strncpy(buffer, "found", len); // actual filename is unavailable
+        return !ret ? strnlen(buffer, len) : 0;
     }
     else if (ret && !PathIsRelativeA(buffer) && PathFileExistsA(buffer))
     {

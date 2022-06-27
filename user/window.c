@@ -2810,7 +2810,7 @@ BOOL16 WINAPI TrackPopupMenu16( HMENU16 hMenu, UINT16 wFlags, INT16 x, INT16 y,
                                 INT16 nReserved, HWND16 hwnd, const RECT16 *lpRect )
 {
     RECT r;
-    BOOL ret;
+    BOOL ret, err;
     if (lpRect)
     {
         r.left   = lpRect->left;
@@ -2820,6 +2820,7 @@ BOOL16 WINAPI TrackPopupMenu16( HMENU16 hMenu, UINT16 wFlags, INT16 x, INT16 y,
     }
     ret = TrackPopupMenu( HMENU_32(hMenu), wFlags | TPM_RETURNCMD, x, y, nReserved,
                            WIN_Handle32(hwnd), lpRect ? &r : NULL );
+    err = GetLastError() ? FALSE : TRUE;
     if (ret && !(wFlags & TPM_RETURNCMD))
     {
         if (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a)
@@ -2827,7 +2828,7 @@ BOOL16 WINAPI TrackPopupMenu16( HMENU16 hMenu, UINT16 wFlags, INT16 x, INT16 y,
         else
             PostMessage16(hwnd, WM_COMMAND, ret, 0);
     }
-    return ret;
+    return wFlags & TPM_RETURNCMD ? ret : err;
 }
 
 
