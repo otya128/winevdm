@@ -446,7 +446,7 @@ INT16 WINAPI GetProfileString16( LPCSTR section, LPCSTR entry, LPCSTR def_val,
         ret = EnumFontFamiliesExA(hdc, &lf, enum_ini_font, entry, 0);
         ReleaseDC(0, hdc);
         if (!ret)
-            strncpy(buffer, "found", len); // actual filename is unavailable
+            strncpy(buffer, "vgaoem.fon", len); // actual filename is unavailable
         return !ret ? strnlen(buffer, len) : 0;
     }
     else if (ret && !PathIsRelativeA(buffer) && PathFileExistsA(buffer))
