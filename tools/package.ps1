@@ -78,6 +78,7 @@ Make-Dll (Join-Path $root "winsock/winsock.dll16.spec") "WINSOCK" (Join-Path $ds
 Make-Dll (Join-Path $root "winspool/winspool.drv16.spec") "WINSPOOL" (Join-Path $dst "dummydll/SYSTEM/WINSPOOL.DRV")
 copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM/KRNL286.EXE") -ErrorAction SilentlyContinue
 copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM/VGA.DRV") -ErrorAction SilentlyContinue
+copy (Join-Path $root "dummydll/vgaoem.fon") (Join-Path $dst "dummydll/SYSTEM/VGAOEM.FON") -ErrorAction SilentlyContinue
 copy (Join-Path $root "dummydll/dummydll.dll") (Join-Path $dst "dummydll/SYSTEM32/WOWEXEC.EXE") -ErrorAction SilentlyContinue
 Copy-Item -Filter * -Path (Join-Path $dst "dummydll/*") -Recurse -Destination (Join-Path $dst "WINDOWS/") -ErrorAction SilentlyContinue
 ni (Join-Path $dst "WINDOWS/SYSTEM/MIDIMAP.CFG") -ErrorAction SilentlyContinue > $null
