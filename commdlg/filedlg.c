@@ -44,8 +44,8 @@ UINT WMCOLOROK;
 UINT WMSHAREVI;
 UINT WMWOWDirChange;
 
-LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name);
-LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg);
+LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name, WORD *res);
+LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg, WORD *res);
 
 LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC16 proc);
 static UINT_PTR CALLBACK thunk_hook(COMMDLGTHUNK *thunk, HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -250,6 +250,7 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     OPENFILENAMEA ofn32;
     BOOL ret;
     DWORD count;
+    WORD res = NULL;
 
     if (!lpofn) return FALSE;
     OPENFILENAME16 ofn16 = *lpofn;
@@ -278,9 +279,9 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     if ((lpofn->Flags & OFN_ENABLETEMPLATE) || (lpofn->Flags & OFN_ENABLETEMPLATEHANDLE))
     {
         if (lpofn->Flags & OFN_ENABLETEMPLATE)
-            template = resource_to_dialog32(lpofn->hInstance, MapSL(lpofn->lpTemplateName));
+            template = resource_to_dialog32(lpofn->hInstance, MapSL(lpofn->lpTemplateName), &res);
         else
-            template = handle_to_dialog32(lpofn->hInstance);
+            template = handle_to_dialog32(lpofn->hInstance, &res);
         ofn32.hInstance = template;
         ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
     }
@@ -309,6 +310,13 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
             CharUpperBuffA(ofn32.lpstrFile, min(strlen(ofn32.lpstrFile), ofn32.nMaxFile));
     }
     RestoreThunkLock(count);
+    if (res)
+    {
+        if (lpofn->Flags & OFN_ENABLETEMPLATE)
+            FreeResource16(res);
+        else if (lpofn->Flags & OFN_ENABLETEMPLATEHANDLE)
+            WOWGlobalUnlock16(res);
+    }
     delete_thunk(ofn32.lpfnHook);
     HeapFree( GetProcessHeap(), 0, template );
     return ret;
@@ -333,6 +341,7 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     OPENFILENAMEA ofn32;
     BOOL ret;
     DWORD count;
+    WORD res = NULL;
 
     if (!lpofn) return FALSE;
     OPENFILENAME16 ofn16 = *lpofn;
@@ -361,9 +370,9 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
     if ((lpofn->Flags & OFN_ENABLETEMPLATE) || (lpofn->Flags & OFN_ENABLETEMPLATEHANDLE))
     {
         if (lpofn->Flags & OFN_ENABLETEMPLATE)
-            template = resource_to_dialog32(lpofn->hInstance, MapSL(lpofn->lpTemplateName));
+            template = resource_to_dialog32(lpofn->hInstance, MapSL(lpofn->lpTemplateName), &res);
         else
-            template = handle_to_dialog32(lpofn->hInstance);
+            template = handle_to_dialog32(lpofn->hInstance, &res);
         ofn32.hInstance = template;
         ofn32.Flags |= OFN_ENABLETEMPLATEHANDLE;
     }
@@ -391,6 +400,13 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
             CharUpperBuffA(ofn32.lpstrFile, min(strlen(ofn32.lpstrFile), ofn32.nMaxFile));
     }
     RestoreThunkLock(count);
+    if (res)
+    {
+        if (lpofn->Flags & OFN_ENABLETEMPLATE)
+            FreeResource16(res);
+        else if (lpofn->Flags & OFN_ENABLETEMPLATEHANDLE)
+            WOWGlobalUnlock16(res);
+    }
     delete_thunk(ofn32.lpfnHook);
     HeapFree( GetProcessHeap(), 0, template );
     return ret;

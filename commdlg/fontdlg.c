@@ -37,8 +37,8 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(commdlg);
 
-LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name);
-LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg);
+LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name, WORD *res);
+LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg, WORD *res);
 
 /***********************************************************************
  *                FontFamilyEnumProc                     (COMMDLG.19)
@@ -106,9 +106,9 @@ BOOL16 WINAPI ChooseFont16(SEGPTR cf)
     if ((lpChFont->Flags & CF_ENABLETEMPLATE) || (lpChFont->Flags & CF_ENABLETEMPLATEHANDLE))
     {
         if (lpChFont->Flags & CF_ENABLETEMPLATE)
-            template = resource_to_dialog32(lpChFont->hInstance, MapSL(lpChFont->lpTemplateName));
+            template = resource_to_dialog32(lpChFont->hInstance, MapSL(lpChFont->lpTemplateName), NULL);
         else
-            template = handle_to_dialog32(lpChFont->hInstance);
+            template = handle_to_dialog32(lpChFont->hInstance, NULL);
         cf32.hInstance = (HGLOBAL)template;
         cf32.Flags |= CF_ENABLETEMPLATEHANDLE;
     }

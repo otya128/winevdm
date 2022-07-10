@@ -1995,6 +1995,13 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                 mdi_cs16.szClass = MapLS( win16classname(mdi_cs->szClass) );
                 cs.lpCreateParams = MapLS( &mdi_cs16 );
             }
+            else if (cs32->lpCreateParams && (GetModuleHandleA("comdlg32.dll") == cs32->hInstance))
+            {
+                // if a window hinstance lower 16 bits are nonzero which is not true for 32bit dlls
+                // user32 will put the dword in the dialog item extra bytes in lpcreateparams
+                // so fix things up for commdlg since comdlg32 uses it's own hinstance
+                cs.lpCreateParams = *(SEGPTR *)((BYTE *)cs32->lpCreateParams + 2);
+            }
             lParam = MapLS( &cs );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
