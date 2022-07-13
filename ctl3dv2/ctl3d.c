@@ -198,17 +198,17 @@ BOOL CALLBACK ctl3d_enumproc(HWND hwnd, LPARAM lparam)
     struct ctl3d_enumproc *data = (struct ctl3d_enumproc*)lparam;
     if (GetParent(hwnd) != data->parent)
         return TRUE;
-    Ctl3dSubclassCtlEx16(hwnd, data->types);
+    Ctl3dSubclassCtlEx16(HWND_16(hwnd), data->types);
 }
 /***********************************************************************
  *		Ctl3dSubclassDlgEx (CTL3DV2.21)
  */
 BOOL16 WINAPI Ctl3dSubclassDlgEx16(HWND16 hwnd, DWORD types)
 {
-    HWND hwnd32 = HWND_32(hwnd);
     struct ctl3d_enumproc data = { 0 };
+    data.parent = HWND_32(hwnd);
     data.types = types;
-    EnumChildWindows(hwnd32, ctl3d_enumproc, (LPARAM)&data);
+    EnumChildWindows(data.parent, ctl3d_enumproc, (LPARAM)&data);
     return FALSE;
 }
 
