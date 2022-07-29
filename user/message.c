@@ -887,6 +887,130 @@ BOOL is_aviwnd(HWND16 hWnd16, HWND hWnd)
 }
 
 /***********************************************************************
+ *           LISTBOX_FindFileStrPos
+ *
+ * Find the nearest string located before a given string in directory
+ * sort order (i.e. first files, then directories, then drives).
+ */
+static INT LISTBOX_FindFileStrPos( HWND lbhwnd, LPCSTR str )
+{
+    INT min, max, res;
+    CHAR p[MAX_PATH];
+
+    if (!(GetWindowLongA(lbhwnd, GWL_STYLE) & LBS_HASSTRINGS))
+        return SendMessageA(lbhwnd, LB_FINDSTRING, -1, str);
+    min = 0;
+    max = SendMessageA(lbhwnd, LB_GETCOUNT, 0, 0);
+    while (min != max)
+    {
+        INT index = (min + max) / 2;
+        SendMessageA(lbhwnd, LB_GETTEXT, index, p);
+        if (*p == '[')  /* drive or directory */
+        {
+            if (*str != '[') res = -1;
+            else if (p[1] == '-')  /* drive */
+            {
+                if (str[1] == '-') res = str[2] - p[2];
+                else res = -1;
+            }
+            else  /* directory */
+            {
+                if (str[1] == '-') res = 1;
+                else res = lstrcmpiA( str, p );
+            }
+        }
+        else  /* filename */
+        {
+            if (*str == '[') res = 1;
+            else res = lstrcmpiA( str, p );
+        }
+        if (!res) return index;
+        if (res < 0) max = index;
+        else min = index + 1;
+    }
+    return max;
+}
+
+/***********************************************************************
+ *           LISTBOX_Directory
+ */
+static LRESULT LISTBOX_Directory( HWND lbhwnd, UINT attrib, LPCWSTR filespec )
+{
+    HANDLE handle;
+    LRESULT ret = LB_OKAY;
+    WIN32_FIND_DATAA entry;
+    int pos;
+    LRESULT maxinsert = LB_ERR;
+
+    /* don't scan directory if we just want drives exclusively */
+    if (attrib != (DDL_DRIVES | DDL_EXCLUSIVE)) {
+        /* scan directory */
+        if ((handle = FindFirstFileA(filespec, &entry)) == INVALID_HANDLE_VALUE)
+        {
+            int le = GetLastError();
+            if ((le != ERROR_NO_MORE_FILES) && (le != ERROR_FILE_NOT_FOUND)) return LB_ERR;
+        }
+        else
+        {
+            do
+            {
+                CHAR buffer[270];
+                if (entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                {
+                    if (!(attrib & DDL_DIRECTORY) ||
+                        !strcmp( entry.cFileName, "." )) continue;
+                    buffer[0] = '[';
+                    if (entry.cAlternateFileName[0])
+                        lstrcpyA( buffer + 1, entry.cAlternateFileName );
+                    else
+                        lstrcpyA( buffer + 1, entry.cFileName );
+                    lstrcatA(buffer, "]");
+                }
+                else  /* not a directory */
+                {
+#define ATTRIBS (FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_HIDDEN | \
+                 FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_DIRECTORY)
+
+                    if ((attrib & DDL_EXCLUSIVE) &&
+                        ((attrib & ATTRIBS) != (entry.dwFileAttributes & ATTRIBS)))
+                        continue;
+#undef ATTRIBS
+                    if (entry.cAlternateFileName[0])
+                        lstrcpyA( buffer, entry.cAlternateFileName );
+                    else
+                        lstrcpyA( buffer, entry.cFileName );
+                }
+                CharLowerA( buffer );
+                pos = LISTBOX_FindFileStrPos( lbhwnd, buffer );
+                if ((ret = SendMessageA(lbhwnd, LB_INSERTSTRING, pos, buffer)) < 0)
+                    break;
+                if (ret <= maxinsert) maxinsert++; else maxinsert = ret;
+            } while (FindNextFileA( handle, &entry ));
+            FindClose( handle );
+        }
+    }
+    if (ret >= 0)
+    {
+        ret = maxinsert;
+
+        /* scan drives */
+        if (attrib & DDL_DRIVES)
+        {
+            CHAR buffer[] = "[-a-]";
+            CHAR root[] = "A:\\";
+            int drive;
+            for (drive = 0; drive < 26; drive++, buffer[2]++, root[0]++)
+            {
+                if (GetDriveTypeA(root) <= DRIVE_NO_ROOT_DIR) continue;
+                if ((ret = SendMessageA(lbhwnd, LB_ADDSTRING, 0, buffer)) < 0)
+                    break;
+            }
+        }
+    }
+    return ret;
+}
+
+/***********************************************************************
 *           listbox_proc16
 */
 static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, BOOL unicode
@@ -1016,8 +1140,8 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 		* be set automatically (this is different in Win32) */
 		if (wParam & DDL_DRIVES) wParam |= DDL_EXCLUSIVE;
 		lParam = (LPARAM)MapSL(lParam);
-		msg -= msg16_offset;
-		break;
+        *result = LISTBOX_Directory(hwnd, wParam, lParam);
+        return *result;
 	case LB_SETTABSTOPS16:
 	{
 		INT i, count, *tabs = NULL;
