@@ -1057,31 +1057,34 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
     if ( (pSeg->flags & NE_SEGFLAGS_ALLOCATED) && segnum != pModule->ne_autodata )
         return TRUE;    /* all but DGROUP only allocated once */
 
-    minsize = pSeg->minsize || !pSeg->filepos ? pSeg->minsize : 0x10000;
-
-    minsize += 2;
-
-    if ( segnum == pModule->ne_autodata )
+    if (pSeg->minsize)
     {
-        minsize += pModule->ne_stack;
-        if (pModule->ne_heap > 0 && pModule->ne_heap < 0x800)
+        minsize = pSeg->minsize + 2;
+
+        if ( segnum == pModule->ne_autodata )
         {
-            if (minsize + 0x800 > 0x10000)
+            minsize += pModule->ne_stack;
+            if (pModule->ne_heap > 0 && pModule->ne_heap < 0x800)
             {
-                if (pModule->ne_heap < 0x100)
+                if (minsize + 0x800 > 0x10000)
                 {
-                    pModule->ne_heap = 0x100;
+                    if (pModule->ne_heap < 0x100)
+                    {
+                        pModule->ne_heap = 0x100;
+                    }
+                }
+                else
+                {
+                    pModule->ne_heap = 0x800;
                 }
             }
-            else
-            {
-                pModule->ne_heap = 0x800;
-            }
+            minsize += pModule->ne_heap;
+            if (!(pModule->ne_flags & NE_FFLAGS_BUILTIN) && minsize >= 0x10000)
+                return FALSE;
         }
-        minsize += pModule->ne_heap;
-        if (!(pModule->ne_flags & NE_FFLAGS_BUILTIN) && minsize >= 0x10000)
-            return FALSE;
     }
+    else
+        minsize = 0x10000;
 
     selflags = (pSeg->flags & NE_SEGFLAGS_DATA) ? WINE_LDT_FLAGS_DATA : WINE_LDT_FLAGS_CODE;
     if (pSeg->flags & NE_SEGFLAGS_32BIT) selflags |= WINE_LDT_FLAGS_32BIT;
