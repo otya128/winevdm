@@ -35,6 +35,9 @@
 
 LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC16 proc);
 
+LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name, WORD *res);
+LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg, WORD *res);
+
 /***********************************************************************
  *                              FINDDLG_WMCommand               [internal]
  */
@@ -156,9 +159,9 @@ HWND16 WINAPI FindText16( SEGPTR find )
     if ((fr16->Flags & FR_ENABLETEMPLATE) || (fr16->Flags & FR_ENABLETEMPLATEHANDLE))
     {
         if (fr16->Flags & FR_ENABLETEMPLATE)
-            template = resource_to_dialog32(fr16->hInstance, MapSL(fr16->lpTemplateName));
+            template = resource_to_dialog32(fr16->hInstance, MapSL(fr16->lpTemplateName), NULL);
         else
-            template = handle_to_dialog32(fr16->hInstance);
+            template = handle_to_dialog32(fr16->hInstance, NULL);
         ret = HWND_16(CreateDialogIndirectParamA(fr16->hInstance, template,
                                 HWND_32(fr16->hwndOwner), find_text_dlgproc, find));
         HeapFree(GetProcessHeap(), 0, template);
@@ -331,9 +334,9 @@ HWND16 WINAPI ReplaceText16( SEGPTR find )
     if ((fr16->Flags & FR_ENABLETEMPLATE) || (fr16->Flags & FR_ENABLETEMPLATEHANDLE))
     {
         if (fr16->Flags & FR_ENABLETEMPLATE)
-            template = resource_to_dialog32(fr16->hInstance, MapSL(fr16->lpTemplateName));
+            template = resource_to_dialog32(fr16->hInstance, MapSL(fr16->lpTemplateName), NULL);
         else
-            template = handle_to_dialog32(fr16->hInstance);
+            template = handle_to_dialog32(fr16->hInstance, NULL);
         ret = HWND_16(CreateDialogIndirectParamA(fr16->hInstance, template,
                                 HWND_32(fr16->hwndOwner), replace_text_dlgproc, find));
         HeapFree(GetProcessHeap(), 0, template);

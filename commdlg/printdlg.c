@@ -152,25 +152,31 @@ static HGLOBAL global_handle_from_16( HGLOBAL16 handle )
     return ret;
 }
 
-LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name)
+LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name, WORD *res)
 {
-    HRSRC16 res = FindResource16(hInst, name, (LPCSTR)RT_DIALOG);
-    HGLOBAL16 handle = LoadResource16(hInst, res);
-    DWORD size = SizeofResource16(hInst, res);
+    HRSRC16 reso = FindResource16(hInst, name, (LPCSTR)RT_DIALOG);
+    HGLOBAL16 handle = LoadResource16(hInst, reso);
+    DWORD size = SizeofResource16(hInst, reso);
     SEGPTR ptr16 = WOWGlobalLock16(handle);
     DWORD size2;
 
     LPDLGTEMPLATEA r = dialog_template16_to_template32(hInst, ptr16, &size2, NULL);
-    FreeResource16(handle);
+    if (!res)
+        FreeResource16(handle);
+    else
+        res = ptr16;
     return r;
 }
 
-LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg)
+LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg, WORD *res)
 {
     DWORD size2;
     SEGPTR ptr16 = WOWGlobalLock16(hg);
     LPDLGTEMPLATEA r = dialog_template16_to_template32(NULL, ptr16, &size2, NULL);
-    WOWGlobalUnlock16(hg);
+    if (!res)
+        WOWGlobalUnlock16(hg);
+    else
+        res = ptr16;
     return r;
 }
 
@@ -232,18 +238,18 @@ BOOL16 WINAPI PrintDlg16( SEGPTR pd )
     if ((lppd->Flags & PD_ENABLEPRINTTEMPLATE) || (lppd->Flags & PD_ENABLEPRINTTEMPLATEHANDLE))
     {
         if (lppd->Flags & PD_ENABLEPRINTTEMPLATE)
-            template_print = resource_to_dialog32(hInst, MapSL(lppd->lpPrintTemplateName));
+            template_print = resource_to_dialog32(hInst, MapSL(lppd->lpPrintTemplateName), NULL);
         else
-            template_print = handle_to_dialog32(lppd->hPrintTemplate);
+            template_print = handle_to_dialog32(lppd->hPrintTemplate, NULL);
         pd32.hPrintTemplate = (HGLOBAL)template_print;
         pd32.Flags |= PD_ENABLEPRINTTEMPLATEHANDLE;
     }
     if ((lppd->Flags & PD_ENABLESETUPTEMPLATE) || (lppd->Flags & PD_ENABLESETUPTEMPLATEHANDLE))
     {
         if (lppd->Flags & PD_ENABLESETUPTEMPLATE)
-            template_setup = resource_to_dialog32(hInst, MapSL(lppd->lpSetupTemplateName));
+            template_setup = resource_to_dialog32(hInst, MapSL(lppd->lpSetupTemplateName), NULL);
         else
-            template_setup = handle_to_dialog32(lppd->hSetupTemplate);
+            template_setup = handle_to_dialog32(lppd->hSetupTemplate, NULL);
         pd32.hSetupTemplate = (HGLOBAL)template_setup;
         pd32.Flags |= PD_ENABLESETUPTEMPLATEHANDLE;
     }
