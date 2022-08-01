@@ -79,7 +79,7 @@ static DWORD *selTable;
 #define GLOBAL_MAX_ALLOC_SIZE 0x00ff0000  /* Largest allocation is 16M - 64K */
 #define GLOBAL_MAX_COUNT      8192        /* Max number of allocated blocks */
 
-#define VALID_HANDLE(handle) (((handle)>>__AHSHIFT)<globalArenaSize)
+#define VALID_HANDLE(handle) (((handle)&4)&&(((handle)>>__AHSHIFT)<globalArenaSize))
 #define GET_ARENA_PTR(handle)  (pGlobalArena + ((handle) >> __AHSHIFT))
 
 static HANDLE get_win16_heap(void)
