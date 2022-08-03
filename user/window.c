@@ -2991,20 +2991,23 @@ LRESULT WINAPI DefFrameProc16( HWND16 hwnd, HWND16 hwndMDIClient,
     }
 }
 
-
 /***********************************************************************
  *		DefMDIChildProc (USER.447)
  */
 LRESULT WINAPI DefMDIChildProc16( HWND16 hwnd, UINT16 message,
                                   WPARAM16 wParam, LPARAM lParam )
 {
+    LRESULT ret;
+    DWORD count;
     switch (message)
     {
     case WM_SETTEXT:
-        return DefMDIChildProcA( WIN_Handle32(hwnd), message, wParam, (LPARAM)MapSL(lParam) );
+        lParam = (LPARAM)MapSL(lParam);
+        break;
 
     case WM_SETFOCUS:
-        return DefMDIChildProcW(WIN_Handle32(hwnd), message, HWND_32(wParam), lParam);
+        wParam = HWND_32(wParam);
+        break;
 
     case WM_MENUCHAR:
     case WM_CLOSE:
@@ -3013,7 +3016,7 @@ LRESULT WINAPI DefMDIChildProc16( HWND16 hwnd, UINT16 message,
     case WM_SETVISIBLE:
     case WM_SIZE:
     case WM_SYSCHAR:
-        return DefMDIChildProcW( WIN_Handle32(hwnd), message, wParam, lParam );
+        break;
 
     case WM_GETMINMAXINFO:
         {
@@ -3031,7 +3034,9 @@ LRESULT WINAPI DefMDIChildProc16( HWND16 hwnd, UINT16 message,
             mmi.ptMaxTrackSize.x = mmi16->ptMaxTrackSize.x;
             mmi.ptMaxTrackSize.y = mmi16->ptMaxTrackSize.y;
 
-            DefMDIChildProcW( WIN_Handle32(hwnd), message, wParam, (LPARAM)&mmi );
+            ReleaseThunkLock(&count);
+            DefMDIChildProcA(HWND_32(hwnd), message, wParam, (LPARAM)&mmi);
+            RestoreThunkLock(count);
 
             mmi16->ptReserved.x     = mmi.ptReserved.x;
             mmi16->ptReserved.y     = mmi.ptReserved.y;
@@ -3048,12 +3053,18 @@ LRESULT WINAPI DefMDIChildProc16( HWND16 hwnd, UINT16 message,
     case WM_NEXTMENU:
         {
             MDINEXTMENU next_menu;
-            DefMDIChildProcW( WIN_Handle32(hwnd), message, wParam, (LPARAM)&next_menu );
+            ReleaseThunkLock(&count);
+            DefMDIChildProcA(HWND_32(hwnd), message, wParam, (LPARAM)&next_menu);
+            RestoreThunkLock(count);
             return MAKELONG( HMENU_16(next_menu.hmenuNext), HWND_16(next_menu.hwndNext) );
         }
     default:
         return DefWindowProc16(hwnd, message, wParam, lParam);
     }
+    ReleaseThunkLock(&count);
+    ret = DefMDIChildProcA(HWND_32(hwnd), message, wParam, lParam);
+    RestoreThunkLock(count);
+    return ret;
 }
 
 
