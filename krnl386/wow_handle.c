@@ -31,6 +31,7 @@ typedef struct
     HINSTANCE16 hInst16;
     HMENU16 hMenu16;
     void *ptr;
+    WOW_HANDLE_TYPE type;
 } HANDLE_DATA;
 typedef struct tagHANDLE_STORAGE *LPHANDLE_STORAGE;
 typedef void(*clean_up_t)(LPHANDLE_STORAGE);
@@ -49,6 +50,7 @@ static HANDLE_STORAGE handle_list[HANDLE_TYPE_MAX];
 static BOOL handle_trace;
 static BOOL handle_init_flag;
 static void hgdi_clean_up(HANDLE_STORAGE* hs);
+static void user_handle_clean_up(HANDLE_STORAGE* hs);
 /* this function called by DllMain(kernel.c) */
 void init_wow_handle()
 {
@@ -61,6 +63,7 @@ void init_wow_handle()
     /* IsWindow(hdc) should return FALSE */
     handle_list[HANDLE_TYPE_HANDLE].align2 = 4;
     handle_list[HANDLE_TYPE_HANDLE].name = "HANDLE";
+    handle_list[HANDLE_TYPE_HANDLE].clean_up = user_handle_clean_up;
     /*
     hdc1 = CreateCompatibleDC(0);
     hdc2 = CreateCompatibleDC(0);
@@ -103,7 +106,7 @@ BOOL is_reserved_handle16(HANDLE16 h)
     }
     return FALSE;
 }
-WORD get_handle16(HANDLE h, HANDLE_STORAGE *hs)
+WORD get_handle16(HANDLE h, HANDLE_STORAGE *hs, WOW_HANDLE_TYPE type)
 {
 	if (is_reserved_handle32(h))
 	{
@@ -114,6 +117,7 @@ WORD get_handle16(HANDLE h, HANDLE_STORAGE *hs)
     if (!hd)
         return 0;
 	hd->handle32 = h;
+    hd->type = type;
 	return hnd16;
 }
 WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o)
@@ -213,9 +217,9 @@ HANDLE WINAPI K32WOWHandle32HWND(WORD handle)
 	return h32;
 }
 //handle16 <- wow64 handle32
-HANDLE16 WINAPI K32WOWHandle16HWND(HANDLE handle)
+HANDLE16 WINAPI K32WOWHandle16HWND(HANDLE handle, WOW_HANDLE_TYPE type)
 {
-    HANDLE16 h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HANDLE]);
+    HANDLE16 h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HANDLE], type);
     if (handle_trace)
         DPRINTF("HANDLE3216 %p %04X\n", handle, h16);
 	return h16;
@@ -230,9 +234,9 @@ HANDLE WINAPI K32WOWHandle32HGDI(WORD handle)
     return h32;
 }
 //handle16 <- wow64 handle32
-HANDLE16 WINAPI K32WOWHandle16HGDI(HANDLE handle)
+HANDLE16 WINAPI K32WOWHandle16HGDI(HANDLE handle, WOW_HANDLE_TYPE type)
 {
-    HANDLE16 h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HGDI]);
+    HANDLE16 h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HGDI], type);
     if (handle_trace)
         DPRINTF("HGDI3216 %p %04X\n", handle, h16);
     return h16;
@@ -247,7 +251,7 @@ void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type)
 {
     if (is_gdiobj(type))
     {
-        HGDIOBJ16 h16 = K32WOWHandle16HGDI(handle);
+        HGDIOBJ16 h16 = K32WOWHandle16HGDI(handle, type);
         if (handle_trace)
             DPRINTF("destroy HGDI %p %04X\n", handle, h16);
         destroy_handle16(&handle_list[HANDLE_TYPE_HGDI], h16);
@@ -255,7 +259,7 @@ void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type)
     }
     else
     {
-        HANDLE16 h16 = K32WOWHandle16HWND(handle);
+        HANDLE16 h16 = K32WOWHandle16HWND(handle, type);
         if (handle_trace)
             DPRINTF("destroy HANDLE %p %04X\n", handle, h16);
         destroy_handle16(&handle_list[HANDLE_TYPE_HANDLE], h16);
@@ -311,8 +315,16 @@ static void hgdi_clean_up(HANDLE_STORAGE* hs)
         }
         K32WOWHandle16DestroyHint(hs->handles[i].handle32, WOW_TYPE_HDC);
     }
-    return;
 }
+
+static void user_handle_clean_up(HANDLE_STORAGE* hs)
+{
+    for (int i = HANDLE_RESERVED; i < (WORD)(-HANDLE_RESERVED); i += hs->align)
+    {
+        K32WOWHandle16DestroyHint(hs->handles[i].handle32, hs->handles[i].type);
+    }
+}
+
 __declspec(dllexport) void SetWindowHInst16(WORD hWnd16, HINSTANCE16 hinst16)
 {
     HANDLE_DATA *dat;

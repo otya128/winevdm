@@ -470,9 +470,9 @@ VOID WINAPI K32WOWDirectedYield16( WORD htask16 )
 
 #define WOW64
 #define WOW_TYPE_HANDLE (WOW_TYPE_FULLHWND + 1)
-WORD WINAPI K32WOWHandle16HWND(HANDLE handle);
+WORD WINAPI K32WOWHandle16HWND(HANDLE handle, WOW_HANDLE_TYPE type);
 HANDLE WINAPI K32WOWHandle32HWND(WORD handle);
-WORD WINAPI K32WOWHandle16HGDI(HANDLE handle);
+WORD WINAPI K32WOWHandle16HGDI(HANDLE handle, WOW_HANDLE_TYPE type);
 HANDLE WINAPI K32WOWHandle32HGDI(WORD handle);
 /***********************************************************************
  *           K32WOWHandle32              (KERNEL32.57)
@@ -488,7 +488,7 @@ HANDLE WINAPI K32WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
     case WOW_TYPE_HACCEL:
     case WOW_TYPE_FULLHWND:
 #ifdef WOW64
-		return K32WOWHandle32HWND(handle);
+        return K32WOWHandle32HWND(handle);
 #else
         return (HANDLE)(ULONG_PTR)handle;
 #endif
@@ -537,7 +537,7 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
     case WOW_TYPE_HACCEL:
     case WOW_TYPE_FULLHWND:
 #ifdef WOW64
-		return K32WOWHandle16HWND(handle);
+        return K32WOWHandle16HWND(handle, type);
 #else
     	if ( HIWORD(handle ) )
         	ERR( "handle %p of type %d has non-zero HIWORD\n", handle, type );
@@ -550,7 +550,7 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
     case WOW_TYPE_HPALETTE:
     case WOW_TYPE_HPEN:
     case WOW_TYPE_HDC:
-        return K32WOWHandle16HGDI(handle);
+        return K32WOWHandle16HGDI(handle, type);
     case WOW_TYPE_HMETAFILE:
         FIXME( "conversion of metafile handles not supported yet\n" );
         return LOWORD(handle);
@@ -560,7 +560,7 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
 
     case WOW_TYPE_HANDLE:
 #ifdef WOW64
-        return K32WOWHandle16HWND(handle);
+        return K32WOWHandle16HWND(handle, type);
 #else
         if ( HIWORD(handle ) )
             ERR( "handle %p of type %d has non-zero HIWORD\n", handle, type );
@@ -575,7 +575,7 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
 __declspec(dllexport) HGDIOBJ16 K32HGDIOBJ_16(HGDIOBJ handle)
 {
 #ifdef WOW64
-	return K32WOWHandle16HGDI(handle);
+	return K32WOWHandle16HGDI(handle, WOW_TYPE_HDC);
 #else
 	if (HIWORD(handle))
 		ERR("handle %p of type %d has non-zero HIWORD\n", handle, type);
