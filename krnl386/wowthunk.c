@@ -470,8 +470,10 @@ VOID WINAPI K32WOWDirectedYield16( WORD htask16 )
 
 #define WOW64
 #define WOW_TYPE_HANDLE (WOW_TYPE_FULLHWND + 1)
-WORD WINAPI K32WOWHandle16HWND(HANDLE handle, WOW_HANDLE_TYPE type);
-HANDLE WINAPI K32WOWHandle32HWND(WORD handle);
+WORD WINAPI K32WOWHandle16User(HANDLE handle, WOW_HANDLE_TYPE type);
+HANDLE WINAPI K32WOWHandle32User(WORD handle);
+WORD WINAPI K32WOWHandle16Other(HANDLE handle, WOW_HANDLE_TYPE type);
+HANDLE WINAPI K32WOWHandle32Other(WORD handle);
 WORD WINAPI K32WOWHandle16HGDI(HANDLE handle, WOW_HANDLE_TYPE type);
 HANDLE WINAPI K32WOWHandle32HGDI(WORD handle);
 /***********************************************************************
@@ -488,7 +490,7 @@ HANDLE WINAPI K32WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
     case WOW_TYPE_HACCEL:
     case WOW_TYPE_FULLHWND:
 #ifdef WOW64
-        return K32WOWHandle32HWND(handle);
+        return K32WOWHandle32User(handle);
 #else
         return (HANDLE)(ULONG_PTR)handle;
 #endif
@@ -513,7 +515,7 @@ HANDLE WINAPI K32WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
 
     case WOW_TYPE_HANDLE:
 #ifdef WOW64
-        return K32WOWHandle32HWND(handle);
+        return K32WOWHandle32Other(handle);
 #else
         return (HANDLE)(ULONG_PTR)handle;
 #endif
@@ -537,7 +539,7 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
     case WOW_TYPE_HACCEL:
     case WOW_TYPE_FULLHWND:
 #ifdef WOW64
-        return K32WOWHandle16HWND(handle, type);
+        return K32WOWHandle16User(handle, type);
 #else
     	if ( HIWORD(handle ) )
         	ERR( "handle %p of type %d has non-zero HIWORD\n", handle, type );
@@ -560,7 +562,7 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
 
     case WOW_TYPE_HANDLE:
 #ifdef WOW64
-        return K32WOWHandle16HWND(handle, type);
+        return K32WOWHandle16Other(handle, type);
 #else
         if ( HIWORD(handle ) )
             ERR( "handle %p of type %d has non-zero HIWORD\n", handle, type );

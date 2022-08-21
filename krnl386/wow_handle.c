@@ -51,6 +51,7 @@ static BOOL handle_trace;
 static BOOL handle_init_flag;
 static void hgdi_clean_up(HANDLE_STORAGE* hs);
 static void user_handle_clean_up(HANDLE_STORAGE* hs);
+static BOOL map_low_word_user_handle;
 /* this function called by DllMain(kernel.c) */
 void init_wow_handle()
 {
@@ -78,6 +79,7 @@ void init_wow_handle()
     handle_list[HANDLE_TYPE_HGDI].align2 = 0;
     handle_list[HANDLE_TYPE_HGDI].handles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536 * sizeof(HANDLE_DATA));
     handle_list[HANDLE_TYPE_HGDI].clean_up = hgdi_clean_up;
+    map_low_word_user_handle = krnl386_get_config_int("otvdm", "MapLowWordUserHandle", FALSE);
 }
 WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o);
 
@@ -209,20 +211,47 @@ HANDLE get_handle32(WORD h, HANDLE_STORAGE *hs)
     return (HANDLE)h;
 }
 //handle16 -> wow64 handle32
-HANDLE WINAPI K32WOWHandle32HWND(WORD handle)
+HANDLE WINAPI K32WOWHandle32User(WORD handle)
 {
-	HANDLE h32 = get_handle32(handle, &handle_list[HANDLE_TYPE_HANDLE]);
+    HANDLE h32;
+    if (map_low_word_user_handle)
+    {
+        return (HANDLE)handle;
+    }
+    h32 = get_handle32(handle, &handle_list[HANDLE_TYPE_HANDLE]);
     if (handle_trace)
         DPRINTF("HANDLE1632 %04X %p\n", handle, h32);
-	return h32;
+    return h32;
 }
+
+HANDLE WINAPI K32WOWHandle32Other(WORD handle)
+{
+    HANDLE h32 = get_handle32(handle, &handle_list[HANDLE_TYPE_HANDLE]);
+    if (handle_trace)
+        DPRINTF("HANDLE1632 %04X %p\n", handle, h32);
+    return h32;
+}
+
 //handle16 <- wow64 handle32
-HANDLE16 WINAPI K32WOWHandle16HWND(HANDLE handle, WOW_HANDLE_TYPE type)
+HANDLE16 WINAPI K32WOWHandle16User(HANDLE handle, WOW_HANDLE_TYPE type)
+{
+    HANDLE16 h16;
+    if (map_low_word_user_handle)
+    {
+        return (HANDLE16)LOWORD(handle);
+    }
+    h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HANDLE], type);
+    if (handle_trace)
+        DPRINTF("HANDLE3216 %p %04X\n", handle, h16);
+    return h16;
+}
+
+HANDLE16 WINAPI K32WOWHandle16Other(HANDLE handle, WOW_HANDLE_TYPE type)
 {
     HANDLE16 h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HANDLE], type);
     if (handle_trace)
         DPRINTF("HANDLE3216 %p %04X\n", handle, h16);
-	return h16;
+    return h16;
 }
 
 //handle16 -> wow64 handle32
@@ -257,9 +286,19 @@ void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type)
         destroy_handle16(&handle_list[HANDLE_TYPE_HGDI], h16);
         return;
     }
+    else if (type == WOW_TYPE_HWND || type == WOW_TYPE_HMENU || type == WOW_TYPE_HDWP || type == WOW_TYPE_HDROP || type == WOW_TYPE_HACCEL)
+    {
+        if (!map_low_word_user_handle)
+        {
+            HANDLE16 h16 = K32WOWHandle16User(handle, type);
+            if (handle_trace)
+                DPRINTF("destroy User HANDLE %p %04X\n", handle, h16);
+            destroy_handle16(&handle_list[HANDLE_TYPE_HANDLE], h16);
+        }
+    }
     else
     {
-        HANDLE16 h16 = K32WOWHandle16HWND(handle, type);
+        HANDLE16 h16 = K32WOWHandle16Other(handle, type);
         if (handle_trace)
             DPRINTF("destroy HANDLE %p %04X\n", handle, h16);
         destroy_handle16(&handle_list[HANDLE_TYPE_HANDLE], h16);
