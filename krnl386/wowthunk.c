@@ -593,7 +593,7 @@ __declspec(dllexport) HGDIOBJ K32HGDIOBJ_32(HGDIOBJ16 handle)
 __declspec(dllexport) HICON16 K32HICON_16(HICON handle)
 {
 #ifdef WOW64
-	return K32WOWHandle16HGDI(handle);
+	return K32WOWHandle16(handle, WOW_TYPE_HANDLE);
 #else
 	if (HIWORD(handle))
 		ERR("handle %p of type %d has non-zero HIWORD\n", handle, type);
@@ -603,7 +603,7 @@ __declspec(dllexport) HICON16 K32HICON_16(HICON handle)
 __declspec(dllexport) HICON K32HICON_32(HICON16 handle)
 {
 #ifdef WOW64
-	return K32WOWHandle32HGDI(handle);
+	return (HICON)K32WOWHandle32(handle, WOW_TYPE_HANDLE);
 #else
 	return (HANDLE)(ULONG_PTR)handle;
 #endif
