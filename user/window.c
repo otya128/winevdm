@@ -58,6 +58,7 @@ BOOL is_reactos()
     return is;
 }
 
+void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type);
 void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
 BYTE get_aflags(HMODULE16 hModule);
@@ -2218,9 +2219,14 @@ BOOL16 WINAPI EndDeferWindowPos16( HDWP16 hdwp )
 {
     DWORD count;
     BOOL result;
+    HDWP hdwp32 = HDWP_32(hdwp);
     ReleaseThunkLock(&count);
-    result = EndDeferWindowPos(HDWP_32(hdwp));
+    result = EndDeferWindowPos(hdwp32);
     RestoreThunkLock(count);
+    if (result)
+    {
+        K32WOWHandle16Destroy(hdwp32, WOW_TYPE_HDWP);
+    }
     return result;
 }
 
