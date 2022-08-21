@@ -402,21 +402,6 @@ static MMSYSTEM_MapType	MCI_MapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR* l
             *lParam = (DWORD)mowp32w;
         }
         return MMSYSTEM_MAP_OKMEM;
-    case MCI_BREAK:
-	{
-            LPMCI_BREAK_PARMS		mbp32 = HeapAlloc(GetProcessHeap(), 0, sizeof(MCI_BREAK_PARMS));
-	    LPMCI_BREAK_PARMS16		mbp16 = MapSL(*lParam);
-
-	    if (mbp32) {
-		mbp32->dwCallback = HWND_32(mbp16->dwCallback);
-		mbp32->nVirtKey = mbp16->nVirtKey;
-		mbp32->hwndBreak = HWND_32(mbp16->hwndBreak);
-	    } else {
-		return MMSYSTEM_MAP_NOMEM;
-	    }
-	    *lParam = (DWORD)mbp32;
-	}
-	return MMSYSTEM_MAP_OKMEM;
     case MCI_ESCAPE:
 	{
             LPMCI_VD_ESCAPE_PARMSW	mvep32w = HeapAlloc(GetProcessHeap(), 0, sizeof(MCI_VD_ESCAPE_PARMSW));
@@ -646,9 +631,6 @@ static  void	MCI_UnMapMsg16To32W(WORD wMsg, DWORD dwFlags, DWORD_PTR lParam, DWO
             HeapFree(GetProcessHeap(), 0, (LPVOID)mowp32w->lpstrText);
             HeapFree(GetProcessHeap(), 0, mowp32w);
         }
-        break;
-    case MCI_BREAK:
-	HeapFree(GetProcessHeap(), 0, (LPVOID)lParam);
         break;
     case MCI_ESCAPE:
         if (lParam) {
@@ -897,6 +879,14 @@ BOOL16 WINAPI mciSetDriverData16(UINT16 uDeviceID, DWORD data)
     return mciSetDriverData(uDeviceID, data);
 }
 
+UINT CALLBACK check_break(UINT16 wDevID, DWORD data)
+{
+    if (!data || ((data >> 16) && (GetActiveWindow() != HWND_32(data >> 16))))
+        return 0;
+    SHORT key = GetAsyncKeyState(data & 0xffff);
+    return key & 1 ? 0xffffffff : 0;
+}
+
 /**************************************************************************
  * 				mciSendCommand			[MMSYSTEM.701]
  */
@@ -906,7 +896,7 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
     BOOL                to32;
     DWORD_PTR           dwParam2 = p2;
     DWORD count;
-    BOOL  dowait = FALSE;
+    HWND wndwait = NULL;
 
     TRACE("(%04X, %s, %08X, %08lX)\n", wDevID, MCI_MessageToString(wMsg), dwParam1, dwParam2);
 
@@ -914,21 +904,34 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
     case MCI_CLOSE:
     case MCI_OPEN:
     case MCI_SYSINFO:
-    case MCI_BREAK:
     case MCI_SOUND:
         to32 = TRUE;
-	break;
+    	break;
+    case MCI_BREAK:
+    {
+        MCI_BREAK_PARMS16 *mbp16 = (MCI_BREAK_PARMS16 *)MapSL(p2);
+        DWORD data = 0;
+        if (dwParam1 & MCI_BREAK_KEY)
+        {
+            data = mbp16->nVirtKey;
+            if (dwParam1 & MCI_BREAK_HWND)
+                data |= mbp16->hwndBreak << 16;
+        }
+        BOOL ret = mciSetYieldProc(wDevID, check_break, mbp16->hwndBreak << 16 | mbp16->nVirtKey);
+        return ret ? 0 : MCIERR_INVALID_DEVICE_ID;
+    }
     case MCI_PLAY:
         if ((dwParam1 & (MCI_WAIT | MCI_NOTIFY)) == MCI_WAIT)
         {
             MCI_GETDEVCAPS_PARMS devcaps = {0};
             devcaps.dwItem = MCI_GETDEVCAPS_DEVICE_TYPE;
-            mciSendCommand(wDevID, MCI_GETDEVCAPS, 0, &devcaps);
+            mciSendCommandA(wDevID, MCI_GETDEVCAPS, MCI_GETDEVCAPS_ITEM, &devcaps);
             // handle the wait ourselves so to prevent the thread from being blocked for 300ms
             if (devcaps.dwReturn == MCI_DEVTYPE_DIGITAL_VIDEO)
             {
-                dwParam1 = (dwParam1 & ~(MCI_WAIT)) | MCI_NOTIFY;
-                dowait = TRUE;
+                wndwait = CreateWindowA("STATIC", "mcimsgwnd", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, 0, 0);
+                if (wndwait)
+                    dwParam1 = (dwParam1 & ~(MCI_WAIT)) | MCI_NOTIFY;
             }
         }
     default:
@@ -953,6 +956,8 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
             break;
         case MMSYSTEM_MAP_OK:
         case MMSYSTEM_MAP_OKMEM:
+            if (wndwait)
+                ((MCI_GENERIC_PARMS *)dwParam2)->dwCallback = wndwait;
             ReleaseThunkLock(&count);
             dwRet = mciSendCommandW(wDevID, wMsg, dwParam1, dwParam2);
             RestoreThunkLock(count);
@@ -987,19 +992,30 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
                 MCI_Thunks[i].yield16 = NULL;
         }
     }
-    if (dowait)
+    if (!dwRet && (wMsg == MCI_OPEN))
     {
+        // the winmm yield proc doesn't work like the mmsystem one
+        UINT16 mciid = ((LPMCI_OPEN_PARMS)MapSL(p2))->wDeviceID;
+        mciSetYieldProc(mciid, check_break, VK_CANCEL);
+    }
+    if (!dwRet && wndwait)
+    {
+        ReleaseThunkLock(&count);
         while (1)
         {
             MCI_GENERIC_PARMS genparm = {0};
             MSG msg;
+            DWORD test;
             if (mciDriverYield(wDevID))
-                mciSendCommand(wDevID, MCI_STOP, 0, &genparm);
+                mciSendCommandA(wDevID, MCI_STOP, 0, &genparm);
             MsgWaitForMultipleObjects(0, 0, FALSE, 300, QS_POSTMESSAGE | QS_SENDMESSAGE);
-            if (PeekMessageA(&msg, NULL, MM_MCINOTIFY, MM_MCINOTIFY, PM_REMOVE))
+            if (PeekMessageA(&msg, wndwait, MM_MCINOTIFY, MM_MCINOTIFY, PM_REMOVE))
                 break;
-         }
+        }
+        RestoreThunkLock(count);
     }
+    if (wndwait)
+        DestroyWindow(wndwait);
     return dwRet;
 }
 
