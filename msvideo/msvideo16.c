@@ -44,14 +44,16 @@ WINE_DEFAULT_DEBUG_CHANNEL(msvideo);
 /* Drivers32 settings */
 #define HKLM_DRIVERS32 "Software\\Microsoft\\Windows NT\\CurrentVersion\\Drivers32"
 
+#define WOW_TYPE_HANDLE     (WOW_TYPE_FULLHWND + 1)
+
 /* handle16 --> handle conversions */
-#define HDRAWDIB_32(h16)	WOWHandle32(h16, WOW_TYPE_HWND)/// ((HDRAWDIB)(ULONG_PTR)(h16))
-#define HIC_32(h16)		WOWHandle32(h16, WOW_TYPE_HWND)//((HIC)(ULONG_PTR)(h16))
+#define HDRAWDIB_32(h16)	((HDRAWDIB)WOWHandle32(h16, WOW_TYPE_HANDLE))
+#define HIC_32(h16)		((HIC)WOWHandle32(h16, WOW_TYPE_HANDLE))
 
 /* handle --> handle16 conversions */
-#define HDRVR_16(h32)		WOWHandle16(h32, WOW_TYPE_HWND)//(LOWORD(h32))
-#define HDRAWDIB_16(h32)	WOWHandle16(h32, WOW_TYPE_HWND)//(LOWORD(h32))
-#define HIC_16(h32)		WOWHandle16(h32, WOW_TYPE_HWND)//(LOWORD(h32))
+#define HDRVR_16(h32)		WOWHandle16(h32, WOW_TYPE_HANDLE)
+#define HDRAWDIB_16(h32)	WOWHandle16(h32, WOW_TYPE_HANDLE)
+#define HIC_16(h32)		WOWHandle16(h32, WOW_TYPE_HANDLE)
 
 /***********************************************************************
  *		DrawDibOpen		[MSVIDEO.102]

@@ -39,9 +39,10 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(msacm);
 void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
-#define WOW_TYPE_HAS WOW_TYPE_HWND
+#define WOW_TYPE_HANDLE (WOW_TYPE_FULLHWND + 1)
+#define WOW_TYPE_HAS WOW_TYPE_HANDLE
 #define HACMSTREAM_16(h32)		WOWHandle16(h32, WOW_TYPE_HAS)
-#define HACMSTREAM_32(h16)		WOWHandle32(h16, WOW_TYPE_HAS)
+#define HACMSTREAM_32(h16)		((HACMSTREAM)WOWHandle32(h16, WOW_TYPE_HAS))
 /**************************************************************************
  *		DllEntryPoint (MSACM.3)
  *

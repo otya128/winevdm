@@ -469,6 +469,7 @@ VOID WINAPI K32WOWDirectedYield16( WORD htask16 )
 
 
 #define WOW64
+#define WOW_TYPE_HANDLE (WOW_TYPE_FULLHWND + 1)
 WORD WINAPI K32WOWHandle16HWND(HANDLE handle);
 HANDLE WINAPI K32WOWHandle32HWND(WORD handle);
 WORD WINAPI K32WOWHandle16HGDI(HANDLE handle);
@@ -510,6 +511,13 @@ HANDLE WINAPI K32WOWHandle32( WORD handle, WOW_HANDLE_TYPE type )
         return tdb->teb->ClientId.UniqueThread;
     }
 
+    case WOW_TYPE_HANDLE:
+#ifdef WOW64
+        return K32WOWHandle32HWND(handle);
+#else
+        return (HANDLE)(ULONG_PTR)handle;
+#endif
+
     default:
         ERR( "handle 0x%04x of unknown type %d\n", handle, type );
         return (HANDLE)(ULONG_PTR)handle;
@@ -549,6 +557,15 @@ WORD WINAPI K32WOWHandle16( HANDLE handle, WOW_HANDLE_TYPE type )
 
     case WOW_TYPE_HTASK:
         return TASK_GetTaskFromThread( (DWORD)handle );
+
+    case WOW_TYPE_HANDLE:
+#ifdef WOW64
+        return K32WOWHandle16HWND(handle);
+#else
+        if ( HIWORD(handle ) )
+            ERR( "handle %p of type %d has non-zero HIWORD\n", handle, type );
+        return LOWORD(handle);
+#endif
 
     default:
         ERR( "handle %p of unknown type %d\n", handle, type );
