@@ -896,13 +896,45 @@ INT16 WINAPI WSACancelAsyncRequest16(HANDLE16 hAsyncTaskHandle)
     return 0;
 }
 
+__declspec(thread) static FARPROC16 first_hook;
+__declspec(thread) static DWORD (WINAPI *win32_hook)() = NULL;
+
+INT16 WINAPI default_hook()
+{
+    return win32_hook();
+}
+
+DWORD WINAPI thunk_hook()
+{
+    PVOID sssp = getWOW32Reserved();
+    DWORD ret;
+    WOWCallback16Ex(first_hook, WCB16_PASCAL, 0, NULL, &ret);
+    setWOW32Reserved(sssp);
+    return LOWORD(ret);
+}
+
 /***********************************************************************
  *      WSASetBlockingHook		(WINSOCK.109)
  */
 FARPROC16 WINAPI WSASetBlockingHook16(FARPROC16 lpBlockFunc)
 {
-    /* FIXME: should deal with 16-bit proc */
-    return (FARPROC16)WSASetBlockingHook( (FARPROC)lpBlockFunc );
+    static FARPROC16 default_hook = NULL;
+    if (!default_hook)
+        default_hook = GetProcAddress16(GetModuleHandle16("WINSOCK"), "DEFAULT_HOOK");
+    if (!win32_hook)
+    {
+        win32_hook = WSASetBlockingHook(thunk_hook);
+        first_hook = default_hook;
+    }
+    if (lpBlockFunc == default_hook)
+    {
+        WSASetBlockingHook(win32_hook);
+        win32_hook = NULL;
+        return 0;
+    }
+    FARPROC16 old_hook = first_hook;
+    first_hook = lpBlockFunc;
+    return old_hook;
 }
 
 /***********************************************************************
@@ -910,6 +942,7 @@ FARPROC16 WINAPI WSASetBlockingHook16(FARPROC16 lpBlockFunc)
  */
 INT16 WINAPI WSAUnhookBlockingHook16(void)
 {
+    win32_hook = NULL;
     return WSAUnhookBlockingHook();
 }
 

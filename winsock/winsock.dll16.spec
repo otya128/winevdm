@@ -46,3 +46,5 @@
 116 pascal   WSACleanup() WSACleanup16
 151 pascal -ret16 __WSAFDIsSet(word ptr) __WSAFDIsSet16
 1107 pascal -ret16 WSARecvEx(word ptr word ptr) WSARecvEx16
+
+2000 pascal -ret16 default_hook() default_hook
