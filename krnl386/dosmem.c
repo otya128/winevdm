@@ -437,11 +437,11 @@ BOOL DOSMEM_Init(void)
 
     vectored_handler = AddVectoredExceptionHandler(FALSE, dosmem_handler);
     DOSMEM_0000H = GLOBAL_CreateBlock( GMEM_FIXED, DOSMEM_sysmem,
-                                       DOSMEM_64KB, 0, WINE_LDT_FLAGS_DATA );
+                                       DOSMEM_64KB, 0, WINE_LDT_FLAGS_DATA, 0 );
     DOSMEM_BiosDataSeg = GLOBAL_CreateBlock( GMEM_FIXED, DOSMEM_sysmem + 0x400,
-                                             0x100, 0, WINE_LDT_FLAGS_DATA );
+                                             0x100, 0, WINE_LDT_FLAGS_DATA, 0 );
     DOSMEM_BiosSysSeg = GLOBAL_CreateBlock( GMEM_FIXED, DOSMEM_dosmem + 0xf0000,
-                                            DOSMEM_64KB, 0, WINE_LDT_FLAGS_DATA );
+                                            DOSMEM_64KB, 0, WINE_LDT_FLAGS_DATA, 0 );
 
     return TRUE;
 }

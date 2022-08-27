@@ -1504,7 +1504,7 @@ DWORD NE_StartTask(void)
         hPrevInstance = NE_GetInstance( pModule );
 
         if ( pModule->ne_autodata )
-            if ( NE_CreateSegment( pModule, pModule->ne_autodata ) )
+            if ( NE_CreateSegment( pModule, pModule->ne_autodata, 0 ) )
                 NE_LoadSegment( pModule, pModule->ne_autodata );
 
         hInstance = NE_GetInstance( pModule );

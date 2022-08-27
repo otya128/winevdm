@@ -161,14 +161,25 @@ void debug_handles(void)
  * Create a global heap block for a fixed range of linear memory.
  */
 HGLOBAL16 GLOBAL_CreateBlock( WORD flags, void *ptr, DWORD size,
-                              HGLOBAL16 hOwner, unsigned char selflags )
+                              HGLOBAL16 hOwner, unsigned char selflags, WORD sel )
 {
-    WORD sel, selcount;
+    WORD selcount;
     GLOBALARENA *pArena;
 
       /* Allocate the selector(s) */
 
-    sel = SELECTOR_AllocBlock( ptr, size, selflags );
+    if (sel)
+    {
+        if (size > 65536)
+        {
+            ERR("prealloced sel must not be larger than 65536");
+            return 0;
+        }
+        SELECTOR_ReallocBlock(sel, ptr, size);
+        SelectorAccessRights16(sel, 1, selflags);
+    }
+    else
+        sel = SELECTOR_AllocBlock( ptr, size, selflags );
     if (!sel) return 0;
     selcount = (size + 0xffff) / 0x10000;
 
@@ -254,7 +265,7 @@ BOOL16 GLOBAL_MoveBlock( HGLOBAL16 handle, void *ptr, DWORD size )
  *
  * Implementation of GlobalAlloc16()
  */
-HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned char selflags )
+HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned char selflags, WORD sel )
 {
     void *ptr;
     HGLOBAL16 handle;
@@ -263,7 +274,7 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
 
     /* If size is 0, create a discarded block */
 
-    if (size == 0) return GLOBAL_CreateBlock( flags, NULL, 1, hOwner, selflags );
+    if (size == 0) return GLOBAL_CreateBlock( flags, NULL, 1, hOwner, selflags, sel );
 
     /* Fixup the size */
     DWORD fixup_size = (size < 0x10000) ? 0x1f : 0xfff; // selectors larger than 64k need page granularity
@@ -278,7 +289,7 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
 
       /* Allocate the selector(s) */
 
-    handle = GLOBAL_CreateBlock( flags, ptr, size, hOwner, selflags );
+    handle = GLOBAL_CreateBlock( flags, ptr, size, hOwner, selflags, sel );
     if (!handle)
     {
         HeapFree( get_win16_heap(), 0, ptr );
@@ -344,7 +355,7 @@ HGLOBAL16 WINAPI GlobalAlloc16(
         STACK16FRAME *frame = CURRENT_STACK16;
         owner = GetExePtr( frame->cs );
     }
-    HGLOBAL16 handle = GLOBAL_Alloc( flags, size, owner, WINE_LDT_FLAGS_DATA );
+    HGLOBAL16 handle = GLOBAL_Alloc( flags, size, owner, WINE_LDT_FLAGS_DATA, 0 );
     if (!handle)
     {
         ERR("Could not allocate %04X,%08X\n", flags, size);
@@ -1125,7 +1136,7 @@ DWORD WINAPI GlobalDOSAlloc16(
        WORD	 wSelector;
        GLOBALARENA *pArena;
 
-       wSelector = GLOBAL_CreateBlock(GMEM_FIXED, lpBlock, size, hModule, WINE_LDT_FLAGS_DATA );
+       wSelector = GLOBAL_CreateBlock(GMEM_FIXED, lpBlock, size, hModule, WINE_LDT_FLAGS_DATA, 0 );
        pArena = GET_ARENA_PTR(wSelector);
        pArena->flags |= GA_DOSMEM;
        return MAKELONG(wSelector,uParagraph);
