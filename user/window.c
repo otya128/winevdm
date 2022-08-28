@@ -1151,7 +1151,17 @@ HDC16 WINAPI GetDC16( HWND16 hwnd )
         hdc = GetDC( WIN_Handle32(hwnd) );
     if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (GetCurrentObject(hdc, OBJ_FONT) == GetStockObject(SYSTEM_FONT)))
         SelectObject(hdc, GetStockObject(SYSTEM_FIXED_FONT));
-    return HDC_16(hdc);
+    HDC16 hdc16 = HDC_16(hdc);
+    // check the hdc is in the cache becuase it was removed and deleted
+    for (int i = 0; i < 5; i++)
+    {
+        if (dcc.dcs[i] == hdc16)
+        {
+            dcc.dcs[i] = 0;
+            dcc.wnds[i] = 0;
+        }
+    }
+    return hdc16;
 }
 
 
