@@ -466,7 +466,7 @@ MMRESULT16 WINAPI mmioGetInfo16(HMMIO16 hmmio, MMIOINFO16* lpmmioinfo, UINT16 uF
     lpmmioinfo->pchEndWrite = (void*)(thunk->segbuffer + SEGOFF_SHIFT(mmioinfo.pchEndWrite - mmioinfo.pchBuffer));
     lpmmioinfo->lBufOffset  = mmioinfo.lBufOffset;
     lpmmioinfo->lDiskOffset = mmioinfo.lDiskOffset;
-    lpmmioinfo->adwInfo[0]  = mmioinfo.adwInfo[0];
+    lpmmioinfo->adwInfo[0]  = mmioinfo.fccIOProc == FOURCC_DOS ? Win32HandleToDosFileHandle(mmioinfo.adwInfo[0]) : mmioinfo.adwInfo[0];
     lpmmioinfo->adwInfo[1]  = mmioinfo.adwInfo[1];
     lpmmioinfo->adwInfo[2]  = mmioinfo.adwInfo[2];
     lpmmioinfo->dwReserved1 = 0;
