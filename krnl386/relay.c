@@ -887,7 +887,7 @@ SEGPTR make_thunk_32(void *funcptr, const char *arguments, const char *name, BOO
     assert(ret_32bit);
     if (!thunk32_relay_array)
     {
-        thunk32_relay_segment = GLOBAL_Alloc(GMEM_ZEROINIT, 0x10000, GetModuleHandle16("KERNEL"), WINE_LDT_FLAGS_CODE);
+        thunk32_relay_segment = GLOBAL_Alloc(GMEM_ZEROINIT, 0x10000, GetModuleHandle16("KERNEL"), WINE_LDT_FLAGS_CODE, 0);
         thunk32_relay_array = GlobalLock16(thunk32_relay_segment);
     }
     for (int i = 0; i < 0x10000 / sizeof(PROC16_RELAY); i++)

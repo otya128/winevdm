@@ -1040,7 +1040,7 @@ HINSTANCE16 NE_GetInstance( NE_MODULE *pModule )
 /***********************************************************************
  *           NE_CreateSegment
  */
-BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
+BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum, WORD sel )
 {
     SEGTABLEENTRY *pSeg = NE_SEG_TABLE( pModule ) + segnum - 1;
     int minsize;
@@ -1079,8 +1079,8 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
                 }
             }
             minsize += pModule->ne_heap;
-            if (!(pModule->ne_flags & NE_FFLAGS_BUILTIN) && minsize >= 0x10000)
-                return FALSE;
+            if (minsize >= 0x10000)
+                minsize = 0x10000;
         }
     }
     else
@@ -1090,7 +1090,8 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
     if (pSeg->flags & NE_SEGFLAGS_32BIT) selflags |= WINE_LDT_FLAGS_32BIT;
     if (pModule->ne_expver < 0x300 && !(pModule->ne_flags & NE_FFLAGS_BUILTIN))
         selflags &= ~WINE_LDT_FLAGS_32BIT;
-    pSeg->hSeg = GLOBAL_Alloc( NE_Ne2MemFlags(pSeg->flags), minsize, pModule->self, selflags );
+    pSeg->hSeg = sel ? sel : AllocSelector16(0);
+    GLOBAL_Alloc( NE_Ne2MemFlags(pSeg->flags), minsize, pModule->self, selflags, pSeg->hSeg );
     GLOBAL_SetSeg(pSeg->hSeg, segnum, (pSeg->flags & NE_SEGFLAGS_DATA) ? 2 : 3);
     if (!pSeg->hSeg) return FALSE;
 
@@ -1104,8 +1105,11 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum )
 BOOL NE_CreateAllSegments( NE_MODULE *pModule )
 {
     int i;
+    WORD sel = AllocSelectorArray16(pModule->ne_cseg);
+    if (!sel)
+        return FALSE;
     for ( i = 1; i <= pModule->ne_cseg; i++ )
-        if ( !NE_CreateSegment( pModule, i ) )
+        if ( !NE_CreateSegment( pModule, i, sel + ((i - 1) << __AHSHIFT)) )
             return FALSE;
 
     pModule->dgroup_entry = pModule->ne_autodata ? pModule->ne_segtab +

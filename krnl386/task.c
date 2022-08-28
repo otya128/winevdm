@@ -270,7 +270,7 @@ static SEGPTR TASK_AllocThunk(void)
         if (!sel)  /* Allocate a new segment */
         {
             sel = GLOBAL_Alloc( GMEM_FIXED, FIELD_OFFSET( THUNKS, thunks[MIN_THUNKS] ),
-                                pTask->hPDB, WINE_LDT_FLAGS_CODE );
+                                pTask->hPDB, WINE_LDT_FLAGS_CODE, 0 );
             if (!sel) return 0;
             TASK_CreateThunks( sel, 0, MIN_THUNKS );
             pThunk->next = sel;
@@ -370,7 +370,7 @@ static TDB *TASK_Create( NE_MODULE *pModule, UINT16 cmdShow, LPCSTR cmdline, BYT
       /* Allocate a selector for the PDB */
 
     pTask->hPDB = GLOBAL_CreateBlock( GMEM_FIXED, &pTask->pdb, sizeof(PDB16),
-                                      hModule, WINE_LDT_FLAGS_DATA );
+                                      hModule, WINE_LDT_FLAGS_DATA, 0 );
 
       /* Fill the PDB */
 
@@ -414,7 +414,7 @@ static TDB *TASK_Create( NE_MODULE *pModule, UINT16 cmdShow, LPCSTR cmdline, BYT
       /* Allocate a code segment alias for the TDB */
 
     pTask->hCSAlias = GLOBAL_CreateBlock( GMEM_FIXED, pTask, sizeof(TDB),
-                                          pTask->hPDB, WINE_LDT_FLAGS_CODE );
+                                          pTask->hPDB, WINE_LDT_FLAGS_CODE, 0 );
 
       /* Default DTA overwrites command line */
 

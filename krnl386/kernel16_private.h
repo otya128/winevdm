@@ -662,10 +662,10 @@ extern UINT   DOSMEM_Available(void) DECLSPEC_HIDDEN;
 
 /* global16.c */
 extern HGLOBAL16 GLOBAL_CreateBlock( UINT16 flags, void *ptr, DWORD size,
-                                     HGLOBAL16 hOwner, unsigned char selflags ) DECLSPEC_HIDDEN;
+                                     HGLOBAL16 hOwner, unsigned char selflags, WORD sel ) DECLSPEC_HIDDEN;
 extern BOOL16 GLOBAL_FreeBlock( HGLOBAL16 handle ) DECLSPEC_HIDDEN;
 extern BOOL16 GLOBAL_MoveBlock( HGLOBAL16 handle, void *ptr, DWORD size ) DECLSPEC_HIDDEN;
-extern HGLOBAL16 GLOBAL_Alloc( WORD flags, DWORD size, HGLOBAL16 hOwner, unsigned char selflags ) DECLSPEC_HIDDEN;
+extern HGLOBAL16 GLOBAL_Alloc( WORD flags, DWORD size, HGLOBAL16 hOwner, unsigned char selflags, WORD sel ) DECLSPEC_HIDDEN;
 
 /* instr.c */
 extern DWORD __wine_emulate_instruction( EXCEPTION_RECORD *rec, CONTEXT *context ) DECLSPEC_HIDDEN;
@@ -682,7 +682,7 @@ extern DWORD NE_StartTask(void) DECLSPEC_HIDDEN;
 /* ne_segment.c */
 extern BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum ) DECLSPEC_HIDDEN;
 extern BOOL NE_LoadAllSegments( NE_MODULE *pModule ) DECLSPEC_HIDDEN;
-extern BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum ) DECLSPEC_HIDDEN;
+extern BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum, WORD sel ) DECLSPEC_HIDDEN;
 extern BOOL NE_CreateAllSegments( NE_MODULE *pModule ) DECLSPEC_HIDDEN;
 extern HINSTANCE16 NE_GetInstance( NE_MODULE *pModule ) DECLSPEC_HIDDEN;
 extern void NE_InitializeDLLs( HMODULE16 hModule ) DECLSPEC_HIDDEN;
