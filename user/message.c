@@ -3119,7 +3119,7 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
             }
         }
     }
-    if ((flags & PM_REMOVE) && atom_UserAdapterWindowClass != 0 && msg.hwnd != NULL && GetClassWord(msg.hwnd, GCW_ATOM) == atom_UserAdapterWindowClass)
+    if ((flags & PM_REMOVE) && ((atom_UserAdapterWindowClass != 0 && msg.hwnd != NULL && GetClassWord(msg.hwnd, GCW_ATOM) == atom_UserAdapterWindowClass) || msg.message == WM_DWMNCRENDERINGCHANGED))
     {
         DispatchMessageA(&msg);
         return PeekMessage32_16(msg16, hwnd16, first, last, flags, wHaveParamHigh);
@@ -3297,6 +3297,11 @@ BOOL16 WINAPI GetMessage32_16( MSG32_16 *msg16, HWND16 hwnd16, UINT16 first,
         ReleaseThunkLock(&count);
         GetMessageA(&msg, hwnd, first, last);
         RestoreThunkLock(count);
+    }
+    if (msg.message == WM_DWMNCRENDERINGCHANGED)
+    {
+        DispatchMessageA(&msg);
+        return GetMessage32_16(msg16, hwnd16, first, last, wHaveParamHigh);
     }
     msg16->msg.time    = msg.time;
     msg16->msg.pt.x    = (INT16)msg.pt.x;
