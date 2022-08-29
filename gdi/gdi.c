@@ -2141,7 +2141,7 @@ BOOL16 WINAPI DeleteDC16( HDC16 hdc )
         return TRUE;
     }
     else if (!GetObjectType(hdc32))
-        return TRUE; // Assume object was already released
+        return TRUE; // Assume object was already released, dc cache may make this unnecessary
     return FALSE;
 }
 
