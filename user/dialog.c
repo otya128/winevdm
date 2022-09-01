@@ -42,9 +42,8 @@ typedef struct
     BYTE push_imm; /* 68 */
     LPVOID this_;
     BYTE push_eax; /* 50 */
-    BYTE jmp; /* 0xEA */
-    LPVOID DlgProc;
-    WORD cs;
+    BYTE jmp_rel; /* E9 */
+    UINT_PTR DlgProc;
     BOOL used;
     HWND hDlg;
     LPVOID param;
@@ -694,9 +693,8 @@ DLGPROCTHUNK *init_thunk_data(LPVOID param, int i, LPVOID func)
     thunk_array[i].push_imm = 0x68;
     thunk_array[i].this_ = thunk_array + i;
     thunk_array[i].push_eax = 0x50;
-    thunk_array[i].jmp = 0xEA;
-    thunk_array[i].DlgProc = func;
-    thunk_array[i].cs = wine_get_cs();
+    thunk_array[i].jmp_rel = 0xE9;
+    thunk_array[i].DlgProc = (UINT_PTR)DlgProc_Thunk - (UINT_PTR)(&thunk_array[i].DlgProc + 1);
     thunk_array[i].used = TRUE;
     thunk_array[i].hDlg = 0;
     thunk_array[i].param = param;

@@ -283,9 +283,8 @@ typedef struct
     BYTE push_imm; /* 68 */
     LPVOID this_;
     BYTE push_eax; /* 50 */
-    BYTE jmp; /* 0xEA */
-    LPVOID func;
-    WORD cs;
+    BYTE jmp; /* E9 */
+    UINT_PTR func;
     BOOL used;
     LPVOID param;
 } TIMERTHUNK;
@@ -305,9 +304,8 @@ static TIMERTHUNK *init_timer_thunk_data(LPVOID param, int i, LPVOID func)
     timer_thunk_array[i].push_imm = 0x68;
     timer_thunk_array[i].this_ = timer_thunk_array + i;
     timer_thunk_array[i].push_eax = 0x50;
-    timer_thunk_array[i].jmp = 0xEA;
-    timer_thunk_array[i].func = func;
-    timer_thunk_array[i].cs = wine_get_cs();
+    timer_thunk_array[i].jmp = 0xE9;
+    timer_thunk_array[i].func = (UINT_PTR)func - (UINT_PTR)(&timer_thunk_array[i].func + 1);
     timer_thunk_array[i].used = TRUE;
     timer_thunk_array[i].param = param;
     return timer_thunk_array + i;
