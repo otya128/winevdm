@@ -3083,7 +3083,7 @@ void WINAPI ReplyMessage16( LRESULT result )
     ReplyMessage( result );
 }
 
-
+BOOL is_timer_thunk(TIMERPROC proc);
 static ATOM atom_UserAdapterWindowClass;
 /***********************************************************************
  *		PeekMessage32 (USER.819)
@@ -3100,7 +3100,7 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
         MsgWaitForMultipleObjectsEx( 0, NULL, 0, 0, MWMO_ALERTABLE );
     if (!PeekMessageA( &msg, hwnd, first, last, flags )) return FALSE;
 
-    if ((flags & PM_REMOVE) && !msg.hwnd && (msg.message == WM_TIMER))
+    if ((msg.message == WM_TIMER) && (flags & PM_REMOVE) && !msg.hwnd && msg.lParam && !is_timer_thunk(msg.lParam))
     {
         DispatchMessageA(&msg);
         return PeekMessage32_16(msg16, hwnd16, first, last, flags, wHaveParamHigh);
