@@ -343,6 +343,11 @@ VOID CALLBACK TimerProc_Thunk(TIMERTHUNK *data, HWND hWnd, UINT msg, UINT_PTR wp
     return;
 }
 
+BOOL is_timer_thunk(TIMERPROC proc)
+{
+    return timer_thunk_array <= proc && proc < timer_thunk_array + MAX_TIMER_THUNK;
+}
+
 /***********************************************************************
  *		SetTimer (USER.10)
  */
