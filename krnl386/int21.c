@@ -3903,8 +3903,8 @@ static BOOL INT21_FindFirst( CONTEXT *context )
      */
     if (!INT21_ToDosFCBFormat( p, maskW ))
     {
-        SetLastError( ERROR_FILE_NOT_FOUND );
-        SET_AX( context, ERROR_FILE_NOT_FOUND );
+        SetLastError( ERROR_NO_MORE_FILES );
+        SET_AX( context, ERROR_NO_MORE_FILES );
         SET_CFLAG(context);
         return FALSE;
     }
