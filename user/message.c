@@ -3293,7 +3293,7 @@ BOOL16 WINAPI GetMessage32_16( MSG32_16 *msg16, HWND16 hwnd16, UINT16 first,
     DWORD count;
 
     /* Do not yield when there is a posted message */
-    if (!PeekMessageA(&msg, hwnd, first, last, PM_REMOVE | PM_QS_POSTMESSAGE | PM_QS_PAINT | PM_QS_INPUT))
+    if (!PeekMessageA(&msg, hwnd, first, last, PM_REMOVE))
     {
         ReleaseThunkLock(&count);
         GetMessageA(&msg, hwnd, first, last);
