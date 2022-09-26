@@ -1105,12 +1105,15 @@ BOOL NE_CreateSegment( NE_MODULE *pModule, int segnum, WORD sel )
 BOOL NE_CreateAllSegments( NE_MODULE *pModule )
 {
     int i;
-    WORD sel = AllocSelectorArray16(pModule->ne_cseg);
-    if (!sel)
-        return FALSE;
-    for ( i = 1; i <= pModule->ne_cseg; i++ )
-        if ( !NE_CreateSegment( pModule, i, sel + ((i - 1) << __AHSHIFT)) )
+    if (pModule->ne_cseg)
+    {
+        WORD sel = AllocSelectorArray16(pModule->ne_cseg);
+        if (!sel)
             return FALSE;
+        for ( i = 1; i <= pModule->ne_cseg; i++ )
+            if ( !NE_CreateSegment( pModule, i, sel + ((i - 1) << __AHSHIFT)) )
+                return FALSE;
+    }
 
     pModule->dgroup_entry = pModule->ne_autodata ? pModule->ne_segtab +
                             (pModule->ne_autodata - 1) * sizeof(SEGTABLEENTRY) : 0;
