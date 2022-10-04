@@ -232,11 +232,11 @@ static void leave_handle_lock()
 HANDLE WINAPI K32WOWHandle32User(WORD handle)
 {
     HANDLE h32;
-    enter_handle_lock();
     if (map_low_word_user_handle)
     {
         return (HANDLE)handle;
     }
+    enter_handle_lock();
     h32 = get_handle32(handle, &handle_list[HANDLE_TYPE_HANDLE]);
     if (handle_trace)
         DPRINTF("HANDLE1632 %04X %p\n", handle, h32);
@@ -258,11 +258,11 @@ HANDLE WINAPI K32WOWHandle32Other(WORD handle)
 HANDLE16 WINAPI K32WOWHandle16User(HANDLE handle, WOW_HANDLE_TYPE type)
 {
     HANDLE16 h16;
-    enter_handle_lock();
     if (map_low_word_user_handle)
     {
         return (HANDLE16)LOWORD(handle);
     }
+    enter_handle_lock();
     h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HANDLE], type);
     if (handle_trace)
         DPRINTF("HANDLE3216 %p %04X\n", handle, h16);
