@@ -210,6 +210,24 @@ HANDLE get_handle32(WORD h, HANDLE_STORAGE *hs)
     hs->handles[h].handle32 = h;
     return (HANDLE)h;
 }
+
+static CRITICAL_SECTION *handle_lock = 0;
+
+static void enter_handle_lock()
+{
+    if (!handle_lock)
+    {
+        handle_lock = (CRITICAL_SECTION *)HeapAlloc(GetProcessHeap(), 0, sizeof(CRITICAL_SECTION));
+        InitializeCriticalSection(handle_lock);
+    }
+    EnterCriticalSection(handle_lock);
+}
+
+static void leave_handle_lock()
+{
+    LeaveCriticalSection(handle_lock);
+}
+
 //handle16 -> wow64 handle32
 HANDLE WINAPI K32WOWHandle32User(WORD handle)
 {
@@ -218,17 +236,21 @@ HANDLE WINAPI K32WOWHandle32User(WORD handle)
     {
         return (HANDLE)handle;
     }
+    enter_handle_lock();
     h32 = get_handle32(handle, &handle_list[HANDLE_TYPE_HANDLE]);
     if (handle_trace)
         DPRINTF("HANDLE1632 %04X %p\n", handle, h32);
+    leave_handle_lock();
     return h32;
 }
 
 HANDLE WINAPI K32WOWHandle32Other(WORD handle)
 {
+    enter_handle_lock();
     HANDLE h32 = get_handle32(handle, &handle_list[HANDLE_TYPE_HANDLE]);
     if (handle_trace)
         DPRINTF("HANDLE1632 %04X %p\n", handle, h32);
+    leave_handle_lock();
     return h32;
 }
 
@@ -240,34 +262,42 @@ HANDLE16 WINAPI K32WOWHandle16User(HANDLE handle, WOW_HANDLE_TYPE type)
     {
         return (HANDLE16)LOWORD(handle);
     }
+    enter_handle_lock();
     h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HANDLE], type);
     if (handle_trace)
         DPRINTF("HANDLE3216 %p %04X\n", handle, h16);
+    leave_handle_lock();
     return h16;
 }
 
 HANDLE16 WINAPI K32WOWHandle16Other(HANDLE handle, WOW_HANDLE_TYPE type)
 {
+    enter_handle_lock();
     HANDLE16 h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HANDLE], type);
     if (handle_trace)
         DPRINTF("HANDLE3216 %p %04X\n", handle, h16);
+    leave_handle_lock();
     return h16;
 }
 
 //handle16 -> wow64 handle32
 HANDLE WINAPI K32WOWHandle32HGDI(WORD handle)
 {
+    enter_handle_lock();
     HANDLE h32 = get_handle32(handle, &handle_list[HANDLE_TYPE_HGDI]);
     if (handle_trace)
         DPRINTF("HGDI1632 %04X %p\n", handle, h32);
+    leave_handle_lock();
     return h32;
 }
 //handle16 <- wow64 handle32
 HANDLE16 WINAPI K32WOWHandle16HGDI(HANDLE handle, WOW_HANDLE_TYPE type)
 {
+    enter_handle_lock();
     HANDLE16 h16 = get_handle16(handle, &handle_list[HANDLE_TYPE_HGDI], type);
     if (handle_trace)
         DPRINTF("HGDI3216 %p %04X\n", handle, h16);
+    leave_handle_lock();
     return h16;
 }
 static BOOL is_gdiobj(WOW_HANDLE_TYPE type)
