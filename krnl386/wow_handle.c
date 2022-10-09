@@ -52,6 +52,8 @@ static BOOL handle_init_flag;
 static void hgdi_clean_up(HANDLE_STORAGE* hs);
 static void user_handle_clean_up(HANDLE_STORAGE* hs);
 static BOOL map_low_word_user_handle;
+static CRITICAL_SECTION handle_lock;
+
 /* this function called by DllMain(kernel.c) */
 void init_wow_handle()
 {
@@ -80,6 +82,7 @@ void init_wow_handle()
     handle_list[HANDLE_TYPE_HGDI].handles = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 65536 * sizeof(HANDLE_DATA));
     handle_list[HANDLE_TYPE_HGDI].clean_up = hgdi_clean_up;
     map_low_word_user_handle = krnl386_get_config_int("otvdm", "MapLowWordUserHandle", FALSE);
+    InitializeCriticalSection(&handle_lock);
 }
 WORD get_handle16_data(HANDLE h, HANDLE_STORAGE *hs, HANDLE_DATA **o);
 
@@ -211,21 +214,14 @@ HANDLE get_handle32(WORD h, HANDLE_STORAGE *hs)
     return (HANDLE)h;
 }
 
-static CRITICAL_SECTION *handle_lock = 0;
-
 static void enter_handle_lock()
 {
-    if (!handle_lock)
-    {
-        handle_lock = (CRITICAL_SECTION *)HeapAlloc(GetProcessHeap(), 0, sizeof(CRITICAL_SECTION));
-        InitializeCriticalSection(handle_lock);
-    }
-    EnterCriticalSection(handle_lock);
+    EnterCriticalSection(&handle_lock);
 }
 
 static void leave_handle_lock()
 {
-    LeaveCriticalSection(handle_lock);
+    LeaveCriticalSection(&handle_lock);
 }
 
 //handle16 -> wow64 handle32
@@ -308,13 +304,13 @@ static BOOL is_gdiobj(WOW_HANDLE_TYPE type)
 }
 void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type)
 {
+    enter_handle_lock();
     if (is_gdiobj(type))
     {
         HGDIOBJ16 h16 = K32WOWHandle16HGDI(handle, type);
         if (handle_trace)
             DPRINTF("destroy HGDI %p %04X\n", handle, h16);
         destroy_handle16(&handle_list[HANDLE_TYPE_HGDI], h16);
-        return;
     }
     else if (type == WOW_TYPE_HWND || type == WOW_TYPE_HMENU || type == WOW_TYPE_HDWP || type == WOW_TYPE_HDROP || type == WOW_TYPE_HACCEL)
     {
@@ -333,6 +329,7 @@ void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type)
             DPRINTF("destroy HANDLE %p %04X\n", handle, h16);
         destroy_handle16(&handle_list[HANDLE_TYPE_HANDLE], h16);
     }
+    leave_handle_lock();
 }
 void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type)
 {
