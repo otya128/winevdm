@@ -59,6 +59,11 @@ static void safearray_free(SEGPTR ptr)
     WOWGlobalUnlockFree16(ptr);
 }
 
+static SEGPTR safearray_realloc(SEGPTR ptr, ULONG size)
+{
+    return MAKESEGPTR(GlobalReAlloc16(HIWORD(ptr), size, GMEM_ZEROINIT), 0);
+}
+
 static ULONG safearray_getcellcount(const SAFEARRAY16 *sa)
 {
     const SAFEARRAYBOUND16 *sab = sa->rgsabound;
@@ -85,6 +90,20 @@ static HRESULT safearray_lock(SAFEARRAY16 *sa)
     return S_OK;
 }
 
+/* pad safearray so no element spans a 64K boundry */
+static ULONG safearray_size(ULONG cells, WORD cbcell)
+{
+    DWORD size = cells * cbcell;
+    int pad = 0x10000 % cbcell;
+    return (pad * (size / (0x10000 - pad))) + size;
+}
+
+static SEGPTR safearray_ptrofindex(SEGPTR array, ULONG index, WORD cbcell)
+
+{
+    ULONG pos = safearray_size(index, cbcell);
+    return MAKELONG(pos & 0xffff, (pos >> 16) << 3 + HIWORD(array));
+}
 
 /* Free data items in an array */
 static HRESULT SAFEARRAY_DestroyData(SAFEARRAY *psa, ULONG ulStartCell)
@@ -102,35 +121,33 @@ static HRESULT SAFEARRAY_DestroyData(SAFEARRAY *psa, ULONG ulStartCell)
 
     if (psa->fFeatures & (FADF_UNKNOWN|FADF_DISPATCH))
     {
-      SEGPTR *lpUnknown = (SEGPTR *)psa->pvData + ulStartCell;
-
       while(ulCellCount--)
       {
+        SEGPTR *lpUnknown = (SEGPTR *)MapSL(safearray_ptrofindex(psa->pvData, ulStartCell, psa->cbElements));
         if (*lpUnknown)
           IUnknown16_Release(*lpUnknown);
-        lpUnknown++;
+        ulStartCell++;
       }
     }
     else if (psa->fFeatures & FADF_BSTR)
     {
-      SEGBSTR16* lpBstr = (SEGBSTR16*)psa->pvData + ulStartCell;
-
       while(ulCellCount--)
       {
+        SEGPTR lpBstr = safearray_ptrofindex(psa->pvData, ulStartCell, psa->cbElements);
         SysFreeString16(*(SEGPTR *)MapSL(lpBstr));
-        lpBstr++;
+        ulStartCell++;
       }
     }
     else if (psa->fFeatures & FADF_VARIANT)
     {
-      VARIANT16* lpVariant = (VARIANT16*)psa->pvData + ulStartCell;
 
       while(ulCellCount--)
       {
-        HRESULT hRet = VariantClear16(lpVariant);
+        SEGPTR lpVariant = safearray_ptrofindex(psa->pvData, ulStartCell, psa->cbElements);
+        HRESULT hRet = VariantClear16((VARIANT16 *)MapSL(lpVariant));
 
         if (FAILED(hRet)) FIXME("VariantClear of element failed!\n");
-        lpVariant++;
+        ulStartCell++;
       }
     }
   }
@@ -285,7 +302,7 @@ HRESULT WINAPI SafeArrayAllocData16(SAFEARRAY16 *sa)
         return E_INVALIDARG16;
 
     size = safearray_getcellcount(sa);
-    sa->pvData = safearray_alloc(size * sa->cbElements);
+    sa->pvData = safearray_alloc(safearray_size(size, sa->cbElements));
     return sa->pvData ? S_OK : E_OUTOFMEMORY16;
 }
 
@@ -321,6 +338,10 @@ HRESULT WINAPI SafeArrayDestroyData16(SAFEARRAY16 *sa)
 
     if (sa->cLocks)
         return DISP_E_ARRAYISLOCKED;
+
+    HRESULT hr = SAFEARRAY_DestroyData(sa, 0);
+    if (!hr)
+        return hr;
 
     if (!(sa->fFeatures & FADF_STATIC))
         safearray_free(sa->pvData);
@@ -519,24 +540,21 @@ HRESULT WINAPI SafeArrayRedim16(SAFEARRAY16 *psa, SAFEARRAYBOUND16 *psabound)
       ULONG ulOldSize, ulNewSize;
       PVOID pvNewData;
 
-      ulOldSize = safearray_getcellcount(psa) * psa->cbElements;
+      ulOldSize = safearray_getcellcount(psa);
       if (ulOldSize)
         ulNewSize = (ulOldSize / oldBounds->cElements) * psabound->cElements;
       else {
 	int oldelems = oldBounds->cElements;
 	oldBounds->cElements = psabound->cElements;
-        ulNewSize = safearray_getcellcount(psa) * psa->cbElements;
+        ulNewSize = safearray_getcellcount(psa);
 	oldBounds->cElements = oldelems;
       }
 
-      if (!(pvNewData = safearray_alloc(ulNewSize)))
+      if (!(pvNewData = safearray_realloc(psa->pvData, safearray_size(ulNewSize, psa->cbElements))))
       {
         SafeArrayUnlock16(psa);
         return E_OUTOFMEMORY;
       }
-
-      memcpy(MapSL(pvNewData), MapSL(psa->pvData), ulOldSize);
-      safearray_free(psa->pvData);
       psa->pvData = pvNewData;
     }
     oldBounds->cElements = psabound->cElements;
