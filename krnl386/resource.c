@@ -951,6 +951,7 @@ HRSRC16 WINAPI FindResource16( HMODULE16 hModule, LPCSTR name, LPCSTR type )
         /* 32-bit PE module */
         HMODULE m32 = (pModule->ne_flags & NE_FFLAGS_BUILTIN) ? pModule->owner32 : pModule->module32;
         HRSRC hRsrc32 = FindResourceA( m32, name, type );
+        if (!hRsrc32) return 0;
         return MapHRsrc32To16( pModule, hRsrc32, HIWORD(type) ? 0 : LOWORD(type) );
     }
 
