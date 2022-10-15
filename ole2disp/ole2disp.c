@@ -101,12 +101,12 @@ static ULONG safearray_size(ULONG cells, WORD cbcell)
 static SEGPTR safearray_ptrofindex(SEGPTR array, ULONG index, WORD cbcell)
 
 {
-    ULONG pos = safearray_size(index, cbcell);
-    return MAKELONG(pos & 0xffff, (pos >> 16) << 3 + HIWORD(array));
+    ULONG pos = safearray_size(index, cbcell) + LOWORD(array);
+    return MAKELONG(pos & 0xffff, ((pos >> 16) << 3) + HIWORD(array));
 }
 
 /* Free data items in an array */
-static HRESULT SAFEARRAY_DestroyData(SAFEARRAY *psa, ULONG ulStartCell)
+static HRESULT SAFEARRAY_DestroyData(SAFEARRAY16 *psa, ULONG ulStartCell)
 {
   if (psa->pvData)
   {
