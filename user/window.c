@@ -1732,6 +1732,8 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
         *(LONG*)(hwndwordbuf[hwnd16] + offset) = newval;
         return old;
     }
+    else if (offset == GWL_HWNDPARENT)
+        return (SetWindowLongA(WIN_Handle32(hwnd), offset, HWND_32(newval)));
     /*else*/ return SetWindowLongA( hwnd, offset, newval );
 }
 
