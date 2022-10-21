@@ -935,6 +935,11 @@ INT16 WINAPI WriteComm16(INT16 cid, LPSTR lpvBuf, INT16 cbWrite)
 		SetEvent(ptr->writeev);
 	}
 
+	if (length < cbWrite)
+	{
+		ptr->commerror = CE_TXFULL;
+		return -length;
+	}
 	return length;
 }
 
