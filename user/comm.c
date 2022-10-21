@@ -644,6 +644,9 @@ INT16 WINAPI GetCommError16(INT16 cid,LPCOMSTAT16 lpStat)
 		TRACE("cid %d, error %d, lpStat NULL\n",
 				cid, ptr->commerror);
 
+	temperror |= ptr->commerror;
+	ptr->commerror = 0;
+
 	return(temperror);
 }
 
@@ -802,7 +805,6 @@ INT16 WINAPI GetCommState16(INT16 cid, LPDCB16 lpdcb)
 
 	lpdcb->EvtChar = ptr->evtchar;
 
-	ptr->commerror = 0;
 	return 0;
 }
 
@@ -837,8 +839,6 @@ INT16 WINAPI UngetCommChar16(INT16 cid,CHAR chUnget)
 
 	if (ptr->unget) {
 	  /* character already queued */
-	  /* FIXME: which error would Windows return? */
-	  ptr->commerror = CE_RXOVER;
 	  return -1;
 	}
 
