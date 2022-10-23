@@ -1154,6 +1154,35 @@ int system_ini_keyboard_subtype()
 {
     return GetKeyboardType(1);
 }
+static const char *system_ini_boot_language_dll()
+{
+    switch (GetUserDefaultUILanguage())
+    {
+        case 1030:
+        case 1035:
+        case 1039:
+        case 1044:
+        case 1053:
+            return "langsca.dll";
+        case 1043:
+            return "langdut.dll";
+        case 2057:
+        case 3084:
+        case 1040:
+        case 2070:
+        case 3082:
+            return "langeng.dll";
+        case 1036:
+            return "langfrn.dll";
+        case 1031:
+            return "langger.dll";
+        case 1034:
+            return "langspa.dll";
+        case 1033:
+        default:
+            return "";
+    }
+}
 const char *system_init_boot_description_language_dll()
 {
     LANGID lang = GetUserDefaultUILanguage();
@@ -1210,7 +1239,7 @@ struct ini_redirect_data ini_redirect_list[] =
     {"system.ini", "boot", "shell", "progman.exe"},
     {"system.ini", "boot", "mouse.drv", "mouse.drv"},
     {"system.ini", "boot", "network.drv", "network.drv"},
-    {"system.ini", "boot", "language.dll", ""},
+    {"system.ini", "boot", "language.dll", NULL, system_ini_boot_language_dll},
     {"system.ini", "boot", "drivers", "mmsystem.dll"},
     /* {"system.ini", "boot", "oemfonts.fon", "", NULL}, */
     /* {"system.ini", "boot", "fixedfon.fon", "", NULL}, */
