@@ -172,7 +172,7 @@ static DWORD WINAPI eventth(LPVOID cid)
 		if(GetCommModemStatus(ptr->handle, &mstat))
 			*((WORD *)(ptr->unknown + COMM_MSR_OFFSET)) = mstat;
 
-		*(WORD*)(ptr->unknown) = evtmask;
+		*(WORD*)(ptr->unknown) |= evtmask;
 		if ((evtmask & ptr->eventmask) && ptr->wnd)
 			PostMessageA(ptr->wnd, WM_COMMNOTIFY, cid, CN_EVENT);
 
