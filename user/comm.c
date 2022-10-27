@@ -692,7 +692,7 @@ UINT16 WINAPI GetCommEventMask16(INT16 cid,UINT16 fnEvtClear)
             return 0;
         }
 
-	events = *(WORD*)(COM[cid].unknown) & fnEvtClear;
+	events = *(WORD*)(COM[cid].unknown) & COM[cid].eventmask;
 	*(WORD*)(COM[cid].unknown) &= ~fnEvtClear;
 	return events;
 }
