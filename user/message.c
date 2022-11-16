@@ -2218,6 +2218,12 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         {
             WINDOWPOS *winpos32 = (WINDOWPOS *)lParam;
             WINDOWPOS16 winpos;
+            // before windows 10 not set swp_statechanged on a window being maximized if wm_windowposchanging is sent twice
+            if ((msg == WM_WINDOWPOSCHANGED) && GetPropA(hwnd, "WindowMaximized") && (callback == call_window_proc16))
+            {
+                RemovePropA(hwnd, "WindowMaximized");
+                winpos32->flags &= ~0x8000; //SWP_STATECHANGED
+            }
 
             WINDOWPOS32to16( winpos32, &winpos );
             lParam = MapLS( &winpos );
@@ -4747,6 +4753,8 @@ LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
             SetWindowLongA(hWnd, GWL_HINSTANCE, 0);
         }
     }
+    else if((nCode == HCBT_MINMAX) && (lParam == SW_MAXIMIZE) && (GetWindowLongA(wParam, GWL_STYLE) & WS_MAXIMIZE))
+        SetPropA(wParam, "WindowMaximized", 1);
     return FALSE;
 }
 LRESULT CALLBACK WndProcRetHook(int code, WPARAM wParam, LPARAM lParam)
