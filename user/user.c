@@ -802,6 +802,8 @@ BOOL16 WINAPI IsRectEmpty16( const RECT16 *rect )
  */
 BOOL16 WINAPI PtInRect16( const RECT16 *rect, POINT16 pt )
 {
+    if (IsRectEmpty16(rect))
+        return FALSE;
     return ((pt.x >= rect->left) && (pt.x < rect->right) &&
             (pt.y >= rect->top) && (pt.y < rect->bottom));
 }
