@@ -743,8 +743,12 @@ static HWND DIALOG_CreateIndirect16(HINSTANCE16 hInst, SEGPTR dlgTemplate16,
     DWORD size;
     DLGTEMPLATEEX *template32 = dialog_template16_to_template32(hInst32, dlgTemplate16, &size, paramd);
     DWORD count;
-    DLGPROC proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
-    paramd->dlgProc = dlgProc;
+    DLGPROC proc = NULL;
+    if (dlgProc)
+    {
+        proc = allocate_proc_thunk(paramd, DlgProc_Thunk);
+        paramd->dlgProc = dlgProc;
+    }
     ReleaseThunkLock(&count);
     if (modal)
     {
