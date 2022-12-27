@@ -5233,6 +5233,8 @@ LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
         {
             SetMenu(hDlg, get_dialog_hmenu(hDlg));
         }
+        if (!GetDlgProc16(HWND_16(hDlg)))
+            return TRUE;
     }
     WNDPROC16 wndproc16 = (WNDPROC16)GetWndProc16(hWnd16);
     if (wndproc16)
