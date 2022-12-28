@@ -2360,8 +2360,14 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
         if (IsOldWindowsTask(GetCurrentTask()) && (window_type_table[HWND_16((HWND)lParam)] == WINDOW_TYPE_LISTBOX) &&
                 (HIWORD(wParam) > LBN_DBLCLK) && (HIWORD(wParam) != LBN_ERRSPACE))
             break;
+        if (HIWORD(lParam) == 0)
+            lParam = MAKELPARAM(LOWORD(lParam), HIWORD(wParam));
+        else
+            lParam = MAKELPARAM(HWND_16((HWND)lParam), HIWORD(wParam));
+        ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
+        break;
     case WM_ACTIVATE:
-        if (krnl386_get_compat_mode("256color") && (callback == call_window_proc16) && wParam)
+        if (krnl386_get_compat_mode("256color") && (callback == call_window_proc16) && LOWORD(wParam))
         {
             LRESULT res;
             callback(HWND_16(hwnd), WM_QUERYNEWPALETTE, NULL, NULL, &res, arg);
