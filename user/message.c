@@ -2361,6 +2361,11 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                 (HIWORD(wParam) > LBN_DBLCLK) && (HIWORD(wParam) != LBN_ERRSPACE))
             break;
     case WM_ACTIVATE:
+        if (krnl386_get_compat_mode("256color") && (callback == call_window_proc16) && wParam)
+        {
+            LRESULT res;
+            callback(HWND_16(hwnd), WM_QUERYNEWPALETTE, NULL, NULL, &res, arg);
+        }
     case WM_CHARTOITEM:
     case WM_VKEYTOITEM:
         {
@@ -2424,11 +2429,6 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
         break;
     case WM_ACTIVATEAPP:
-        if (krnl386_get_compat_mode("256color") && (callback == call_window_proc16))
-        {
-            LRESULT res;
-            callback(HWND_16(hwnd), WM_QUERYNEWPALETTE, NULL, NULL, &res, arg);
-        }
         ret = callback( HWND_16(hwnd), msg, wParam, HTASK_16( lParam ), result, arg );
         break;
     case WM_PAINT:
