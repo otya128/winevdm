@@ -5223,7 +5223,8 @@ void register_wow_handlers(void)
 }
 
 BOOL is_dialog(HWND hwnd);
-HMENU get_dialog_hmenu(HWND hWnd);
+dialog_data *get_dialog_data(HWND hWnd);
+void free_proc_thunk(void *thunk);
 LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
     HWND16 hWnd16 = HWND_16(hDlg);
@@ -5234,9 +5235,19 @@ LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
     /* some programs don't call DlgProc */
     if (Msg == WM_INITDIALOG && is_dialog(hDlg))
     {
-        if (!GetMenu(hDlg))
+	    dialog_data *dd = get_dialog_data(hDlg);
+        if (dd)
         {
-            SetMenu(hDlg, get_dialog_hmenu(hDlg));
+            if (!GetMenu(hDlg))
+                SetMenu(hDlg, HMENU_32(dd->hMenu16));
+            if (!dd->dlgProc)
+            {
+                void *thunk = (void *)GetWindowLongPtrA(hDlg, DWLP_DLGPROC);
+                SetWindowLongPtrA(hDlg, DWLP_DLGPROC, NULL);
+                HeapFree(GetProcessHeap(), 0, dd);
+                free_proc_thunk(thunk);
+                return TRUE;
+            }
         }
     }
     WNDPROC16 wndproc16 = (WNDPROC16)GetWndProc16(hWnd16);

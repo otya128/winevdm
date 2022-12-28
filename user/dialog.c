@@ -52,12 +52,6 @@ typedef struct
 void free_proc_thunk(DLGPROCTHUNK *thunk);
 BYTE get_aflags(HMODULE16 hModule);
 
-typedef struct
-{
-    HMENU16 hMenu16;
-    DLGPROC16 dlgProc;
-} dialog_data;
-
 /* Dialog control information */
 typedef struct
 {
@@ -677,13 +671,12 @@ static void init_proc_thunk()
     MAX_THUNK = 4096 / sizeof(DLGPROCTHUNK);
     thunk_array = VirtualAlloc(NULL, MAX_THUNK * sizeof(DLGPROCTHUNK), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 }
-HMENU get_dialog_hmenu(HWND hWnd)
+dialog_data *get_dialog_data(HWND hWnd)
 {
     DLGPROC dlgproc = GetWindowLongPtrA(hWnd, DWLP_DLGPROC);
     if (thunk_array <= dlgproc && thunk_array + MAX_THUNK > dlgproc)
     {
-        DLGPROCTHUNK *thunk = (DLGPROCTHUNK*)dlgproc;
-        return HMENU_32(((dialog_data*)thunk->param)->hMenu16);
+        return (dialog_data*)(((DLGPROCTHUNK *)dlgproc)->param);
     }
     return 0;
 }
