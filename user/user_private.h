@@ -114,6 +114,12 @@ typedef struct tagDIALOGINFO
     UINT      flags;       /* EndDialog() called for this dialog */
 } DIALOGINFO;
 
+typedef struct
+{
+    HMENU16 hMenu16;
+    DLGPROC16 dlgProc;
+} dialog_data;
+
 #define DF_END  0x0001
 #define DF_OWNERENABLED 0x0002
 
