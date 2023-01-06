@@ -1539,6 +1539,11 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_NCCREATE:
     case WM_CREATE:
         {
+            if (!HIWORD(lParam))
+            {
+                ret = callback(hwnd32, msg, wParam, lParam, result, arg);
+                break;
+            }
             CREATESTRUCT16 *cs16 = MapSL(lParam);
             CREATESTRUCTA cs;
             MDICREATESTRUCTA mdi_cs;
