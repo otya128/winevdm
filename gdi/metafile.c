@@ -109,13 +109,7 @@ void delete_dc_entry(HDC hdc32);
  */
 HMETAFILE16 WINAPI CloseMetaFile16(HDC16 hdc)
 {
-    HDC hdc32 = HDC_32(hdc);
-    HMETAFILE hmf = CloseMetaFile(hdc32);
-    if (hmf)
-    {
-        delete_dc_entry(hdc32);
-    }
-    return create_metafile16( hmf );
+    return create_metafile16(CloseMetaFile(HDC_32(hdc)));
 }
 
 /******************************************************************
