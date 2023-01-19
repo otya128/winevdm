@@ -3134,6 +3134,8 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         if ((style & (WS_CAPTION | WS_SIZEBOX)) == (WS_CAPTION | WS_SIZEBOX))
             style |= WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
     }
+    if (((style & 0xf) == BS_USERBUTTON) && !(style & 0xc0) && !stricmp(className, "Button"))
+        style |= 0x10; // BS_USERBUTTON support hack        
 
     /* Create the window */
 
