@@ -4090,7 +4090,7 @@ HBITMAP16 WINAPI CreateDIBitmap16( HDC16 hdc, const BITMAPINFOHEADER * header,
 {
     BITMAPINFO *bmp = NULL;
     HBITMAP16 ret;
-    if ((data->bmiHeader.biCompression == BI_RLE4) || (data->bmiHeader.biCompression == BI_RLE8))
+    if (data && ((data->bmiHeader.biCompression == BI_RLE4) || (data->bmiHeader.biCompression == BI_RLE8)))
     {
         int hdrsize = data->bmiHeader.biSize + ((data->bmiHeader.biClrUsed ? data->bmiHeader.biClrUsed :
                         (data->bmiHeader.biBitCount == 4 ? 16 : 256)) * (coloruse == DIB_PAL_COLORS ? 2 : 4));
