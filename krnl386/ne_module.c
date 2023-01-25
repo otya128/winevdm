@@ -1359,13 +1359,15 @@ HANDLE WINAPI LoadModule_wine_implementation(LPCSTR name, LPVOID paramBlock, HAN
 #endif
         if (error == ERROR_ELEVATION_REQUIRED)
         {
+            char exename[MAX_PATH];
+            int len = krnl386_get_config_string("otvdm", "ElevationShim", "", exename, sizeof(exename));
             SHELLEXECUTEINFOA sei = { 0 };
             sei.cbSize = sizeof(sei);
             sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_CLASSNAME | SEE_MASK_WAITFORINPUTIDLE;
-            sei.lpFile = filename;
-            sei.lpParameters = p;
+            sei.lpFile = len ? exename : filename;
+            sei.lpParameters = len ? cmdline : p;
             sei.nShow = startup.dwFlags ? startup.wShowWindow : SW_NORMAL;
-            sei.lpVerb = "open";
+            sei.lpVerb = "runas";
             sei.lpClass = "exefile";
             if (ShellExecuteExA(&sei))
                 *result = sei.hProcess;
