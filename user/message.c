@@ -5246,12 +5246,13 @@ LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam)
     /* some programs don't call DlgProc */
     if (Msg == WM_INITDIALOG && is_dialog(hDlg))
     {
-	    dialog_data *dd = get_dialog_data(hDlg);
+        dialog_data *dd = get_dialog_data(hDlg);
         if (dd)
         {
-            if (!GetMenu(hDlg))
+            if (!GetMenu(hDlg) && dd->hMenu16)
                 SetMenu(hDlg, HMENU_32(dd->hMenu16));
-            if (!dd->dlgProc)
+            dd = get_dialog_data(hDlg);
+            if (dd && !dd->dlgProc)
             {
                 void *thunk = (void *)GetWindowLongPtrA(hDlg, DWLP_DLGPROC);
                 SetWindowLongPtrA(hDlg, DWLP_DLGPROC, NULL);
