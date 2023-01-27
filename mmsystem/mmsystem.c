@@ -1041,13 +1041,9 @@ UINT16 WINAPI midiInAddBuffer16(HMIDIIN16 hMidiIn,         /* [in] */
                                 SEGPTR lpsegMidiInHdr,     /* [???] */
 				UINT16 uSize)              /* [in] */
 {
-    DWORD level;
     TRACE("(%04X, %08x, %d)\n", hMidiIn, lpsegMidiInHdr, uSize);
-    ReleaseThunkLock(&level);
 
-    UINT16 ret = MMSYSTDRV_Message(HMIDIIN_32(hMidiIn), MIDM_ADDBUFFER, lpsegMidiInHdr, uSize);
-    RestoreThunkLock(level);
-    return ret;
+    return MMSYSTDRV_Message(HMIDIIN_32(hMidiIn), MIDM_ADDBUFFER, lpsegMidiInHdr, uSize);
 }
 
 /**************************************************************************

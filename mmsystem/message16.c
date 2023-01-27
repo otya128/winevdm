@@ -1111,6 +1111,7 @@ DWORD   MMSYSTDRV_Message(void* h, UINT msg, DWORD_PTR param1, DWORD_PTR param2)
     struct MMSYSTDRV_Type*      drvtype;
     MMSYSTEM_MapType            map;
     DWORD                       ret;
+    DWORD                       count;
 
     if (!thunk) return MMSYSERR_INVALHANDLE;
     drvtype = &MMSYSTEM_DriversType[thunk->kind];
@@ -1128,6 +1129,7 @@ DWORD   MMSYSTDRV_Message(void* h, UINT msg, DWORD_PTR param1, DWORD_PTR param2)
     case MMSYSTEM_MAP_OKMEM:
         TRACE("Calling message(msg=%u p1=0x%08lx p2=0x%08lx)\n",
               msg, param1, param2);
+        ReleaseThunkLock(&count);
         switch (thunk->kind)
         {
         case MMSYSTDRV_MIXER:   ret = mixerMessage  (h, msg, param1, param2); break;
@@ -1169,6 +1171,7 @@ DWORD   MMSYSTDRV_Message(void* h, UINT msg, DWORD_PTR param1, DWORD_PTR param2)
             break;
         default: ret = MMSYSERR_INVALHANDLE; break; /* should never be reached */
         }
+        RestoreThunkLock(count);
         if (map == MMSYSTEM_MAP_OKMEM)
             drvtype->unmapmsg16to32W(msg, &param1, &param2, ret);
         break;
