@@ -634,15 +634,18 @@ INT16 WINAPI GetCommError16(INT16 cid,LPCOMSTAT16 lpStat)
 		if (!ClearCommError(ptr->handle, &temperror, &stat))
 			return CE_MODE;
 		lpStat->status = *((BYTE *)&stat);
-		lpStat->cbInQue = stat.cbInQue;
+		lpStat->cbInQue = stat.cbInQue + ptr->unget;
 		lpStat->cbOutQue = stat.cbOutQue;
 		TRACE("cid %d, error %d, stat %d in %d out %d\n",
 				cid, ptr->commerror, lpStat->status, lpStat->cbInQue,
 				lpStat->cbOutQue);
 	}
-	else
+	else {
+		if (!ClearCommError(ptr->handle, &temperror, NULL))
+			return CE_MODE;
 		TRACE("cid %d, error %d, lpStat NULL\n",
 				cid, ptr->commerror);
+	}
 
 	temperror |= ptr->commerror;
 	ptr->commerror = 0;
