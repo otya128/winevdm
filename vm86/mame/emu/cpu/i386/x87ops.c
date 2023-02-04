@@ -301,7 +301,7 @@ UINT32 Getx87EA(UINT8 modrm, int rwn)
 	if (PROTECTED_MODE && !V8086_MODE)
 		m_x87_data_ptr = ea;
 	else
-		m_x87_data_ptr = ea + (segment << 4);
+		m_x87_data_ptr = ea + (m_x87_ds << 4);
 	m_x87_opcode = ((m_opcode << 8) | modrm) & 0x7ff;
 	return ret;
 }
