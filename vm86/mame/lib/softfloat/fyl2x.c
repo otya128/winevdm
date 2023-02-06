@@ -34,14 +34,15 @@ these four paragraphs for those parts of this code that are retained.
 
 static const floatx80 floatx80_log10_2 = packFloatx80(0, 0x3ffd, U64(0x9a209a84fbcff798));
 static const floatx80 floatx80_ln_2 = packFloatx80(0, 0x3ffe, U64(0xb17217f7d1cf79ac));
-static const floatx80 floatx80_one = packFloatx80(0, 0x3fff, U64(0x8000000000000000));
-static const floatx80 floatx80_default_nan = packFloatx80(0, 0xffff, U64(0xffffffffffffffff));
+//static const floatx80 floatx80_one = packFloatx80(0, 0x3fff, U64(0x8000000000000000));
+//static const floatx80 floatx80_default_nan = packFloatx80(0, 0xffff, U64(0xffffffffffffffff));
 
 #define packFloat_128(zHi, zLo) {(zHi), (zLo)}
 #define PACK_FLOAT_128(hi,lo) packFloat_128(LIT64(hi),LIT64(lo))
 
 #define EXP_BIAS 0x3FFF
 
+#if 0
 /*----------------------------------------------------------------------------
 | Returns the fraction bits of the extended double-precision floating-point
 | value `a'.
@@ -146,9 +147,10 @@ static floatx80 propagateFloatx80NaN(floatx80 a, floatx80 b)
 		return b;
 	}
 }
+#endif
 
-static const float128 float128_one =
-	packFloat_128(U64(0x3fff000000000000), U64(0x0000000000000000));
+//static const float128 float128_one =
+//	packFloat_128(U64(0x3fff000000000000), U64(0x0000000000000000));
 static const float128 float128_two =
 	packFloat_128(U64(0x4000000000000000), U64(0x0000000000000000));
 
@@ -249,7 +251,7 @@ static float128 poly_l2p1(float128 x)
 //       1-u             3     5     7           2n+1
 //
 
-static floatx80 fyl2x(floatx80 a, floatx80 b)
+floatx80 fyl2x(floatx80 a, floatx80 b)
 {
 	UINT64 aSig = extractFloatx80Frac(a);
 	INT32 aExp = extractFloatx80Exp(a);

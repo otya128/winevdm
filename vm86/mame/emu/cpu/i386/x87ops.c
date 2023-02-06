@@ -301,7 +301,7 @@ UINT32 Getx87EA(UINT8 modrm, int rwn)
 	if (PROTECTED_MODE && !V8086_MODE)
 		m_x87_data_ptr = ea;
 	else
-		m_x87_data_ptr = ea + (segment << 4);
+		m_x87_data_ptr = ea + (m_x87_ds << 4);
 	m_x87_opcode = ((m_opcode << 8) | modrm) & 0x7ff;
 	return ret;
 }
@@ -2536,10 +2536,8 @@ void x87_f2xm1(UINT8 modrm)
 	}
 	else
 	{
-		// TODO: Inaccurate
-		double x = fx80_to_double(ST(0));
-		double res = pow(2.0, x) - 1;
-		result = double_to_fx80(res);
+		extern floatx80 f2xm1(floatx80 a);
+		result = f2xm1(ST(0));
 	}
 
 	if (x87_check_exceptions())
@@ -2567,7 +2565,6 @@ void x87_fyl2x(UINT8 modrm)
 	else
 	{
 		floatx80 x = ST(0);
-		floatx80 y = ST(1);
 
 		if (x.high & 0x8000)
 		{
@@ -2576,10 +2573,8 @@ void x87_fyl2x(UINT8 modrm)
 		}
 		else
 		{
-			// TODO: Inaccurate
-			double d64 = fx80_to_double(x);
-			double l2x = log(d64)/log(2.0);
-			result = floatx80_mul(double_to_fx80(l2x), y);
+			extern floatx80 fyl2x(floatx80 a, floatx80 b);
+			result = fyl2x(ST(0), ST(1));
 		}
 	}
 
@@ -2608,13 +2603,9 @@ void x87_fyl2xp1(UINT8 modrm)
 	}
 	else
 	{
-		floatx80 x = ST(0);
-		floatx80 y = ST(1);
-
-		// TODO: Inaccurate
-		double d64 = fx80_to_double(x);
-		double l2x1 = log(d64 + 1.0)/log(2.0);
-		result = floatx80_mul(double_to_fx80(l2x1), y);
+	
+		extern floatx80 fyl2xp1(floatx80 a, floatx80 b);
+		result = fyl2xp1(ST(0), ST(1));
 	}
 
 	if (x87_check_exceptions())
@@ -2652,7 +2643,7 @@ void x87_fptan(UINT8 modrm)
 		result1 = ST(0);
 		result2 = fx80_one;
 
-#if 0 // TODO: Function produces bad values
+#if 1 // TODO: Function produces bad values
 		if (floatx80_ftan(result1) != -1)
 			m_x87_sw &= ~X87_SW_C2;
 		else
@@ -2685,16 +2676,14 @@ void x87_fpatan(UINT8 modrm)
 
 	if (x87_mf_fault())
 		return;
-	if (X87_IS_ST_EMPTY(0))
+	if (X87_IS_ST_EMPTY(0) || X87_IS_ST_EMPTY(1))
 	{
 		x87_set_stack_underflow();
 		result = fx80_inan;
 	}
 	else
 	{
-		// TODO: Inaccurate
-		double val = atan2(fx80_to_double(ST(1)) , fx80_to_double(ST(0)));
-		result = double_to_fx80(val);
+		result = floatx80_fpatan(ST(0), ST(1));
 	}
 
 	if (x87_check_exceptions())
@@ -2724,7 +2713,7 @@ void x87_fsin(UINT8 modrm)
 	{
 		result = ST(0);
 
-#if 0 // TODO: Function produces bad values
+#if 1 // TODO: Function produces bad values
 		if (floatx80_fsin(result) != -1)
 			m_x87_sw &= ~X87_SW_C2;
 		else
@@ -2762,7 +2751,7 @@ void x87_fcos(UINT8 modrm)
 	{
 		result = ST(0);
 
-#if 0 // TODO: Function produces bad values
+#if 1 // TODO: Function produces bad values
 		if (floatx80_fcos(result) != -1)
 			m_x87_sw &= ~X87_SW_C2;
 		else
@@ -2807,7 +2796,7 @@ void x87_fsincos(UINT8 modrm)
 
 		s_result = c_result = ST(0);
 
-#if 0 // TODO: Function produces bad values
+#if 1 // TODO: Function produces bad values
 		if (sf_fsincos(s_result, &s_result, &c_result) != -1)
 			m_x87_sw &= ~X87_SW_C2;
 		else
@@ -3293,7 +3282,10 @@ void x87_fist_m16int(UINT8 modrm)
 		if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim))
 			m16int = floatx80_to_int32(fx80);
 		else
+		{
+			float_exception_flags = float_flag_invalid;
 			m16int = -32768;
+		}
 	}
 
 	UINT32 ea = Getx87EA(modrm, 1);
@@ -3328,7 +3320,10 @@ void x87_fist_m32int(UINT8 modrm)
 		if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim))
 			m32int = floatx80_to_int32(fx80);
 		else
+		{
+			float_exception_flags = float_flag_invalid;
 			m32int = 0x80000000;
+		}
 	}
 
 	UINT32 ea = Getx87EA(modrm, 1);
@@ -3363,7 +3358,10 @@ void x87_fistp_m16int(UINT8 modrm)
 		if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim))
 			m16int = floatx80_to_int32(fx80);
 		else
+		{
+			float_exception_flags = float_flag_invalid;
 			m16int = (UINT16)0x8000;
+		}
 	}
 
 	UINT32 ea = Getx87EA(modrm, 1);
@@ -3399,7 +3397,10 @@ void x87_fistp_m32int(UINT8 modrm)
 		if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim))
 			m32int = floatx80_to_int32(fx80);
 		else
+		{
+			float_exception_flags = float_flag_invalid;
 			m32int = 0x80000000;
+		}
 	}
 
 	UINT32 ea = Getx87EA(modrm, 1);
@@ -3435,7 +3436,10 @@ void x87_fistp_m64int(UINT8 modrm)
 		if (!floatx80_lt(fx80, lowerLim) && floatx80_le(fx80, upperLim))
 			m64int = floatx80_to_int64(fx80);
 		else
+		{
+			float_exception_flags = float_flag_invalid;
 			m64int = U64(0x8000000000000000);
+		}
 	}
 
 	UINT32 ea = Getx87EA(modrm, 1);
