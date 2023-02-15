@@ -73,7 +73,7 @@ struct ne_segment_table_entry_s
 #define hFirstModule (pThhook->hExeHead)
 
 static HINSTANCE16 NE_LoadModule( LPCSTR name, BOOL lib_only );
-static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep );
+static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep, BOOL cleanup );
 
 static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_only );
 
