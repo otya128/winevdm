@@ -221,3 +221,4 @@
 @ stdcall -arch=win32 CoInitialize16(long)
 @ stdcall -arch=win32 CoUninitialize16()
 @ stdcall -arch=win32 StringFromGUID216(ptr ptr long)
+@ stdcall -arch=win32 CoCreateInstance16(long long long long long)

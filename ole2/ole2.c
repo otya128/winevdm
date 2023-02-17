@@ -1011,16 +1011,43 @@ HRESULT WINAPI OleSaveToStream16(SEGPTR pPStm, SEGPTR pStm)
     return hresult32_16(OleSaveToStream((IPersistStream*)iface16_32(&IID_IPersistStream, pPStm), (IStream*)iface16_32(&IID_IStream, pStm)));
 }
 
-HRESULT WINAPI OleLoadFromStream16(SEGPTR pStm, REFIID riid, SEGPTR *ppvObj)
+HRESULT WINAPI OleLoadFromStream16(SEGPTR pStm, SEGPTR sriid, SEGPTR sppvObj)
 {
-    IStream *pStm32;
-    void *pvObj = NULL;
     HRESULT result;
+    REFIID riid = MapSL(sriid);
+    CLSID clsid;
+    SEGPTR xstm, pxstm, pclsid, ifpstm;
+    SEGPTR *ppvObj = MapSL(sppvObj);
+
     TRACE("(%08x,%s,%p)\n", pStm, debugstr_guid(riid), ppvObj);
-    pStm32 = (IStream*)iface16_32(&IID_IStream, pStm);
-    result = OleLoadFromStream(pStm32, riid, &pvObj);
-    *ppvObj = iface32_16(riid, pvObj);
-    return hresult32_16(result);
+
+    static HRESULT (WINAPI *CoCreateInstance16)(SEGPTR, SEGPTR, DWORD, SEGPTR, SEGPTR) = NULL;
+    if (!CoCreateInstance16)
+    {
+        HMODULE compobj = GetModuleHandleA("compobj.dll16");
+        CoCreateInstance16 = (HRESULT (WINAPI *)(SEGPTR, SEGPTR, DWORD, SEGPTR, SEGPTR))GetProcAddress(compobj, "CoCreateInstance16");
+    }
+
+    result = ReadClassStm16(pStm, &clsid);
+    if (FAILED(result))
+        return result;
+    pclsid = MapLS(&clsid);
+    result = CoCreateInstance16(pclsid, NULL, CLSCTX_INPROC_SERVER, sriid, sppvObj);
+    UnMapLS(pclsid);
+    if (FAILED(result))
+        return result;
+    pxstm = MapLS(&xstm);
+    ifpstm = MapLS(&IID_IPersistStream);
+    result = IUnknown16_QueryInterface(*ppvObj, ifpstm, pxstm);
+    UnMapLS(pxstm);
+    if (FAILED(result))
+    {
+        IUnknown16_Release(*ppvObj);
+        return result;
+    }
+    result = IPersistStream16_Load(xstm, pStm);
+    IPersistStream16_Release(xstm);
+    return result;
 }
 
 HRESULT WINAPI MkParseDisplayName16(SEGPTR pbc, LPSTR szUserName, ULONG *pchEaten, SEGPTR *ppmk)
