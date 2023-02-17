@@ -73,7 +73,7 @@ struct ne_segment_table_entry_s
 #define hFirstModule (pThhook->hExeHead)
 
 static HINSTANCE16 NE_LoadModule( LPCSTR name, BOOL lib_only );
-static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep );
+static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep, BOOL cleanup );
 
 static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_only );
 
@@ -1012,7 +1012,7 @@ static HINSTANCE16 NE_LoadModule( LPCSTR name, BOOL lib_only )
     if ( hInstance < 32 )
     {
         /* cleanup ... */
-        NE_FreeModule( hModule, 0 );
+        NE_FreeModule( hModule, 0, 0 );
     }
 
     return hInstance;
@@ -1057,7 +1057,7 @@ static HMODULE16 NE_DoLoadBuiltinModule( const IMAGE_DOS_HEADER *mz_header, cons
                                    NtCurrentTeb()->Peb->OSMinorVersion );
 
     hInstance = NE_DoLoadModule( pModule );
-    if (hInstance < 32) NE_FreeModule( hModule, 0 );
+    if (hInstance < 32) NE_FreeModule( hModule, 0, 0 );
 
     NE_InitResourceHandler( hModule );
 
@@ -1626,7 +1626,7 @@ static BOOL16 MODULE_CallWEP( HMODULE16 hModule )
  *
  * Implementation of FreeModule16().
  */
-static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
+static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep, BOOL cleanup )
 {
     HMODULE16 *hPrevModule;
     NE_MODULE *pModule;
@@ -1643,11 +1643,13 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
     if (((INT16)(--pModule->count)) > 0 ) return TRUE;
     else pModule->count = 0;
 
-    if (call_wep && !(pModule->ne_flags & NE_FFLAGS_WIN32))
-    {
-        /* Free the objects owned by the DLL module */
+    /* Free the objects owned by the DLL module */
+    if (cleanup)
         NE_CallUserSignalProc( hModule, USIG16_DLL_UNLOAD, 0, 0, 0 );
 
+
+    if (call_wep && !(pModule->ne_flags & NE_FFLAGS_WIN32))
+    {
         if (pModule->ne_flags & NE_FFLAGS_LIBMODULE)
         {
             if (pModule->ne_cseg != 0)
@@ -1683,7 +1685,7 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
     pModRef = (HMODULE16*)((char *)pModule + pModule->ne_modtab);
     for (i = 0; i < pModule->ne_cmod; i++, pModRef++)
     {
-        NE_FreeModule( *pModRef, call_wep );
+        NE_FreeModule( *pModRef, call_wep, cleanup );
     }
 
     /* Free the module storage */
@@ -1706,7 +1708,7 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep )
  */
 BOOL16 WINAPI FreeModule16( HMODULE16 hModule )
 {
-    return NE_FreeModule( hModule, TRUE );
+    return NE_FreeModule( hModule, TRUE, TRUE );
 }
 
 DWORD WINAPI WIN16_FreeLibrary16(HINSTANCE16 handle)

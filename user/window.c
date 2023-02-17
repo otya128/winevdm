@@ -158,6 +158,8 @@ void free_module_classes( HINSTANCE16 inst )
                 UnregisterClassA( (LPCSTR)MAKEINTATOM(class->atom), HINSTANCE_32(class->inst) );
             }
         }
+        WNDCLASS16Info[class->atom].allocated = FALSE;
+        TRACE("Class %s unregistered\n", debugstr_a(class->win32_classname));
         HeapFree( GetProcessHeap(), 0, class );
 	}
 }
