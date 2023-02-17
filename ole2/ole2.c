@@ -1040,6 +1040,7 @@ HRESULT WINAPI OleLoadFromStream16(SEGPTR pStm, SEGPTR sriid, SEGPTR sppvObj)
     ifpstm = MapLS(&IID_IPersistStream);
     result = IUnknown16_QueryInterface(*ppvObj, ifpstm, pxstm);
     UnMapLS(pxstm);
+    UnMapLS(ifpstm);
     if (FAILED(result))
     {
         IUnknown16_Release(*ppvObj);
