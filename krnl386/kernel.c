@@ -314,7 +314,7 @@ DWORD WINAPI GetVersion16(void)
             else dosver = 0x0700;
             break;
         case VER_PLATFORM_WIN32_NT:
-            dosver = 0x0500;  /* always DOS 5.0 for NT */
+            dosver = 0x0532;  /* always DOS 5.50 for NT */
             break;
         }
         TRACE( "DOS %d.%02d Win %d.%02d\n",
