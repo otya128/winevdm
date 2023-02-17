@@ -627,7 +627,7 @@ INT16 WINAPI GetCommError16(INT16 cid,LPCOMSTAT16 lpStat)
 	}
         if (cid&FLAG_LPT) {
             WARN(" cid %d not comm port\n",cid);
-            return CE_MODE;
+            return 0;
         }
 	if (lpStat) {
 		COMSTAT stat;
