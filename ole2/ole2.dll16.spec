@@ -23,7 +23,7 @@
 22 pascal BindMoniker(segptr long ptr ptr) BindMoniker16
 23 pascal MkParseDisplayName(segptr str ptr ptr) MkParseDisplayName16
 24 pascal OleSaveToStream(segptr segptr) OleSaveToStream16
-25 pascal OleLoadFromStream(segptr ptr ptr) OleLoadFromStream16
+25 pascal OleLoadFromStream(segptr segptr segptr) OleLoadFromStream16
 26 pascal CreateBindCtx(long ptr) CreateBindCtx16
 27 pascal CreateItemMoniker(str str ptr) CreateItemMoniker16
 28 pascal CreateFileMoniker(str ptr) CreateFileMoniker16
