@@ -435,10 +435,6 @@ OLESTATUS WINAPI OleCreate16(LPCSTR name, SEGPTR client, LPCSTR xname, LHCLIENTD
     LPOLECLIENT client32 = get_ole_client32(client);
     LPOLEOBJECT obj32 = 0;
     OLESTATUS status = OleCreate(name, client32, xname, hclientdoc, xxname, &obj32, render, format);
-    // sometimes the server starts but winexec times out too quickly. since it's started a second
-    // try can connect to the running instance
-    if (status == OLE_ERROR_COMM)
-        status = OleCreate(name, client32, xname, hclientdoc, xxname, &obj32, render, format);
     *oleobject = OLEOBJ16(obj32);
     return status;
 }
@@ -520,10 +516,6 @@ OLESTATUS WINAPI OleActivate16(SEGPTR oleobj, UINT uint, BOOL b1, BOOL b2, HWND1
     }
     ReleaseThunkLock(&count);
     OLESTATUS status = OleActivate(oleobj32, uint, b1, b2, HWND_32(hwnd), rect ? &rect32 : NULL);
-    // sometimes the server starts but winexec times out too quickly. since it's started a second
-    // try can connect to the running instance
-    if (status == OLE_ERROR_COMM)
-        status = OleActivate(oleobj32, uint, b1, b2, HWND_32(hwnd), rect ? &rect32 : NULL);
     RestoreThunkLock(count);
     return status;
 }

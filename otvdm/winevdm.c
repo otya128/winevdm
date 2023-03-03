@@ -908,6 +908,7 @@ int entry_point( int argc, char *argv[] )
     ReleaseThunkLock(&count);
     if (use_shared_wow_server)
         run_shared_wow_server();
+    Sleep(1000);  // sleep for a second so the loaded task can start, allows waitforinputidle to work
     while (TRUE)
     {
         MSG msg;

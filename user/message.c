@@ -1426,7 +1426,7 @@ static HDROP hdrop16_to_hdrop32(HDROP16 hdrop16)
 }
 
 // TODO: check for and fix memory leaks
-HANDLE convert_cb_data_16_32(int format, HANDLE16 data16);
+HANDLE convert_cb_data_16_32(int format, HANDLE16 data16, BOOL set_format);
 static void convert_dde_msg_16_to_32(int msg, UINT_PTR handle)
 {
     void *ptr = (void *)GlobalLock((HGLOBAL)handle);
@@ -1444,11 +1444,11 @@ static void convert_dde_msg_16_to_32(int msg, UINT_PTR handle)
             break;
     }
     if (data && (format < 0xc000) && (format != CF_TEXT) && (format != CF_OEMTEXT) && *(HANDLE16 *)data)
-        *(HANDLE *)data = convert_cb_data_16_32(format, *(HANDLE16 *)data);
+        *(HANDLE *)data = convert_cb_data_16_32(format, *(HANDLE16 *)data, FALSE);
     GlobalUnlock((HGLOBAL)handle);
 }
 
-HANDLE16 convert_cb_data_32_16(int format, HANDLE data32);
+HANDLE16 convert_cb_data_32_16(int format, HANDLE data32, BOOL set_format);
 static void convert_dde_msg_32_to_16(int msg, HANDLE16 handle)
 {
     void *ptr = (void *)GlobalLock16(handle);
@@ -1466,7 +1466,7 @@ static void convert_dde_msg_32_to_16(int msg, HANDLE16 handle)
             break;
     }
     if (data && (format < 0xc000) && (format != CF_TEXT) && (format != CF_OEMTEXT) && *(HANDLE *)data)
-        *(HANDLE16 *)data = convert_cb_data_32_16(format, *(HANDLE *)data);
+        *(HANDLE16 *)data = convert_cb_data_32_16(format, *(HANDLE *)data, FALSE);
     GlobalUnlock16(handle);
 }
         
