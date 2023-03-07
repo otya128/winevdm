@@ -1038,7 +1038,7 @@ BOOL16 WINAPI EmptyClipboard16(void)
     return ret;
 }
 
-HANDLE convert_cb_data_16_32(int format, HANDLE16 data16)
+HANDLE convert_cb_data_16_32(int format, HANDLE16 data16, BOOL set_format)
 {
     HANDLE data32 = 0;
     switch (format)
@@ -1066,7 +1066,8 @@ HANDLE convert_cb_data_16_32(int format, HANDLE16 data16)
             GlobalUnlock16( pict16->hMF );
             GlobalUnlock( data32 );
         }
-        set_clipboard_format( format, data16 );
+        if (set_format)
+            set_clipboard_format( format, data16 );
         break;
     }
 
@@ -1090,7 +1091,8 @@ HANDLE convert_cb_data_16_32(int format, HANDLE16 data16)
                 memcpy( ptr32, ptr16, size );
                 GlobalUnlock( data32 );
             }
-            set_clipboard_format( format, data16 );
+            if (set_format)
+                set_clipboard_format( format, data16 );
         }
         break;
     }
@@ -1103,11 +1105,11 @@ HANDLE convert_cb_data_16_32(int format, HANDLE16 data16)
  */
 HANDLE16 WINAPI SetClipboardData16( UINT16 format, HANDLE16 data16 )
 {
-    if (!SetClipboardData( format, convert_cb_data_16_32(format, data16) )) return 0;
+    if (!SetClipboardData( format, convert_cb_data_16_32(format, data16, TRUE) )) return 0;
     return data16;
 }
 
-HANDLE16 convert_cb_data_32_16(int format, HANDLE data32)
+HANDLE16 convert_cb_data_32_16(int format, HANDLE data32, BOOL set_format)
 {
     UINT size;
     HANDLE16 data16 = 0;
@@ -1137,7 +1139,8 @@ HANDLE16 convert_cb_data_32_16(int format, HANDLE data32)
             GetMetaFileBitsEx( pict32->hMF, size, ptr );
             GlobalUnlock16( pict16->hMF );
             GlobalUnlock16( data16 );
-            set_clipboard_format( format, data16 );
+            if (set_format)
+                set_clipboard_format( format, data16 );
         }
         break;
     }
@@ -1161,7 +1164,8 @@ HANDLE16 convert_cb_data_32_16(int format, HANDLE data32)
                 ptr16 = GlobalLock16( data16 );
                 memcpy( ptr16, ptr32, size );
                 GlobalUnlock16( data16 );
-                set_clipboard_format( format, data16 );
+                if (set_format)
+                    set_clipboard_format( format, data16 );
             }
         }
         break;
@@ -1178,7 +1182,7 @@ HANDLE16 WINAPI GetClipboardData16( UINT16 format )
     HANDLE data32 = GetClipboardData( format );
 
     if (!data32) return 0;
-    return convert_cb_data_32_16(format, data32);
+    return convert_cb_data_32_16(format, data32, TRUE);
 }
 
 
