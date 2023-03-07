@@ -3207,7 +3207,9 @@ static LRESULT defwindow_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
     LRESULT *result, void *arg)
 {
     DWORD count;
-    ReleaseThunkLock(&count);
+    HANDLE yevent = kernel_get_thread_data()->yield_event;
+    if (!yevent)
+        ReleaseThunkLock(&count);
     if (msg == WM_MOUSEWHEEL)
     {
         enum_scrollbar_data d = { 0 };
@@ -3218,12 +3220,14 @@ static LRESULT defwindow_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
         {
             SendMessage16(HWND_16(hwnd), WM_VSCROLL, d.down ? SB_LINEDOWN : SB_LINEUP, MAKELONG(0, (WORD)HWND_16(d.hwnd)));
             SendMessage16(HWND_16(hwnd), WM_VSCROLL, SB_ENDSCROLL, MAKELONG(0, (WORD)HWND_16(d.hwnd)));
-            RestoreThunkLock(count);
+            if (!yevent)
+                RestoreThunkLock(count);
             return 0;
         }
     }
     *result = DefWindowProcA(hwnd, msg, wp, lp);
-    RestoreThunkLock(count);
+    if (!yevent)
+        RestoreThunkLock(count);
     return *result;
 }
 /***********************************************************************
