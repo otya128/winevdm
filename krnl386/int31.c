@@ -1057,7 +1057,7 @@ void WINAPI DOSVM_Int31Handler( CONTEXT *context )
             }
             else
             {
-                void *base = wine_ldt_get_base(&entry);
+                void *base = GetSelectorBase(sel);
                 SET_CX( context, HIWORD(base) );
                 SET_DX( context, LOWORD(base) );
             }
