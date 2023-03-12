@@ -18,6 +18,9 @@ static inline int is_gdt_sel(unsigned short sel) { return !(sel & 4); }
 static const LDT_ENTRY null_entry;  /* all-zeros, used to clear LDT entries */
 struct __wine_ldt_copy wine_ldt_copy;
 LDT_ENTRY wine_ldt[8192];
+// windows allocates selectors from a linked list of avaliable so
+// if a sel is freed, the next alloced will be the last freed, simulate for one
+static WORD last_freed = 0;
 /* empty function for default locks */
 static void nop(void) { }
 
@@ -126,6 +129,18 @@ unsigned short wine_ldt_alloc_entries(int count)
 		return 0;
 	}
 	lock_ldt();
+	if ((count == 1) && last_freed)
+	{
+		WORD e = last_freed >> 3;
+		last_freed = 0;
+	 	if (!(wine_ldt_copy.flags[e] & WINE_LDT_FLAGS_ALLOCATED))
+		{
+			wine_ldt_copy.flags[e] |= WINE_LDT_FLAGS_ALLOCATED;
+			unlock_ldt();
+			return (e << 3) | 7;
+		}
+	}
+
 	for (i = LDT_FIRST_ENTRY; i < LDT_SIZE; i++)
 	{
 		if (wine_ldt_copy.flags[i] & WINE_LDT_FLAGS_ALLOCATED) size = 0;
@@ -228,6 +243,7 @@ void wine_ldt_free_entries(unsigned short sel, int count)
 		internal_set_entry(sel, &null_entry);
 		wine_ldt_copy.flags[index] = 0;
 	}
+	last_freed = sel;
 	unlock_ldt();
 	TRACE("wine_ldt_free_entries(0x%04X,%d)\n", sel, count);
 }

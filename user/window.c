@@ -718,6 +718,14 @@ BOOL16 WINAPI EndPaint16( HWND16 hwnd, const PAINTSTRUCT16* lps )
     BOOL result = EndPaint( WIN_Handle32(hwnd), &ps );
     if (result)
     {
+        for (int i = 0; i < 5; i++)
+        {
+            if (dcc.dcs[i] == lps->hdc)
+            {
+                dcc.dcs[i] = 0;
+                dcc.wnds[i] = 0;
+            }
+        }
         K32WOWHandle16DestroyHint(ps.hdc, WOW_TYPE_HDC);
     }
     return result;
