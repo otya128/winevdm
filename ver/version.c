@@ -166,6 +166,8 @@ static int read_xx_header( HFILE lzfd )
         return IMAGE_OS2_SIGNATURE;
     if ( magic[0] == 'P' && magic[1] == 'E' )
         return IMAGE_NT_SIGNATURE;
+    if ( magic[0] == 'L' && magic[1] == 'E' )
+        return IMAGE_VXD_SIGNATURE;
 
     magic[2] = '\0';
     WARN("Can't handle %s files.\n", magic );
@@ -393,6 +395,30 @@ static BOOL find_pe_resource( HFILE lzfd, LPCSTR typeid, LPCSTR resid,
     return ret;
 }
 
+/***********************************************************************
+ *           find_vxdver_resource         [internal]
+ */
+static BOOL find_vxdver_resource( HFILE lzfd, DWORD *resLen, DWORD *resOff )
+{
+    IMAGE_VXD_HEADER lehd;
+    DWORD lehdoffset;
+    int count;
+
+    /* Read in LE header */
+    lehdoffset = LZSeek( lzfd, 0, SEEK_CUR );
+    if ( sizeof(lehd) != LZRead( lzfd, (LPSTR)&lehd, sizeof(lehd) ) ) return FALSE;
+
+    if ( !lehd.e32_winreslen )
+    {
+        TRACE("No resources in vxd\n" );
+        return FALSE;
+    }
+
+    LZSeek( lzfd, lehd.e32_winresoff + 8, SEEK_SET );
+    if ( resLen ) LZRead( lzfd, (LPSTR *)resLen, 4 );
+    if ( resOff ) *resOff = lehd.e32_winresoff + 12;
+    return TRUE;
+}
 
 /***********************************************************************
  *           find_resource         [internal]
@@ -408,6 +434,9 @@ static DWORD find_resource( HFILE lzfd, LPCSTR type, LPCSTR id, DWORD *reslen, D
         break;
     case IMAGE_NT_SIGNATURE:
         if (!find_pe_resource( lzfd, type, id, reslen, offset )) magic = 0;
+        break;
+    case IMAGE_VXD_SIGNATURE:
+        if ((type != RT_VERSION) || !find_vxdver_resource( lzfd, reslen, offset )) magic = 0;
         break;
     }
     return magic;
