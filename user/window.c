@@ -3193,12 +3193,6 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         cs.hMenu = HMENU_32(menu);
     }
 
-    WNDCLASSEXA wndclass;
-    //reactos win32ss/user/ntuser/window.c
-    if (GetClassInfoExA(cs.hInstance, cs.lpszClass, &wndclass) && cs.hwndParent && (wndclass.style & CS_PARENTDC) && !(GetWindowLongA(cs.hwndParent, GWL_STYLE)  & WS_CLIPCHILDREN))
-    {
-        cs.style &= ~(WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
-    }
     if (release)
     {
         ReleaseThunkLock(&count);
