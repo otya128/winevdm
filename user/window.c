@@ -119,7 +119,8 @@ BOOL CALLBACK remove_wndproc(HWND hwnd, LPARAM lparam)
 {
     if (GetExePtr(GetWindowWord16(HWND_16(hwnd), GWL_HINSTANCE)) == lparam)
     {
-        TRACE("HWND %p WNDPROC removed\n");
+        TRACE("HWND %x WNDPROC removed\n", hwnd);
+        EnumChildWindows(hwnd, remove_wndproc, lparam);
         SetWindowLongPtrA(hwnd, GWLP_WNDPROC, DefWindowProcA);
     }
     return TRUE;
@@ -132,10 +133,10 @@ BOOL CALLBACK enum_thread_window(HWND hwnd, LPARAM lparam)
     {
         if (GetWindowLongPtrA(hwnd, GWLP_WNDPROC) != DefWindowProcA)
         {
-            TRACE("HWND %p WNDPROC removed\n");
+            TRACE("HWND %x WNDPROC removed\n", hwnd);
             SetWindowLongPtrA(hwnd, GWLP_WNDPROC, DefWindowProcA);
         }
-        TRACE("HWND %p destroyed\n");
+        TRACE("HWND %x destroyed\n", hwnd);
         DestroyWindow(hwnd);
     }
     return TRUE;
