@@ -2714,6 +2714,15 @@ INT16 WINAPI AddFontResource16( LPCSTR filename )
     int ret = 0;
     LPCSTR filenameold = filename;
     char filebuf[MAX_PATH];
+    char module[MAX_PATH];
+
+    if (!HIWORD(filename))
+    {
+        if (!GetModuleFileName16(filename, module, MAX_PATH))
+            return 0;
+        filename = module;
+    }
+
     filename = krnl386_search_executable_file(filename, filebuf, MAX_PATH, FALSE);
     TRACE("(%s(%s))\n", debugstr_a(filenameold), debugstr_a(filename));
     ret = AddFontResourceExA(filename, FR_PRIVATE, 0);
@@ -2933,6 +2942,14 @@ INT16 WINAPI GetRgnBox16( HRGN16 hrgn, LPRECT16 rect )
 BOOL16 WINAPI RemoveFontResource16( LPCSTR filename)
 {
     char filebuf[MAX_PATH];
+    char module[MAX_PATH];
+
+    if (!HIWORD(filename))
+    {
+        if (!GetModuleFileName16(filename, module, MAX_PATH))
+            return 0;
+        filename = module;
+    }
     filename = krnl386_search_executable_file(filename, filebuf, MAX_PATH, FALSE);
     return RemoveFontResourceExA(filename, FR_PRIVATE, 0);
 }
