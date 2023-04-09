@@ -1645,8 +1645,11 @@ static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep, BOOL cleanup )
 
     /* Free the objects owned by the DLL module */
     if (cleanup)
+    {
+        if (pModule->ne_flags & NE_FFLAGS_LIBMODULE)
+            TOOLHELP_CallNotify(NFY_DELMODULE, hModule);
         NE_CallUserSignalProc( hModule, USIG16_DLL_UNLOAD, 0, 0, 0 );
-
+    }
 
     if (call_wep && !(pModule->ne_flags & NE_FFLAGS_WIN32))
     {
