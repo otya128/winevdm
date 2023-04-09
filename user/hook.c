@@ -532,6 +532,8 @@ static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp, BOOL
     LRESULT result;
     CallNextHookEx(get_hhook(WH_GETMESSAGE, global), code, wp, lp);
 
+    if (global && !msg->hwnd) return 1; // XXX: a thread message can cause the hook to be called in the wrong context
+
     params.time   = msg->time;
     params.pt.x   = msg->pt.x;
     params.pt.y   = msg->pt.y;
