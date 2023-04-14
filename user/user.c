@@ -1044,6 +1044,28 @@ HANDLE convert_cb_data_16_32(int format, HANDLE16 data16, BOOL set_format)
     switch (format)
     {
     case CF_BITMAP:
+    {
+        DIBSECTION dib;
+        data32 = HGDIOBJ_32(data16);
+        if (GetObject(data32, sizeof(DIBSECTION), &dib))
+        {
+            HDC hdcsrc = CreateCompatibleDC(NULL);
+            HDC hdcdst = CreateCompatibleDC(NULL);
+            HDC hdc = GetDC(NULL);
+            HBITMAP hbmp = CreateCompatibleBitmap(hdc, dib.dsBm.bmWidth, dib.dsBm.bmHeight);
+            ReleaseDC(NULL, hdc);
+            HBITMAP oldhbmpsrc = SelectObject(hdcsrc, data32);
+            HBITMAP oldhbmpdst = SelectObject(hdcdst, hbmp);
+            BitBlt(hdcdst, 0, 0, dib.dsBm.bmWidth, dib.dsBm.bmHeight, hdcsrc, 0, 0, SRCCOPY);
+            SelectObject(hdcsrc, oldhbmpsrc);
+            SelectObject(hdcdst, oldhbmpdst);
+            DeleteDC(hdcsrc);
+            DeleteDC(hdcdst);
+            DeleteObject(data32);
+            data32 = hbmp;
+        }
+        break;
+    }
     case CF_PALETTE:
         data32 = HGDIOBJ_32( data16 );
         break;

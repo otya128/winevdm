@@ -1078,9 +1078,18 @@ INT16 WINAPI GetScrollPos16( HWND16 hwnd, INT16 nBar )
  */
 void WINAPI SetScrollRange16( HWND16 hwnd, INT16 nBar, INT16 MinVal, INT16 MaxVal, BOOL16 redraw )
 {
+    HWND hwnd32 = HWND_32(hwnd);
     /* Invalid range -> range is set to (0,0) */
     if ((INT)MaxVal - (INT)MinVal > 0x7fff) MinVal = MaxVal = 0;
-    SetScrollRange( WIN_Handle32(hwnd), nBar, MinVal, MaxVal, redraw );
+    // don't create a scrollbar if none is wanted
+    if (MinVal == MaxVal)
+    {
+        INT min, max;
+        GetScrollRange(hwnd32, nBar, &min, &max);
+        if (GetLastError() == ERROR_NO_SCROLLBARS)
+            return;
+    }
+    SetScrollRange(hwnd32, nBar, MinVal, MaxVal, redraw);
 }
 
 
