@@ -1085,8 +1085,8 @@ void WINAPI SetScrollRange16( HWND16 hwnd, INT16 nBar, INT16 MinVal, INT16 MaxVa
     if (MinVal == MaxVal)
     {
         INT min, max;
-        GetScrollRange(hwnd32, nBar, &min, &max);
-        if (GetLastError() == ERROR_NO_SCROLLBARS)
+        GetScrollRange(hwnd32, nBar, &min, &max); // always returns TRUE
+        if (!min && !max && GetLastError() == ERROR_NO_SCROLLBARS)
             return;
     }
     SetScrollRange(hwnd32, nBar, MinVal, MaxVal, redraw);

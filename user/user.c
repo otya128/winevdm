@@ -1047,7 +1047,7 @@ HANDLE convert_cb_data_16_32(int format, HANDLE16 data16, BOOL set_format)
     {
         DIBSECTION dib;
         data32 = HGDIOBJ_32(data16);
-        if (GetObject(data32, sizeof(DIBSECTION), &dib))
+        if (GetObject(data32, sizeof(DIBSECTION), &dib) == sizeof(DIBSECTION))
         {
             HDC hdcsrc = CreateCompatibleDC(NULL);
             HDC hdcdst = CreateCompatibleDC(NULL);
