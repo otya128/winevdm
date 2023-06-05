@@ -396,7 +396,7 @@
 556 pascal -ret16 BiDiSetDefaults() BiDiSetDefaults16
 558 pascal -ret16 BiDiGetDefaults() BiDiGetDefaults16
 559 pascal -ret16 BiDiCalcString(word word ptr word word word word word) BiDiCalcString16
-560 pascal -ret16 BiDiShape() BiDiShape16
+560 pascal -ret16 BiDiShape(word word word word word word word word word word word word word word word word word word word word) BiDiShape16
 561 pascal -ret16 BiDiFontComplement() BiDiFontComplement16
 563 pascal -ret16 BiDiCalcTabString() BiDiCalcTabString16
 564 pascal -ret16 BiDiSetKashida() BiDiSetKashida16

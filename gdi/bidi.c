@@ -197,7 +197,13 @@ LONG WINAPI BiDiCalcString16(WORD a1, WORD a2, LPCSTR a3, WORD a4, WORD a5, WORD
 /***********************************************************************
  *		BiDiShape   (GDI.560)
  */
-LONG WINAPI BiDiShape16(void) { FIXME("stub (no prototype)\n"); return 0; }
+LONG WINAPI BiDiShape16(WORD a1, WORD a2, WORD a3, WORD a4, WORD a5, WORD a6, WORD a7, WORD a8, WORD a9, WORD a10,
+                WORD a11, WORD a12, LPCSTR a13, WORD a14, WORD a15, WORD a16, WORD a17, WORD a18, WORD a19, WORD a20)
+{
+    FIXME("stub(%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,", a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+    FIXME("%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%04x)\n", a11, a12, a13, a14, a15, a16, a17, a18, a19, a20);
+    return 0;
+}
 
 /***********************************************************************
  *		BiDiFontComplement   (GDI.561)
