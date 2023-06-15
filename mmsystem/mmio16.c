@@ -381,6 +381,14 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
 MMRESULT16 WINAPI mmioClose16(HMMIO16 hmmio, UINT16 uFlags)
 {
     MMRESULT ret;
+    MMIOINFO mmioinfo;
+    HMMIO hmmio32 = HMMIO_32(hmmio);
+
+    if (!(uFlags & MMIO_FHOPEN) && !mmioGetInfo(hmmio32, &mmioinfo, 0))
+    {
+        if (mmioinfo.fccIOProc == FOURCC_DOS)
+            DisposeLZ32Handle(mmioinfo.adwInfo[0]);
+    }
 
     EnterCriticalSection(&mmio_cs);
     ret = mmioClose(HMMIO_32(hmmio), uFlags);
