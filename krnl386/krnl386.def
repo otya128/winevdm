@@ -24,7 +24,7 @@ EXPORTS
   GetProcessDword @19
   DosFileHandleToWin32Handle @20
   Win32HandleToDosFileHandle @21
-  DisposeLZ32Handle @22
+  DeleteDosFileHandle @22
   GlobalAlloc16 @23
   GlobalLock16 @24
   GlobalUnlock16 @25

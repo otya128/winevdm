@@ -371,7 +371,7 @@ HFILE WINAPI Win32HandleToDosFileHandle( HANDLE handle )
  *       this because of the way our DOS handles are implemented.
  *       It shouldn't break anything though.
  */
-void WINAPI DisposeLZ32Handle( HANDLE handle )
+BOOL16 WINAPI DeleteDosFileHandle( HANDLE handle )
 {
     int i;
 
@@ -381,10 +381,9 @@ void WINAPI DisposeLZ32Handle( HANDLE handle )
         if (dos_handles[i] == handle)
         {
             dos_handles[i] = 0;
-            /* lzexpand.dll16 uses wine-based lzexpand implementation. so call _lclose instead of LZClose */
-            _lclose( handle );
-            break;
+            return TRUE;
         }
+    return FALSE;
 }
 
 /***********************************************************************
