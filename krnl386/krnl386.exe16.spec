@@ -569,7 +569,7 @@
 @ stdcall -arch=win32 GetProcessDword(long long)
 @ stdcall -arch=win32 DosFileHandleToWin32Handle(long)
 @ stdcall -arch=win32 Win32HandleToDosFileHandle(long)
-@ stdcall -arch=win32 DisposeLZ32Handle(long)
+@ stdcall -arch=win32 DeleteDosFileHandle(long)
 @ stdcall -arch=win32 GlobalAlloc16(long long)
 @ stdcall -arch=win32 GlobalLock16(long)
 @ stdcall -arch=win32 GlobalUnlock16(long)

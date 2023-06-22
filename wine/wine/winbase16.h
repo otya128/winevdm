@@ -350,7 +350,7 @@ WORD        WINAPI AllocSelector16(WORD);
 WORD        WINAPI AllocSelectorArray16(WORD);
 VOID        WINAPI DirectedYield16(HTASK16);
 HGLOBAL16   WINAPI DirectResAlloc16(HINSTANCE16,WORD,UINT16);
-void        WINAPI DisposeLZ32Handle(HANDLE);
+BOOL16      WINAPI DeleteDosFileHandle(HANDLE);
 HANDLE      WINAPI DosFileHandleToWin32Handle(HFILE);
 HANDLE16    WINAPI FarGetOwner16(HGLOBAL16);
 VOID        WINAPI FarSetOwner16(HGLOBAL16,HANDLE16);

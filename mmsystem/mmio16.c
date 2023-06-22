@@ -381,14 +381,22 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
 MMRESULT16 WINAPI mmioClose16(HMMIO16 hmmio, UINT16 uFlags)
 {
     MMRESULT ret;
+    HMMIO hmmio32 = HMMIO_32(hmmio);
+    MMIOINFO mmioinfo = {0};
+
+    if (!(uFlags & MMIO_FHOPEN))
+        mmioGetInfo(hmmio32, &mmioinfo, 0);
 
     EnterCriticalSection(&mmio_cs);
-    ret = mmioClose(HMMIO_32(hmmio), uFlags);
+    ret = mmioClose(hmmio32, uFlags);
     if (ret == MMSYSERR_NOERROR)
     {
         struct mmio_thunk* thunk;
 
-        if ((thunk = MMIO_HasThunk(HMMIO_32(hmmio))))
+        if (mmioinfo.fccIOProc == FOURCC_DOS)
+            DeleteDosFileHandle(mmioinfo.adwInfo[0]);
+
+        if ((thunk = MMIO_HasThunk(hmmio32)))
         {
             MMIO_SetSegmentedBuffer(thunk, 0, TRUE);
             thunk->pfn16 = NULL;

@@ -572,7 +572,8 @@ void WINAPI LZClose( HFILE fd )
         {
             HeapFree( GetProcessHeap(), 0, lzs->get );
             lzstates[fd - LZ_MIN_HANDLE] = NULL;
-            DisposeLZ32Handle(lzs->realfd);
+            if (DeleteDosFileHandle(lzs->realfd))
+                CloseHandle(lzs->realfd);
             HeapFree( GetProcessHeap(), 0, lzs );
         }
 }

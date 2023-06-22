@@ -135,7 +135,12 @@ HFILE16 WINAPI LZOpenFile16(LPSTR fn, LPOFSTRUCT ofs, UINT16 mode)
 void WINAPI LZClose16( HFILE16 fd )
 {
     if (IS_LZ_HANDLE(fd)) LZClose( fd );
-    else DisposeLZ32Handle( DosFileHandleToWin32Handle((HFILE)fd) );
+    else
+    {
+        HANDLE fh = DosFileHandleToWin32Handle((HFILE)fd);
+        if (DeleteDosFileHandle(fh))
+            CloseHandle(fh);
+    }
 }
 
 
