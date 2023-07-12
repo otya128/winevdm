@@ -2126,6 +2126,22 @@ static BOOL HLPFILE_ReadFont(HLPFILE* hlpfile)
         hlpfile->fonts[i].color = RGB(ref[dscr_offset + i * 11 + 5],
                                       ref[dscr_offset + i * 11 + 6],
                                       ref[dscr_offset + i * 11 + 7]);
+        if (!hlpfile->fonts[i].LogFont.lfHeight) // uses default createfont height
+        {
+            HFONT font;
+            if (font = CreateFontIndirectA(&hlpfile->fonts[i].LogFont))
+            {
+                HDC hdc = CreateCompatibleDC(NULL);
+                HFONT oldfont = SelectObject(hdc, font);
+                TEXTMETRICA tm;
+                if (GetTextMetricsA(hdc, &tm))
+                    hlpfile->fonts[i].LogFont.lfHeight = (tm.tmHeight * 72 * 2) / GetDeviceCaps(hdc, LOGPIXELSY);
+                SelectObject(hdc, oldfont);
+                DeleteDC(hdc);
+                DeleteObject(font);
+            }
+        }
+	
 #define X(b,s) ((flag & (1 << b)) ? "-"s: "")
         WINE_TRACE("Font[%d]: flags=%02x%s%s%s%s%s%s pSize=%u family=%u face=%s[%u] color=%08x\n",
                    i, flag,
