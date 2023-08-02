@@ -5296,3 +5296,10 @@ BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
     }
     return TRUE;
 }
+
+HFONT16 WINAPI GetSystemIconFont16()
+{
+    // only known to be used by Simplified Chinese progman
+    // uses SPI_GETICONTITLELOGFONT if this returns 0
+    return 0;
+}

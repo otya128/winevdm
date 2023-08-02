@@ -1171,6 +1171,7 @@ DWORD WINAPI TaskGetCSIP16(HTASK16 htask)
 BOOL WINAPI TaskSwitch16(HTASK16 htask, SEGPTR dwNewCSIP)
 {
     BOOL s = TaskSetCSIP16(htask, SELECTOROF(dwNewCSIP), OFFSETOF(dwNewCSIP));
+    PostThreadMessage(HTASK_32(htask), 0, 0, 0);
     if (s)
     {
         DirectedYield16(htask);
