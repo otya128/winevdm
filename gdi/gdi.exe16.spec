@@ -106,7 +106,8 @@
 106 pascal   SetBitmapBits(word long ptr) SetBitmapBits16
 # ??? (not even in W1.1)
 117 pascal   SetDCOrg(word s_word s_word) SetDCOrg16
-118 stub InternalCreateDC # W1.1, W2.0
+# 118 stub InternalCreateDC # W1.1, W2.0
+118 pascal -ret16 GetSystemIconFont() GetSystemIconFont16
 119 pascal -ret16 AddFontResource(str) AddFontResource16
 120 stub GetContinuingTextExtent # W1.1, W2.0
 121 pascal -ret16 Death(word) Death16

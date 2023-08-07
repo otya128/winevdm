@@ -21,9 +21,9 @@
 #include "wine/winuser16.h"
 #include "wownt32.h"
 #include "user_private.h"
-#include "wine/server.h"
 #include "wine/debug.h"
 #include "wine/exception.h"
+#include "../krnl386/kernel16_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(win);
 
@@ -2970,11 +2970,14 @@ HWND16 WINAPI FindWindowEx16( HWND16 parent, HWND16 child, LPCSTR className, LPC
 LRESULT def_frame_proc_callback(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT *result, void *arg)
 {
     DWORD count;
-    ReleaseThunkLock(&count);
+    HANDLE yevent = kernel_get_thread_data()->yield_event;
+    if (!yevent)
+        ReleaseThunkLock(&count);
     if (hwnd == (HWND)arg)
         arg = NULL;
     *result = DefFrameProcA(hwnd, (HWND)arg, msg, wp, lp);
-    RestoreThunkLock(count);
+    if (!yevent)
+        RestoreThunkLock(count);
     return *result;
 }
 /***********************************************************************

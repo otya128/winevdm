@@ -3476,19 +3476,12 @@ BOOL16 WINAPI GetRasterizerCaps16( LPRASTERIZER_STATUS lprs, UINT16 cbNumBytes )
 INT16 WINAPI EnumFontFamilies16( HDC16 hDC, LPCSTR lpFamily,
                                  FONTENUMPROC16 efproc, LPARAM lpData )
 {
-    LOGFONT16 lf, *plf;
+    struct callback16_info info;
 
-    if (lpFamily)
-    {
-        if (!*lpFamily) return 1;
-        lstrcpynA( lf.lfFaceName, lpFamily, LF_FACESIZE );
-        lf.lfCharSet = DEFAULT_CHARSET;
-        lf.lfPitchAndFamily = 0;
-        plf = &lf;
-    }
-    else plf = NULL;
-
-    return EnumFontFamiliesEx16( hDC, plf, efproc, lpData, 0 );
+    info.proc = (FARPROC16)efproc;
+    info.param = lpData;
+    info.result = 1;
+    return EnumFontFamiliesA(HDC_32(hDC), lpFamily, enum_font_callback, (LPARAM)&info);
 }
 
 
@@ -5295,4 +5288,11 @@ BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
         break;
     }
     return TRUE;
+}
+
+HFONT16 WINAPI GetSystemIconFont16()
+{
+    // only known to be used by Simplified Chinese progman
+    // uses SPI_GETICONTITLELOGFONT if this returns 0
+    return 0;
 }
