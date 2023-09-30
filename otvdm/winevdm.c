@@ -888,6 +888,7 @@ int entry_point( int argc, char *argv[] )
     LoadLibrary16( "gdi.exe" );
     LoadLibrary16( "user.exe" );
     LoadLibrary16( "mmsystem.dll" );
+    LoadLibrary16( "shell.dll" );
 
     krnl386_set_compat_path(appname);
 
