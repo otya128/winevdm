@@ -228,11 +228,6 @@ BOOL16 GLOBAL_FreeBlock( HGLOBAL16 handle )
     sel = GlobalHandleToSel16( handle );
     if (!VALID_HANDLE(sel)) return FALSE;
     pArena = GET_ARENA_PTR(sel);
-    if (!pArena->size)
-    {
-        WARN( "already free %x\n", handle );
-        return FALSE;
-    }
     SELECTOR_FreeBlock( sel );
     clear_sel_table(sel, pArena->selCount);
     memset( pArena, 0, sizeof(GLOBALARENA) );
