@@ -879,7 +879,7 @@ void install_global_hook()
                         if (id == WH_JOURNALPLAYBACK)
                         {
                             BlockInput(TRUE);
-                            info->hhook[index] = SetTimer(NULL, 0, 100, journal_playback_cb);
+                            info->hhook[index] = SetTimer(NULL, 0, 10, journal_playback_cb);
                             return;
                         }
                         else
