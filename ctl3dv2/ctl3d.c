@@ -89,6 +89,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID lpvReserved)
         TlsFree(autosubclass_index);
         break;
     case DLL_THREAD_DETACH:
+    {
         struct autosubclass *asc = TlsGetValue(autosubclass_index);
         if (asc)
         {
@@ -96,6 +97,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID lpvReserved)
             HeapFree(GetProcessHeap(), 0, asc);
         }
         break;
+    }
     }
     return TRUE;
 }
