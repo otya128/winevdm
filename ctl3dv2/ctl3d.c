@@ -49,7 +49,13 @@
 #define CTLMSGOFFSET 3569
 #define CTL3D_CTLCOLOR (WM_USER + CTLMSGOFFSET)
 
-static BOOL16 CTL3D16_is_auto_subclass = FALSE;
+struct autosubclass
+{
+    HHOOK hook;
+    DWORD type;
+};
+
+static DWORD autosubclass_index = NULL;
 
 static WNDPROC listbox_proc;
 static WNDPROC button_proc;
@@ -77,17 +83,99 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD reason, LPVOID lpvReserved)
             edit_proc = cls.lpfnWndProc;
         if (GetClassInfoA(hinstDLL, "#32770", &cls))
             dialog_proc = cls.lpfnWndProc;
+        autosubclass_index = TlsAlloc();
+        break;
+    case DLL_PROCESS_DETACH:
+        TlsFree(autosubclass_index);
+        break;
+    case DLL_THREAD_DETACH:
+        struct autosubclass *asc = TlsGetValue(autosubclass_index);
+        if (asc)
+        {
+            UnhookWindowsHookEx(asc->hook);
+            HeapFree(GetProcessHeap(), 0, asc);
+        }
         break;
     }
     return TRUE;
 }
-/***********************************************************************
- *		Ctl3dAutoSubclass (CTL3DV2.16)
- */
-BOOL16 WINAPI Ctl3dAutoSubclass16(HINSTANCE16 hInst)
+
+static void ctl3d_static(DWORD type, DWORD *style, DWORD *exstyle)
 {
-    CTL3D16_is_auto_subclass = TRUE;
-    return TRUE;
+    switch (*style & 0xf)
+    {
+        case SS_BLACKFRAME:
+            if (type & CTL3D_STATICFRAMES)
+            {
+                *style &= ~SS_BLACKFRAME;
+                *exstyle |= WS_EX_CLIENTEDGE;
+            }
+            break;
+        case SS_GRAYFRAME:
+            if (type & CTL3D_STATICFRAMES)
+            {
+                *style &= ~SS_GRAYFRAME;
+                *style |= SS_ETCHEDFRAME;
+            }
+            break;
+        case SS_WHITEFRAME:
+            if (type & CTL3D_STATICFRAMES)
+            {
+                *style &= ~SS_WHITEFRAME;
+                *exstyle |= WS_EX_DLGMODALFRAME;
+            }
+            break;
+        case SS_BLACKRECT:
+            if (type & CTL3D_STATICTEXTS)
+            {
+                *style &= ~SS_BLACKRECT;
+                *exstyle |= WS_EX_CLIENTEDGE;
+            }
+            break;
+        case SS_GRAYRECT:
+            if (type & CTL3D_STATICTEXTS)
+            {
+                *style &= ~SS_GRAYRECT;
+                *style |= SS_ETCHEDFRAME;
+            }
+            break;
+        case SS_WHITERECT:
+            if (type & CTL3D_STATICTEXTS)
+            {
+                *style &= ~SS_WHITERECT;
+                *exstyle |= WS_EX_DLGMODALFRAME;
+            }
+            break;
+    }
+}                              
+
+static LRESULT CALLBACK subclassproc(INT code, WPARAM wp, LPARAM lp)
+{
+    struct autosubclass *asc = TlsGetValue(autosubclass_index);
+    if (code == HCBT_CREATEWND)
+    {
+        CBT_CREATEWNDA *cbt_cw = (CBT_CREATEWNDA *)lp;
+        char *cls = cbt_cw->lpcs->lpszClass;
+        if ((DWORD)cls & 0xffff0000)
+        {
+            if ((asc->type & CTL3D_EDITS) && (!strcmpi(cls, "EDIT")) || ((asc->type & CTL3D_LISTBOXES) && !strcmpi(cls, "LISTBOX")))
+            {
+                DWORD exstyle = cbt_cw->lpcs->dwExStyle | WS_EX_CLIENTEDGE;
+                SetWindowLongA(wp, GWL_EXSTYLE, exstyle);
+            }
+            if (!strcmpi(cls, "STATIC"))
+            {
+                DWORD style = cbt_cw->lpcs->style;
+                DWORD exstyle = cbt_cw->lpcs->dwExStyle;
+                ctl3d_static(asc->type, &style, &exstyle);
+                cbt_cw->lpcs->style = style;
+                cbt_cw->lpcs->dwExStyle = style;
+                SetWindowLongA(wp, GWL_STYLE, style);
+                SetWindowLongA(wp, GWL_EXSTYLE, exstyle);
+            }
+        }
+    }
+    return CallNextHookEx(asc->hook, code, wp, lp);
 }
 
 /***********************************************************************
@@ -95,7 +183,23 @@ BOOL16 WINAPI Ctl3dAutoSubclass16(HINSTANCE16 hInst)
  */
 BOOL16 WINAPI Ctl3dAutoSubclassEx16(HINSTANCE16 hInst, DWORD type)
 {
-    CTL3D16_is_auto_subclass = TRUE;
+    struct autosubclass *asc = TlsGetValue(autosubclass_index);
+    if (!asc)
+    {
+        asc = (struct autosubclass *)HeapAlloc(GetProcessHeap(), 0, sizeof(struct autosubclass));
+        asc->hook = SetWindowsHookExA(WH_CBT, subclassproc, NULL, GetCurrentThreadId());
+        TlsSetValue(autosubclass_index, asc);
+    }
+    asc->type = type;
+    return TRUE;
+}
+
+/***********************************************************************
+ *		Ctl3dAutoSubclass (CTL3DV2.16)
+ */
+BOOL16 WINAPI Ctl3dAutoSubclass16(HINSTANCE16 hInst)
+{
+    Ctl3dAutoSubclassEx16(hInst, CTL3D_ALL);
     return TRUE;
 }
 
@@ -152,7 +256,7 @@ WORD WINAPI Ctl3dGetVer16(void)
  */
 BOOL16 WINAPI Ctl3dIsAutoSubclass16(void)
 {
-    return CTL3D16_is_auto_subclass;
+    return TlsGetValue(autosubclass_index) ? TRUE : FALSE;
 }
 
 /***********************************************************************
@@ -174,8 +278,16 @@ BOOL16 WINAPI Ctl3dSubclassCtlEx16(HWND16 hwnd, INT16 type)
     GetClassNameA(hwnd32, buf, sizeof(buf));
     if ((type & CTL3D_EDITS) && (!strcmpi(buf, "EDIT")) || ((type & CTL3D_LISTBOXES) && !strcmpi(buf, "LISTBOX")))
     {
-        SetWindowLongA(hwnd32, GWL_EXSTYLE, GetWindowLongA(HWND_32(hwnd), GWL_EXSTYLE) | WS_EX_CLIENTEDGE);
+        SetWindowLongA(hwnd32, GWL_EXSTYLE, GetWindowLongA(hwnd32, GWL_EXSTYLE) | WS_EX_CLIENTEDGE);
         SetWindowPos(hwnd32, 0, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_DRAWFRAME);
+    }
+    else if (!strcmpi(buf, "STATIC"))
+    {
+        DWORD style = GetWindowLongA(hwnd32, GWL_STYLE);
+        DWORD exstyle = GetWindowLongA(hwnd32, GWL_EXSTYLE);
+        ctl3d_static(type, &style, &exstyle);
+        SetWindowLongA(hwnd32, GWL_STYLE, style);
+        SetWindowLongA(hwnd32, GWL_EXSTYLE, exstyle);
     }
     return TRUE;
 }
@@ -225,7 +337,12 @@ BOOL16 WINAPI Ctl3dSubclassDlg16(HWND16 hwnd, WORD types)
  */
 BOOL16 WINAPI Ctl3dUnAutoSubclass16(void)
 {
-    CTL3D16_is_auto_subclass = FALSE;
+    struct autosubclass *asc = TlsGetValue(autosubclass_index);
+    if (asc)
+    {
+        UnhookWindowsHookEx(asc->hook);
+        HeapFree(GetProcessHeap(), 0, asc);
+    }
     return FALSE;
 }
 
@@ -234,7 +351,7 @@ BOOL16 WINAPI Ctl3dUnAutoSubclass16(void)
  */
 BOOL16 WINAPI Ctl3dUnregister16(HINSTANCE16 hInst)
 {
-    CTL3D16_is_auto_subclass = FALSE;
+    Ctl3dUnAutoSubclass16();
     return TRUE;
 }
 
