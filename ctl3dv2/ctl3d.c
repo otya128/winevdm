@@ -342,6 +342,7 @@ BOOL16 WINAPI Ctl3dUnAutoSubclass16(void)
     {
         UnhookWindowsHookEx(asc->hook);
         HeapFree(GetProcessHeap(), 0, asc);
+        TlsSetValue(autosubclass_index, 0);
     }
     return FALSE;
 }
