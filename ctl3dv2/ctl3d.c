@@ -171,7 +171,7 @@ static LRESULT CALLBACK subclassproc(INT code, WPARAM wp, LPARAM lp)
                 DWORD exstyle = cbt_cw->lpcs->dwExStyle;
                 ctl3d_static(asc->type, &style, &exstyle);
                 cbt_cw->lpcs->style = style;
-                cbt_cw->lpcs->dwExStyle = style;
+                cbt_cw->lpcs->dwExStyle = exstyle;
                 SetWindowLongA(wp, GWL_STYLE, style);
                 SetWindowLongA(wp, GWL_EXSTYLE, exstyle);
             }
