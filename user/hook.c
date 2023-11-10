@@ -803,7 +803,7 @@ struct journal_pb
     EVENTMSG16 emsg;
 };
 
-// TODO: key delay and mouse messages
+// TODO: mouse messages
 static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD sysTime )
 {
     EVENTMSG16 emsg;
@@ -861,6 +861,7 @@ start:
     }
     if (!info->global_hhook[WH_JOURNALPLAYBACK - WH_MINHOOK]) return;
     memcpy(&jp->emsg, &emsg, sizeof(EVENTMSG16));
+    SetTimer(NULL, jp->timer, time, journal_playback_cb);
 }
 
 
