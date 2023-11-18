@@ -797,19 +797,36 @@ static LRESULT CALLBACK global_call_WH_SHELL(INT code, WPARAM wp, LPARAM lp)
     return call_WH_SHELL(code, wp, lp, TRUE);
 }
 
+struct journal_pb
+{
+    UINT_PTR timer;
+    EVENTMSG16 emsg;
+};
 
-// TODO: key delay and mouse messages
+// TODO: mouse messages
 static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD sysTime )
 {
     EVENTMSG16 emsg;
     LPARAM lp;
     INPUT input;
-    lp = MapLS( &emsg );
-    call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp, TRUE );
-    UnMapLS( lp );
-    TRACE("WH_JOURNALPLAYBACK message: %x paramL: %x paramH: %x\n", emsg.message, emsg.paramL, emsg.paramH);
-    switch( emsg.message )
-       {
+    LRESULT time = 0;
+    struct hook16_queue_info *info = get_hook_info(FALSE, 0);
+    struct journal_pb *jp = info->global_hhook[WH_JOURNALPLAYBACK - WH_MINHOOK];
+    BOOL msg_rdy = jp->emsg.message ? TRUE : FALSE;
+    if (msg_rdy)
+        memcpy(&emsg, &jp->emsg, sizeof(EVENTMSG16));
+start:
+    if (!msg_rdy)
+    {
+        lp = MapLS( &emsg );
+        time = call_hook_16( WH_JOURNALPLAYBACK, HC_GETNEXT, 0, lp, TRUE );
+        UnMapLS( lp );
+    }
+    if (!time)
+    {
+        TRACE("WH_JOURNALPLAYBACK message: %x paramL: %x paramH: %x\n", emsg.message, emsg.paramL, emsg.paramH);
+        switch( emsg.message )
+        {
             case WM_QUEUESYNC:
                 if (GetActiveWindow16())
                     PostMessage16(GetActiveWindow16(), WM_QUEUESYNC, 0, NULL);
@@ -837,7 +854,14 @@ static void WINAPI journal_playback_cb( HWND hwnd, UINT msg, UINT_PTR id, DWORD 
                 SendInput( 1, &input, sizeof(input) );
                 break;
         }
-    call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0, TRUE );
+        if (!info->global_hhook[WH_JOURNALPLAYBACK - WH_MINHOOK]) return;
+        call_hook_16( WH_JOURNALPLAYBACK, HC_SKIP, 0, 0, TRUE );
+        msg_rdy = FALSE;
+        goto start;
+    }
+    if (!info->global_hhook[WH_JOURNALPLAYBACK - WH_MINHOOK]) return;
+    memcpy(&jp->emsg, &emsg, sizeof(EVENTMSG16));
+    SetTimer(NULL, jp->timer, time, journal_playback_cb);
 }
 
 
@@ -879,7 +903,9 @@ void install_global_hook()
                         if (id == WH_JOURNALPLAYBACK)
                         {
                             BlockInput(TRUE);
-                            info->hhook[index] = SetTimer(NULL, 0, 10, journal_playback_cb);
+                            struct journal_pb *jp = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct journal_pb));
+                            jp->timer = SetTimer(NULL, 0, 10, journal_playback_cb);
+                            info->global_hhook[index] = jp;
                             return;
                         }
                         else
@@ -1083,7 +1109,9 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
                     SendInput(1, &input, sizeof(INPUT));
                 }
                 BlockInput(FALSE);
-                KillTimer(NULL, (UINT_PTR)info->hhook[index]);
+                KillTimer(NULL, ((struct journal_pb *)info->global_hhook[index])->timer);
+                HeapFree(GetProcessHeap(), 0, (UINT_PTR)info->global_hhook[index]);
+                info->global_hhook[index] = NULL;
             }
             else
             {
