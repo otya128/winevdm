@@ -1133,13 +1133,14 @@ void WINAPI DOSVM_Int31Handler( CONTEXT *context )
             LDT_ENTRY entry;
             WORD sel = BX_reg(context);
             wine_ldt_get_entry(sel, &entry);
-            if (wine_ldt_get_flags(&entry) & WINE_LDT_FLAGS_ALLOCATED)
+            if (wine_ldt_copy.flags[sel >> __AHSHIFT] & WINE_LDT_FLAGS_ALLOCATED)
             {
                 SET_AX( context, 0x8011 ); /* descriptor unavailable */
                 SET_CFLAG( context );
             }
             else
             {
+                wine_ldt_copy.flags[sel >> __AHSHIFT] |= WINE_LDT_FLAGS_ALLOCATED;
                 wine_ldt_set_flags(&entry, WINE_LDT_FLAGS_DATA);
                 wine_ldt_set_base(&entry, 0);
                 wine_ldt_set_limit(&entry, 0);
