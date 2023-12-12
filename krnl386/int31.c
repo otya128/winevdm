@@ -1122,9 +1122,30 @@ void WINAPI DOSVM_Int31Handler( CONTEXT *context )
         break;
 
     case 0x000d:  /* Allocate specific LDT descriptor */
-        FIXME( "allocate descriptor (0x%04x), stub!\n", BX_reg(context) );
-        SET_AX( context, 0x8011 ); /* descriptor unavailable */
-        SET_CFLAG( context );
+        TRACE( "allocate descriptor (0x%04x)\n", BX_reg(context) );
+        if (!(BX_reg(context) & 4))
+        {
+            SET_AX( context, 0x8022 ); /* gdt descriptor */
+            SET_CFLAG( context );
+        }
+        else
+        {
+            LDT_ENTRY entry;
+            WORD sel = BX_reg(context);
+            wine_ldt_get_entry(sel, &entry);
+            if (wine_ldt_get_flags(&entry) & WINE_LDT_FLAGS_ALLOCATED)
+            {
+                SET_AX( context, 0x8011 ); /* descriptor unavailable */
+                SET_CFLAG( context );
+            }
+            else
+            {
+                wine_ldt_set_flags(&entry, WINE_LDT_FLAGS_DATA);
+                wine_ldt_set_base(&entry, 0);
+                wine_ldt_set_limit(&entry, 0);
+                wine_ldt_set_entry(sel, &entry);
+            }
+        }
         break;
 
     case 0x000e:  /* Get Multiple Descriptors (1.0) */

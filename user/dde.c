@@ -465,6 +465,7 @@ static void seticon(IShellLinkW *link, WCHAR *path, int iconidx)
     IShellLinkW_SetIconLocation(link, path, iconidx);
 }
 
+__declspec(dllimport) LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
 {
     static const WCHAR create_groupW[] = {'C','r','e','a','t','e','G','r','o','u','p',0};
@@ -547,7 +548,8 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         int cmd_argc;
         WCHAR **cmd_argv;
         WCHAR *prg_name, *dirend;
-        BOOL defdirpath = FALSE;
+        WCHAR *dirpath = NULL;
+        WCHAR windirW[MAX_PATH];
 
         if (argc < 1) return DDE_FNOTPROCESSED;
 
@@ -569,8 +571,8 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
         {
             if (argc >= 7)
             {
-                defdirpath = TRUE;
-                len = SearchPathW(argv[6], prg_name, dotexeW, 0, NULL, NULL);
+                dirpath = argv[6];
+                len = SearchPathW(dirpath, prg_name, dotexeW, 0, NULL, NULL);
             }
             if (!wcsicmp(prg_name, winhelpW))
             {
@@ -579,14 +581,25 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
             }
             if (len == 0)
             {
-                LocalFree(cmd_argv);
-                IShellLinkW_Release(link);
-                return DDE_FNOTPROCESSED;
+                char windirA[MAX_PATH];
+                RedirectSystemDir("C:\\windows", windirA, MAX_PATH);
+                int res = MultiByteToWideChar(CP_ACP, 0, windirA, -1, windirW, MAX_PATH);
+                if (res)
+                {
+                    dirpath = windirW;
+                    len = SearchPathW(windirW, prg_name, dotexeW, 0, NULL, NULL);
+                }
+                if (len == 0)
+                {
+                    LocalFree(cmd_argv);
+                    IShellLinkW_Release(link);
+                    return DDE_FNOTPROCESSED;
+                }
             }
         }
         path = heap_alloc(len * sizeof(WCHAR));
-        if (defdirpath)
-            SearchPathW(argv[6], prg_name, dotexeW, len, path, &dirend);
+        if (dirpath)
+            SearchPathW(dirpath, prg_name, dotexeW, len, path, &dirend);
         else
             SearchPathW(NULL, prg_name, dotexeW, len, path, &dirend);
         IShellLinkW_SetPath(link, path);
@@ -604,6 +617,8 @@ static DWORD PROGMAN_OnExecute(WCHAR *command, int argc, WCHAR **argv)
             seticon(link, path, 0);
         if ((argc >= 7) && strlen(argv[6]))
             IShellLinkW_SetWorkingDirectory(link, argv[6]);
+        else if (dirpath)
+            IShellLinkW_SetWorkingDirectory(link, dirpath);
         else
         {
             *dirend = 0;

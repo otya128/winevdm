@@ -75,7 +75,7 @@ struct ne_segment_table_entry_s
 static HINSTANCE16 NE_LoadModule( LPCSTR name, BOOL lib_only );
 static BOOL16 NE_FreeModule( HMODULE16 hModule, BOOL call_wep, BOOL cleanup );
 
-static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_only );
+static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_only, SEGPTR cmdline );
 
 static HMODULE16 NE_GetModuleByFilename( LPCSTR name );
 
@@ -869,13 +869,13 @@ static BOOL NE_LoadDLLs( NE_MODULE *pModule )
             {
                 LPSTR buf = buffer + strlen(buffer);
                 without_ext = TRUE;
-                hDLL = MODULE_LoadModule16(buffer, TRUE, TRUE);
+                hDLL = MODULE_LoadModule16(buffer, TRUE, TRUE, NULL);
                 if (hDLL < 32)
                 {
                     HMODULE16 exe;
                     buf[0] = 0;
                     strcat(buffer, ".EXE");
-                    exe = MODULE_LoadModule16(buffer, TRUE, TRUE);
+                    exe = MODULE_LoadModule16(buffer, TRUE, TRUE, NULL);
                     if (exe >= 32)
                     {
                         hDLL = exe;
@@ -889,7 +889,7 @@ static BOOL NE_LoadDLLs( NE_MODULE *pModule )
             }
             else
             {
-                hDLL = MODULE_LoadModule16(buffer, TRUE, TRUE);
+                hDLL = MODULE_LoadModule16(buffer, TRUE, TRUE, NULL);
             }
 
             if (hDLL < 32)
@@ -1098,7 +1098,7 @@ LPCSTR krnl386_search_executable_file(LPCSTR lpFile, LPSTR buf, SIZE_T size, BOO
  * The caller is responsible that the module is not loaded already.
  *
  */
-static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_only )
+static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_only, SEGPTR cmdline )
 {
     HINSTANCE16 hinst = 2;
     HMODULE16 hModule;
@@ -1227,7 +1227,7 @@ static HINSTANCE16 MODULE_LoadModule16( LPCSTR libname, BOOL implicit, BOOL lib_
          */
         if(pModule->ne_flags & NE_FFLAGS_LIBMODULE)
         {
-            NE_InitializeDLLs(hModule);
+            NE_InitializeDLLs(hModule, cmdline);
             NE_DllProcessAttach(hModule);
         }
         else DOSMEM_InitDosMemory();  /* we will be running a 16-bit task, setup DOS memory */
@@ -1407,12 +1407,12 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
     else
     {
         /* Main case: load first instance of NE module */
-
-        if ((hModule = MODULE_LoadModule16(name, FALSE, lib_only)) < 32)
+        params = paramBlock;
+        SEGPTR cmdline = IsBadReadPtr(params, 8) ? NULL : params->cmdLine;
+        if ((hModule = MODULE_LoadModule16(name, FALSE, lib_only, cmdline)) < 32)
         {
             if (hModule == 21/* win32 */)
             {
-                params = paramBlock;
                 LOADPARMS32 paramBlock32;
                 if (lib_only)
                 {

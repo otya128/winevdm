@@ -680,7 +680,7 @@ static VOID NE_GetDLLInitParams( NE_MODULE *pModule,
  *
  * Call the DLL initialization code
  */
-static BOOL NE_InitDLL( NE_MODULE *pModule )
+static BOOL NE_InitDLL( NE_MODULE *pModule, SEGPTR cmdline )
 {
     SEGTABLEENTRY *pSegTable;
     WORD hInst, ds, heap;
@@ -708,7 +708,7 @@ static BOOL NE_InitDLL( NE_MODULE *pModule )
      * cx     heap size
      * di     library instance
      * ds     data segment if any
-     * es:si  command line (always 0)
+     * es:si  command line
      */
 
     memset( &context, 0, sizeof(context) );
@@ -718,7 +718,13 @@ static BOOL NE_InitDLL( NE_MODULE *pModule )
     context.Ecx = heap;
     context.Edi = hInst;
     context.SegDs = ds;
-    context.SegEs = ds;   /* who knows ... */
+    if (cmdline)
+    {
+        context.SegEs = HIWORD(cmdline);
+        context.Esi = LOWORD(cmdline);
+    }
+    else
+        context.SegEs = ds;   /* who knows ... */
     context.SegFs = wine_get_fs();
     context.SegGs = wine_get_gs();
     context.SegCs = SEL(pSegTable[SELECTOROF(pModule->ne_csip)-1].hSeg);
@@ -753,7 +759,7 @@ static BOOL NE_InitDLL( NE_MODULE *pModule )
  * Recursively initialize all DLLs (according to the order in which
  * they where loaded).
  */
-void NE_InitializeDLLs( HMODULE16 hModule )
+void NE_InitializeDLLs( HMODULE16 hModule, SEGPTR cmdline )
 {
     NE_MODULE *pModule;
     HMODULE16 *pDLL;
@@ -767,11 +773,11 @@ void NE_InitializeDLLs( HMODULE16 hModule )
 	pModule->dlls_to_init = 0;
         for (pDLL = GlobalLock16( to_init ); *pDLL; pDLL++)
         {
-            NE_InitializeDLLs( *pDLL );
+            NE_InitializeDLLs( *pDLL, NULL );
         }
         GlobalFree16( to_init );
     }
-    NE_InitDLL( pModule );
+    NE_InitDLL( pModule, cmdline );
 }
 
 
