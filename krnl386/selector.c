@@ -532,6 +532,7 @@ void WINAPI UnMapLS( SEGPTR sptr )
  */
 LPVOID WINAPI MapSL( SEGPTR sptr )
 {
+    if (!(SELECTOROF(sptr) & 4)) return OFFSETOF(sptr);
     return (char *)wine_ldt_copy.base[SELECTOROF(sptr) >> __AHSHIFT] + OFFSETOF(sptr);
 }
 
