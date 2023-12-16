@@ -67,7 +67,6 @@ int wine_ldt_set_entry(unsigned short sel, const LDT_ENTRY *entry)
 {
 	int ret = 0, index = sel >> 3;
 	ret = TRUE;
-	if (index < LDT_FIRST_ENTRY) return 0;  /* cannot modify reserved entries */
 	if (ret >= 0)
 	{
         wine_ldt[index] = *entry;
@@ -214,8 +213,6 @@ unsigned short wine_ldt_realloc_entries(unsigned short sel, int oldcount, int ne
 static int internal_set_entry(unsigned short sel, const LDT_ENTRY *entry)
 {
 	int ret = 0, index = sel >> 3;
-
-	if (index < LDT_FIRST_ENTRY) return 0;  /* cannot modify reserved entries */
 
 	if (ret >= 0)
 	{

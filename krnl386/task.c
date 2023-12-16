@@ -865,7 +865,7 @@ void WINAPI InitTask16( CONTEXT *context )
         LocalInit16( GlobalHandleToSel16(pTask->hInstance), 0, LOWORD(context->Ecx) );
 
     /* Initialize implicitly loaded DLLs */
-    NE_InitializeDLLs( pTask->hModule );
+    NE_InitializeDLLs( pTask->hModule, NULL );
     NE_DllProcessAttach( pTask->hModule );
 
     /* Registers on return are:

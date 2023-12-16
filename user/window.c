@@ -2530,7 +2530,11 @@ BOOL16 WINAPI SetWindowPlacement16( HWND16 hwnd, const WINDOWPLACEMENT16 *wp16 )
     wpl.rcNormalPosition.top    = wp16->rcNormalPosition.top;
     wpl.rcNormalPosition.right  = wp16->rcNormalPosition.right;
     wpl.rcNormalPosition.bottom = wp16->rcNormalPosition.bottom;
-    return SetWindowPlacement( WIN_Handle32(hwnd), &wpl );
+    DWORD count;
+    ReleaseThunkLock(&count);
+    BOOL ret = SetWindowPlacement( WIN_Handle32(hwnd), &wpl );
+    RestoreThunkLock(count);
+    return ret;
 }
 
 struct WNDCLASS16Info WNDCLASS16Info[65536];
