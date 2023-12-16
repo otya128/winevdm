@@ -458,7 +458,32 @@ static void TASK_DeleteTask( HTASK16 hTask )
 
     /* Free the task module */
 
-    FreeModule16( pTask->hModule );
+    HMODULE16 hmod = pTask->hModule;
+    FreeModule16( hmod );
+
+    /* Is the module still loaded? if so update hinstance if needed */
+    NE_MODULE *pmod = NE_GetPtr(hmod);
+    if (pmod)
+    {
+        HTASK16 prev = hFirstTask;
+        TDB *prevTDB;
+        while (prev)
+        {
+            prevTDB = TASK_GetPtr(prev);
+            if (prevTDB->hModule == hmod)
+            {
+                if (!pmod->ne_autodata)
+                    pmod->self = prevTDB->hInstance;
+                else
+                {
+                    SEGTABLEENTRY *pSeg = NE_SEG_TABLE( pmod ) + pmod->ne_autodata - 1;
+                    pSeg->hSeg = prevTDB->hInstance;
+                }
+                break;
+            }
+            prev = prevTDB->hNext;
+        }
+    }
 
     /* Free the task structure itself */
 
@@ -760,6 +785,8 @@ static void exit_toolhelp()
     InterruptUnRegister16(0);
     NotifyUnRegister16(0);
 }
+
+void FILE_CloseAll();
 /***********************************************************************
  *           TASK_ExitTask
  */
@@ -793,6 +820,7 @@ void TASK_ExitTask(void)
     TASK_UnlinkTask( pTask->hSelf );
     SetEvent(kernel_get_thread_data()->idle_event);
     CloseHandle(kernel_get_thread_data()->idle_event);
+    FILE_CloseAll();
 
     if (!nTaskCount || (nTaskCount == 1 && hFirstTask == initial_task))
     {
