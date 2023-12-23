@@ -2455,6 +2455,8 @@ static BOOL HLPFILE_SystemCommands(HLPFILE* hlpfile)
         hlpfile->lpszCntPath[len-1] = 'T';
         WINE_TRACE("CNT not found, assuming '%s'\n", hlpfile->lpszCntPath);
     }
+    if (!hlpfile->lpszTitle)
+        hlpfile->lpszTitle = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 128);
     return TRUE;
 }
 
