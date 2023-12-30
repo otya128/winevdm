@@ -280,7 +280,30 @@ static LPCSTR strdupWtoOEM(LPCWSTR str)
 
 #define DOS_TABLE_SIZE 256
 
-static HANDLE dos_handles[DOS_TABLE_SIZE];
+static HANDLE *FILE_GetTable()
+{
+    static DWORD dos_handles_index = NULL;
+    if (!dos_handles_index) dos_handles_index = TlsAlloc();
+    HANDLE *dos_handles = TlsGetValue(dos_handles_index);
+    if (!dos_handles)
+    {
+        dos_handles = (HANDLE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(HANDLE)*256);
+        TlsSetValue(dos_handles_index, dos_handles);
+    }
+    return dos_handles;
+}
+
+// only call at task exit
+void FILE_CloseAll()
+{
+    HANDLE *dos_handles = FILE_GetTable();
+    for (int i = 0; i < 256; i++)
+    {
+        if (dos_handles[i])
+            CloseHandle(dos_handles[i]);
+    }
+    HeapFree(GetProcessHeap(), 0, dos_handles);
+}
 
 /***********************************************************************
  *           FILE_InitProcessDosHandles
@@ -295,6 +318,7 @@ static void FILE_InitProcessDosHandles( void )
     HANDLE cp = GetCurrentProcess();
 
     if (init_done) return;
+    HANDLE *dos_handles = FILE_GetTable();
     init_done = TRUE;
     hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -325,6 +349,7 @@ HANDLE WINAPI DosFileHandleToWin32Handle( HFILE handle )
 {
     HFILE16 hfile = (HFILE16)handle;
     if (hfile < 5) FILE_InitProcessDosHandles();
+    HANDLE *dos_handles = FILE_GetTable();
     if ((hfile >= DOS_TABLE_SIZE) || !dos_handles[hfile])
     {
         SetLastError( ERROR_INVALID_HANDLE );
@@ -349,6 +374,7 @@ HFILE WINAPI Win32HandleToDosFileHandle( HANDLE handle )
 
     if (!handle || (handle == INVALID_HANDLE_VALUE))
         return HFILE_ERROR;
+    HANDLE *dos_handles = FILE_GetTable();
     for (i = 5; i < DOS_TABLE_SIZE; i++)
         if (dos_handles[i] == handle) return (HFILE)i;
     for (i = 5; i < DOS_TABLE_SIZE; i++)
@@ -377,6 +403,7 @@ BOOL16 WINAPI DeleteDosFileHandle( HANDLE handle )
 
     if (!handle || (handle == INVALID_HANDLE_VALUE)) return;
 
+    HANDLE *dos_handles = FILE_GetTable();
     for (i = 5; i < DOS_TABLE_SIZE; i++)
         if (dos_handles[i] == handle)
         {
@@ -883,6 +910,7 @@ error:  /* We get here if there was an error opening the file */
  */
 HFILE16 WINAPI _lclose16( HFILE16 hFile )
 {
+    HANDLE *dos_handles = FILE_GetTable();
     if ((hFile >= DOS_TABLE_SIZE) || !dos_handles[hFile])
     {
         SetLastError( ERROR_INVALID_HANDLE );
