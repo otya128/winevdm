@@ -415,11 +415,13 @@ HLPFILE_WINDOWINFO*     WINHELP_GetWindowInfo(HLPFILE* hlpfile, LPCSTR name)
         assert(0);
         return NULL;
     }
+    if (hlpfile && !hlpfile->lpszTitle[0])
+        LoadStringA(Globals.hInstance, STID_WINE_HELP, hlpfile->lpszTitle, 128);
     if (!mwi.name[0])
     {
         strcpy(mwi.type, "primary");
         strcpy(mwi.name, "main");
-        if (hlpfile && hlpfile->lpszTitle && hlpfile->lpszTitle[0])
+        if (hlpfile)
         {
             char        tmp[128];
             LoadStringA(Globals.hInstance, STID_WINE_HELP, tmp, sizeof(tmp));
