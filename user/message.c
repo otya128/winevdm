@@ -3647,12 +3647,61 @@ BOOL16 WINAPI GetInputState16(void)
 INT16 WINAPI TranslateAccelerator16( HWND16 hwnd, HACCEL16 hAccel, LPMSG16 msg )
 {
     MSG msg32;
+    ACCEL16 *accel;
 
     if (!msg) return 0;
+
+    switch (msg->message)
+    {
+    case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
+    case WM_KEYUP:
+    case WM_SYSKEYUP:
+    case WM_CHAR:
+    case WM_SYSCHAR:
+        break;
+    default:
+        return 0;
+    }
+
     msg32.message = msg->message;
     /* msg32.hwnd not used */
     msg32.wParam  = msg->wParam;
     msg32.lParam  = msg->lParam;
+
+    /* Some programs allocate the HACCEL directly instead of loading the HACCEL by LoadAccelerators. */
+    accel = (hAccel & 6) == 6 ? (ACCEL16*)GlobalLock16(hAccel) : 0;
+    if (accel)
+    {
+        int i;
+        int count = GlobalSize16(hAccel) / sizeof(ACCEL16);
+        ACCEL accel32[100];
+        HACCEL haccel32;
+        int ret;
+        ACCEL *table32 = accel32;
+        if (count * sizeof(ACCEL) > sizeof(accel32))
+            table32 = HeapAlloc(GetProcessHeap(), 0, count * sizeof(ACCEL));
+        if (!table32)
+            return 0;
+        for (i = 0; i < count; i++)
+        {
+            table32[i].cmd = accel[i].cmd;
+            table32[i].key = accel[i].key;
+            table32[i].fVirt = accel[i].fVirt & ~0x80;
+            if (accel[i].fVirt & 0x80)
+            {
+                count = i + 1;
+                break;
+            }
+        }
+        haccel32 = CreateAcceleratorTableW(table32, count);
+        GlobalUnlock16(hAccel);
+        if (table32 != accel32)
+            HeapFree(GetProcessHeap(), 0, table32);
+        ret = TranslateAcceleratorW(WIN_Handle32(hwnd), haccel32, &msg32);
+        DestroyAcceleratorTable(haccel32);
+        return ret;
+    }
     return TranslateAcceleratorW( WIN_Handle32(hwnd), HACCEL_32(hAccel), &msg32 );
 }
 
