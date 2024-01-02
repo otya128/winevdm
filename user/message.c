@@ -3669,6 +3669,7 @@ INT16 WINAPI TranslateAccelerator16( HWND16 hwnd, HACCEL16 hAccel, LPMSG16 msg )
     msg32.wParam  = msg->wParam;
     msg32.lParam  = msg->lParam;
 
+#if 0
     /* Some programs allocate the HACCEL directly instead of loading the HACCEL by LoadAccelerators. */
     accel = (hAccel & 6) == 6 ? (ACCEL16*)GlobalLock16(hAccel) : 0;
     if (accel)
@@ -3702,6 +3703,7 @@ INT16 WINAPI TranslateAccelerator16( HWND16 hwnd, HACCEL16 hAccel, LPMSG16 msg )
         DestroyAcceleratorTable(haccel32);
         return ret;
     }
+#endif
     return TranslateAcceleratorW( WIN_Handle32(hwnd), HACCEL_32(hAccel), &msg32 );
 }
 
