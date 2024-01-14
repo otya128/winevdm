@@ -2038,6 +2038,7 @@ static HICON16 get_default_icon(HINSTANCE16 inst)
 #include "../mmsystem/winemm16.h"
 
 void InitWndProc16(HWND hWnd, HWND16 hWnd16);
+ULONG WINAPI get_windows_build();
 /**********************************************************************
  *	     WINPROC_CallProc32ATo16
  *
@@ -2124,12 +2125,25 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                 mdi_cs16.szClass = MapLS( win16classname(mdi_cs->szClass) );
                 cs.lpCreateParams = MapLS( &mdi_cs16 );
             }
-            else if (cs32->lpCreateParams && (GetModuleHandleA("comdlg32.dll") == cs32->hInstance))
+            else if (cs32->lpCreateParams)
             {
-                // if a window hinstance lower 16 bits are nonzero which is not true for 32bit dlls
-                // user32 will put the dword in the dialog item extra bytes in lpcreateparams
-                // so fix things up for commdlg since comdlg32 uses it's own hinstance
-                cs.lpCreateParams = *(SEGPTR *)((BYTE *)cs32->lpCreateParams + 2);
+                if (get_windows_build() >= 22621)
+                {
+                    // Windows 11 22H2 removed much ntvdm support from user32 including the
+                    // lpcreateparams fixup for the dialog item extra bytes
+                    char class[10];
+                    HWND roothwnd = GetAncestor(hwnd, GA_ROOT);
+                    int ret = GetClassName(roothwnd, &class, 10);
+                    if (ret && !strcmp(class, "#32770"))
+                        cs.lpCreateParams = *(SEGPTR *)((BYTE *)cs32->lpCreateParams + 2);
+                }
+                else if (GetModuleHandleA("comdlg32.dll") == cs32->hInstance)
+                {
+                    // if a window hinstance lower 16 bits are nonzero which is not true for 32bit dlls
+                    // user32 will put the dword in the dialog item extra bytes in lpcreateparams
+                    // so fix things up for commdlg since comdlg32 uses it's own hinstance
+                    cs.lpCreateParams = *(SEGPTR *)((BYTE *)cs32->lpCreateParams + 2);
+                }
             }
             lParam = MapLS( &cs );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );

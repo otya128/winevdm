@@ -799,3 +799,4 @@
 @ stdcall -arch=win32 set_vm_inject_cb(long)
 @ stdcall -arch=win32 vm_inject(long long long long long)
 @ stdcall -arch=win32 get_idle_event()
+@ stdcall -arch=win32 get_windows_build()
