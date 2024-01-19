@@ -434,7 +434,10 @@ OLESTATUS WINAPI OleCreate16(LPCSTR name, SEGPTR client, LPCSTR xname, LHCLIENTD
 {
     LPOLECLIENT client32 = get_ole_client32(client);
     LPOLEOBJECT obj32 = 0;
+    DWORD count;
+    ReleaseThunkLock(&count);
     OLESTATUS status = OleCreate(name, client32, xname, hclientdoc, xxname, &obj32, render, format);
+    RestoreThunkLock(count);
     *oleobject = OLEOBJ16(obj32);
     return status;
 }
