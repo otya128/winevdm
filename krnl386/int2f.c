@@ -1027,7 +1027,6 @@ static void MSCDEX_Handler(CONTEXT* context)
 
     case 0x0D: /* get drive letters */
        p = CTX_SEG_OFF_TO_LIN(context, context->SegEs, context->Ebx);
-       memset(p, 0, 26);
        for (drive = 0; drive < 26; drive++) {
            if (is_cdrom(drive)) *p++ = drive;
        }
