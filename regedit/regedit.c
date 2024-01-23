@@ -147,21 +147,6 @@ static void processRegLinesA(FILE *in)
                 continue;
             }
 
-            /* If there is a concatenating '\\', go around again */
-            if (*(s_eol - 1) == '\\') {
-                char *next_line = s_eol + 1;
-
-                if (*s_eol == '\r' && *(s_eol + 1) == '\n')
-                    next_line++;
-
-                while (*(next_line + 1) == ' ' || *(next_line + 1) == '\t')
-                    next_line++;
-
-                MoveMemory(s_eol - 1, next_line, chars_in_buf - (next_line - s) + 1);
-                chars_in_buf -= next_line - s_eol + 1;
-                continue;
-            }
-
             /* Remove any line feed. Leave s_eol on the last \0 */
             if (*s_eol == '\r' && *(s_eol + 1) == '\n')
                 *s_eol++ = '\0';
@@ -247,7 +232,13 @@ int WINAPI WinMain16(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 {
     LPSTR s = lpCmdLine;        /* command line pointer */
     CHAR ch = *s;               /* current character */
-    
+   
+    while (isspace(ch))
+    {
+        s++;
+        ch = *s;
+    } 
+ 
     while (ch && ((ch == '-') || (ch == '/')))
     {
         char chu;
