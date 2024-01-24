@@ -34,6 +34,7 @@
 
 #define REG_VAL_BUF_SIZE        4096
 DWORD WINAPI RegSetValue16(HKEY hkey, LPCSTR name, DWORD type, LPCSTR data, DWORD count);
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 
 /* version for Windows 3.1 */
 static void processRegEntry31(char *line)
@@ -300,6 +301,14 @@ int WINAPI WinMain16(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     while(filename[0])
     {
         reg_file = fopen(filename, "r");
+        if (!reg_file) // start dir for regedit should be the windows dir
+        {
+            char regdir[MAX_PATH];
+            RedirectSystemDir("C:\\WINDOWS", regdir, MAX_PATH);
+            strcat(regdir, "\\");
+            strcat(regdir, filename);
+            reg_file = fopen(regdir, "r");
+        }
         if (reg_file)
         {
             processRegLinesA(reg_file);
