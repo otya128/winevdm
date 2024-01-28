@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include "kernel16_private.h"
 
 // this only currently will get the flags for the first task
 // it might be work on a per-task basis
@@ -78,4 +79,15 @@ void WINAPI krnl386_set_compat_path(const LPCSTR path)
     for (int i = 0; i < size; i++)
         modes[i] = tolower(modes[i]);
     return;
+}
+
+ULONG WINAPI get_windows_build()
+{
+    static ULONG build = 0;
+    if (build) return build;
+    RTL_OSVERSIONINFOEXW winver;
+    if (RtlGetVersion(&winver))
+        return 0;
+    build = winver.dwBuildNumber;
+    return build;
 }
