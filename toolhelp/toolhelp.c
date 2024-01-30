@@ -807,6 +807,7 @@ BOOL WINAPI TOOLHELP_CallNotify(WORD wID, DWORD dwData)
         {
             skip = TRUE;  // task is likely dead
         }
+        __ENDTRY
         if (skip) continue;
         sssp = getWOW32Reserved();
         args[2] = wID;
