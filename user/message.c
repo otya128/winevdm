@@ -4857,11 +4857,7 @@ LRESULT CALLBACK WndProcHook(int code, WPARAM wParam, LPARAM lParam)
                 if (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x30a)
                     SendMessageA(pcwp->hwnd, WM_SETVISIBLE, pcwp->wParam, 0);
                 if (aero_diasble)
-                {
                     SetWindowTheme(pcwp->hwnd, L"", L"");
-                    if (GetMenu(pcwp->hwnd) && !(GetWindowLongA(pcwp->hwnd, GWL_STYLE) & WS_CHILD))
-                        SetWindowPos(pcwp->hwnd, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSIZE | SWP_NOMOVE);
-                }
             }
         }
     }
