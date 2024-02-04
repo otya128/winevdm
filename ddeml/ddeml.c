@@ -264,6 +264,7 @@ UINT16 WINAPI DdeInitialize16(LPDWORD pidInst, PFNCALLBACK16 pfnCallback,
 			      DWORD afCmd, DWORD ulRes)
 {
     UINT16 ret;
+    DWORD count;
     struct ddeml_thunk* thunk;
     // Undocumented 0x800 causes DdeClientTransaction to call DdeUninitialize which will likely
     // create a deadlock with XTYP_EXECUTE if the client and server are in the same process
@@ -271,6 +272,7 @@ UINT16 WINAPI DdeInitialize16(LPDWORD pidInst, PFNCALLBACK16 pfnCallback,
     // MF_POSTMSGS causes also deadlocks in DdeDisconnect in the client thread
     afCmd &= ~MF_POSTMSGS;
 
+    ReleaseThunkLock(&count);
     EnterCriticalSection(&ddeml_cs);
     if ((thunk = DDEML_AddThunk(*pidInst, (DWORD)pfnCallback)))
     {
@@ -279,6 +281,7 @@ UINT16 WINAPI DdeInitialize16(LPDWORD pidInst, PFNCALLBACK16 pfnCallback,
     }
     else ret = DMLERR_SYS_ERROR;
     LeaveCriticalSection(&ddeml_cs);
+    RestoreThunkLock(count);
     return ret;
 }
 

@@ -34,6 +34,7 @@
 
 #define REG_VAL_BUF_SIZE        4096
 DWORD WINAPI RegSetValue16(HKEY hkey, LPCSTR name, DWORD type, LPCSTR data, DWORD count);
+LPCSTR RedirectSystemDir(LPCSTR path, LPSTR to, size_t max_len);
 
 /* version for Windows 3.1 */
 static void processRegEntry31(char *line)
@@ -147,21 +148,6 @@ static void processRegLinesA(FILE *in)
                 continue;
             }
 
-            /* If there is a concatenating '\\', go around again */
-            if (*(s_eol - 1) == '\\') {
-                char *next_line = s_eol + 1;
-
-                if (*s_eol == '\r' && *(s_eol + 1) == '\n')
-                    next_line++;
-
-                while (*(next_line + 1) == ' ' || *(next_line + 1) == '\t')
-                    next_line++;
-
-                MoveMemory(s_eol - 1, next_line, chars_in_buf - (next_line - s) + 1);
-                chars_in_buf -= next_line - s_eol + 1;
-                continue;
-            }
-
             /* Remove any line feed. Leave s_eol on the last \0 */
             if (*s_eol == '\r' && *(s_eol + 1) == '\n')
                 *s_eol++ = '\0';
@@ -247,7 +233,13 @@ int WINAPI WinMain16(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 {
     LPSTR s = lpCmdLine;        /* command line pointer */
     CHAR ch = *s;               /* current character */
-    
+   
+    while (isspace(ch))
+    {
+        s++;
+        ch = *s;
+    } 
+ 
     while (ch && ((ch == '-') || (ch == '/')))
     {
         char chu;
@@ -309,6 +301,14 @@ int WINAPI WinMain16(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     while(filename[0])
     {
         reg_file = fopen(filename, "r");
+        if (!reg_file) // start dir for regedit should be the windows dir
+        {
+            char regdir[MAX_PATH];
+            RedirectSystemDir("C:\\WINDOWS", regdir, MAX_PATH);
+            strcat(regdir, "\\");
+            strcat(regdir, filename);
+            reg_file = fopen(regdir, "r");
+        }
         if (reg_file)
         {
             processRegLinesA(reg_file);

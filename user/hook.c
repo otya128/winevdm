@@ -900,16 +900,7 @@ void install_global_hook()
                 {
                     if (!info->global_hhook[index])
                     {
-                        if (id == WH_JOURNALPLAYBACK)
-                        {
-                            BlockInput(TRUE);
-                            struct journal_pb *jp = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct journal_pb));
-                            jp->timer = SetTimer(NULL, 0, 10, journal_playback_cb);
-                            info->global_hhook[index] = jp;
-                            return;
-                        }
-                        else
-                            info->global_hhook[index] = SetWindowsHookExA(id, global_hook_procs[index], 0, *(LPDWORD)((LPBYTE)tdb->teb + 0x24));
+                        info->global_hhook[index] = SetWindowsHookExA(id, global_hook_procs[index], 0, *(LPDWORD)((LPBYTE)tdb->teb + 0x24));
                     }
                 }
             }
@@ -993,13 +984,28 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
             ERR("failed to allocate hook\n");
             return 0;
         }
+        if (id == WH_JOURNALPLAYBACK)
+        {
+            struct hook16_queue_info *info = get_hook_info(TRUE, 0);
+            if (info->global_hhook[index])
+            {
+                ERR("journal playback hook already set\n");
+                free_hook(entry);
+                return 0;
+            }
+            BlockInput(TRUE);
+            struct journal_pb *jp = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct journal_pb));
+            jp->timer = SetTimer(NULL, 0, 10, journal_playback_cb);
+            info->global_hhook[index] = jp;
+        }
         entry->proc16 = proc;
         entry->hinst16 = GetExePtr(hInst);
-        entry->htask16 = hTask;
+        entry->htask16 = GetCurrentTask();
         entry->type = id;
         entry->global = TRUE;
         list_add_head(&global_hook_entry[index], &entry->entry);
-        install_global_hook();
+        if (id != WH_JOURNALPLAYBACK)
+            install_global_hook();
     }
 
     return entry_to_hhook(entry);
@@ -1109,7 +1115,7 @@ BOOL16 WINAPI UnhookWindowsHookEx16(HHOOK hhook)
                     SendInput(1, &input, sizeof(INPUT));
                 }
                 BlockInput(FALSE);
-                KillTimer(NULL, ((struct journal_pb *)info->global_hhook[index])->timer);
+                KillTimer(NULL, ((struct journal_pb *)(info->global_hhook[index]))->timer);
                 HeapFree(GetProcessHeap(), 0, (UINT_PTR)info->global_hhook[index]);
                 info->global_hhook[index] = NULL;
             }

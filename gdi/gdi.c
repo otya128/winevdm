@@ -2290,6 +2290,12 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
             case VERTRES:
                 ret = 480;
                 break;
+            case HORZSIZE:
+                ret = 169;
+                break;
+            case VERTSIZE:
+                ret = 127;
+                break;
         }
     }
     return ret;

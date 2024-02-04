@@ -38,6 +38,7 @@
 #include "wine/winbase16.h"
 #include "toolhelp.h"
 #include "wine/debug.h"
+#include "wine/exception.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(toolhelp);
 
@@ -788,6 +789,7 @@ BOOL WINAPI TOOLHELP_CallNotify(WORD wID, DWORD dwData)
     {
         WORD args[3];
         PVOID sssp;
+        BOOL skip = FALSE;
         if ((wID == NFY_TASKIN || wID == NFY_TASKOUT) && (notifys[i].wFlags & NF_TASKSWITCH) != NF_TASKSWITCH)
         {
             continue;
@@ -796,6 +798,17 @@ BOOL WINAPI TOOLHELP_CallNotify(WORD wID, DWORD dwData)
         {
             continue;
         }
+        __TRY
+        {
+            // TODO: call notifiers in own thread
+            skip = !IsTask16(GetCurrentTask()) || ((notifys[i].htask & 3) != 3);
+        }
+        __EXCEPT_ALL
+        {
+            skip = TRUE;  // task is likely dead
+        }
+        __ENDTRY
+        if (skip) continue;
         sssp = getWOW32Reserved();
         args[2] = wID;
         args[1] = HIWORD(dwData);
