@@ -3821,15 +3821,16 @@ HDC16 WINAPI ResetDC16( HDC16 hdc, const DEVMODEA *devmode )
     return HDC_16( ResetDCA( HDC_32(hdc), &dma ) );
 }
 
-
 /******************************************************************
  *           StartDoc   (GDI.377)
  */
 INT16 WINAPI StartDoc16( HDC16 hdc, const DOCINFO16 *lpdoc )
 {
     DOCINFOA docA;
+    DWORD count;
+    INT16 ret;
 
-    docA.cbSize = lpdoc->cbSize;
+    docA.cbSize = sizeof(DOCINFOA);
     docA.lpszDocName = MapSL(lpdoc->lpszDocName);
     docA.lpszOutput = MapSL(lpdoc->lpszOutput);
     if(lpdoc->cbSize > offsetof(DOCINFO16,lpszDatatype))
@@ -3840,7 +3841,14 @@ INT16 WINAPI StartDoc16( HDC16 hdc, const DOCINFO16 *lpdoc )
         docA.fwType = lpdoc->fwType;
     else
         docA.fwType = 0;
-    return StartDocA( HDC_32(hdc), &docA );
+    ReleaseThunkLock(&count);
+    ret = StartDocA( HDC_32(hdc), &docA );
+    // if startdoc tries to show a save file dialog but the active window
+    // disappears then it'll fail, try again and it should find a new window
+    if ((ret < 0) && (GetLastError() == ERROR_INVALID_WINDOW_HANDLE))
+        ret = StartDocA( HDC_32(hdc), &docA );
+    RestoreThunkLock(count);
+    return ret;
 }
 
 
