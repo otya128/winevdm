@@ -701,7 +701,7 @@ static HANDLE16 convert_handle_32_to_16(UINT_PTR src, unsigned int flags)
 static BOOL is_old_app( HWND hwnd )
 {
     HINSTANCE inst = (HINSTANCE)GetWindowLongPtrW( hwnd, GWLP_HINSTANCE );
-    return inst && !((ULONG_PTR)inst >> 16) && (GetExpWinVer16(LOWORD(inst)) & 0xFF00) == 0x0300;
+    return inst && !((ULONG_PTR)inst >> 16) && (GetExpWinVer16(LOWORD(inst)) & 0xFFFF) == 0x0300;
 }
 
 static int find_sub_menu( HMENU *hmenu, HMENU16 target )
