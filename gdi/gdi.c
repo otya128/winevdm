@@ -3692,11 +3692,11 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
                               UINT16 NumEntries, const PALETTEENTRY* PaletteColors)
 {
     HPALETTE hpal32 = HPALETTE_32(hpalette);
-    BOOL done = FALSE;
     if (GetObjectType(hpal32) != OBJ_PAL) return;
     if (GetPtr16(hpalette, 1))
     {
         DWORD *dclist = GetPtr16(hpalette, 1);
+        AnimatePalette(hpal32, StartIndex + 10, NumEntries, PaletteColors);
         for (int i = 0; i < 20; i++)
         {
             if (dclist[i])
@@ -3712,12 +3712,6 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
                     HWND hwnd = WindowFromDC(hdc32);
                     InvalidateRect(hwnd, NULL, FALSE);
                     UpdateWindow(hwnd);
-                    if ((dclist[i] & ~0xffff) && !done && krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
-                    {
-                        done = TRUE;
-                        // foreground palettes are identity while background are mapped into the nonstatic area 10-245
-                        AnimatePalette( hpal32, StartIndex + 10, NumEntries, PaletteColors );
-                    }
                 }
                 else if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
                 {
@@ -3730,8 +3724,8 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
             }
         }
     }
-    if (!done)
-        AnimatePalette( hpal32, StartIndex, NumEntries, PaletteColors );
+    else
+        AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
 }
 
 
