@@ -331,7 +331,7 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
 	mmioinfo.pchBuffer   = MapSL((DWORD)lpmmioinfo16->pchBuffer);
         mmioinfo.adwInfo[0]  = lpmmioinfo16->adwInfo[0];
         /* if we don't have a file name, it's likely a passed open file descriptor */
-        if (!szFileName)
+        if (!szFileName && (mmioinfo.fccIOProc != FOURCC_MEM))
             mmioinfo.adwInfo[0] = (DWORD)DosFileHandleToWin32Handle(mmioinfo.adwInfo[0]);
 	mmioinfo.adwInfo[1]  = lpmmioinfo16->adwInfo[1];
 	mmioinfo.adwInfo[2]  = lpmmioinfo16->adwInfo[2];
@@ -343,7 +343,7 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
             thunk->hMmio = NULL;
         }
         else thunk->hMmio = ret;
-        if (ret && (dwOpenFlags & MMIO_ALLOCBUF))
+        if (ret && (dwOpenFlags & MMIO_ALLOCBUF) && !lpmmioinfo16->pchBuffer)
         {
             if (lpmmioinfo16->pchBuffer) FIXME("ooch\n");
             /* FIXME: check whether mmioOpen should set pchBuffer */
