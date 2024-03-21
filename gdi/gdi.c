@@ -4998,8 +4998,12 @@ BOOL16 WINAPI DPtoLP16( HDC16 hdc, LPPOINT16 points, INT16 count )
     {
         for (i = 0; i < count; i++)
         {
-            points[i].x = pt32[i].x;
-            points[i].y = pt32[i].y;
+            if (pt32[i].x >= 0x8000) points[i].x = 0x7fff;
+            else if (pt32[i].x < (LONG)0xffff8000) points[i].x = 0x8000;
+            else points[i].x = pt32[i].x;
+            if (pt32[i].y >= 0x8000) points[i].y = 0x7fff;
+            else if (pt32[i].y < (LONG)0xffff8000) points[i].y = 0x8000;
+            else points[i].y = pt32[i].y;
         }
     }
     if (pt32 != points32) HeapFree( GetProcessHeap(), 0, pt32 );
@@ -5029,8 +5033,12 @@ BOOL16 WINAPI LPtoDP16( HDC16 hdc, LPPOINT16 points, INT16 count )
     {
         for (i = 0; i < count; i++)
         {
-            points[i].x = pt32[i].x;
-            points[i].y = pt32[i].y;
+            if (pt32[i].x >= 0x8000) points[i].x = 0x7fff;
+            else if (pt32[i].x < (LONG)0xffff8000) points[i].x = 0x8000;
+            else points[i].x = pt32[i].x;
+            if (pt32[i].y >= 0x8000) points[i].y = 0x7fff;
+            else if (pt32[i].y < (LONG)0xffff8000) points[i].y = 0x8000;
+            else points[i].y = pt32[i].y;
         }
     }
     if (pt32 != points32) HeapFree( GetProcessHeap(), 0, pt32 );
