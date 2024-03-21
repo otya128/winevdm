@@ -819,6 +819,7 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         lp2 = (LPARAM)(MapLS(lp2));
         break;
     case ICM_DECOMPRESS:
+    {
         ICDECOMPRESS *icdec16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDECOMPRESS));
         ICDECOMPRESS *icdec = lp1;
 
@@ -851,7 +852,7 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         lp1 = (LPARAM)(MapLS(icdec16));
         lp2 = sizeof(ICDECOMPRESS);
         break;
-
+    }
     }
     args[7] = HIWORD(hic);
     args[6] = LOWORD(hic);
