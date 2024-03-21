@@ -152,12 +152,25 @@ BOOL16 VFWAPI DrawDibStop16(HDRAWDIB16 hdd)
     return DrawDibStop(HDRAWDIB_32(hdd));
 }
 
+BOOL16 WINAPI ICInstall16(DWORD fccType, DWORD fccHandler, LPARAM lParam, LPSTR szDesc, UINT16 wFlags);
 /***********************************************************************
  *		ICOpen				[MSVIDEO.203]
  */
 HIC16 VFWAPI ICOpen16(DWORD fccType, DWORD fccHandler, UINT16 wMode)
 {
-    return HIC_16(ICOpen(fccType, fccHandler, wMode));
+    HIC16 ret = HIC_16(ICOpen(fccType, fccHandler, wMode));
+    if (!ret)
+    {
+        char key[10], sysini[MAX_PATH], drvfile[MAX_PATH];
+        sprintf(key, "%4.4s.%4.4s", (char *)&fccType, (char *)&fccHandler);
+        DWORD size = GetPrivateProfileStringA("drivers", key, NULL, drvfile, MAX_PATH, RedirectSystemDir("c:\\windows\\system.ini", sysini, MAX_PATH));
+        if (size)
+        {
+            if (ICInstall16(fccType, fccHandler, drvfile, NULL, ICINSTALL_DRIVER))
+                ret = HIC_16(ICOpen(fccType, fccHandler, wMode));
+        }
+    }
+    return ret;
 }
 
 /***********************************************************************
@@ -724,9 +737,6 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         lp2 = sizeof(ICINFO16);
         break;
     }
-    case ICM_DRAW_QUERY:
-        lp1 = MapLS(lp1);
-        break;
     case ICM_DRAW_BEGIN:
     {
         ICDRAWBEGIN16 *icdb16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDRAWBEGIN16));
@@ -769,6 +779,8 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         lp2 = sizeof(ICDRAWSUGGEST16) - 4;
         break;
     }
+    case ICM_DRAW_QUERY:
+    case ICM_SETSTATE:
     case ICM_DRAW_WINDOW:
         lp1 = (LPARAM)(MapLS(lp1));
         break;
@@ -799,6 +811,47 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
     case ICM_DRAW_REALIZE:
         lp1 = (LPARAM)(HDC_16(lp1));
         break;
+    case ICM_DECOMPRESS_QUERY:
+    case ICM_DECOMPRESS_GET_FORMAT:
+    case ICM_DECOMPRESS_GET_PALETTE:
+    case ICM_DECOMPRESS_BEGIN:
+        lp1 = (LPARAM)(MapLS(lp1));
+        lp2 = (LPARAM)(MapLS(lp2));
+        break;
+    case ICM_DECOMPRESS:
+        ICDECOMPRESS *icdec16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDECOMPRESS));
+        ICDECOMPRESS *icdec = lp1;
+
+        DWORD size = icdec->lpbiInput->biSizeImage;
+        int count = (size + 0xffff) / 0x10000;
+        WORD insel = AllocSelectorArray16(count);
+        for (int i = 0; i < count; i++)
+        {
+            SetSelectorBase(insel + (i << __AHSHIFT), (DWORD)icdec->lpInput + i * 0x10000);
+            SetSelectorLimit16(insel + (i << __AHSHIFT), size - 1);
+            size -= 0x10000;
+        }
+        size = icdec->lpbiOutput->biSizeImage;
+        count = (size + 0xffff) / 0x10000;
+        WORD outsel = AllocSelectorArray16(count);
+        for (int i = 0; i < count; i++)
+        {
+            SetSelectorBase(outsel + (i << __AHSHIFT), (DWORD)icdec->lpOutput + i * 0x10000);
+            SetSelectorLimit16(outsel + (i << __AHSHIFT), size - 1);
+            size -= 0x10000;
+        }
+        
+        icdec16->dwFlags = icdec->dwFlags;
+        icdec16->lpbiInput = MapLS(icdec->lpbiInput);
+        icdec16->lpInput = insel << 16;
+        icdec16->lpbiOutput = MapLS(icdec->lpbiOutput);
+        icdec16->lpOutput = outsel << 16;
+        icdec16->ckid = icdec->ckid;
+
+        lp1 = (LPARAM)(MapLS(icdec16));
+        lp2 = sizeof(ICDECOMPRESS);
+        break;
+
     }
     args[7] = HIWORD(hic);
     args[6] = LOWORD(hic);
@@ -832,9 +885,6 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         HeapFree(GetProcessHeap(), 0, ici16);
         break; 
     }
-    case ICM_DRAW_QUERY:
-        UnMapLS(lp1);
-        break;
      case ICM_DRAW_BEGIN:
     {
         ICDRAWBEGIN16 *icdb16 = MapSL(lp1);
@@ -852,13 +902,32 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         HeapFree(GetProcessHeap(), 0, icds16);
         break;
     }
+    case ICM_DRAW_QUERY:
+    case ICM_SETSTATE:
     case ICM_DRAW_WINDOW:
         UnMapLS(lp1);
         break;
+    case ICM_DECOMPRESS:
+    {
+        ICDECOMPRESS *icdec16 = MapSL(lp1);
+        WORD sel = SELECTOROF(icdec16->lpInput);
+        int count = (GetSelectorLimit16(sel) + 0xffff) / 0x10000;
+        for (int i = 0; i < count; i++)
+            FreeSelector16(sel + (i << __AHSHIFT));
+        sel = SELECTOROF(icdec16->lpOutput);
+        count = (GetSelectorLimit16(sel) + 0xffff) / 0x10000;
+        for (int i = 0; i < count; i++)
+            FreeSelector16(sel + (i << __AHSHIFT));
+        UnMapLS(lp1);
+        UnMapLS(icdec16->lpbiInput);
+        UnMapLS(icdec16->lpbiOutput);
+        HeapFree(GetProcessHeap(), 0, icdec16);
+        break;
+    }
     case ICM_DRAW:
     {
         ICDRAW *icd16 = MapSL(lp1);
-        int count = (lp2 + 0xffff) / 0x10000;
+        int count = (icd16->cbData + 0xffff) / 0x10000;
         WORD sel = SELECTOROF(icd16->lpData);
         for (int i = 0; i < count; i++)
             FreeSelector16(sel + (i << __AHSHIFT));
@@ -867,6 +936,13 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         HeapFree(GetProcessHeap(), 0, icd16);
         break;
     }
+    case ICM_DECOMPRESS_QUERY:
+    case ICM_DECOMPRESS_GET_FORMAT:
+    case ICM_DECOMPRESS_GET_PALETTE:
+    case ICM_DECOMPRESS_BEGIN:
+        UnMapLS(lp1);
+        UnMapLS(lp2);
+        break;
     }
     return ret;
 }
@@ -954,6 +1030,60 @@ void *get_video_thunk(DWORD pfn16)
     }
     return (void *)MSVIDEO_AddThunk(pfn16);
 }    
+
+#define MAX_DRIVERS 10
+
+static struct msvideo_drv
+{
+    DWORD fccType;
+    DWORD fccHandler;
+    HMODULE16 hmod;
+} *MSVIDEO_drv = {0};
+
+BOOL add_module(DWORD fccType, DWORD fccHandler, HMODULE16 hmod)
+{
+    int i;
+    if (!MSVIDEO_drv)
+        MSVIDEO_drv = (struct msvideo_drv *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(struct msvideo_drv) * 10);
+    for (i = 0; i < 10; i++)
+    {
+        if (!MSVIDEO_drv[i].hmod) break;
+    }
+    if (i == 10) return FALSE;
+    MSVIDEO_drv[i].fccType = fccType;
+    MSVIDEO_drv[i].fccHandler = fccHandler;
+    MSVIDEO_drv[i].hmod = hmod;
+    return TRUE;
+}
+
+void remove_module(DWORD fccType, DWORD fccHandler, BOOL unload)
+{
+    HMODULE16 hmod;
+    for (int i = 0; i < 10; i++)
+    {
+        if ((MSVIDEO_drv[i].fccType == fccType) && (MSVIDEO_drv[i].fccHandler == fccHandler))
+        {
+            if (unload)
+            {
+                ICRemove(fccType, fccHandler, 0);
+                FreeLibrary16(MSVIDEO_drv[i].hmod);
+            }
+            MSVIDEO_drv[i].fccType = 0;
+            MSVIDEO_drv[i].fccHandler = 0;
+            MSVIDEO_drv[i].hmod = 0;
+        }
+    }
+}
+
+void remove_all_modules()
+{
+    for (int i = 0; i < 10; i++)
+    {
+        if (MSVIDEO_drv[i].hmod)
+            FreeLibrary(MSVIDEO_drv[i].hmod);
+    }
+    HeapFree(GetProcessHeap(), 0, MSVIDEO_drv);
+}
 
 /***********************************************************************
  *		ICOpenFunction			[MSVIDEO.206]
@@ -1153,6 +1283,7 @@ BOOL WINAPI VIDEO_LibMain(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
     case DLL_PROCESS_ATTACH:
         break;
     case DLL_PROCESS_DETACH:
+        remove_all_modules();
         DeleteCriticalSection(&msvideo_cs);
         break;
     }
@@ -1382,10 +1513,48 @@ BOOL16 WINAPI ICInstall16(DWORD fccType, DWORD fccHandler, LPARAM lParam, LPSTR 
         LeaveCriticalSection(&msvideo_cs);
         return ret;
     }
-    return ICInstall(fccType, fccHandler, lParam, szDesc, wFlags);
+    BOOL16 ret = ICInstall(fccType, fccHandler, lParam, szDesc, wFlags);
+    if (ret && (wFlags == ICINSTALL_DRIVER))
+    {
+        HMODULE16 driver = LoadLibrary16((char *)lParam);
+        if (driver)
+        {
+            FARPROC driverproc = GetProcAddress16(driver, "DRIVERPROC");
+            if (driverproc)
+            {
+                BOOL ret;
+                struct msvideo_thunk*       thunk;
+
+                EnterCriticalSection(&msvideo_cs);
+                if (!(thunk = MSVIDEO_AddThunk((DWORD)driverproc)))
+                {
+                    FreeLibrary16(driver);
+                    LeaveCriticalSection(&msvideo_cs);
+                    return 0;
+                }
+                if (!add_module(fccType, fccHandler, driver))
+                {
+                    thunk->pfn16 = 0;
+                    FreeLibrary16(driver);
+                    LeaveCriticalSection(&msvideo_cs);
+                    return 0;
+                }
+                if (!(ret = ICInstall(fccType, fccHandler, thunk, szDesc, ICINSTALL_FUNCTION)))
+                {
+                    thunk->pfn16 = 0;
+                    remove_module(fccType, fccHandler, TRUE);
+                }
+                LeaveCriticalSection(&msvideo_cs);
+            }
+        }
+    }
+    return ret;        
 }
 
 BOOL16 WINAPI ICRemove16(DWORD fccType, DWORD fccHandler, UINT16 wFlags)
 {
-    return ICRemove(fccType, fccHandler, wFlags);
+    BOOL16 ret = ICRemove(fccType, fccHandler, wFlags);
+    if (ret)
+        remove_module(fccType, fccHandler, TRUE);
+    return ret;
 }

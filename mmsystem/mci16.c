@@ -129,6 +129,56 @@ static void xlate_stat_handle(const char *cmdstr, char *retstr)
     }
 }
 
+// handle the wait ourselves so to prevent the thread from being blocked for 300ms
+static DWORD fix_play_wait(const char *cmdstr, char *retstr, int retlen, char *waitpos)
+{
+    char newstr[128];
+    HWND wndwait = NULL;
+    DWORD devid;
+    if (waitpos && !waitpos[5])
+    {
+        char sid[20];
+        sscanf(cmdstr + 5, "%s", &sid);
+        devid = mciGetDeviceIDA(sid);
+        MCI_GETDEVCAPS_PARMS devcaps = {0};
+        devcaps.dwItem = MCI_GETDEVCAPS_DEVICE_TYPE;
+        mciSendCommandA(devid, MCI_GETDEVCAPS, MCI_GETDEVCAPS_ITEM, &devcaps);
+        // handle the wait ourselves so to prevent the thread from being blocked for 300ms
+        if (devcaps.dwReturn == MCI_DEVTYPE_DIGITAL_VIDEO)
+        {
+            wndwait = CreateWindowA("STATIC", "mcimsgwnd", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, 0, 0);
+            if (wndwait)
+            {
+                int len = (INT_PTR)waitpos - (INT_PTR)cmdstr;
+                sprintf(newstr, "%.*s notify", len, cmdstr, wndwait);
+                cmdstr = newstr;
+            }
+        }
+    }
+    DWORD ret = mciSendStringA(cmdstr, retstr, retlen, wndwait);
+    if (!ret && wndwait)
+    {
+        DWORD count;
+        ReleaseThunkLock(&count);
+        while (1)
+        {
+            MCI_GENERIC_PARMS genparm = {0};
+            MSG msg;
+            DWORD test;
+            if (mciDriverYield(devid))
+                mciSendCommandA(devid, MCI_STOP, 0, &genparm);
+            MsgWaitForMultipleObjects(0, 0, FALSE, 300, QS_POSTMESSAGE | QS_SENDMESSAGE);
+            if (PeekMessageA(&msg, wndwait, MM_MCINOTIFY, MM_MCINOTIFY, PM_REMOVE))
+                break;
+        }
+        RestoreThunkLock(count);
+    }
+    if (wndwait)
+        DestroyWindow(wndwait);
+    return ret;
+}
+
+
 /**************************************************************************
  * 			MCI_MessageToString			[internal]
  */
@@ -1060,7 +1110,16 @@ DWORD WINAPI mciSendString16(LPCSTR lpstrCommand, LPSTR lpstrRet,
 			     UINT16 uRetLen, HWND16 hwndCallback)
 {
     char newstr[128];
+    if (!strncmp(lpstrCommand, "play ", 5))
+    {
+        char *waitpos = strstr(lpstrCommand, " wait");
+        if (waitpos)
+            return fix_play_wait(lpstrCommand, lpstrRet, uRetLen, waitpos);
+    }
+    DWORD count;
+    ReleaseThunkLock(&count);
     DWORD ret = mciSendStringA(xlate_str_handle(lpstrCommand, newstr), lpstrRet, uRetLen, HWND_32(hwndCallback));
+    RestoreThunkLock(count);
     if (!ret && lpstrRet && !strncmp(lpstrCommand, "status ", 7))
         xlate_stat_handle(lpstrCommand, lpstrRet);
     return ret;

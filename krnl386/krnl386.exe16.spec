@@ -728,6 +728,7 @@
 @ stdcall -arch=win32 LockResource16(long)
 @ stdcall -arch=win32 SetSelectorBase(long long)
 @ stdcall -arch=win32 SetSelectorLimit16(long long)
+@ stdcall -arch=win32 GetSelectorLimit16(long)
 @ stdcall -arch=win32 SizeofResource16(long long)
 @ stdcall -arch=win32 WinExec16(str long)
 
