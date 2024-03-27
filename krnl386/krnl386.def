@@ -245,3 +245,4 @@ EXPORTS
   set_vm_inject_cb
   get_idle_event
   get_windows_build
+  GetSelectorLimit16
