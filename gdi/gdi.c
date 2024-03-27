@@ -2298,6 +2298,20 @@ INT16 WINAPI GetDeviceCaps16( HDC16 hdc, INT16 cap )
                 break;
         }
     }
+    int newdpi = krnl386_get_config_int("otvdm", "AdjustDPI", FALSE);
+    if (newdpi)
+    {
+        switch (cap)
+        {
+            case LOGPIXELSX:
+                ret = newdpi;
+                break;
+            case LOGPIXELSY:
+                ret = newdpi;
+                break;
+        }
+    }
+
     return ret;
 }
 
