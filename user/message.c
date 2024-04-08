@@ -2134,8 +2134,16 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                     char class[10];
                     HWND roothwnd = GetAncestor(hwnd, GA_ROOT);
                     int ret = GetClassName(roothwnd, &class, 10);
-                    if (ret && !strcmp(class, "#32770"))
-                        cs.lpCreateParams = *(SEGPTR *)((BYTE *)cs32->lpCreateParams + 2);
+                    // if a window is created with a dialog as it's parent lpCreateParams can still be a SEGPTR
+                    __TRY
+                    {
+                        if (ret && !strcmp(class, "#32770") && (*(WORD *)cs32->lpCreateParams == 4))
+                            cs.lpCreateParams = *(SEGPTR *)((BYTE *)cs32->lpCreateParams + 2);
+                    }
+                    __EXCEPT_ALL
+                    {
+                    }
+                    __ENDTRY
                 }
                 else if (GetModuleHandleA("comdlg32.dll") == cs32->hInstance)
                 {
