@@ -1718,8 +1718,8 @@ try_again:
                         /* Some programs expect that gs is not a valid selector! */
                         /* Some programs expect that fs is not a valid selector! */
                         /* win16 sets 0? */
-                        SREG(FS) = 0;//(WORD)context.SegFs == reg_fs ? 0 : context.SegFs;
-                        SREG(GS) = 0;//(WORD)context.SegGs == reg_gs ? 0 : context.SegGs;
+                        SREG(FS) = (WORD)context.SegFs == reg_fs ? 0 : context.SegFs;
+                        SREG(GS) = (WORD)context.SegGs == reg_gs ? 0 : context.SegGs;
                         if (reg)
                         {
                             if (!(ip19 != context.Eip || cs16 != context.SegCs))
