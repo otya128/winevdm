@@ -804,11 +804,16 @@ HFILE16 WINAPI OpenFile16( LPCSTR name, OFSTRUCT *ofs, UINT16 mode )
                 }
                 goto error;
             }
-            pathw = strdupAtoW(path);
-            found = SearchPathW( pathw, filename, NULL, sizeof(ofs->szPathName),
-                                 pathname, NULL );
-            HeapFree( GetProcessHeap(), 0, path );
-            HeapFree( GetProcessHeap(), 0, pathw );
+            if (!wcsicmp(pathname, L"\\\\.\\nul"))
+                found = TRUE;
+            else
+            {
+                pathw = strdupAtoW(path);
+                found = SearchPathW( pathw, filename, NULL, sizeof(ofs->szPathName),
+                                     pathname, NULL );
+                HeapFree( GetProcessHeap(), 0, path );
+                HeapFree( GetProcessHeap(), 0, pathw );
+            }
             if (!found)
             {
                 RtlInitUnicodeString(&uni, pathname);
