@@ -216,7 +216,7 @@
 248 stub QueryJob
 250 pascal -ret16 Copy(ptr ptr word) Copy16
 253 stub DeleteSpoolPage
-254 stub SpoolFile
+254 pascal -ret16 SpoolFile(ptr ptr ptr ptr) SpoolFile16
 267 stub StartDocPrintEra
 268 stub StartPagePrinter
 269 stub WritePrinter
