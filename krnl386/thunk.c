@@ -2531,7 +2531,10 @@ DWORD WINAPIV CallProc32W16( DWORD nrofargs, DWORD argconvmask, FARPROC proc32, 
         {
             SEGPTR ptr = VA_ARG16( valist, SEGPTR );
             /* pascal convention, have to reverse the arguments order */
-            args[nrofargs - i - 1] = (DWORD)MapSL(ptr);
+            DWORD arg = (DWORD)MapSL(ptr);
+            if (!HIWORD(arg))
+                arg = 0;
+            args[nrofargs - i - 1] = arg;
             TRACE("%08x(%p),",ptr,MapSL(ptr));
         }
         else
