@@ -644,6 +644,7 @@ void WINAPI __wine_vxd_timer( CONTEXT *context )
 
 	context->Edx = context->Eax >> 22;
 	context->Eax <<= 10; /* not very precise */
+	RESET_CFLAG(context);
 	break;
 
     case 0x0101: /* current Windows time, msecs */
