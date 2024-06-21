@@ -721,3 +721,41 @@ DWORD WINAPI DrvSetPrinterData16(LPSTR lpPrinter, LPSTR lpProfile,
     HeapFree(GetProcessHeap(), 0, RegStr_Printer);
     return res;
 }
+
+HANDLE16 WINAPI SpoolFile16(LPCSTR printer, LPCSTR port, LPCSTR job, LPCSTR file)
+{
+    HANDLE hprinter;
+    HANDLE16 ret = SP_ERROR;
+    if (!OpenPrinterA(printer, &hprinter, NULL))
+        return SP_ERROR;
+
+    DOC_INFO_1 dinfo;
+    dinfo.pDocName = job;
+    dinfo.pOutputFile = NULL;
+    dinfo.pDatatype = "RAW";
+    
+    if (!StartDocPrinterA(hprinter, 1, &dinfo))
+        goto outprn;
+
+    HFILE fd = CreateFileA(file, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (fd == INVALID_HANDLE_VALUE)
+        goto outfile;
+
+    while (1)
+    {
+        char buf[1024];
+        int read, write;
+        if (!ReadFile(fd, &buf, 1024, &read, NULL) || !read)
+            break;
+        if (!WritePrinter(hprinter, &buf, read, &write))
+            goto outfile;
+    }
+    ret = 1;
+outfile:
+    CloseHandle(fd);
+    EndDocPrinter(hprinter);
+outprn:
+    ClosePrinter(hprinter);
+
+    return ret;
+}
