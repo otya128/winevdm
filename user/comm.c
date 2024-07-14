@@ -182,7 +182,9 @@ static DWORD WINAPI eventth(LPVOID cid)
 			break;
 		}
 		
-		if ((ptr->n_read != -1) && (ptr->n_read < stat.cbInQue) && ptr->wnd)
+		// send cn_receive unconditionally since win31 has a 100ms timeout after
+		// which it sends the notification even if the count is less than cbWriteNotify
+		if ((ptr->n_read != -1) && ptr->n_read && stat.cbInQue && ptr->wnd)
 			PostMessageA(ptr->wnd, WM_COMMNOTIFY, cid, CN_RECEIVE);
 			
 		if ((ptr->n_write != -1) && (ptr->n_write > stat.cbOutQue) && ptr->wnd)
