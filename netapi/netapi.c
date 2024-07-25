@@ -30,32 +30,26 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(netapi);
 
+// Structure taken from https://datatracker.ietf.org/doc/html/draft-leach-cifs-rap-spec-00
+// and https://learn.microsoft.com/en-us/windows/win32/api/lmwksta/ns-lmwksta-wksta_info_100
 typedef struct {
-    SEGPTR wki10_computername;   //The unique computer name given to the workstation when it is started.
-    SEGPTR wki10_username;       //The name of the user currently logged on to the workstation.
-    LPSTR wki10_langroup;       //The default logon domain.The actual logon domain is stored in wkil0_logon_domain.
-    UCHAR wkil0_ver_major;
-    UCHAR wkil0_ver_minor;
-    LPSTR wkil0_1ogon_domain;   //A pointer to a text string with the name of the workstation's logon domain. The value is NULL
-    LPSTR wkil0_oth_domains;    //A pointer to a list of other domains that the workstation is currently browsing.
-                                //The domains are space delimited and the list is zero
+    SEGPTR wki10_computername;   //pointer to a NULL terminated ASCII string that specifies the name of the workstation
+    SEGPTR wki10_username;       //pointer to a NULL terminated ASCII string that specifies the user who is logged on at the workstation
+    LPSTR wki10_langroup;        //pointer to a NULL terminated ASCII string that specifies the domain to which the workstation belongs
+    UCHAR wkil0_ver_major;       //major version number of the operating system the workstation is running
+    UCHAR wkil0_ver_minor;       //minor version number of the operating system the workstation is running
+    LPSTR wkil0_1ogon_domain;    //pointer to a NULL terminated ASCII string that specifies the domain for which a user is logged on
+    LPSTR wkil0_oth_domains;     //pointer to a list of other domains that the workstation is currently browsing.
+                                 //The domains are space delimited and the list is zero
 } WKSTA_INFO_10, *PWKSTA_INFO_10;
 
-//#include <sqlext.h>
-//typedef void*               HDBC;
-//typedef HWND                SQLHWND;
-//typedef signed short        RETCODE;
-//typedef short               SQLSMALLINT;
-//SQL_DRIVER_PROMPT
-
 /***********************************************************************
- *              NetWkstaGetInfo		(WINSOCK.249)
+ *              NetWkstaGetInfo
  */
 INT16 WINAPI NetWkstaGetInfo16(LPCSTR pszServer, USHORT sLevel, char* pbBuffer, USHORT cbBuffer, PUSHORT pcbTotalAvalaible)
 {
     WCHAR serverW[RMLEN] = { 0 };
     MultiByteToWideChar(CP_ACP, 0, pszServer, -1, serverW, RMLEN);
-    //LPBYTE bufptr32 = NULL;
     LPWKSTA_INFO_100 pwkstaInfo100 = NULL;
     NET_API_STATUS status = NetWkstaGetInfo(serverW, 100, (LPBYTE*)&pwkstaInfo100);
 
@@ -78,10 +72,11 @@ INT16 WINAPI NetWkstaGetInfo16(LPCSTR pszServer, USHORT sLevel, char* pbBuffer, 
                     CHAR strUserName[UNLEN];
                     sprintf_s(strUserName, UNLEN, "%S", pwkstaUserInfo0->wkui0_username); // convert to ansi
 
-                    // NT\ds\netapi\svcdlls\wkssvc\server\wksta.c
+                    // Calculate total bytes and location within buffer to store strings
                     DWORD TotalBytesNeeded = sizeof(WKSTA_INFO_10) + (strlen(strComputerName) + strlen(strUserName) + 3) * sizeof(CHAR);
                     LPBYTE FixedDataEnd = (LPBYTE)(pbBuffer + sizeof(WKSTA_INFO_10));
 
+                    // Check if buffer is too small
                     if (cbBuffer < TotalBytesNeeded)
                     {
                         if (pcbTotalAvalaible)
@@ -108,11 +103,11 @@ INT16 WINAPI NetWkstaGetInfo16(LPCSTR pszServer, USHORT sLevel, char* pbBuffer, 
                             pwkstaInfo10->wki10_username = u;
 
                             // Fill in rest of the fields
-                            pwkstaInfo10->wki10_langroup = NULL;
+                            pwkstaInfo10->wki10_langroup = NULL;     //TODO
                             pwkstaInfo10->wkil0_ver_major = (UCHAR)pwkstaInfo100->wki100_ver_major;
                             pwkstaInfo10->wkil0_ver_minor = (UCHAR)pwkstaInfo100->wki100_ver_minor;
-                            pwkstaInfo10->wkil0_1ogon_domain = NULL;
-                            pwkstaInfo10->wkil0_oth_domains = NULL;
+                            pwkstaInfo10->wkil0_1ogon_domain = NULL; //TODO
+                            pwkstaInfo10->wkil0_oth_domains = NULL;  //TODO
                             status = NERR_Success;
                         }
                         else
@@ -131,7 +126,7 @@ INT16 WINAPI NetWkstaGetInfo16(LPCSTR pszServer, USHORT sLevel, char* pbBuffer, 
 
             NetApiBufferFree(pwkstaUserInfo0);
         }
-        // Need to free buffer with NetApiBufferFree
+
         NetApiBufferFree(pwkstaInfo100);
     }
 
