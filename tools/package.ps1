@@ -53,6 +53,7 @@ Make-Dll (Join-Path $root "mmsystem/mmsystem.dll16.spec") "MMSYSTEM" (Join-Path 
 Make-Dll (Join-Path $root "mouse/mouse.drv16.spec") "MOUSE" (Join-Path $dst "dummydll/SYSTEM/MOUSE.DRV")
 Make-Dll (Join-Path $root "msacm/msacm.dll16.spec") "MSACM" (Join-Path $dst "dummydll/SYSTEM/MSACM.DLL")
 Make-Dll (Join-Path $root "msvideo/msvideo.dll16.spec") "MSVIDEO" (Join-Path $dst "dummydll/SYSTEM/MSVIDEO.DLL")
+Make-Dll (Join-Path $root "netapi/netapi.dll16.spec") "NETAPI" (Join-Path $dst "dummydll/SYSTEM/NETAPI.DLL")
 Make-Dll (Join-Path $root "nddeapi/nddeapi.dll16.spec") "NDDEAPI" (Join-Path $dst "dummydll/SYSTEM/NDDEAPI.DLL")
 Make-Dll (Join-Path $root "ole2/ole2.dll16.spec") "OLE2" (Join-Path $dst "dummydll/SYSTEM/OLE2.DLL")
 Make-Dll (Join-Path $root "ole2conv/ole2conv.dll16.spec") "OLE2CONV" (Join-Path $dst "dummydll/SYSTEM/OLE2CONV.DLL")
