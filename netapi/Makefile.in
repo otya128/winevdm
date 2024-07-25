@@ -1,0 +1,5 @@
+MODULE    = netapi.dll16
+IMPORTS   = netapi32
+EXTRADLLFLAGS = -m16
+
+C_SRCS = netapi.c
