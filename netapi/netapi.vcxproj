@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <RootNamespace>netapi</RootNamespace>
     <ProjectGuid>{5AB8CD32-0031-4D8B-BFE0-382C6C1E1770}</ProjectGuid>
   </PropertyGroup>
