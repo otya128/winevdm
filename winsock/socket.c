@@ -442,9 +442,17 @@ static HANDLE16 run_query( HWND16 hWnd, UINT uMsg, LPTHREAD_START_ROUTINE func,
  */
 SOCKET16 WINAPI accept16(SOCKET16 s, struct sockaddr* addr, INT16* addrlen16 )
 {
-    INT addrlen32 = addrlen16 ? *addrlen16 : 0;
-    SOCKET retSocket = accept( s, addr, &addrlen32 );
+    struct sockaddr addr32;
+    INT addrlen32 = addrlen16 ? *addrlen16 : sizeof(addr32);
+    
+    // Both addr and addrlen are optional
+    // If you pass an addrlen parameter, the win32 accept api call assumes the length should be greater or equal to sockaddr struct.
+    // Passing in a value of zero in addrlen32 will cause error WSAEFAULT
+    // As a fix, set addrlen32 to size of a local sockaddr structure and pass this too. Copy the returned contents to addr if necessary.
+
+    SOCKET retSocket = accept( s, &addr32, &addrlen32 );
     if( addrlen16 ) *addrlen16 = addrlen32;
+    if (retSocket != INVALID_SOCKET && addr) memcpy(addr, &addr32, addrlen32);
     return retSocket;
 }
 
