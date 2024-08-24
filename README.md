@@ -86,4 +86,4 @@ winevdm.exe CALC.EXE
 It can also run DOS executables (DOS emulator-like).
 You can set the DOS version with the VDMDOSVER environment variable.
 
-DOS emulation is incomplete and it is recommended to use DOSBox or [MS-DOS Player](http://takeda-toshiya.my.coocan.jp/msdos/).
+DOS emulation is incomplete and it is recommended to use DOSBox or [NTVDMx64](https://github.com/leecher1337/ntvdmx64).
