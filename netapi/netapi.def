@@ -1,0 +1,6 @@
+; File generated automatically from ..\netapi\netapi.dll16.spec; do not edit! Actualy you do have to edit it as not generated!!!
+
+LIBRARY netapi.dll16
+
+EXPORTS
+  _wine_spec_dos_header @1 DATA
