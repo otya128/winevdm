@@ -742,13 +742,16 @@ void DOSVM_setportcb(OUTPROC outproc, INPROC inproc, int port, OUTPROC *oldout, 
     incb[port] = inproc;
 }
 
+BOOL vdd_io_read(int port, int size, WORD *val);
+BOOL vdd_io_write(int port, int size, WORD val);
+
 /**********************************************************************
  *	    DOSVM_inport
  *
  * Note: The size argument has to be handled correctly _externally_
  * (as we always return a DWORD)
  */
-DWORD DOSVM_inport( int port, int size )
+DWORD DOSVM_inport( int port, int size, CONTEXT* ctx )
 {
     DWORD res = ~0U;
 
@@ -784,6 +787,23 @@ DWORD DOSVM_inport( int port, int size )
     }
 #endif
 
+    switch (size)
+    {
+        case 4:
+            res |= DOSVM_inport(port, 2, ctx);
+            res |= DOSVM_inport(port + 2, 2, ctx) << 16;
+            return res;
+        case 2:
+            if (!vdd_io_read(port, 2, &res))
+            {
+                res |= DOSVM_inport(port, 1, ctx);
+                res |= DOSVM_inport(port + 1, 1, ctx) << 8;
+            }
+            return res;
+        case 1:
+            if (vdd_io_read(port, 1, &res, ctx))
+                return res;
+    }
     switch (port)
     {
     case 0x40:
@@ -947,7 +967,7 @@ DWORD DOSVM_inport( int port, int size )
 /**********************************************************************
  *	    DOSVM_outport
  */
-void DOSVM_outport( int port, int size, DWORD value )
+void DOSVM_outport( int port, int size, DWORD value, CONTEXT *ctx )
 {
     TRACE("IO: 0x%x (%d-byte value) to port 0x%04x\n", value, size, port );
 
@@ -982,6 +1002,23 @@ void DOSVM_outport( int port, int size, DWORD value )
     }
 #endif
 
+    switch (size)
+    {
+        case 4:
+            DOSVM_outport(port, 2, value & 0xffff, ctx);
+            DOSVM_outport(port + 2, 2, value >> 16, ctx);
+            return;
+        case 2:
+            if (!vdd_io_write(port, 2, value, ctx))
+            {
+                DOSVM_outport(port, 1, value & 0xff, ctx);
+                DOSVM_outport(port + 1, 1, value >> 8, ctx);
+            }
+            return;
+        case 1:
+            if (vdd_io_write(port, 1, value, ctx))
+                return;
+    }
     switch (port)
     {
     case 0x20:

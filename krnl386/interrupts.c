@@ -1137,57 +1137,12 @@ static void WINAPI DOSVM_Int03Handler(CONTEXT *context)
     }
 }
 
+void vdd_req(char func, CONTEXT *context);
 
 /* NTVDM BOP stub */
 static void WINAPI DOSVM_Int06Handler(CONTEXT *context)
 {
     LPBYTE insn = (LPBYTE)CTX_SEG_OFF_TO_LIN(context, context->SegCs, context->Eip);
-    /*
-     * RegisterModule
-     * DS:SI DLL
-     * ES:DI init func name
-     * DS:BX dispatch routine name
-     */
-    if (insn[0] == 0xc4 && insn[1] == 0xc4 && insn[2] == 0x58 && insn[3] == 0x00)
-    {
-        LPCSTR dll = (LPCSTR)CTX_SEG_OFF_TO_LIN(context, context->SegDs, context->Esi);
-        LPCSTR init = (LPCSTR)CTX_SEG_OFF_TO_LIN(context, context->SegEs, context->Edi);
-        LPCSTR dispatch = (LPCSTR)CTX_SEG_OFF_TO_LIN(context, context->SegDs, context->Ebx);
-        context->Eip += 4;
-#if 0
-        /* NOTE: VDD DLL references ntvdm.exe */
-        HMODULE hVdd = LoadLibraryA(dll);
-        if (!hVdd)
-        {
-            SET_CFLAG(context);
-            SET_AX(context, GetLastError());
-            return;
-        }
-        FARPROC pfnInit = GetProcAddress(hVdd, init);
-        FARPROC pfnDispatch = GetProcAddress(hVdd, dispatch);
-        RESET_CFLAG(context);
-        if (pfnInit)
-        {
-            pfnInit();
-        }
-#else
-        SET_CFLAG(context);
-        SET_AX(context, 1);
-        ERR("VDD RegisterModule not implemented. %s %s %s\n", debugstr_a(dll), debugstr_a(init), debugstr_a(dispatch));
-#endif
-    }
-    /* UnregisterModule */
-    else if (insn[0] == 0xc4 && insn[1] == 0xc4 && insn[2] == 0x58 && insn[3] == 0x01)
-    {
-        WORD handle = LOWORD(context->Eax);
-        context->Eip += 4;
-        ERR("VDD UnregisterModule not implemented. %04x\n", handle);
-    }
-    /* DispatchCall */
-    else if (insn[0] == 0xc4 && insn[1] == 0xc4 && insn[2] == 0x58 && insn[3] == 0x02)
-    {
-        WORD handle = LOWORD(context->Eax);
-        context->Eip += 4;
-        ERR("VDD DispatchCall not implemented. %04x\n", handle);
-    }
+    if (insn[0] == 0xc4 && insn[1] == 0xc4 && insn[2] == 0x58)
+        vdd_req(insn[3], context);
 }

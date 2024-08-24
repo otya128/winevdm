@@ -379,7 +379,7 @@ static BOOL INSTR_EmulateLDS( CONTEXT *context, BYTE *instr, int long_op,
  */
 static DWORD INSTR_inport( WORD port, int size, CONTEXT *context )
 {
-    DWORD res = DOSVM_inport( port, size );
+    DWORD res = DOSVM_inport( port, size, context );
 
     if (TRACE_ON(io))
     {
@@ -410,7 +410,7 @@ static DWORD INSTR_inport( WORD port, int size, CONTEXT *context )
  */
 static void INSTR_outport( WORD port, int size, DWORD val, CONTEXT *context )
 {
-    DOSVM_outport( port, size, val );
+    DOSVM_outport( port, size, val, context );
 
     if (TRACE_ON(io))
     {

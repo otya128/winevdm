@@ -476,44 +476,63 @@ int pic_ack()
 	return 0;
 }
 
-typedef DWORD (*DOSVM_inport_t)(int port, int size);
-typedef void (*DOSVM_outport_t)(int port, int size, DWORD value);
+typedef DWORD (*DOSVM_inport_t)(int port, int size, CONTEXT *ctx);
+typedef void (*DOSVM_outport_t)(int port, int size, DWORD value, CONTEXT *ctx);
 DOSVM_inport_t DOSVM_inport;
 DOSVM_outport_t DOSVM_outport;
+extern "C" void save_context(CONTEXT *context);
+extern "C" void load_context(CONTEXT *context);
 
 // i/o bus
 UINT8 read_io_byte(offs_t addr)
 {
-    return (UINT8)DOSVM_inport(addr, 1);
+    CONTEXT *ctx;
+    save_context(ctx);
+    UINT8 ret = (UINT8)DOSVM_inport(addr, 1, ctx);
+    load_context(ctx);
+    return ret;
 }
 
 UINT16 read_io_word(offs_t addr)
 {
-	return(read_io_byte(addr) | (read_io_byte(addr + 1) << 8));
+    CONTEXT *ctx;
+    save_context(ctx);
+    UINT16 ret = (UINT16)DOSVM_inport(addr, 2, ctx);
+    load_context(ctx);
+    return ret;
 }
 
 UINT32 read_io_dword(offs_t addr)
 {
-	return(read_io_byte(addr) | (read_io_byte(addr + 1) << 8) | (read_io_byte(addr + 2) << 16) | (read_io_byte(addr + 3) << 24));
+    CONTEXT *ctx;
+    save_context(ctx);
+    UINT32 ret = DOSVM_inport(addr, 4, ctx);
+    load_context(ctx);
+    return ret;
 }
 
 void write_io_byte(offs_t addr, UINT8 val)
 {
-    DOSVM_outport(addr, 1, val);
+    CONTEXT *ctx;
+    save_context(ctx);
+    DOSVM_outport(addr, 1, val, ctx);
+    load_context(ctx);
 }
 
 void write_io_word(offs_t addr, UINT16 val)
 {
-	write_io_byte(addr + 0, (val >> 0) & 0xff);
-	write_io_byte(addr + 1, (val >> 8) & 0xff);
+    CONTEXT *ctx;
+    save_context(ctx);
+    DOSVM_outport(addr, 2, val, ctx);
+    load_context(ctx);
 }
 
 void write_io_dword(offs_t addr, UINT32 val)
 {
-	write_io_byte(addr + 0, (val >>  0) & 0xff);
-	write_io_byte(addr + 1, (val >>  8) & 0xff);
-	write_io_byte(addr + 2, (val >> 16) & 0xff);
-	write_io_byte(addr + 3, (val >> 24) & 0xff);
+    CONTEXT *ctx;
+    save_context(ctx);
+    DOSVM_outport(addr, 4, val, ctx);
+    load_context(ctx);
 }
 #undef min
 #undef max
