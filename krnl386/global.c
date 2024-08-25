@@ -798,6 +798,8 @@ DWORD WINAPI WIN16_GlobalFlags16(HGLOBAL16 handle)
 DWORD WINAPI WIN16_GlobalFree16(HGLOBAL16 handle)
 {
     CURRENT_STACK16->es = 0;
+    CURRENT_STACK16->fs = 0;
+    CURRENT_STACK16->gs = 0;
     return GlobalFree16(handle);
 }
 void regen_icon(HICON16 icon);
