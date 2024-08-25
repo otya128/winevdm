@@ -2275,9 +2275,15 @@ HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBack
 UINT16 WINAPI RealizePalette16( HDC16 hdc )
 {
     HDC hdc32 = HDC_32(hdc);
-    if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE)
+    if (krnl386_get_compat_mode("256color"))
+    {
+        if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE)
             && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY) && (GetObjectType(hdc32) == OBJ_DC))
-        set_realized_palette(hdc32);
+            set_realized_palette(hdc32);
+        HWND hwnd = WindowFromDC(hdc32);
+        if (hwnd) RedrawWindow(hwnd, NULL, NULL, RDW_INTERNALPAINT);
+    }
+        
     return UserRealizePalette(hdc32);
 }
 
