@@ -80,4 +80,4 @@
 @ stdcall setOF(long)
 @ stdcall VDDInstallIOHook(long long ptr ptr)
 @ stdcall VDDDeInstallIOHook(long long ptr)
-@ stdcall MGetVDMPointer(long long long)
+@ stdcall MGetVdmPointer(long long long)

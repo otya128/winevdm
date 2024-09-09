@@ -10,6 +10,7 @@ typedef struct
 } vdd_module_t;
 
 static vdd_module_t vdd_modules[5] = {0};
+static CONTEXT *last_context = NULL;
 
 void vdd_req(char func, CONTEXT *context)
 {
@@ -40,12 +41,13 @@ void vdd_req(char func, CONTEXT *context)
             if (!vdd_modules[i].hvdd)
             {
                 vdd_modules[i].hvdd = hVdd;
-                vdd_modules[i].dispatch = dispatch;
+                vdd_modules[i].dispatch = pfnDispatch;
+                break;
             }
         }
         if (i == 5)
         {
-            FreeLibrary(dll);
+            FreeLibrary(hVdd);
             SET_CFLAG(context);
             SET_AX(context, 4);
             return;
@@ -74,11 +76,11 @@ void vdd_req(char func, CONTEXT *context)
         context->Eip += 4;
         if ((handle > 5) || !vdd_modules[handle].hvdd)
             return; // ntvdm exits here
+        last_context = context;
         vdd_modules[handle].dispatch();
+        last_context = NULL;
     }
 }
-
-static CONTEXT *last_context = NULL;
 
 #define GET_LO_BYTE_REG(reg) ((BYTE)(last_context ? last_context->##reg : 0))
 #define GET_HI_BYTE_REG(reg) ((BYTE)((last_context ? last_context->##reg : 0) >> 8))
@@ -533,7 +535,7 @@ static vdd_io_t vdd_io[5] = {0};
 BOOL WINAPI VDDInstallIOHook(HANDLE hvdd, WORD cPortRange, PVDD_IO_PORTRANGE pPortRange, PVDD_IO_HANDLERS IOhandler)
 {
     int handle = (int)hvdd;
-    int found;
+    int found = -1;
     for (int i = 0; i < 5; i++)
     {
         if (!vdd_io[i].hvdd)
@@ -541,13 +543,13 @@ BOOL WINAPI VDDInstallIOHook(HANDLE hvdd, WORD cPortRange, PVDD_IO_PORTRANGE pPo
         if (vdd_io[i].hvdd == hvdd)
             return FALSE;
     }
-    if (found >= 5 || !IOhandler->inb_handler || !IOhandler->outb_handler)
+    if (found == -1 || !IOhandler->inb_handler || !IOhandler->outb_handler)
         return FALSE;
 
     vdd_io[found].hvdd = hvdd;
     memcpy(&vdd_io[found].io_funcs, IOhandler, sizeof(VDD_IO_HANDLERS));
     vdd_io[found].io_range_len = cPortRange;
-    vdd_io[found].io_range = HeapAlloc(GetProcessHeap(), 0, cPortRange * sizeof(VDD_IO_PORTRANGE));
+    vdd_io[found].io_range = (PVDD_IO_PORTRANGE)HeapAlloc(GetProcessHeap(), 0, cPortRange * sizeof(VDD_IO_PORTRANGE));
     memcpy(&vdd_io[found].io_range, pPortRange, cPortRange * sizeof(VDD_IO_PORTRANGE));
     return TRUE;
 }
@@ -561,12 +563,12 @@ void WINAPI VDDDeInstallIOHook(HANDLE hvdd, WORD cPortRange, PVDD_IO_PORTRANGE p
         if (hvdd == vdd_io[i].hvdd)
             break;
     }
-    if (i >= 5);
-        return FALSE;
+    if (i >= 5)
+        return;
 
     vdd_io[i].hvdd = NULL;
     HeapFree(GetProcessHeap(), 0, vdd_io[i].io_range);
-    return TRUE;
+    return;
 }
 
 BOOL vdd_io_read(int port, int size, WORD *val, CONTEXT *ctx)
@@ -635,7 +637,7 @@ BOOL vdd_io_write(int port, int size, WORD val, CONTEXT *ctx)
     return FALSE;
 }
 
-BYTE *WINAPI MGetVDMPointer(DWORD addr, DWORD size, BOOL protmode)
+BYTE *WINAPI MGetVdmPointer(DWORD addr, DWORD size, BOOL protmode)
 {
     return (BYTE *)K32WOWGetVDMPointer(addr, size, protmode);
 }

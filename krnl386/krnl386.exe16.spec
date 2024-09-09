@@ -885,4 +885,4 @@
 @ stdcall -arch=win32 setOF(long)
 @ stdcall -arch=win32 VDDInstallIOHook(long long ptr ptr)
 @ stdcall -arch=win32 VDDDeInstallIOHook(long long ptr)
-@ stdcall -arch=win32 MGetVDMPointer(long long long)
+@ stdcall -arch=win32 MGetVdmPointer(long long long)
