@@ -801,7 +801,7 @@ BOOL WINAPI TOOLHELP_CallNotify(WORD wID, DWORD dwData)
         __TRY
         {
             // TODO: call notifiers in own thread
-            skip = !IsTask16(GetCurrentTask());
+            skip = ((notifys[i].htask & 3) == 3) && !IsTask16(GetCurrentTask());
         }
         __EXCEPT_ALL
         {
