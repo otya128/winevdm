@@ -2816,12 +2816,13 @@ static void INT21_Ioctl_Char( CONTEXT *context )
     BOOL IsConsoleIOHandle = FALSE;
     IO_STATUS_BLOCK io;
     FILE_INTERNAL_INFORMATION info;
+    DWORD mode;
     HANDLE handle = DosFileHandleToWin32Handle(BX_reg(context));
 
     status = NtQueryInformationFile( handle, &io, &info, sizeof(info), FileInternalInformation );
     if (status)
     {
-        if( VerifyConsoleIoHandle( handle))
+        if( GetConsoleMode(handle, &mode) )
             IsConsoleIOHandle = TRUE;
         else {
             SET_AX( context, RtlNtStatusToDosError(status) );
