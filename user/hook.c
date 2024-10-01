@@ -306,12 +306,16 @@ static LRESULT call_hook_entry_16(struct hook16_queue_info *info, struct hook_en
  */
 static LRESULT call_hook_16( INT id, INT code, WPARAM wp, LPARAM lp, BOOL global )
 {
+    _EnterWin16Lock();
     struct hook16_queue_info *info = get_hook_info(FALSE, 0);
     struct list *head = list_head(&(global ? global_hook_entry : info->hook_entry)[id - WH_MIN]);
-    if (!head)
-        return 0;
-    struct hook_entry *hook_entry = LIST_ENTRY(head, struct hook_entry, entry);
-    LRESULT result = call_hook_entry_16(info, hook_entry, id, code, wp, lp);
+    LRESULT result = 0;
+    if (head)
+    {
+        struct hook_entry *hook_entry = LIST_ENTRY(head, struct hook_entry, entry);
+        result = call_hook_entry_16(info, hook_entry, id, code, wp, lp);
+    }
+    _LeaveWin16Lock();
     return result;
 }
 static LRESULT call_hook_entry_16( struct hook16_queue_info *info, struct hook_entry *hook_entry, INT id, INT code, WPARAM wp, LPARAM lp )
@@ -531,8 +535,6 @@ static LRESULT CALLBACK call_WH_GETMESSAGE( INT code, WPARAM wp, LPARAM lp, BOOL
     MSG *msg = (MSG *)lp;
     LRESULT result;
     CallNextHookEx(get_hhook(WH_GETMESSAGE, global), code, wp, lp);
-
-    if (global && !msg->hwnd) return 1; // XXX: a thread message can cause the hook to be called in the wrong context
 
     params.time   = msg->time;
     params.pt.x   = msg->pt.x;
