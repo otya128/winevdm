@@ -706,7 +706,11 @@ static UINT_PTR SHELL_Execute16(const WCHAR *lpCmd, WCHAR *env, BOOL shWait,
 static UINT_PTR WINAPI SHELL_Execute16_Windows(const CHAR *lpCmd, int nShowCmd, const CHAR *lpDir)
 {
 	UINT ret;
+	char currdir[MAX_PATH];
+	GetCurrentDirectoryA(MAX_PATH, currdir);
+	SetCurrentDirectoryA(lpDir);
 	ret = WinExec16(lpCmd, nShowCmd);
+	SetCurrentDirectoryA(currdir);
 	return ret;
 }
 
