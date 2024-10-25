@@ -742,8 +742,8 @@ void DOSVM_setportcb(OUTPROC outproc, INPROC inproc, int port, OUTPROC *oldout, 
     incb[port] = inproc;
 }
 
-BOOL vdd_io_read(int port, int size, WORD *val);
-BOOL vdd_io_write(int port, int size, WORD val);
+BOOL vdd_io_read(int port, int size, WORD *val, CONTEXT *ctx);
+BOOL vdd_io_write(int port, int size, WORD val, CONTEXT *ctx);
 
 /**********************************************************************
  *	    DOSVM_inport
@@ -794,7 +794,7 @@ DWORD DOSVM_inport( int port, int size, CONTEXT* ctx )
             res |= DOSVM_inport(port + 2, 2, ctx) << 16;
             return res;
         case 2:
-            if (!vdd_io_read(port, 2, &res))
+            if (!vdd_io_read(port, 2, &res, ctx))
             {
                 res |= DOSVM_inport(port, 1, ctx);
                 res |= DOSVM_inport(port + 1, 1, ctx) << 8;
