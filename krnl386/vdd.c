@@ -82,15 +82,15 @@ void vdd_req(char func, CONTEXT *context)
     }
 }
 
-#define GET_LO_BYTE_REG(reg) ((BYTE)(last_context ? last_context->##reg : 0))
-#define GET_HI_BYTE_REG(reg) ((BYTE)((last_context ? last_context->##reg : 0) >> 8))
-#define GET_WORD_REG(reg) ((WORD)(last_context ? last_context->##reg : 0))
-#define GET_DWORD_REG(reg) (last_context ? last_context->##reg : 0)
+#define GET_LO_BYTE_REG(reg) ((BYTE)(last_context ? last_context->reg : 0))
+#define GET_HI_BYTE_REG(reg) ((BYTE)((last_context ? last_context->reg : 0) >> 8))
+#define GET_WORD_REG(reg) ((WORD)(last_context ? last_context->reg : 0))
+#define GET_DWORD_REG(reg) (last_context ? last_context->reg : 0)
 
-#define SET_LO_BYTE_REG(reg, val) { if (last_context) last_context->##reg = ((last_context->##reg & ~0xff) | val); }
-#define SET_HI_BYTE_REG(reg, val) { if (last_context) last_context->##reg = ((last_context->##reg & ~0xff00) | (val << 8)); }
-#define SET_WORD_REG(reg, val) { if (last_context) last_context->##reg = ((last_context->##reg & ~0xffff) | val); }
-#define SET_DWORD_REG(reg, val) { if (last_context) last_context->##reg = val; }
+#define SET_LO_BYTE_REG(reg, val) { if (last_context) last_context->reg = ((last_context->reg & ~0xff) | val); }
+#define SET_HI_BYTE_REG(reg, val) { if (last_context) last_context->reg = ((last_context->reg & ~0xff00) | (val << 8)); }
+#define SET_WORD_REG(reg, val) { if (last_context) last_context->reg = ((last_context->reg & ~0xffff) | val); }
+#define SET_DWORD_REG(reg, val) { if (last_context) last_context->reg = val; }
 
 #define GET_FLAG(bit) (last_context ? (last_context->EFlags >> bit) & 1 : 0)
 #define SET_FLAG(bit, val) { if (last_context) last_context->EFlags = ((last_context->EFlags & ~(1 << bit)) | ((val & 1) << bit)); }
