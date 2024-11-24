@@ -312,8 +312,8 @@ __attribute__ ((aligned(4096)))
 WORD seg_cs;
 WORD seg_ds;
 
-typedef DWORD (*DOSVM_inport_t)(int port, int size);
-typedef void (*DOSVM_outport_t)(int port, int size, DWORD value);
+typedef DWORD (*DOSVM_inport_t)(int port, int size, CONTEXT *ctx);
+typedef void (*DOSVM_outport_t)(int port, int size, DWORD value, CONTEXT *ctx);
 DOSVM_inport_t DOSVM_inport;
 DOSVM_outport_t DOSVM_outport;
 
@@ -1310,47 +1310,39 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
         case WHvRunVpExitReasonX64IoPortAccess:
         {
             WHV_X64_IO_PORT_ACCESS_CONTEXT *io = &exit.IoPortAccess;
-            WHV_REGISTER_VALUE vals[] = {{0}, {0}};
-            const WHV_REGISTER_NAME regs[] = {WHvX64RegisterRip, WHvX64RegisterRax, WHvX64RegisterRflags};
-            vals[0].Reg32 = exit.VpContext.Rip + exit.VpContext.InstructionLength;
-            vals[1].Reg64 = io->Rax;
+            CONTEXT ctx;
+            save_context_from_state(&ctx, &state2);
+            ctx.Eip = exit.VpContext.Rip + exit.VpContext.InstructionLength;
+            ctx.Eax = io->Rax;
             if(!(io->AccessInfo.StringOp))
             {
                 switch(io->AccessInfo.AccessSize)
                 {
                     case 1:
                         if(!io->AccessInfo.IsWrite)
-                            vals[1].Reg64 = (io->Rax & ~0xff) | DOSVM_inport(io->PortNumber, 1);
+                            ctx.Eax = (io->Rax & ~0xff) | (UINT8)DOSVM_inport(io->PortNumber, 1, &ctx);
                         else
-                            DOSVM_outport(io->PortNumber, io->Rax, 1);
+                            DOSVM_outport(io->PortNumber, io->Rax, 1, &ctx);
                         break;
                     case 2:
                         if(!io->AccessInfo.IsWrite)
                         {
-                            vals[1].Reg64 = (io->Rax & ~0xffff);
-                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber, 1);
-                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 1, 1) << 8;
+                            ctx.Eax = (io->Rax & ~0xffff);
+                            ctx.Eax |= (UINT16)DOSVM_inport(io->PortNumber, 2, &ctx);
                         }
                         else
                         {
-                            DOSVM_outport(io->PortNumber, io->Rax, 1);
-                            DOSVM_outport(io->PortNumber + 1, io->Rax >> 8, 1);
+                            DOSVM_outport(io->PortNumber, io->Rax, 2, &ctx);
                         }
                         break;
                     case 4:
                         if(!io->AccessInfo.IsWrite)
                         {
-                            vals[1].Reg64 = DOSVM_inport(io->PortNumber, 1);
-                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 1, 1) << 8;
-                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 2, 1) << 16;
-                            vals[1].Reg64 |= DOSVM_inport(io->PortNumber + 3, 1) << 24;
+                            ctx.Eax = DOSVM_inport(io->PortNumber, 4, &ctx);
                         }
                         else
                         {
-                            DOSVM_outport(io->PortNumber, io->Rax, 1);
-                            DOSVM_outport(io->PortNumber + 1, io->Rax >> 8, 1);
-                            DOSVM_outport(io->PortNumber + 2, io->Rax >> 16, 1);
-                            DOSVM_outport(io->PortNumber + 3, io->Rax >> 24, 1);
+                            DOSVM_outport(io->PortNumber, io->Rax, 4, &ctx);
                         }
                         break;
                 }
@@ -1365,47 +1357,49 @@ void vm86main(CONTEXT *context, DWORD csip, DWORD sssp, DWORD cbArgs, PEXCEPTION
                     addr = mem + io->Es.Base + io->Rdi;
                 for(int i = 0; i < count; i++)
                 {
-                    addr = exit.VpContext.Rflags & 0x400 ? addr - io->AccessInfo.AccessSize : addr + io->AccessInfo.AccessSize;
+                    addr = ctx.EFlags & 0x400 ? addr - io->AccessInfo.AccessSize : addr + io->AccessInfo.AccessSize;
                     switch(io->AccessInfo.AccessSize)
                     {
                         case 1:
                             if(!io->AccessInfo.IsWrite)
-                                DOSVM_outport(io->PortNumber, *addr, 1);
+                                DOSVM_outport(io->PortNumber, *addr, 1, &ctx);
                             else
-                                *addr = DOSVM_inport(io->PortNumber, 1);
+                                *addr = DOSVM_inport(io->PortNumber, 1, &ctx);
                             break;
                         case 2:
                             if(!io->AccessInfo.IsWrite)
                             {
-                                DOSVM_outport(io->PortNumber, *addr, 1);
-                                DOSVM_outport(io->PortNumber + 1, *(addr + 1), 1);
+                                DOSVM_outport(io->PortNumber, *addr, 2, &ctx);
                             }
                             else
                             {
-                                *addr = DOSVM_inport(io->PortNumber, 1);
-                                *(addr + 1) = DOSVM_inport(io->PortNumber + 1, 1);
+                                UINT16 val = DOSVM_inport(io->PortNumber, 2, &ctx);
+                                *addr = val;
+                                *(addr + 1) = val >> 8;
                             }
                             break;
                         case 4:
                             if(!io->AccessInfo.IsWrite)
                             {
-                                DOSVM_outport(io->PortNumber, *addr, 1);
-                                DOSVM_outport(io->PortNumber + 1, *(addr + 1), 1);
-                                DOSVM_outport(io->PortNumber + 2, *(addr + 2), 1);
-                                DOSVM_outport(io->PortNumber + 3, *(addr + 3), 1);
+                                DOSVM_outport(io->PortNumber, *addr, 4, &ctx);
                             }
                             else
                             {
-                                *addr = DOSVM_inport(io->PortNumber, 1);
-                                *(addr + 1) = DOSVM_inport(io->PortNumber + 1, 1);
-                                *(addr + 2) = DOSVM_inport(io->PortNumber + 2, 1);
-                                *(addr + 3) = DOSVM_inport(io->PortNumber + 3, 1);
+                                UINT16 val = DOSVM_inport(io->PortNumber, 4, &ctx);
+                                *addr = val;
+                                *(addr + 1) = val >> 8;
+                                *(addr + 2) = val >> 16;
+                                *(addr + 3) = val >> 24;
                             }
                             break;
                     }
                 }
             }
-            pWHvSetVirtualProcessorRegisters(partition, 0, regs, 2, vals);
+            load_context_to_state(&ctx, &state2);
+            if (FAILED(result = pWHvSetVirtualProcessorRegisters(partition, 0, whpx_vcpu_reg_names, ARRAYSIZE(whpx_vcpu_reg_names), state2.values)))
+            {
+
+            }
             break;
         }
         default:

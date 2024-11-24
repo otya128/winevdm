@@ -459,8 +459,8 @@ extern void        DOSVM_SetPMHandler48( BYTE, FARPROC48 ) DECLSPEC_HIDDEN;
 extern void        DOSVM_SetRMHandler( BYTE, FARPROC16 ) DECLSPEC_HIDDEN;
 
 /* ioports.c */
-extern DWORD DOSVM_inport( int port, int size ) DECLSPEC_HIDDEN;
-extern void DOSVM_outport( int port, int size, DWORD value ) DECLSPEC_HIDDEN;
+extern DWORD DOSVM_inport( int port, int size, CONTEXT *ctx ) DECLSPEC_HIDDEN;
+extern void DOSVM_outport( int port, int size, DWORD value, CONTEXT *ctx ) DECLSPEC_HIDDEN;
 extern void DOSVM_setportcb(OUTPROC outproc, INPROC inproc, int port, OUTPROC *oldout, INPROC* oldin) DECLSPEC_HIDDEN;
 
 /* relay.c */

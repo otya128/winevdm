@@ -1,0 +1,6 @@
+file(GLOB SOURCE *.c)
+add_library(ntvdm SHARED ${SOURCE} ntvdm.def)
+include_directories(../wine)
+add_definitions(-D_X86_ -D__WINESRC__ -D__i386__ -DHAVE_STRNCASECMP -DHAVE__STRNICMP -D_WINTERNL_ -DNtCurrentTeb=NtCurrentTeb__ -DDECLSPEC_HIDDEN= -Dstrncasecmp=_strnicmp)
+target_link_libraries(ntvdm krnl386)
+set_target_properties(ntvdm PROPERTIES PREFIX "")

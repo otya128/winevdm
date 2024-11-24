@@ -145,6 +145,7 @@
     <ClCompile Include="thunk.c" />
     <ClCompile Include="timer.c" />
     <ClCompile Include="utthunk.c" />
+    <ClCompile Include="vdd.c" />
     <ClCompile Include="vga.c" />
     <ClCompile Include="vxd.c" />
     <ClCompile Include="wowthunk.c" />
