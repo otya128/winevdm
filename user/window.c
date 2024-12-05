@@ -1754,6 +1754,14 @@ LONG WINAPI SetWindowLong16( HWND16 hwnd16, INT16 offset, LONG newval )
     }
     else if (offset == GWL_HWNDPARENT)
         return (SetWindowLongA(WIN_Handle32(hwnd), offset, HWND_32(newval)));
+    else if (offset == GWL_STYLE) // WPWIN61
+    {
+        DWORD count;
+        ReleaseThunkLock(&count);
+        LONG ret = SetWindowLongA( hwnd, offset, newval );
+        RestoreThunkLock(count);
+        return ret;
+    }
     /*else*/ return SetWindowLongA( hwnd, offset, newval );
 }
 
