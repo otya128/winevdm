@@ -183,7 +183,7 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
     }
     case DC_PAPERNAMES:
     {
-        DWORD papers_count = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        DWORD papers_count = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, NULL, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
         if (papers_count == -1)
             return -1;	
         LPWORD papers = (LPDWORD)HeapAlloc(GetProcessHeap(), 0, papers_count * sizeof(WORD));
@@ -210,7 +210,7 @@ DWORD WINAPI DeviceCapabilities16(LPCSTR pDevice, LPCSTR pPort, WORD fwCapabilit
     }
     case DC_PAPERSIZE:
     {
-        DWORD papers_count = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, pOutput, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
+        DWORD papers_count = DeviceCapabilitiesA(pDevice, pPort, DC_PAPERS, NULL, pDevMode ? (LPDEVMODEA)&devmode32[0] : NULL);
         LPWORD papers = (LPDWORD)HeapAlloc(GetProcessHeap(), 0, papers_count * sizeof(WORD));
         DWORD i, j = 0;
         LPPOINT points32 = !pOutput ? NULL : (LPPOINT)HeapAlloc(GetProcessHeap(), 0, papers_count * sizeof(POINT));
