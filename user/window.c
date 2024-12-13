@@ -62,6 +62,7 @@ void WINAPI K32WOWHandle16Destroy(HANDLE handle, WOW_HANDLE_TYPE type);
 void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
 BYTE get_aflags(HMODULE16 hModule);
+ULONG WINAPI get_windows_build();
 /* size of buffer needed to store an atom string */
 #define ATOM_BUFFER_SIZE 256
 
@@ -3137,6 +3138,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     HWND hwnd;
     BOOL release = FALSE;
     DWORD count;
+    BOOL fix_windowedge = FALSE;
 
     if (instance == NULL)
     {
@@ -3171,6 +3173,16 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     }
     if (((style & 0xf) == BS_USERBUTTON) && !(style & 0xc0) && !stricmp(className, "Button"))
         style |= 0x10; // BS_USERBUTTON support hack        
+
+    // work around WS_EX_WINDOWEDGE 3.10 compat breakage in Windows 11 24H2
+    // must be done after create because otherwise both windowedge and staticedge get set
+    // even though they are supposed to be mutually exclusive
+    if (get_windows_build() >= 26100)
+    {
+        if (((style & (WS_CAPTION | WS_SIZEBOX)) == WS_CAPTION) && !(style & WS_CHILD) && !(exStyle && (WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE)) &&
+            (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
+            fix_windowedge = TRUE;
+    }
 
     /* Create the window */
 
@@ -3232,6 +3244,14 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         ERR("Could not create window(%08x,\"%s\"(\"%s\"),\"%s\",%08x,%04x,%04x,%04x,%04x,%04x,%04x,%04x,%08x)\n", exStyle, IS_INTRESOURCE(className) ? "(ATOM)" : className, cs.lpszClass, windowName, style, x, y, width, height, parent, menu, instance, data);
         return NULL;
     }
+
+    if (fix_windowedge)
+    {
+        DWORD curexstyle = GetWindowLongA(hwnd, GWL_EXSTYLE);
+        if (curexstyle & WS_EX_WINDOWEDGE)
+            SetWindowLongA(hwnd, GWL_EXSTYLE, (curexstyle & ~WS_EX_WINDOWEDGE) | WS_EX_STATICEDGE);
+    }
+        
     HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);
