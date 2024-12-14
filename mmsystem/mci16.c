@@ -967,7 +967,7 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
             if (dwParam1 & MCI_BREAK_HWND)
                 data |= mbp16->hwndBreak << 16;
         }
-        BOOL ret = mciSetYieldProc(wDevID, check_break, mbp16->hwndBreak << 16 | mbp16->nVirtKey);
+        BOOL ret = mciSetYieldProc(wDevID, check_break, data);
         return ret ? 0 : MCIERR_INVALID_DEVICE_ID;
     }
     case MCI_PLAY:

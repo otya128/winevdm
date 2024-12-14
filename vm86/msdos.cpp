@@ -486,53 +486,53 @@ extern "C" void load_context(CONTEXT *context);
 // i/o bus
 UINT8 read_io_byte(offs_t addr)
 {
-    CONTEXT *ctx;
-    save_context(ctx);
-    UINT8 ret = (UINT8)DOSVM_inport(addr, 1, ctx);
-    load_context(ctx);
+    CONTEXT ctx;
+    save_context(&ctx);
+    UINT8 ret = (UINT8)DOSVM_inport(addr, 1, &ctx);
+    load_context(&ctx);
     return ret;
 }
 
 UINT16 read_io_word(offs_t addr)
 {
-    CONTEXT *ctx;
-    save_context(ctx);
-    UINT16 ret = (UINT16)DOSVM_inport(addr, 2, ctx);
-    load_context(ctx);
+    CONTEXT ctx;
+    save_context(&ctx);
+    UINT16 ret = (UINT16)DOSVM_inport(addr, 2, &ctx);
+    load_context(&ctx);
     return ret;
 }
 
 UINT32 read_io_dword(offs_t addr)
 {
-    CONTEXT *ctx;
-    save_context(ctx);
-    UINT32 ret = DOSVM_inport(addr, 4, ctx);
-    load_context(ctx);
+    CONTEXT ctx;
+    save_context(&ctx);
+    UINT32 ret = DOSVM_inport(addr, 4, &ctx);
+    load_context(&ctx);
     return ret;
 }
 
 void write_io_byte(offs_t addr, UINT8 val)
 {
-    CONTEXT *ctx;
-    save_context(ctx);
-    DOSVM_outport(addr, 1, val, ctx);
-    load_context(ctx);
+    CONTEXT ctx;
+    save_context(&ctx);
+    DOSVM_outport(addr, 1, val, &ctx);
+    load_context(&ctx);
 }
 
 void write_io_word(offs_t addr, UINT16 val)
 {
-    CONTEXT *ctx;
-    save_context(ctx);
-    DOSVM_outport(addr, 2, val, ctx);
-    load_context(ctx);
+    CONTEXT ctx;
+    save_context(&ctx);
+    DOSVM_outport(addr, 2, val, &ctx);
+    load_context(&ctx);
 }
 
 void write_io_dword(offs_t addr, UINT32 val)
 {
-    CONTEXT *ctx;
-    save_context(ctx);
-    DOSVM_outport(addr, 4, val, ctx);
-    load_context(ctx);
+    CONTEXT ctx;
+    save_context(&ctx);
+    DOSVM_outport(addr, 4, val, &ctx);
+    load_context(&ctx);
 }
 #undef min
 #undef max
