@@ -3138,7 +3138,6 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     HWND hwnd;
     BOOL release = FALSE;
     DWORD count;
-    BOOL fix_windowedge = FALSE;
 
     if (instance == NULL)
     {
@@ -3181,7 +3180,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     {
         if (((style & (WS_CAPTION | WS_SIZEBOX)) == WS_CAPTION) && !(style & WS_CHILD) && !(exStyle && (WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE)) &&
             (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
-            fix_windowedge = TRUE;
+            exStyle |= WS_EX_STATICEDGE;
     }
 
     /* Create the window */
@@ -3245,13 +3244,6 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         return NULL;
     }
 
-    if (fix_windowedge)
-    {
-        DWORD curexstyle = GetWindowLongA(hwnd, GWL_EXSTYLE);
-        if (curexstyle & WS_EX_WINDOWEDGE)
-            SetWindowLongA(hwnd, GWL_EXSTYLE, (curexstyle & ~WS_EX_WINDOWEDGE) | WS_EX_STATICEDGE);
-    }
-        
     HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);
