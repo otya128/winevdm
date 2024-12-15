@@ -70,6 +70,7 @@ When EDIT received WM_KILLFOCUS, EDIT sent this message to COMBOBOX.
 WINE_DEFAULT_DEBUG_CHANNEL(msg);
 WINE_DECLARE_DEBUG_CHANNEL(message);
 BOOL is_win_menu_disallowed(DWORD style);
+ULONG WINAPI get_windows_build();
 DWORD USER16_AlertableWait = 0;
 static UINT aviwnd_msg = 0;
 static void *aviwnd_cwp;
@@ -2038,7 +2039,6 @@ static HICON16 get_default_icon(HINSTANCE16 inst)
 #include "../mmsystem/winemm16.h"
 
 void InitWndProc16(HWND hWnd, HWND16 hWnd16);
-ULONG WINAPI get_windows_build();
 /**********************************************************************
  *	     WINPROC_CallProc32ATo16
  *
@@ -2218,6 +2218,17 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             NCCALCSIZE_PARAMS *nc32 = (NCCALCSIZE_PARAMS *)lParam;
             NCCALCSIZE_PARAMS16 nc;
             WINDOWPOS16 winpos;
+            BOOL fixborder = FALSE;
+            if (get_windows_build() >= 26100)
+            {
+                DWORD exstyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+                if ((exstyle & WS_EX_STATICEDGE) && (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
+                {
+                    if (exstyle & WS_EX_WINDOWEDGE)
+                        SetWindowLong(hwnd, GWL_EXSTYLE, exstyle & ~WS_EX_WINDOWEDGE);
+                    fixborder = TRUE;
+                }
+            }
 
             RECT32to16( &nc32->rgrc[0], &nc.rgrc[0] );
             if (wParam)
@@ -2230,6 +2241,13 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             lParam = MapLS( &nc );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
+            if (fixborder)
+            {
+                    nc.rgrc[0].top--;
+                    nc.rgrc[0].left--;
+                    nc.rgrc[0].bottom++;
+                    nc.rgrc[0].right++;
+            }
             RECT16to32( &nc.rgrc[0], &nc32->rgrc[0] );
             if (wParam)
             {
