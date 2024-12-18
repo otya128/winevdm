@@ -1551,6 +1551,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             CLIENTCREATESTRUCT c32;
             BOOL mdichild = GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD ? TRUE : FALSE;
             BOOL mdiclient = is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg));
+            BOOL fixlistbox = (get_windows_build() >= 26100) && (window_type_table[hwnd] == (BYTE)WINDOW_TYPE_LISTBOX) && (msg == WM_CREATE);
 
             CREATESTRUCT16to32A( hwnd32, cs16, &cs );
             if (mdichild)
@@ -1566,7 +1567,27 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
                 c32.hWindowMenu = HMENU_32(c16->hWindowMenu);
                 cs.lpCreateParams = (LPVOID)&c32;
             }
+            // some programs set ws_hscroll when they want ws_vscroll
+            // this appears to work in win31 but Windows 11 24H2 broke the compatbility
+            if (fixlistbox)
+            {
+                if (cs.style & WS_HSCROLL)
+                {
+                    cs.style |= WS_VSCROLL;
+                    SetWindowLongW(hwnd32, GWL_STYLE, cs.style);
+                }
+            }
             ret = callback( hwnd32, msg, wParam, (LPARAM)&cs, result, arg );
+            // some programs expect the listbox to be resized in create 
+            // again Windows 11 24H2 broke the compatbility
+            if (fixlistbox)
+            {
+                cs.x -= 1;
+                cs.y -= 1;
+                cs.cx += 2;
+                cs.cy += 2;
+                SetWindowPos(hwnd32, 0, cs.x, cs.y, cs.cx, cs.cy, SWP_NOZORDER);
+            }
             if (mdiclient || mdichild)
                 cs.lpCreateParams = cs16->lpCreateParams;
             CREATESTRUCT32Ato16( hwnd32, &cs, cs16 );
