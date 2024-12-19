@@ -2566,6 +2566,8 @@ BOOL16 WINAPI GetTextMetrics16( HDC16 hdc, TEXTMETRIC16 *tm )
 {
     TEXTMETRICA tm32;
 
+    if (!tm) return FALSE;
+
     if (!GetTextMetricsA( HDC_32(hdc), &tm32 )) return FALSE;
 
     tm->tmHeight           = tm32.tmHeight;
