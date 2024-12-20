@@ -1060,6 +1060,7 @@ BOOL add_module(DWORD fccType, DWORD fccHandler, HMODULE16 hmod)
 void remove_module(DWORD fccType, DWORD fccHandler, BOOL unload)
 {
     HMODULE16 hmod;
+    if (!MSVIDEO_drv) return;
     for (int i = 0; i < 10; i++)
     {
         if ((MSVIDEO_drv[i].fccType == fccType) && (MSVIDEO_drv[i].fccHandler == fccHandler))
@@ -1078,6 +1079,7 @@ void remove_module(DWORD fccType, DWORD fccHandler, BOOL unload)
 
 void remove_all_modules()
 {
+    if (!MSVIDEO_drv) return;
     for (int i = 0; i < 10; i++)
     {
         if (MSVIDEO_drv[i].hmod)
