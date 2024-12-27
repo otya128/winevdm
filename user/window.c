@@ -3176,7 +3176,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     // even though they are supposed to be mutually exclusive
     if (get_windows_build() >= 26100)
     {
-        if (((style & (WS_CAPTION | WS_SIZEBOX)) == WS_CAPTION) && !(style & WS_CHILD) && !(exStyle && (WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE)) &&
+        if (((style & (WS_CAPTION | WS_SIZEBOX)) == WS_CAPTION) && !(style & WS_CHILD) && !(exStyle & (WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE)) &&
             (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
             exStyle |= WS_EX_STATICEDGE;
     }
