@@ -4879,7 +4879,7 @@ static void UB_Message(HWND hwnd, HDC hDC, UINT action)
     if (action == BN_SETFOCUS)
         DrawFocusRect(hDC, &rc);
 
-    SendMessageW(parent, WM_COMMAND, MAKEWPARAM(GetWindowLongA(hwnd, GWLP_ID), action), hwnd);
+    SendMessageW(parent, WM_COMMAND, MAKEWPARAM(GetWindowLongW(hwnd, GWLP_ID), action), hwnd);
 }
 
 static LRESULT UB_WndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
@@ -4890,7 +4890,7 @@ static LRESULT UB_WndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
         case WM_PAINT:
         {
             PAINTSTRUCT paint;
-            LONG style = GetWindowLongA(hwnd, GWL_STYLE);
+            LONG style = GetWindowLongW(hwnd, GWL_STYLE);
             LONG state = SendMessageW(hwnd, BM_GETSTATE, 0, 0);
             HDC hDC = BeginPaint(hwnd, &paint);
             UB_Message(hwnd, hDC, BN_PAINT);
@@ -4916,7 +4916,7 @@ static LRESULT UB_WndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
             break;
         }
         case WM_LBUTTONDBLCLK:
-            SendMessageW(GetParent(hwnd), WM_COMMAND, MAKEWPARAM(GetWindowLongA(hwnd, GWLP_ID), BN_DOUBLECLICKED), hwnd);
+            SendMessageW(GetParent(hwnd), WM_COMMAND, MAKEWPARAM(GetWindowLongW(hwnd, GWLP_ID), BN_DOUBLECLICKED), hwnd);
             break;
         default:
         {
