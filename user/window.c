@@ -3170,8 +3170,6 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         if ((style & (WS_CAPTION | WS_SIZEBOX)) == (WS_CAPTION | WS_SIZEBOX))
             style |= WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
     }
-    if (((style & 0xf) == BS_USERBUTTON) && !(style & 0xc0) && !stricmp(className, "Button"))
-        style |= 0x10; // BS_USERBUTTON support hack        
 
     // work around WS_EX_WINDOWEDGE 3.10 compat breakage in Windows 11 24H2
     // must be done after create because otherwise both windowedge and staticedge get set

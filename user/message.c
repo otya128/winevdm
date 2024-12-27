@@ -3788,6 +3788,7 @@ BOOL16 WINAPI TranslateMDISysAccel16( HWND16 hwndClient, LPMSG16 msg )
 }
 
 
+
 /***********************************************************************
 *           button_proc16
 */
@@ -4856,6 +4857,80 @@ typedef struct
     HHOOK wndprocret;
     HHOOK cbt;
 } user_hook_data;
+
+static void UB_Message(HWND hwnd, HDC hDC, UINT action)
+{
+    RECT rc;
+    HBRUSH hBrush;
+    HFONT hFont;
+    HWND parent;
+
+    GetClientRect(hwnd, &rc);
+
+    if ((hFont = SendMessageW(hwnd, WM_GETFONT, 0, 0))) SelectObject(hDC, hFont);
+
+    parent = GetParent(hwnd);
+    if (!parent) parent = hwnd;
+    hBrush = (HBRUSH)SendMessageW(parent, WM_CTLCOLORBTN, (WPARAM)hDC, (LPARAM)hwnd);
+    if (!hBrush) /* did the app forget to call defwindowproc ? */
+        hBrush = (HBRUSH)DefWindowProcW(parent, WM_CTLCOLORBTN, (WPARAM)hDC, (LPARAM)hwnd);
+
+    FillRect(hDC, &rc, hBrush);
+    if (action == BN_SETFOCUS)
+        DrawFocusRect(hDC, &rc);
+
+    SendMessageW(parent, WM_COMMAND, MAKEWPARAM(GetWindowLongA(hwnd, GWLP_ID), action), hwnd);
+}
+
+static LRESULT UB_WndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
+{
+    LRESULT ret = 0;
+    switch (umsg)
+    { 
+        case WM_PAINT:
+        {
+            PAINTSTRUCT paint;
+            LONG style = GetWindowLongA(hwnd, GWL_STYLE);
+            LONG state = SendMessageW(hwnd, BM_GETSTATE, 0, 0);
+            HDC hDC = BeginPaint(hwnd, &paint);
+            UB_Message(hwnd, hDC, BN_PAINT);
+            if (state & BST_PUSHED)
+                UB_Message(hwnd, hDC, BN_PUSHED);
+            if (style & WS_DISABLED)
+                UB_Message(hwnd, hDC, BN_DISABLE);
+            EndPaint(hwnd, &paint);
+            break;
+        }
+        case WM_SETFOCUS:
+        {
+            HDC hdc = GetDC(hwnd);
+            UB_Message(hwnd, hdc, BN_SETFOCUS);
+            ReleaseDC(hwnd, hdc);
+            break;
+        }
+        case WM_KILLFOCUS:
+        {
+            HDC hdc = GetDC(hwnd);
+            UB_Message(hwnd, hdc, BN_KILLFOCUS);
+            ReleaseDC(hwnd, hdc);
+            break;
+        }
+        case WM_LBUTTONDBLCLK:
+            SendMessageW(GetParent(hwnd), WM_COMMAND, MAKEWPARAM(GetWindowLongA(hwnd, GWLP_ID), BN_DOUBLECLICKED), hwnd);
+            break;
+        default:
+        {
+            WNDPROC origwndproc = (WNDPROC)GetPropA(hwnd, "origwndproc");
+            if (origwndproc)
+                ret = origwndproc(hwnd, umsg, wparam, lparam);
+            else
+                ret = DefWindowProcW(hwnd, umsg, wparam, lparam);
+            break;
+        }
+    }
+    return ret;
+}
+
 LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
 {
     user_hook_data *hd = (user_hook_data*)TlsGetValue(hhook_tls_index);
@@ -4883,6 +4958,11 @@ LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
         if (create->lpcs->lpszName && !strcmp(create->lpcs->lpszName, "Default IME"))
         {
             SetWindowLongA(hWnd, GWL_HINSTANCE, 0);
+        }
+        if ((window_type_table[HWND_16(hWnd)] == (BYTE)WINDOW_TYPE_BUTTON) && ((create->lpcs->style & BS_TYPEMASK) == BS_USERBUTTON))
+        {
+            WNDPROC origwndproc = SetWindowLongW(hWnd, GWL_WNDPROC, UB_WndProc);
+            SetPropA(hWnd, "origwndproc", (HANDLE)origwndproc);
         }
     }
     else if((nCode == HCBT_MINMAX) && (lParam == SW_MAXIMIZE) && (GetWindowLongA(wParam, GWL_STYLE) & WS_MAXIMIZE))
