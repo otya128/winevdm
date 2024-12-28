@@ -1898,9 +1898,22 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_SIZECLIPBOARD:
         FIXME_(msg)( "message %04x needs translation\n", msg );
         break;
-	case WM_NCPAINT:
+    case WM_NCPAINT:
+        if ((get_windows_build() >= 26100) && (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
+        {
+            LONG style = GetWindowLongA(hwnd32, GWL_STYLE);
+            if ((style & (WS_CHILD | WS_SYSMENU | WS_BORDER | WS_DLGFRAME | WS_CAPTION)) == (WS_CHILD | WS_SYSMENU | WS_BORDER | WS_DLGFRAME | WS_CAPTION))
+            {
+                HICON icon = SendMessageA(hwnd32, WM_GETICON, ICON_SMALL, 0);
+                if (!icon)
+                {
+                    icon = SendMessageA(hwnd32, WM_QUERYDRAGICON, 0, 0);
+                    if (icon) SendMessageA(hwnd32, WM_SETICON, ICON_SMALL, icon);
+                }
+            }
+        }
         ret = callback(hwnd32, msg, (WPARAM)HRGN_32(wParam), lParam, result, arg);
-		break;
+        break;
     case WM_ERASEBKGND:
         ret = callback(hwnd32, msg, (WPARAM)HDC_32(wParam), lParam, result, arg);
         break;
