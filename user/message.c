@@ -1902,7 +1902,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         if ((get_windows_build() >= 26100) && (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
         {
             LONG style = GetWindowLongA(hwnd32, GWL_STYLE);
-            if ((style & (WS_CHILD | WS_SYSMENU | WS_BORDER | WS_DLGFRAME | WS_CAPTION)) == (WS_CHILD | WS_SYSMENU | WS_BORDER | WS_DLGFRAME | WS_CAPTION))
+            if ((style & (WS_SYSMENU | WS_BORDER | WS_DLGFRAME | WS_CAPTION)) == (WS_SYSMENU | WS_BORDER | WS_DLGFRAME | WS_CAPTION))
             {
                 HICON icon = SendMessageA(hwnd32, WM_GETICON, ICON_SMALL, 0);
                 if (!icon)
