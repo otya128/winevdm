@@ -902,16 +902,39 @@ INT16 WINAPI FillRect16( HDC16 hdc, const RECT16 *rect, HBRUSH16 hbrush )
 	HDC hd = HDC_32(hdc);
 	int ret = FillRect(hd, &r32, hb);
 	return ret;*/
-	HBRUSH prevBrush;
+    HBRUSH prevBrush;
+    HBRUSH hbrush32 = HBRUSH_32(hbrush);
+    HDC hdc32 = HDC_32(hdc);
+
+    if (!(prevBrush = SelectObject( hdc32, hbrush32 ))) return 0;
+
+    if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
+    {
+        DIBSECTION dib;
+        HBITMAP hbmp = GetCurrentObject(hdc32, OBJ_BITMAP);
+        int count = GetObject(hbmp, sizeof(DIBSECTION), &dib);
+        if ((count == sizeof(DIBSECTION)) && (dib.dsBmih.biBitCount == 8) && !dib.dshSection && (GetPtr16(HBITMAP_16(hbmp), 1) == 0xd1b00001))
+        {
+            LOGBRUSH lb;
+            count = GetObject(hbrush32, sizeof(LOGBRUSH), &lb);
+            if ((count == sizeof(LOGBRUSH)) && (lb.lbStyle == BS_SOLID) && ((lb.lbColor >> 24) == 1))
+            {
+                HBRUSH newbrush = CreateSolidBrush((lb.lbColor & 0xff) | 0x10ff0000);
+                SelectObject( hdc32, newbrush );
+                PatBlt( hdc32, rect->left, rect->top,
+                        rect->right - rect->left, rect->bottom - rect->top, PATCOPY );
+                SelectObject( hdc32, prevBrush );
+                return 1;
+            }
+        }
+    }        
 
     /* coordinates are logical so we cannot fast-check 'rect',
      * it will be done later in the PatBlt().
      */
-
-    if (!(prevBrush = SelectObject( HDC_32(hdc), HBRUSH_32(hbrush) ))) return 0;
-    PatBlt( HDC_32(hdc), rect->left, rect->top,
+    PatBlt( hdc32, rect->left, rect->top,
               rect->right - rect->left, rect->bottom - rect->top, PATCOPY );
-    SelectObject( HDC_32(hdc), prevBrush );
+    SelectObject( hdc32, prevBrush );
     return 1;
 }
 

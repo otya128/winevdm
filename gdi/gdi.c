@@ -41,6 +41,7 @@
 #include <strsafe.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define DIBINDEX(n) MAKELONG((n),0x10FF)
 
 WINE_DEFAULT_DEBUG_CHANNEL(gdi);
 
@@ -1183,21 +1184,51 @@ BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
     HDC hdcdst32 = HDC_32(hdcDst);
     if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdcsrc32, TECHNOLOGY) == DT_RASDISPLAY))
     {
-        DIBSECTION dib;
+        DIBSECTION dib, dibdst;
         HBITMAP hbmp = GetCurrentObject(hdcsrc32, OBJ_BITMAP);
         int count = GetObject(hbmp, sizeof(DIBSECTION), &dib);
+        HBITMAP hbmpdst = GetCurrentObject(hdcdst32, OBJ_BITMAP);
+        int countdst = GetObject(hbmpdst, sizeof(DIBSECTION), &dibdst);
+        BOOL srcdib, dstdib;
+
         if ((count == sizeof(DIBSECTION)) && (dib.dsBmih.biBitCount == 8) && !dib.dshSection && (GetPtr16(HBITMAP_16(hbmp), 1) == 0xd1b00001))
+            srcdib = TRUE;
+        if ((countdst == sizeof(DIBSECTION)) && (dibdst.dsBmih.biBitCount == 8) && !dibdst.dshSection && (GetPtr16(HBITMAP_16(hbmpdst), 1) == 0xd1b00001))
+            dstdib = TRUE;
+
+        if (srcdib && (GetObjectType(hdcdst32) == OBJ_DC))
         {
             HPALETTE realpal = get_realized_palette();
             if (realpal != GetStockObject(DEFAULT_PALETTE))
             {
                 HPALETTE oldpal = SelectPalette(hdcsrc32, realpal, FALSE);
                 set_dib_colors(hdcsrc32);
-                BOOL ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
+                BOOL16 ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
                 SelectPalette(hdcsrc32, oldpal, FALSE);
                 set_dib_colors(hdcsrc32);
                 return ret;
             }
+        }
+        if (dstdib && (dib.dsBm.bmBitsPixel == 1))
+        {
+            // make sure that when a mono bitmap is combined with a 8bpp dib, fg color is 0 and bg color is 0xff
+            COLORREF txcolor = SetTextColor(hdcdst32, DIBINDEX(0));
+            COLORREF bkcolor = SetBkColor(hdcdst32, DIBINDEX(255));
+            BOOL16 ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
+            SetTextColor(hdcdst32, txcolor);
+            SetBkColor(hdcdst32, bkcolor);
+            return ret;
+        }
+        if (srcdib && (dibdst.dsBm.bmBitsPixel == 1))
+        {
+            COLORREF txcolor = GetTextColor(hdcsrc32);
+            COLORREF bkcolor = GetBkColor(hdcsrc32);
+            if ((txcolor >> 24) == 1) SetTextColor(hdcsrc32, DIBINDEX(txcolor & 0xff));
+            if ((bkcolor >> 24) == 1) SetBkColor(hdcsrc32, DIBINDEX(bkcolor & 0xff));
+            BOOL16 ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
+            SetTextColor(hdcsrc32, txcolor);
+            SetBkColor(hdcsrc32, bkcolor);
+            return ret;
         }
     }
     return StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
@@ -1537,7 +1568,7 @@ HGDIOBJ16 WINAPI SelectObject16( HDC16 hdc, HGDIOBJ16 handle )
     HGDIOBJ handle32 = HGDIOBJ_32(handle);
     HGDIOBJ result = SelectObject( hdc32, handle32 );
     DWORD type = GetObjectType(handle32);
-    if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && result && (type == OBJ_BITMAP))
+    if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && result && (type == OBJ_BITMAP) && (GetCurrentObject(hdc32, OBJ_PAL) != GetStockObject(DEFAULT_PALETTE)))
     {
         DIBSECTION dib;
         int count = GetObject(handle32, sizeof(DIBSECTION), &dib);
@@ -1593,6 +1624,7 @@ HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
             }
             ret = HBITMAP_16(ret32);
         }
+        ReleaseDC(NULL, dc);
         return ret;
     }
     else if ((planes == 1) && (bpp > 8))
@@ -1693,6 +1725,8 @@ HDC16 WINAPI CreateCompatibleDC16( HDC16 hdc )
     HDC hdc32 = CreateCompatibleDC( HDC_32(hdc) );
     if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (GetCurrentObject(hdc32, OBJ_FONT) == GetStockObject(SYSTEM_FONT)))
         SelectObject(hdc32, GetStockObject(SYSTEM_FIXED_FONT));
+    if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
+        SelectPalette(hdc32, get_realized_palette(), FALSE);
     return HDC_16(hdc32);
 }
 
@@ -2069,6 +2103,8 @@ void delete_dib_driver(HDC hdc)
 BOOL16 WINAPI DeleteDC16( HDC16 hdc )
 {
     HDC hdc32 = HDC_32(hdc);
+    if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
+        SelectPalette(hdc32, GetStockObject(DEFAULT_PALETTE), FALSE);
     if (DeleteDC( hdc32 ))
     {
         struct saved_visrgn *saved, *next;
@@ -3700,6 +3736,12 @@ INT16 WINAPI UpdateColors16( HDC16 hdc )
     return TRUE;
 }
 
+static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
+{
+    InvalidateRect(hwnd, NULL, FALSE);    
+    RedrawWindow(hwnd, NULL, NULL, RDW_UPDATENOW);
+    return FALSE;
+}
 
 /***********************************************************************
  *           AnimatePalette   (GDI.367)
@@ -3712,7 +3754,9 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
     if (GetPtr16(hpalette, 1))
     {
         DWORD *dclist = GetPtr16(hpalette, 1);
-        AnimatePalette(hpal32, StartIndex + 10, NumEntries, PaletteColors);
+        if (StartIndex < 10) StartIndex = 10;
+
+        AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
         for (int i = 0; i < 20; i++)
         {
             if (dclist[i])
@@ -3739,6 +3783,8 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
                 }
             }
         }
+        if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (hpal32 == get_realized_palette()))
+            EnumThreadWindows(GetCurrentThreadId(), paint_all_windows, NULL);
     }
     else
         AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
@@ -4024,7 +4070,8 @@ INT16 WINAPI StretchDIBits16( HDC16 hdc, INT16 xDst, INT16 yDst, INT16 widthDst,
                               const BITMAPINFO *info, UINT16 wUsage, DWORD dwRop )
 {
     BITMAPINFO *bmp = NULL;
-    HBITMAP16 ret;
+    INT16 ret;
+    HDC hdc32 = HDC_32(hdc);
     if ((info->bmiHeader.biCompression == BI_RLE4) || (info->bmiHeader.biCompression == BI_RLE8))
     {
         int hdrsize = info->bmiHeader.biSize + ((info->bmiHeader.biClrUsed ? info->bmiHeader.biClrUsed :
@@ -4034,7 +4081,29 @@ INT16 WINAPI StretchDIBits16( HDC16 hdc, INT16 xDst, INT16 yDst, INT16 widthDst,
         memcpy(bmp, info, hdrsize);
         bmp->bmiHeader.biSizeImage = rle_size(info->bmiHeader.biCompression, bits);
     }
-    ret = StretchDIBits( HDC_32(hdc), xDst, yDst, widthDst, heightDst,
+    else if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY) && (info->bmiHeader.biBitCount == 8)) // this doesn't support RLE8 right now
+    {
+        DIBSECTION dib;
+        HBITMAP hbmp = GetCurrentObject(hdc32, OBJ_BITMAP);
+        int count = GetObject(hbmp, sizeof(DIBSECTION), &dib);
+        if ((count == sizeof(DIBSECTION)) && (dib.dsBmih.biBitCount == 8) && !dib.dshSection && (GetPtr16(HBITMAP_16(hbmp), 1) == 0xd1b00001))
+        {
+            char *section;
+            HPALETTE hpal = GetCurrentObject(hdc32, OBJ_PAL);
+            HBITMAP hbmpsrc = CreateDIBSection(hdc32, info, wUsage, &section, NULL, 0);
+            HDC hdcsrc = CreateCompatibleDC(hdc32);
+            HPALETTE oldpal = SelectPalette(hdcsrc, hpal, FALSE);
+            HBITMAP oldbmp = SelectObject(hdcsrc, hbmpsrc);
+            memcpy(section, bits, ((info->bmiHeader.biWidth + 3) & ~3) * (ySrc + heightSrc));
+            INT16 ret = StretchBlt(hdc32, xDst, yDst, widthDst, heightDst, hdcsrc, xSrc, ySrc, widthSrc, heightSrc, dwRop);
+            SelectPalette(hdcsrc, oldpal, FALSE);
+            SelectObject(hdcsrc, oldbmp);
+            DeleteObject(hbmpsrc);
+            DeleteDC(hdcsrc);
+            return ret;
+        }
+    }
+    ret = StretchDIBits( hdc32, xDst, yDst, widthDst, heightDst,
                           xSrc, ySrc, widthSrc, heightSrc, bits,
                           bmp ? bmp : info, wUsage, dwRop );
     if (bmp)
@@ -4083,7 +4152,7 @@ INT16 WINAPI SetDIBits16( HDC16 hdc, HBITMAP16 hbitmap, UINT16 startscan,
         }
     }
     BITMAPINFO *bmp = NULL;
-    HBITMAP16 ret;
+    INT16 ret;
     if (((info->bmiHeader.biCompression == BI_RLE4) || (info->bmiHeader.biCompression == BI_RLE8)) && !info->bmiHeader.biSizeImage)
     {
         int hdrsize = info->bmiHeader.biSize + ((info->bmiHeader.biClrUsed ? info->bmiHeader.biClrUsed :
