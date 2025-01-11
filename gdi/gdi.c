@@ -3716,6 +3716,46 @@ UINT16 WINAPI GetPaletteEntries16( HPALETTE16 hpalette, UINT16 start,
     return GetPaletteEntries( HPALETTE_32(hpalette), start, count, entries );
 }
 
+static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
+{
+    InvalidateRect(hwnd, NULL, FALSE);    
+    RedrawWindow(hwnd, NULL, NULL, RDW_UPDATENOW);
+    return FALSE;
+}
+
+BOOL update_palette(HPALETTE16 hpalette)
+{
+    HPALETTE hpal32 = HPALETTE_32(hpalette);
+    DWORD *dclist = GetPtr16(hpalette, 1);
+    for (int i = 0; i < 20; i++)
+    {
+        if (dclist[i])
+        {
+            HDC hdc32 = HDC_32(dclist[i] & 0xffff);
+            if (!GetObjectType(hdc32) || (GetCurrentObject(hdc32, OBJ_PAL) != hpal32))
+            {
+                dclist[i] = 0;
+                continue;
+            }
+            if (WindowFromDC(hdc32))
+            {
+                HWND hwnd = WindowFromDC(hdc32);
+                InvalidateRect(hwnd, NULL, FALSE);
+                UpdateWindow(hwnd);
+            }
+            else if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
+            {
+                DIBSECTION dib;
+                HBITMAP bitmap = GetCurrentObject(hdc32, OBJ_BITMAP);
+                int ret = GetObject(bitmap, sizeof(DIBSECTION), &dib);
+                if ((ret == sizeof(DIBSECTION)) && (dib.dsBmih.biBitCount == 8) && !dib.dshSection && (GetPtr16(HBITMAP_16(bitmap), 1) == 0xd1b00001))
+                    set_dib_colors(hdc32);
+            }
+        }
+    }
+    if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (hpal32 == get_realized_palette()))
+        EnumThreadWindows(GetCurrentThreadId(), paint_all_windows, NULL);
+}
 
 /***********************************************************************
  *           SetPaletteEntries    (GDI.364)
@@ -3723,7 +3763,9 @@ UINT16 WINAPI GetPaletteEntries16( HPALETTE16 hpalette, UINT16 start,
 UINT16 WINAPI SetPaletteEntries16( HPALETTE16 hpalette, UINT16 start,
                                    UINT16 count, const PALETTEENTRY *entries )
 {
-    return SetPaletteEntries( HPALETTE_32(hpalette), start, count, entries );
+    UINT16 ret = SetPaletteEntries( HPALETTE_32(hpalette), start, count, entries );
+    if (GetPtr16(hpalette, 1)) update_palette(hpalette);
+    return ret;
 }
 
 
@@ -3736,13 +3778,6 @@ INT16 WINAPI UpdateColors16( HDC16 hdc )
     return TRUE;
 }
 
-static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
-{
-    InvalidateRect(hwnd, NULL, FALSE);    
-    RedrawWindow(hwnd, NULL, NULL, RDW_UPDATENOW);
-    return FALSE;
-}
-
 /***********************************************************************
  *           AnimatePalette   (GDI.367)
  */
@@ -3753,38 +3788,9 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
     if (GetObjectType(hpal32) != OBJ_PAL) return;
     if (GetPtr16(hpalette, 1))
     {
-        DWORD *dclist = GetPtr16(hpalette, 1);
         if (StartIndex < 10) StartIndex = 10;
-
         AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
-        for (int i = 0; i < 20; i++)
-        {
-            if (dclist[i])
-            {
-                HDC hdc32 = HDC_32(dclist[i] & 0xffff);
-                if (!GetObjectType(hdc32) || (GetCurrentObject(hdc32, OBJ_PAL) != hpal32))
-                {
-                    dclist[i] = 0;
-                    continue;
-                }
-                if (WindowFromDC(hdc32))
-                {
-                    HWND hwnd = WindowFromDC(hdc32);
-                    InvalidateRect(hwnd, NULL, FALSE);
-                    UpdateWindow(hwnd);
-                }
-                else if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
-                {
-                    DIBSECTION dib;
-                    HBITMAP bitmap = GetCurrentObject(hdc32, OBJ_BITMAP);
-                    int ret = GetObject(bitmap, sizeof(DIBSECTION), &dib);
-                    if ((ret == sizeof(DIBSECTION)) && (dib.dsBmih.biBitCount == 8) && !dib.dshSection && (GetPtr16(HBITMAP_16(bitmap), 1) == 0xd1b00001))
-                        set_dib_colors(hdc32);
-                }
-            }
-        }
-        if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (hpal32 == get_realized_palette()))
-            EnumThreadWindows(GetCurrentThreadId(), paint_all_windows, NULL);
+        update_palette(hpalette);
     }
     else
         AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
