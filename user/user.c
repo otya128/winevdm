@@ -924,6 +924,7 @@ INT16 WINAPI FillRect16( HDC16 hdc, const RECT16 *rect, HBRUSH16 hbrush )
                 PatBlt( hdc32, rect->left, rect->top,
                         rect->right - rect->left, rect->bottom - rect->top, PATCOPY );
                 SelectObject( hdc32, prevBrush );
+                DeleteObject( newbrush );
                 return 1;
             }
         }
