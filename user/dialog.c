@@ -1004,8 +1004,8 @@ INT16 WINAPI DialogBoxParam16( HINSTANCE16 hInst, LPCSTR template,
     SEGPTR data;
     int ret = -1;
 
-    if (!(hRsrc = FindResource16( hInst, template, (LPSTR)RT_DIALOG ))) return 0;
-    if (!(hmem = LoadResource16( hInst, hRsrc ))) return 0;
+    if (!(hRsrc = FindResource16( hInst, template, (LPSTR)RT_DIALOG ))) return -1;
+    if (!(hmem = LoadResource16( hInst, hRsrc ))) return -1;
     if ((data = WOWGlobalLock16( hmem )))
     {
         HWND owner = WIN_Handle32(owner16);
