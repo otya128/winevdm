@@ -70,6 +70,7 @@ When EDIT received WM_KILLFOCUS, EDIT sent this message to COMBOBOX.
 WINE_DEFAULT_DEBUG_CHANNEL(msg);
 WINE_DECLARE_DEBUG_CHANNEL(message);
 BOOL is_win_menu_disallowed(DWORD style);
+ULONG WINAPI get_windows_build();
 DWORD USER16_AlertableWait = 0;
 static UINT aviwnd_msg = 0;
 static void *aviwnd_cwp;
@@ -1550,6 +1551,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             CLIENTCREATESTRUCT c32;
             BOOL mdichild = GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD ? TRUE : FALSE;
             BOOL mdiclient = is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg));
+            BOOL fixlistbox = (get_windows_build() >= 26100) && (window_type_table[hwnd] == (BYTE)WINDOW_TYPE_LISTBOX) && (msg == WM_CREATE);
 
             CREATESTRUCT16to32A( hwnd32, cs16, &cs );
             if (mdichild)
@@ -1565,7 +1567,27 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
                 c32.hWindowMenu = HMENU_32(c16->hWindowMenu);
                 cs.lpCreateParams = (LPVOID)&c32;
             }
+            // some programs set ws_hscroll when they want ws_vscroll
+            // this appears to work in win31 but Windows 11 24H2 broke the compatbility
+            if (fixlistbox)
+            {
+                if (cs.style & WS_HSCROLL)
+                {
+                    cs.style |= WS_VSCROLL;
+                    SetWindowLongW(hwnd32, GWL_STYLE, cs.style);
+                }
+            }
             ret = callback( hwnd32, msg, wParam, (LPARAM)&cs, result, arg );
+            // some programs expect the listbox to be resized in create 
+            // again Windows 11 24H2 broke the compatbility
+            if (fixlistbox)
+            {
+                cs.x -= 1;
+                cs.y -= 1;
+                cs.cx += 2;
+                cs.cy += 2;
+                SetWindowPos(hwnd32, 0, cs.x, cs.y, cs.cx, cs.cy, SWP_NOZORDER);
+            }
             if (mdiclient || mdichild)
                 cs.lpCreateParams = cs16->lpCreateParams;
             CREATESTRUCT32Ato16( hwnd32, &cs, cs16 );
@@ -1876,9 +1898,22 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
     case WM_SIZECLIPBOARD:
         FIXME_(msg)( "message %04x needs translation\n", msg );
         break;
-	case WM_NCPAINT:
+    case WM_NCPAINT:
+        if ((get_windows_build() >= 26100) && (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
+        {
+            LONG style = GetWindowLongA(hwnd32, GWL_STYLE);
+            if ((style & (WS_SYSMENU | WS_CAPTION)) == (WS_SYSMENU | WS_CAPTION))
+            {
+                HICON icon = SendMessageA(hwnd32, WM_GETICON, ICON_SMALL, 0);
+                if (!icon)
+                {
+                    icon = SendMessageA(hwnd32, WM_QUERYDRAGICON, 0, 0);
+                    if (icon) SendMessageA(hwnd32, WM_SETICON, ICON_SMALL, icon);
+                }
+            }
+        }
         ret = callback(hwnd32, msg, (WPARAM)HRGN_32(wParam), lParam, result, arg);
-		break;
+        break;
     case WM_ERASEBKGND:
         ret = callback(hwnd32, msg, (WPARAM)HDC_32(wParam), lParam, result, arg);
         break;
@@ -2038,7 +2073,6 @@ static HICON16 get_default_icon(HINSTANCE16 inst)
 #include "../mmsystem/winemm16.h"
 
 void InitWndProc16(HWND hWnd, HWND16 hWnd16);
-ULONG WINAPI get_windows_build();
 /**********************************************************************
  *	     WINPROC_CallProc32ATo16
  *
@@ -2218,6 +2252,17 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             NCCALCSIZE_PARAMS *nc32 = (NCCALCSIZE_PARAMS *)lParam;
             NCCALCSIZE_PARAMS16 nc;
             WINDOWPOS16 winpos;
+            BOOL fixborder = FALSE;
+            if (get_windows_build() >= 26100)
+            {
+                DWORD exstyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+                if ((exstyle & WS_EX_STATICEDGE) && (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
+                {
+                    if (exstyle & WS_EX_WINDOWEDGE)
+                        SetWindowLong(hwnd, GWL_EXSTYLE, exstyle & ~WS_EX_WINDOWEDGE);
+                    fixborder = TRUE;
+                }
+            }
 
             RECT32to16( &nc32->rgrc[0], &nc.rgrc[0] );
             if (wParam)
@@ -2230,6 +2275,13 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             lParam = MapLS( &nc );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
+            if (fixborder)
+            {
+                    nc.rgrc[0].top--;
+                    nc.rgrc[0].left--;
+                    nc.rgrc[0].bottom++;
+                    nc.rgrc[0].right++;
+            }
             RECT16to32( &nc.rgrc[0], &nc32->rgrc[0] );
             if (wParam)
             {
@@ -3749,6 +3801,7 @@ BOOL16 WINAPI TranslateMDISysAccel16( HWND16 hwndClient, LPMSG16 msg )
 }
 
 
+
 /***********************************************************************
 *           button_proc16
 */
@@ -4817,6 +4870,80 @@ typedef struct
     HHOOK wndprocret;
     HHOOK cbt;
 } user_hook_data;
+
+static void UB_Message(HWND hwnd, HDC hDC, UINT action)
+{
+    RECT rc;
+    HBRUSH hBrush;
+    HFONT hFont;
+    HWND parent;
+
+    GetClientRect(hwnd, &rc);
+
+    if ((hFont = SendMessageW(hwnd, WM_GETFONT, 0, 0))) SelectObject(hDC, hFont);
+
+    parent = GetParent(hwnd);
+    if (!parent) parent = hwnd;
+    hBrush = (HBRUSH)SendMessageW(parent, WM_CTLCOLORBTN, (WPARAM)hDC, (LPARAM)hwnd);
+    if (!hBrush) /* did the app forget to call defwindowproc ? */
+        hBrush = (HBRUSH)DefWindowProcW(parent, WM_CTLCOLORBTN, (WPARAM)hDC, (LPARAM)hwnd);
+
+    FillRect(hDC, &rc, hBrush);
+    if (action == BN_SETFOCUS)
+        DrawFocusRect(hDC, &rc);
+
+    SendMessageW(parent, WM_COMMAND, MAKEWPARAM(GetWindowLongW(hwnd, GWLP_ID), action), hwnd);
+}
+
+static LRESULT UB_WndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
+{
+    LRESULT ret = 0;
+    switch (umsg)
+    { 
+        case WM_PAINT:
+        {
+            PAINTSTRUCT paint;
+            LONG style = GetWindowLongW(hwnd, GWL_STYLE);
+            LONG state = SendMessageW(hwnd, BM_GETSTATE, 0, 0);
+            HDC hDC = BeginPaint(hwnd, &paint);
+            UB_Message(hwnd, hDC, BN_PAINT);
+            if (state & BST_PUSHED)
+                UB_Message(hwnd, hDC, BN_PUSHED);
+            if (style & WS_DISABLED)
+                UB_Message(hwnd, hDC, BN_DISABLE);
+            EndPaint(hwnd, &paint);
+            break;
+        }
+        case WM_SETFOCUS:
+        {
+            HDC hdc = GetDC(hwnd);
+            UB_Message(hwnd, hdc, BN_SETFOCUS);
+            ReleaseDC(hwnd, hdc);
+            break;
+        }
+        case WM_KILLFOCUS:
+        {
+            HDC hdc = GetDC(hwnd);
+            UB_Message(hwnd, hdc, BN_KILLFOCUS);
+            ReleaseDC(hwnd, hdc);
+            break;
+        }
+        case WM_LBUTTONDBLCLK:
+            SendMessageW(GetParent(hwnd), WM_COMMAND, MAKEWPARAM(GetWindowLongW(hwnd, GWLP_ID), BN_DOUBLECLICKED), hwnd);
+            break;
+        default:
+        {
+            WNDPROC origwndproc = (WNDPROC)GetPropA(hwnd, "origwndproc");
+            if (origwndproc)
+                ret = origwndproc(hwnd, umsg, wparam, lparam);
+            else
+                ret = DefWindowProcW(hwnd, umsg, wparam, lparam);
+            break;
+        }
+    }
+    return ret;
+}
+
 LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
 {
     user_hook_data *hd = (user_hook_data*)TlsGetValue(hhook_tls_index);
@@ -4844,6 +4971,11 @@ LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
         if (create->lpcs->lpszName && !strcmp(create->lpcs->lpszName, "Default IME"))
         {
             SetWindowLongA(hWnd, GWL_HINSTANCE, 0);
+        }
+        if ((window_type_table[HWND_16(hWnd)] == (BYTE)WINDOW_TYPE_BUTTON) && ((create->lpcs->style & BS_TYPEMASK) == BS_USERBUTTON))
+        {
+            WNDPROC origwndproc = SetWindowLongW(hWnd, GWL_WNDPROC, UB_WndProc);
+            SetPropA(hWnd, "origwndproc", (HANDLE)origwndproc);
         }
     }
     else if((nCode == HCBT_MINMAX) && (lParam == SW_MAXIMIZE) && (GetWindowLongA(wParam, GWL_STYLE) & WS_MAXIMIZE))
