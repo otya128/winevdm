@@ -741,6 +741,41 @@ int entry_point( int argc, char *argv[] )
        "\"A  --ntvdm64: \"full-dos-path\A.EXE\" --ntvdm64-args \"  1 2 3 4"
     =>"\"A\"            \"full-dos-path\A.EXE\" --ntvdm64-args    1 2 3 4"
     */
+    if (!strcmp(argv[0], "--fix-compat-mode"))
+    {
+        pid = atoi(argv[1]);
+        WINE_ERR("parent pid = %d\n", pid);
+        argv += 2;
+        argc -= 2;
+        compat_success = TRUE;
+    }
+    //compatible mode
+    else if ((!compat_success
+
+#ifdef FIX_COMPAT_MODE
+            || 1
+#endif
+            )
+#ifdef SET_COMPAT_LAYER
+        && getenv("__COMPAT_LAYER") == NULL
+#endif
+        )
+    {
+#ifdef SET_COMPAT_LAYER
+        WINE_ERR("Set compatible mode to VistaRTM\n");
+#else
+        WINE_ERR("Spawn a child process to apply compatible flags.\n");
+#endif
+        if (fix_compatible())
+        {
+            return 0;
+        }
+        else
+        {
+            WINE_ERR("failed");
+        }
+    }
+
     if (cmdline1)
     {
         LPWSTR raw = GetCommandLineW();
@@ -794,41 +829,6 @@ int entry_point( int argc, char *argv[] )
     /* argv must be null-terminated */
     argv[argc] = NULL;
 
-
-    if (!strcmp(argv[0], "--fix-compat-mode"))
-    {
-        pid = atoi(argv[1]);
-        WINE_ERR("parent pid = %d\n", pid);
-        argv += 2;
-        argc -= 2;
-        compat_success = TRUE;
-    }
-    //compatible mode
-    else if ((!compat_success
-
-#ifdef FIX_COMPAT_MODE
-            || 1
-#endif
-            )
-#ifdef SET_COMPAT_LAYER
-        && getenv("__COMPAT_LAYER") == NULL
-#endif
-        )
-    {
-#ifdef SET_COMPAT_LAYER
-        WINE_ERR("Set compatible mode to VistaRTM\n");
-#else
-        WINE_ERR("Spawn a child process to apply compatible flags.\n");
-#endif
-        if (fix_compatible())
-        {
-            return 0;
-        }
-        else
-        {
-            WINE_ERR("failed");
-        }
-    }
 
     if (!argv[1]) usage();
 
