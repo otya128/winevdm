@@ -120,7 +120,58 @@ static void set_dib_colors(HDC hdc)
     }
     SetDIBColorTable(hdc, 0, 256, &pal);
 }
-    
+
+// if the first 10 colors in the palette are not
+// the system colors then the colors need to be shifted
+// (1 color if syspaluse == SYSPAL_NOSTATIC);
+static void set_dib_colors_for_screen(HDC hdc)
+{
+    PALETTEENTRY pal[256] = {0};
+    PALETTEENTRY syspal[10];
+    if (syspaluse == SYSPAL_NOSTATIC256) return set_dib_colors(hdc);
+    int syscolors = syspaluse == SYSPAL_STATIC ? 10 : 1;
+    int skip = 0;
+    GetSystemPaletteEntries(hdc, 0, syscolors, &syspal);
+    GetPaletteEntries(GetCurrentObject(hdc, OBJ_PAL), 0, 256, &pal);
+    for (int i = 0; i < syscolors; i++)
+    {
+        if (((DWORD *)syspal)[i] != ((DWORD *)pal)[i])
+        {
+            skip = syscolors;
+            break;
+        }
+    }
+    PALETTEENTRY tmp;
+    for (int i = 255 - skip; i >= 0; i--)
+    {
+        tmp.peBlue = pal[i].peRed;
+        tmp.peGreen = pal[i].peGreen;
+        tmp.peRed = pal[i].peBlue;
+        pal[i + skip].peRed = tmp.peRed;
+        pal[i + skip].peGreen = tmp.peGreen;
+        pal[i + skip].peBlue = tmp.peBlue;
+    }
+    for (int i = 0; i < skip; i++)
+    {
+        pal[i].peBlue = syspal[i].peRed;
+        pal[i].peGreen = syspal[i].peGreen;
+        pal[i].peRed = syspal[i].peBlue;
+    }
+    SetDIBColorTable(hdc, 0, 256, &pal);
+}
+
+// hack so pirates won't read from the screen when to palette is blank
+static BOOL is_blank_palette(HPALETTE hpal)
+{
+    PALETTEENTRY pal[236];
+    int count = GetPaletteEntries(hpal, 0, 236, &pal);
+    for (int i = 0; i < count; i++)
+    {
+        if (((DWORD *)pal)[i] & 0xffffff)
+            return FALSE;
+    }
+    return TRUE;
+}
 
 /*
  * ############################################################################
@@ -1202,10 +1253,24 @@ BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
             if (realpal != GetStockObject(DEFAULT_PALETTE))
             {
                 HPALETTE oldpal = SelectPalette(hdcsrc32, realpal, FALSE);
-                set_dib_colors(hdcsrc32);
+                set_dib_colors_for_screen(hdcsrc32);
                 BOOL16 ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
                 SelectPalette(hdcsrc32, oldpal, FALSE);
                 set_dib_colors(hdcsrc32);
+                return ret;
+            }
+        }
+        if (dstdib && (GetObjectType(hdcsrc32) == OBJ_DC))
+        {
+            HPALETTE realpal = get_realized_palette();
+            if (realpal != GetStockObject(DEFAULT_PALETTE))
+            {
+                if (is_blank_palette(realpal)) return 0;
+                HPALETTE oldpal = SelectPalette(hdcdst32, realpal, FALSE);
+                set_dib_colors_for_screen(hdcdst32);
+                BOOL16 ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
+                SelectPalette(hdcdst32, oldpal, FALSE);
+                set_dib_colors(hdcdst32);
                 return ret;
             }
         }
@@ -3719,7 +3784,7 @@ UINT16 WINAPI GetPaletteEntries16( HPALETTE16 hpalette, UINT16 start,
 static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
 {
     InvalidateRect(hwnd, NULL, FALSE);    
-    RedrawWindow(hwnd, NULL, NULL, RDW_UPDATENOW);
+    UpdateWindow(hwnd);
     return FALSE;
 }
 
@@ -3786,14 +3851,8 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
 {
     HPALETTE hpal32 = HPALETTE_32(hpalette);
     if (GetObjectType(hpal32) != OBJ_PAL) return;
-    if (GetPtr16(hpalette, 1))
-    {
-        if (StartIndex < 10) StartIndex = 10;
-        AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
-        update_palette(hpalette);
-    }
-    else
-        AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
+    AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
+    if (GetPtr16(hpalette, 1)) update_palette(hpalette);
 }
 
 
