@@ -6,6 +6,7 @@ EXPORTS
   _wine_spec_dos_header @1 DATA;=.L__wine_spec_dos_header @1 DATA PRIVATE
   CreateIcon16 @2
   CreateIconFromResourceEx16
+  SelectPalette16
   dialog_template16_to_template32
   DIALOG_CallDialogProc
   __wine_call_wndproc

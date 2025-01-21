@@ -2259,17 +2259,29 @@ HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBack
         if (!dclist)
         {
             dclist = (WORD *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 20 * sizeof(DWORD));
+            dclist[0] = 20;
             SetPtr16(hpal, dclist, 1);
         }
-        for (int i = 0; i < 20; i++)
+retry:
+        for (int i = 1; i < dclist[0]; i++)
         {
             if ((!dclist[i] || !GetObjectType(HDC_32(dclist[i])) || (GetCurrentObject(HDC_32(dclist[i]), OBJ_PAL) != hpal32)) && (found == -1))
                 found = i;
             if ((dclist[i] & 0xffff) == hdc)
-        	found = i;
-	}
+                found = i;
+	    }
         if (found == -1)
-            ERR("No space in pal->dc list hpal: %x\n", hpal);
+        {
+            if (dclist[0] < 100)
+            {
+                dclist = (WORD *)HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dclist, (dclist[0] + 20) * sizeof(DWORD));
+                dclist[0] = dclist[0] + 20;
+                SetPtr16(hpal, dclist, 1);
+                goto retry;
+            }
+            else
+                ERR("pal->dc list growing too large\n", hpal);
+        }
         else if (found != -2)
             dclist[found] = (DWORD)hdc | (bForceBackground << 16);
 

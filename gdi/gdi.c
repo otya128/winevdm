@@ -160,7 +160,7 @@ static void set_dib_colors_for_screen(HDC hdc)
     SetDIBColorTable(hdc, 0, 256, &pal);
 }
 
-// hack so pirates won't read from the screen when to palette is blank
+// hack so pirates won't read from the screen when the palette is blank
 static BOOL is_blank_palette(HPALETTE hpal)
 {
     PALETTEENTRY pal[236];
@@ -1782,6 +1782,7 @@ HBITMAP16 WINAPI CreateCompatibleBitmap16( HDC16 hdc, INT16 width, INT16 height 
 
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
 BYTE get_aflags(HMODULE16 hModule);
+HPALETTE16 WINAPI SelectPalette16(HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBackground);
 /***********************************************************************
  *           CreateCompatibleDC    (GDI.52)
  */
@@ -1791,7 +1792,7 @@ HDC16 WINAPI CreateCompatibleDC16( HDC16 hdc )
     if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (GetCurrentObject(hdc32, OBJ_FONT) == GetStockObject(SYSTEM_FONT)))
         SelectObject(hdc32, GetStockObject(SYSTEM_FIXED_FONT));
     if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
-        SelectPalette(hdc32, get_realized_palette(), FALSE);
+        SelectPalette16(HDC_16(hdc32), HPALETTE_16(get_realized_palette()), FALSE);
     return HDC_16(hdc32);
 }
 
@@ -3783,16 +3784,16 @@ UINT16 WINAPI GetPaletteEntries16( HPALETTE16 hpalette, UINT16 start,
 
 static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
 {
-    InvalidateRect(hwnd, NULL, FALSE);    
-    UpdateWindow(hwnd);
+    RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
     return FALSE;
 }
 
 BOOL update_palette(HPALETTE16 hpalette)
 {
     HPALETTE hpal32 = HPALETTE_32(hpalette);
+    if (GetObjectType(hpal32) != OBJ_PAL) return;
     DWORD *dclist = GetPtr16(hpalette, 1);
-    for (int i = 0; i < 20; i++)
+    for (int i = 1; i < dclist[0]; i++)
     {
         if (dclist[i])
         {
@@ -3805,8 +3806,7 @@ BOOL update_palette(HPALETTE16 hpalette)
             if (WindowFromDC(hdc32))
             {
                 HWND hwnd = WindowFromDC(hdc32);
-                InvalidateRect(hwnd, NULL, FALSE);
-                UpdateWindow(hwnd);
+                RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
             }
             else if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
             {
@@ -3849,9 +3849,7 @@ INT16 WINAPI UpdateColors16( HDC16 hdc )
 void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
                               UINT16 NumEntries, const PALETTEENTRY* PaletteColors)
 {
-    HPALETTE hpal32 = HPALETTE_32(hpalette);
-    if (GetObjectType(hpal32) != OBJ_PAL) return;
-    AnimatePalette(hpal32, StartIndex, NumEntries, PaletteColors);
+    AnimatePalette(HPALETTE_32(hpalette), StartIndex, NumEntries, PaletteColors);
     if (GetPtr16(hpalette, 1)) update_palette(hpalette);
 }
 
@@ -4270,8 +4268,16 @@ HBITMAP16 WINAPI CreateDIBitmap16( HDC16 hdc, const BITMAPINFOHEADER * header,
     }
     if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
     {
-        ret = CreateCompatibleBitmap16(hdc, header->biWidth, header->biHeight);
-        SetDIBits(HDC_32(hdc), HBITMAP_32(ret), 0, data->bmiHeader.biHeight, bits, bmp ? bmp : data, coloruse);
+        HDC16 hdc2 = CreateCompatibleDC16(hdc);
+        HDC hdc232 = HDC_32(hdc2);
+        ret = CreateCompatibleBitmap16(hdc2, header->biWidth, header->biHeight);
+        HBITMAP hbmp = HDC_32(ret);
+        HBITMAP oldbmp = SelectObject(hdc232, hbmp);
+        if (GetObjectType(HDC_32(hdc)) == OBJ_DC)
+           set_dib_colors_for_screen(hdc232);
+        SetDIBits(hdc232, hbmp, 0, data->bmiHeader.biHeight, bits, bmp ? bmp : data, coloruse);
+        SelectObject(hdc232, oldbmp);
+        DeleteDC16(hdc2);
     }
     else
         ret = HBITMAP_16( CreateDIBitmap( HDC_32(hdc), header, init, bits, bmp ? bmp : data, coloruse ) );
