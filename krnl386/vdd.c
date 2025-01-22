@@ -550,7 +550,7 @@ BOOL WINAPI VDDInstallIOHook(HANDLE hvdd, WORD cPortRange, PVDD_IO_PORTRANGE pPo
     memcpy(&vdd_io[found].io_funcs, IOhandler, sizeof(VDD_IO_HANDLERS));
     vdd_io[found].io_range_len = cPortRange;
     vdd_io[found].io_range = (PVDD_IO_PORTRANGE)HeapAlloc(GetProcessHeap(), 0, cPortRange * sizeof(VDD_IO_PORTRANGE));
-    memcpy(&vdd_io[found].io_range, pPortRange, cPortRange * sizeof(VDD_IO_PORTRANGE));
+    memcpy(vdd_io[found].io_range, pPortRange, cPortRange * sizeof(VDD_IO_PORTRANGE));
     return TRUE;
 }
 
@@ -579,7 +579,7 @@ BOOL vdd_io_read(int port, int size, WORD *val, CONTEXT *ctx)
         {
             for (int j = 0; j < vdd_io[i].io_range_len; j++)
             {
-                if ((vdd_io[i].io_range[j].First >= port) && (vdd_io[i].io_range[j].Last <= port))
+                if ((vdd_io[i].io_range[j].First <= port) && (vdd_io[i].io_range[j].Last >= port))
                 {
                     last_context = ctx;
                     switch (size)
@@ -612,7 +612,7 @@ BOOL vdd_io_write(int port, int size, WORD val, CONTEXT *ctx)
         {
             for (int j = 0; j < vdd_io[i].io_range_len; j++)
             {
-                if ((vdd_io[i].io_range[j].First >= port) && (vdd_io[i].io_range[j].Last <= port))
+                if ((vdd_io[i].io_range[j].First <= port) && (vdd_io[i].io_range[j].Last >= port))
                 {
                     last_context = ctx;
                     switch (size)
