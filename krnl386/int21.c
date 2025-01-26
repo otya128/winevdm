@@ -691,7 +691,7 @@ static BOOL INT21_FillDrivePB( BYTE drive )
     }
 
     dpb->num_reserved         = 0;
-    dpb->num_FAT              = 1;
+    dpb->num_FAT              = (drivetype == DRIVE_FIXED) ? 2 : 1;
     dpb->num_root_entries     = 2;
     dpb->first_data_sector    = 2;
     dpb->num_clusters1        = total_clusters;
