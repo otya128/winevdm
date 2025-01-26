@@ -85,6 +85,19 @@ struct timer32_wrapper
     LPARAM lParam;
     BOOL ref;
 };
+
+struct measureitem_wrapper
+{
+    MEASUREITEMSTRUCT16 mis16;
+    UINT origitemID;
+};
+
+struct drawitem_wrapper
+{
+    DRAWITEMSTRUCT16 dis16;
+    UINT origitemID;
+};
+
 #define TIMER32_WRAP_SIZE 400
 static int timer32_count;
 static struct timer32_wrapper timer32[TIMER32_WRAP_SIZE];
@@ -371,8 +384,17 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
         }
         if (size)
         {
-            memcpy( &args.u, MapSL(lParam), size );
-            lParam = PtrToUlong(getWOW32Reserved()) - size;
+            LPARAM lp = lParam;
+            __TRY  // Chessmaster 4000 sends WM_CREATE without a pointer in LPARAM
+            {
+                memcpy( &args.u, MapSL(lParam), size );
+                lParam = PtrToUlong(getWOW32Reserved()) - size;
+            }
+            __EXCEPT_ALL
+            {
+                lParam = lp;
+            }
+            __ENDTRY
         }
     }
     PVOID old = getWOW32Reserved();
@@ -1709,36 +1731,36 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
         break;
     case WM_MEASUREITEM:
         {
-            MEASUREITEMSTRUCT16* mis16 = MapSL(lParam);
+            struct measureitem_wrapper* mis16 = MapSL(lParam);
             MEASUREITEMSTRUCT mis;
-            mis.CtlType    = mis16->CtlType;
-            mis.CtlID      = mis16->CtlID;
-            mis.itemID     = mis16->itemID;
-            mis.itemWidth  = mis16->itemWidth;
-            mis.itemHeight = mis16->itemHeight;
-            mis.itemData   = mis16->itemData;
+            mis.CtlType    = mis16->mis16.CtlType;
+            mis.CtlID      = mis16->mis16.CtlID;
+            mis.itemID     = mis16->origitemID;
+            mis.itemWidth  = mis16->mis16.itemWidth;
+            mis.itemHeight = mis16->mis16.itemHeight;
+            mis.itemData   = mis16->mis16.CtlType == ODT_MENU ? MapSL(mis16->mis16.itemData) : mis16->mis16.itemData;
             ret = callback( hwnd32, msg, wParam, (LPARAM)&mis, result, arg );
-            mis16->itemWidth  = (UINT16)mis.itemWidth;
-            mis16->itemHeight = (UINT16)mis.itemHeight;
+            mis16->mis16.itemWidth  = (UINT16)mis.itemWidth;
+            mis16->mis16.itemHeight = (UINT16)mis.itemHeight;
         }
         break;
     case WM_DRAWITEM:
         {
-            DRAWITEMSTRUCT16* dis16 = MapSL(lParam);
+            struct drawitem_wrapper* dis16 = MapSL(lParam);
             DRAWITEMSTRUCT dis;
-            dis.CtlType       = dis16->CtlType;
-            dis.CtlID         = dis16->CtlID;
-            dis.itemID        = dis16->itemID == 0xFFFF ? ~0 : dis16->itemID;
-            dis.itemAction    = dis16->itemAction;
-            dis.itemState     = dis16->itemState;
-            dis.hwndItem      = (dis.CtlType == ODT_MENU) ? (HWND)HMENU_32(dis16->hwndItem)
-                                                          : WIN_Handle32( dis16->hwndItem );
-            dis.hDC           = HDC_32(dis16->hDC);
-            dis.itemData      = dis16->itemData;
-            dis.rcItem.left   = dis16->rcItem.left;
-            dis.rcItem.top    = dis16->rcItem.top;
-            dis.rcItem.right  = dis16->rcItem.right;
-            dis.rcItem.bottom = dis16->rcItem.bottom;
+            dis.CtlType       = dis16->dis16.CtlType;
+            dis.CtlID         = dis16->dis16.CtlID;
+            dis.itemID        = dis16->origitemID;
+            dis.itemAction    = dis16->dis16.itemAction;
+            dis.itemState     = dis16->dis16.itemState;
+            dis.hwndItem      = (dis.CtlType == ODT_MENU) ? (HWND)HMENU_32(dis16->dis16.hwndItem)
+                                                          : WIN_Handle32( dis16->dis16.hwndItem );
+            dis.hDC           = HDC_32(dis16->dis16.hDC);
+            dis.itemData      = dis16->dis16.itemData;
+            dis.rcItem.left   = dis16->dis16.rcItem.left;
+            dis.rcItem.top    = dis16->dis16.rcItem.top;
+            dis.rcItem.right  = dis16->dis16.rcItem.right;
+            dis.rcItem.bottom = dis16->dis16.rcItem.bottom;
             ret = callback( hwnd32, msg, wParam, (LPARAM)&dis, result, arg );
         }
         break;
@@ -2345,39 +2367,55 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_DRAWITEM:
         {
             DRAWITEMSTRUCT *dis32 = (DRAWITEMSTRUCT *)lParam;
-            DRAWITEMSTRUCT16 dis;
-            dis.CtlType       = dis32->CtlType;
-            dis.CtlID         = dis32->CtlID;
-            dis.itemID        = dis32->itemID;
-            dis.itemAction    = dis32->itemAction;
-            dis.itemState     = dis32->itemState;
-            dis.hwndItem      = HWND_16( dis32->hwndItem );
-            dis.hDC           = HDC_16(dis32->hDC);
-            dis.itemData      = dis32->itemData;
-            dis.rcItem.left   = dis32->rcItem.left;
-            dis.rcItem.top    = dis32->rcItem.top;
-            dis.rcItem.right  = dis32->rcItem.right;
-            dis.rcItem.bottom = dis32->rcItem.bottom;
+            struct drawitem_wrapper dis;
+            dis.dis16.CtlType       = dis32->CtlType;
+            dis.dis16.CtlID         = dis32->CtlID;
+            if ((dis32->CtlType == ODT_MENU) && (dis32->itemID > 0xffff))
+            {
+                HMENU16 menu = HMENU_16(dis32->itemID);
+                if (menu) dis.dis16.itemID = menu;
+                else dis.dis16.itemID = dis32->itemID;
+            }
+            else dis.dis16.itemID   = dis32->itemID;
+            dis.origitemID          = dis32->itemID;
+            dis.dis16.itemAction    = dis32->itemAction;
+            dis.dis16.itemState     = dis32->itemState;
+            dis.dis16.hwndItem      = HWND_16( dis32->hwndItem );
+            dis.dis16.hDC           = HDC_16(dis32->hDC);
+            dis.dis16.itemData = dis32->CtlType == ODT_MENU ? MapLS(dis32->itemData) : dis32->itemData;
+            dis.dis16.rcItem.left   = dis32->rcItem.left;
+            dis.dis16.rcItem.top    = dis32->rcItem.top;
+            dis.dis16.rcItem.right  = dis32->rcItem.right;
+            dis.dis16.rcItem.bottom = dis32->rcItem.bottom;
             lParam = MapLS( &dis );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
+            if (dis32->CtlType == ODT_MENU) UnMapLS( dis.dis16.itemData );
         }
         break;
     case WM_MEASUREITEM:
         {
             MEASUREITEMSTRUCT *mis32 = (MEASUREITEMSTRUCT *)lParam;
-            MEASUREITEMSTRUCT16 mis;
-            mis.CtlType    = mis32->CtlType;
-            mis.CtlID      = mis32->CtlID;
-            mis.itemID     = mis32->itemID;
-            mis.itemWidth  = mis32->itemWidth;
-            mis.itemHeight = mis32->itemHeight;
-            mis.itemData   = mis32->itemData;
+            struct measureitem_wrapper mis;
+            mis.mis16.CtlType    = mis32->CtlType;
+            mis.mis16.CtlID      = mis32->CtlID;
+            if ((mis32->CtlType == ODT_MENU) && (mis32->itemID > 0xffff))
+            {
+                HMENU16 menu = HMENU_16(mis32->itemID);
+                if (menu) mis.mis16.itemID = menu;
+                else mis.mis16.itemID = mis32->itemID;
+            }
+            else mis.mis16.itemID = mis32->itemID;
+            mis.origitemID       = mis32->itemID;
+            mis.mis16.itemWidth  = mis32->itemWidth;
+            mis.mis16.itemHeight = mis32->itemHeight;
+            mis.mis16.itemData   = mis32->CtlType == ODT_MENU ? MapLS(mis32->itemData) : mis32->itemData;
             lParam = MapLS( &mis );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
-            mis32->itemWidth  = (INT16)mis.itemWidth;
-            mis32->itemHeight = mis.itemHeight;
+            if (mis32->CtlType == ODT_MENU) UnMapLS( mis.mis16.itemData );
+            mis32->itemWidth  = (INT16)mis.mis16.itemWidth;
+            mis32->itemHeight = mis.mis16.itemHeight;
         }
         break;
     case WM_COPYDATA:
