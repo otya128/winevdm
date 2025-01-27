@@ -1056,7 +1056,7 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 			less than the height of the nonclient area, round to the
 			*next* number of items */
 
-			if (!(style & LBS_NOINTEGRALHEIGHT) && !(style & LBS_OWNERDRAWVARIABLE))
+			if (!(style & LBS_NOINTEGRALHEIGHT) && !(style & LBS_OWNERDRAWVARIABLE) && !(style & LBS_OWNERDRAWFIXED))
 			{
 				GetClientRect(hwnd, &rect);
 				height = rect.bottom - rect.top;
@@ -1076,8 +1076,7 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 				}
 			}
 		}
-		ret = callback(hwnd, msg, wParam, lParam, result, arg);
-		break;
+		return callback(hwnd, msg, wParam, lParam, result, arg);
 //		return wow_handlers32.listbox_proc(hwnd, msg, wParam, lParam, unicode);
 
 	case LB_RESETCONTENT16:
@@ -1573,7 +1572,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             CLIENTCREATESTRUCT c32;
             BOOL mdichild = GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD ? TRUE : FALSE;
             BOOL mdiclient = is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg));
-            BOOL fixlistbox = (get_windows_build() >= 26100) && (window_type_table[hwnd] == (BYTE)WINDOW_TYPE_LISTBOX) && (msg == WM_CREATE);
+            BOOL fixlistbox = (get_windows_build() >= 26100) && (window_type_table[hwnd] == (BYTE)WINDOW_TYPE_LISTBOX) && (msg == WM_CREATE) && (callback != call_window_proc_callback);
 
             CREATESTRUCT16to32A( hwnd32, cs16, &cs );
             if (mdichild)
@@ -2299,10 +2298,10 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             UnMapLS( lParam );
             if (fixborder)
             {
-                    nc.rgrc[0].top--;
-                    nc.rgrc[0].left--;
-                    nc.rgrc[0].bottom++;
-                    nc.rgrc[0].right++;
+                nc.rgrc[0].top--;
+                nc.rgrc[0].left--;
+                nc.rgrc[0].bottom++;
+                nc.rgrc[0].right++;
             }
             RECT16to32( &nc.rgrc[0], &nc32->rgrc[0] );
             if (wParam)
