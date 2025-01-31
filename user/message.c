@@ -5000,6 +5000,14 @@ LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
             WNDPROC origwndproc = SetWindowLongW(hWnd, GWL_WNDPROC, UB_WndProc);
             SetPropA(hWnd, "origwndproc", (HANDLE)origwndproc);
         }
+        // 24H2 will make integral height listboxes the wrong size
+        // TODO: correct the height
+        if ((get_windows_build() >= 26100) && (window_type_table[HWND_16(hWnd)] == (BYTE)WINDOW_TYPE_LISTBOX) && (create->lpcs->style & LBS_OWNERDRAWFIXED))
+        {
+            create->lpcs->style |= LBS_NOINTEGRALHEIGHT;
+            SetWindowLongA(hWnd, GWL_STYLE, create->lpcs->style);
+        }
+	
     }
     else if((nCode == HCBT_MINMAX) && (lParam == SW_MAXIMIZE) && (GetWindowLongA(wParam, GWL_STYLE) & WS_MAXIMIZE))
         SetPropA(wParam, "WindowMaximized", 1);
