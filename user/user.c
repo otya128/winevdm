@@ -902,16 +902,40 @@ INT16 WINAPI FillRect16( HDC16 hdc, const RECT16 *rect, HBRUSH16 hbrush )
 	HDC hd = HDC_32(hdc);
 	int ret = FillRect(hd, &r32, hb);
 	return ret;*/
-	HBRUSH prevBrush;
+    HBRUSH prevBrush;
+    HBRUSH hbrush32 = HBRUSH_32(hbrush);
+    HDC hdc32 = HDC_32(hdc);
+
+    if (!(prevBrush = SelectObject( hdc32, hbrush32 ))) return 0;
+
+    if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY))
+    {
+        DIBSECTION dib;
+        HBITMAP hbmp = GetCurrentObject(hdc32, OBJ_BITMAP);
+        int count = GetObject(hbmp, sizeof(DIBSECTION), &dib);
+        if ((count == sizeof(DIBSECTION)) && (dib.dsBmih.biBitCount == 8) && !dib.dshSection && (GetPtr16(HBITMAP_16(hbmp), 1) == 0xd1b00001))
+        {
+            LOGBRUSH lb;
+            count = GetObject(hbrush32, sizeof(LOGBRUSH), &lb);
+            if ((count == sizeof(LOGBRUSH)) && (lb.lbStyle == BS_SOLID) && ((lb.lbColor >> 24) == 1))
+            {
+                HBRUSH newbrush = CreateSolidBrush((lb.lbColor & 0xff) | 0x10ff0000);
+                SelectObject( hdc32, newbrush );
+                PatBlt( hdc32, rect->left, rect->top,
+                        rect->right - rect->left, rect->bottom - rect->top, PATCOPY );
+                SelectObject( hdc32, prevBrush );
+                DeleteObject( newbrush );
+                return 1;
+            }
+        }
+    }        
 
     /* coordinates are logical so we cannot fast-check 'rect',
      * it will be done later in the PatBlt().
      */
-
-    if (!(prevBrush = SelectObject( HDC_32(hdc), HBRUSH_32(hbrush) ))) return 0;
-    PatBlt( HDC_32(hdc), rect->left, rect->top,
+    PatBlt( hdc32, rect->left, rect->top,
               rect->right - rect->left, rect->bottom - rect->top, PATCOPY );
-    SelectObject( HDC_32(hdc), prevBrush );
+    SelectObject( hdc32, prevBrush );
     return 1;
 }
 
@@ -2235,17 +2259,29 @@ HPALETTE16 WINAPI SelectPalette16( HDC16 hdc, HPALETTE16 hpal, BOOL16 bForceBack
         if (!dclist)
         {
             dclist = (WORD *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 20 * sizeof(DWORD));
+            dclist[0] = 20;
             SetPtr16(hpal, dclist, 1);
         }
-        for (int i = 0; i < 20; i++)
+retry:
+        for (int i = 1; i < dclist[0]; i++)
         {
             if ((!dclist[i] || !GetObjectType(HDC_32(dclist[i])) || (GetCurrentObject(HDC_32(dclist[i]), OBJ_PAL) != hpal32)) && (found == -1))
                 found = i;
             if ((dclist[i] & 0xffff) == hdc)
-        	found = i;
-	}
+                found = i;
+	    }
         if (found == -1)
-            ERR("No space in pal->dc list hpal: %x\n", hpal);
+        {
+            if (dclist[0] < 100)
+            {
+                dclist = (WORD *)HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dclist, (dclist[0] + 20) * sizeof(DWORD));
+                dclist[0] = dclist[0] + 20;
+                SetPtr16(hpal, dclist, 1);
+                goto retry;
+            }
+            else
+                ERR("pal->dc list growing too large\n", hpal);
+        }
         else if (found != -2)
             dclist[found] = (DWORD)hdc | (bForceBackground << 16);
 

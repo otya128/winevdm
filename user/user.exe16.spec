@@ -588,6 +588,7 @@
 #
 @ stdcall -arch=win32 CreateIcon16(long long long long long ptr ptr)
 @ stdcall -arch=win32 CreateIconFromResourceEx16(ptr long long long long long long)
+@ stdcall -arch=win32 SelectPalette16(long long long)
 @ stdcall -arch=win32 dialog_template16_to_template32(long long ptr ptr)
 @ stdcall -arch=win32 DIALOG_CallDialogProc(ptr long ptr ptr ptr)
 @ stdcall -arch=win32 __wine_call_wndproc(long long long long long)
