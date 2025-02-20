@@ -329,10 +329,10 @@ DWORD WINAPI RegEnumValue16( HKEY hkey, DWORD index, LPSTR value, LPDWORD val_co
  */
 DWORD WINAPI RegQueryValue16( HKEY hkey, LPCSTR name, LPSTR data, LPDWORD count )
 {
-    DWORD incount = *count;
     if (!advapi32) init_func_ptrs();
     fix_win16_hkey( &hkey );
     if (count) *count &= 0xffff;
+    DWORD incount = *count;
     DWORD result = pRegQueryValueA( hkey, name, data, (LONG*) count );
     if (result == ERROR_MORE_DATA)
     {
