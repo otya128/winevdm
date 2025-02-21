@@ -93,11 +93,21 @@ static BOOL CALLBACK wnd_enum_callback( HWND hwnd, LPARAM param )
     const struct wnd_enum_info *info = (struct wnd_enum_info *)param;
     WORD args[3];
     DWORD ret;
+    CONTEXT context = {0};
+    context.SegDs = context.SegEs = SELECTOROF(getWOW32Reserved());
+    context.SegFs = wine_get_fs();
+    context.SegGs = wine_get_gs();
+    context.Eax = context.SegDs;
+    context.SegCs = SELECTOROF((DWORD)info->proc);
+    context.Eip = OFFSETOF((DWORD)info->proc);
+    context.Ebp = OFFSETOF(getWOW32Reserved()) + FIELD_OFFSET(STACK16FRAME, bp);
 
     args[2] = HWND_16(hwnd);
     args[1] = HIWORD(info->param);
     args[0] = LOWORD(info->param);
-    WOWCallback16Ex( (DWORD)info->proc, WCB16_PASCAL, sizeof(args), args, &ret );
+    WOWCallback16Ex( (DWORD)info->proc, WCB16_PASCAL | WCB16_REGS, sizeof(args), args,  (LPDWORD)&context );
+
+    ret = MAKELONG(LOWORD(context.Eax), LOWORD(context.Edx));
     return LOWORD(ret);
 }
 

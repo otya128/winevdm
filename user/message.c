@@ -85,6 +85,7 @@ struct timer32_wrapper
     LPARAM lParam;
     BOOL ref;
 };
+
 #define TIMER32_WRAP_SIZE 400
 static int timer32_count;
 static struct timer32_wrapper timer32[TIMER32_WRAP_SIZE];
@@ -371,8 +372,17 @@ WNDPROC16 WINPROC_GetProc16( WNDPROC proc, BOOL unicode )
         }
         if (size)
         {
-            memcpy( &args.u, MapSL(lParam), size );
-            lParam = PtrToUlong(getWOW32Reserved()) - size;
+            LPARAM lp = lParam;
+            __TRY  // Chessmaster 4000 sends WM_CREATE without a pointer in LPARAM
+            {
+                memcpy( &args.u, MapSL(lParam), size );
+                lParam = PtrToUlong(getWOW32Reserved()) - size;
+            }
+            __EXCEPT_ALL
+            {
+                lParam = lp;
+            }
+            __ENDTRY
         }
     }
     PVOID old = getWOW32Reserved();
@@ -1034,7 +1044,7 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 			less than the height of the nonclient area, round to the
 			*next* number of items */
 
-			if (!(style & LBS_NOINTEGRALHEIGHT) && !(style & LBS_OWNERDRAWVARIABLE))
+			if (!(style & LBS_NOINTEGRALHEIGHT) && !(style & LBS_OWNERDRAWVARIABLE) && !(style & LBS_OWNERDRAWFIXED))
 			{
 				GetClientRect(hwnd, &rect);
 				height = rect.bottom - rect.top;
@@ -1054,8 +1064,7 @@ static LRESULT listbox_proc_CallProc16To32A(winproc_callback_t callback, HWND hw
 				}
 			}
 		}
-		ret = callback(hwnd, msg, wParam, lParam, result, arg);
-		break;
+		return callback(hwnd, msg, wParam, lParam, result, arg);
 //		return wow_handlers32.listbox_proc(hwnd, msg, wParam, lParam, unicode);
 
 	case LB_RESETCONTENT16:
@@ -1551,7 +1560,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             CLIENTCREATESTRUCT c32;
             BOOL mdichild = GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD ? TRUE : FALSE;
             BOOL mdiclient = is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg));
-            BOOL fixlistbox = (get_windows_build() >= 26100) && (window_type_table[hwnd] == (BYTE)WINDOW_TYPE_LISTBOX) && (msg == WM_CREATE);
+            BOOL fixlistbox = (get_windows_build() >= 26100) && (window_type_table[hwnd] == (BYTE)WINDOW_TYPE_LISTBOX) && (msg == WM_CREATE) && (callback != call_window_proc_callback);
 
             CREATESTRUCT16to32A( hwnd32, cs16, &cs );
             if (mdichild)
@@ -1716,7 +1725,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             mis.itemID     = mis16->itemID;
             mis.itemWidth  = mis16->itemWidth;
             mis.itemHeight = mis16->itemHeight;
-            mis.itemData   = mis16->itemData;
+            mis.itemData   = mis16->CtlType == ODT_MENU ? MapSL(mis16->itemData) : mis16->itemData;
             ret = callback( hwnd32, msg, wParam, (LPARAM)&mis, result, arg );
             mis16->itemWidth  = (UINT16)mis.itemWidth;
             mis16->itemHeight = (UINT16)mis.itemHeight;
@@ -1728,7 +1737,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             DRAWITEMSTRUCT dis;
             dis.CtlType       = dis16->CtlType;
             dis.CtlID         = dis16->CtlID;
-            dis.itemID        = dis16->itemID == 0xFFFF ? ~0 : dis16->itemID;
+            dis.itemID        = dis16->itemID;
             dis.itemAction    = dis16->itemAction;
             dis.itemState     = dis16->itemState;
             dis.hwndItem      = (dis.CtlType == ODT_MENU) ? (HWND)HMENU_32(dis16->hwndItem)
@@ -2277,10 +2286,10 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             UnMapLS( lParam );
             if (fixborder)
             {
-                    nc.rgrc[0].top--;
-                    nc.rgrc[0].left--;
-                    nc.rgrc[0].bottom++;
-                    nc.rgrc[0].right++;
+                nc.rgrc[0].top--;
+                nc.rgrc[0].left--;
+                nc.rgrc[0].bottom++;
+                nc.rgrc[0].right++;
             }
             RECT16to32( &nc.rgrc[0], &nc32->rgrc[0] );
             if (wParam)
@@ -2348,12 +2357,18 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             DRAWITEMSTRUCT16 dis;
             dis.CtlType       = dis32->CtlType;
             dis.CtlID         = dis32->CtlID;
-            dis.itemID        = dis32->itemID;
+            if ((dis32->CtlType == ODT_MENU) && (dis32->itemID > 0xffff))
+            {
+                HMENU16 menu = HMENU_16(dis32->itemID);
+                if (menu) dis.itemID = menu;
+                else dis.itemID = dis32->itemID;
+            }
+            else dis.itemID   = dis32->itemID;
             dis.itemAction    = dis32->itemAction;
             dis.itemState     = dis32->itemState;
             dis.hwndItem      = HWND_16( dis32->hwndItem );
             dis.hDC           = HDC_16(dis32->hDC);
-            dis.itemData      = dis32->itemData;
+            dis.itemData = dis32->CtlType == ODT_MENU ? MapLS(dis32->itemData) : dis32->itemData;
             dis.rcItem.left   = dis32->rcItem.left;
             dis.rcItem.top    = dis32->rcItem.top;
             dis.rcItem.right  = dis32->rcItem.right;
@@ -2361,6 +2376,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             lParam = MapLS( &dis );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
+            if (dis32->CtlType == ODT_MENU) UnMapLS( dis.itemData );
         }
         break;
     case WM_MEASUREITEM:
@@ -2369,13 +2385,20 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             MEASUREITEMSTRUCT16 mis;
             mis.CtlType    = mis32->CtlType;
             mis.CtlID      = mis32->CtlID;
-            mis.itemID     = mis32->itemID;
+            if ((mis32->CtlType == ODT_MENU) && (mis32->itemID > 0xffff))
+            {
+                HMENU16 menu = HMENU_16(mis32->itemID);
+                if (menu) mis.itemID = menu;
+                else mis.itemID = mis32->itemID;
+            }
+            else mis.itemID = mis32->itemID;
             mis.itemWidth  = mis32->itemWidth;
             mis.itemHeight = mis32->itemHeight;
-            mis.itemData   = mis32->itemData;
+            mis.itemData   = mis32->CtlType == ODT_MENU ? MapLS(mis32->itemData) : mis32->itemData;
             lParam = MapLS( &mis );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
+            if (mis32->CtlType == ODT_MENU) UnMapLS( mis.itemData );
             mis32->itemWidth  = (INT16)mis.itemWidth;
             mis32->itemHeight = mis.itemHeight;
         }
@@ -4977,6 +5000,14 @@ LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
             WNDPROC origwndproc = SetWindowLongW(hWnd, GWL_WNDPROC, UB_WndProc);
             SetPropA(hWnd, "origwndproc", (HANDLE)origwndproc);
         }
+        // 24H2 will make integral height listboxes the wrong size
+        // TODO: correct the height
+        if ((get_windows_build() >= 26100) && (window_type_table[HWND_16(hWnd)] == (BYTE)WINDOW_TYPE_LISTBOX) && (create->lpcs->style & LBS_OWNERDRAWFIXED))
+        {
+            create->lpcs->style |= LBS_NOINTEGRALHEIGHT;
+            SetWindowLongA(hWnd, GWL_STYLE, create->lpcs->style);
+        }
+	
     }
     else if((nCode == HCBT_MINMAX) && (lParam == SW_MAXIMIZE) && (GetWindowLongA(wParam, GWL_STYLE) & WS_MAXIMIZE))
         SetPropA(wParam, "WindowMaximized", 1);
