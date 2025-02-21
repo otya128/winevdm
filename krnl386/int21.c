@@ -5014,9 +5014,10 @@ void WINAPI DOSVM_Int21Handler( CONTEXT *context )
 
             if (!DeleteFileW( fileW ))
             {
-                fileA = RedirectDriveRoot(fileA, buf, MAX_PATH, FALSE);
                 if (!count)
                 {
+                    fileA = RedirectSystemDir(fileA, buf, MAX_PATH);
+                    fileA = RedirectDriveRoot(fileA, buf, MAX_PATH, FALSE);
                     count = 1;
                     goto retry;
                 }
