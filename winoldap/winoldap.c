@@ -14,6 +14,7 @@
 #include "shellapi.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "shlwapi.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winoldap);
 
@@ -134,6 +135,35 @@ static VOID start_dos_exe( LPCSTR filename, LPCSTR cmdline )
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
     ExitThread(exit_code);
+}
+
+static VOID start_bat(LPCSTR filename, LPCSTR cmdline)
+{
+    char fullcmdline[MAX_PATH*2];
+    PROCESS_INFORMATION pi;
+    STARTUPINFOA si = {0};
+    DWORD count;
+    si.cb = sizeof(STARTUPINFOA);
+    char exename[MAX_PATH];
+    if (!GetEnvironmentVariableA("COMSPEC", exename, MAX_PATH))
+        strcpy(exename, "CMD.EXE");
+    snprintf(fullcmdline, 512, "\"%s\" /c %s %s", exename, filename, cmdline);
+    BOOL ret = CreateProcessA(NULL, fullcmdline, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi);
+    
+    if (!ret)
+    {
+        char *msg;
+        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM, 0, GetLastError(), 0, &msg, 256, NULL);
+        WINE_MESSAGE( "winevdm: Cannot start batch file %s err: %s\n", filename, msg );
+        LocalFree(msg);
+        ReleaseThunkLock(&count);
+        Sleep(100); // wait for other tasks to finish, hopefully preventing deadlock
+        RestoreThunkLock(count);
+        ExitThread(1);
+    }
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    ExitThread(1);
 }
 
 /***********************************************************************
@@ -331,8 +361,10 @@ WORD WINAPI WinMain16(HINSTANCE16 inst, HINSTANCE16 prev, LPSTR cmdline, WORD sh
         path[name_end - name_beg] = '\0';
     }
 
-    if (strstr(filename, ".pif"))
+    if (StrStrIA(filename, ".pif"))
         pif_cmd(filename, args);
+    else if (StrStrIA(filename, ".bat"))
+        start_bat(filename, args);
     else
         start_dos_exe(filename, args);
     

@@ -64,7 +64,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;
-$(OutDir)winecrt0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+$(OutDir)winecrt0.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
 winoldap.def
@@ -92,7 +92,7 @@ winoldap.def
 winoldap.def
       </ModuleDefinitionFile>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;
-$(OutDir)winecrt0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+$(OutDir)winecrt0.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
