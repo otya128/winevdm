@@ -2963,7 +2963,19 @@ static LRESULT send_message_timeout_callback( HWND hwnd, UINT msg, WPARAM wp, LP
     LRESULT success;
     ReleaseThunkLock(&count);
     if (hwnd == HWND_BROADCAST)
-        success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_ABORTIFHUNG, 100, result);
+    {
+        int timeout = 1000;
+        switch (msg)
+        {
+            case WM_PALETTECHANGED:
+            case WM_SYSCOLORCHANGE:
+            case WM_FONTCHANGE:
+            case WM_SETTINGCHANGE:
+                timeout = 100;
+                break;
+        }
+        success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_ABORTIFHUNG, timeout, result);
+    }
     else
         success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_NORMAL, 1000, result);
     RestoreThunkLock(count);
