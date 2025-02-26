@@ -2960,8 +2960,12 @@ static LRESULT send_message_timeout_callback( HWND hwnd, UINT msg, WPARAM wp, LP
                                       LRESULT *result, void *arg )
 {
     DWORD count;
+    LRESULT success;
     ReleaseThunkLock(&count);
-    LRESULT success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_NORMAL, 1000, result);
+    if (hwnd == HWND_BROADCAST)
+        success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_ABORTIFHUNG, 100, result);
+    else
+        success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_NORMAL, 1000, result);
     RestoreThunkLock(count);
     if (!success)
     {
