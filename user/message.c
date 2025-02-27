@@ -2555,7 +2555,8 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             UINT_PTR lo32, hi;
             HANDLE16 lo16 = 0;
 
-            UnpackDDElParam( msg, lParam, &lo32, &hi );
+            if (UnpackDDElParam( msg, lParam, &lo32, &hi ) && (callback == get_message_callback) && (*result & 1))
+                FreeDDElParam(msg, lParam);
             if (lo32 && !(lo16 = convert_handle_32_to_16(lo32, GMEM_DDESHARE))) break;
             convert_dde_msg_32_to_16(msg, lo16);
             hi = topic32_16(hi);
@@ -2579,13 +2580,15 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                     lo = LOWORD(lParam);
                     hi = HIWORD(lParam);
                 }
+                else if((callback == get_message_callback) && (*result & 1))
+                    FreeDDElParam(msg, lParam);
             }
             __EXCEPT_ALL
             {
                 lo = LOWORD(lParam);
                 hi = HIWORD(lParam);
             }
-	    __ENDTRY
+            __ENDTRY
 
             if (hi >= 0xc000 && GlobalGetAtomNameA((ATOM)hi, buf, sizeof(buf)) > 0) flag |= 1;
             if (HIWORD(hi) && GlobalSize((HANDLE)hi) != 0) flag |= 2;
@@ -3205,7 +3208,7 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
                                 BOOL16 wHaveParamHigh )
 {
     MSG msg;
-    LRESULT unused;
+    LRESULT remove = flags;
     HWND hwnd = WIN_Handle32( hwnd16 );
 
     if(USER16_AlertableWait)
@@ -3241,7 +3244,7 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
     msg16->msg.pt.y    = (INT16)msg.pt.y;
     if (wHaveParamHigh) msg16->wParamHigh = HIWORD(msg.wParam);
     WINPROC_CallProc32ATo16( get_message_callback, msg.hwnd, msg.message, msg.wParam, msg.lParam,
-                             &unused, &msg16->msg );
+                             &remove, &msg16->msg );
     return TRUE;
 }
 
@@ -3399,7 +3402,7 @@ BOOL16 WINAPI GetMessage32_16( MSG32_16 *msg16, HWND16 hwnd16, UINT16 first,
                                UINT16 last, BOOL16 wHaveParamHigh )
 {
     MSG msg;
-    LRESULT unused;
+    LRESULT remove = 1;
     HWND hwnd = WIN_Handle32( hwnd16 );
     SetEvent(kernel_get_thread_data()->idle_event);
 
@@ -3425,7 +3428,7 @@ BOOL16 WINAPI GetMessage32_16( MSG32_16 *msg16, HWND16 hwnd16, UINT16 first,
     msg16->msg.pt.y    = (INT16)msg.pt.y;
     if (wHaveParamHigh) msg16->wParamHigh = HIWORD(msg.wParam);
     WINPROC_CallProc32ATo16( get_message_callback, msg.hwnd, msg.message, msg.wParam, msg.lParam,
-                             &unused, &msg16->msg );
+                             &remove, &msg16->msg );
 
     TRACE( "message %04x, hwnd %p, filter(%04x - %04x)\n",
            msg16->msg.message, hwnd, first, last );
