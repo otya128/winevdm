@@ -364,12 +364,22 @@ HMMIO16 WINAPI mmioOpen16(LPSTR szFileName, MMIOINFO16* lpmmioinfo16,
             LeaveCriticalSection(&mmio_cs);
             return 0;
         }
-	ret = mmioOpenA(szFileName, NULL, dwOpenFlags);
+        ret = mmioOpenA(szFileName, NULL, dwOpenFlags & ~MMIO_ALLOCBUF);
         if (!ret || (dwOpenFlags & (MMIO_PARSE|MMIO_EXIST)))
             thunk->hMmio = NULL;
         else thunk->hMmio = ret;
-        thunk->segbuffer = 0;
-        thunk->allocbuf = NULL;
+        if (ret && (dwOpenFlags & MMIO_ALLOCBUF))
+        {
+             HGLOBAL hg = GlobalAlloc16(0, MMIO_DEFAULTBUFFER);
+             mmioSetBuffer(ret, GlobalLock16(hg), MMIO_DEFAULTBUFFER, 0);
+             thunk->segbuffer = WOWGlobalLock16(hg);
+             thunk->allocbuf = hg;
+        }
+        else
+        {
+             thunk->segbuffer = 0;
+             thunk->allocbuf = NULL;
+        }
         LeaveCriticalSection(&mmio_cs);
     }
     return HMMIO_16(ret);

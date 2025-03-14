@@ -175,8 +175,9 @@ HGLOBAL16 GLOBAL_CreateBlock( WORD flags, void *ptr, DWORD size,
             ERR("prealloced sel must not be larger than 65536");
             return 0;
         }
+        WORD descflags = selflags & 0x40 ? (selflags & ~0x40) | 0x4000 : selflags;
         SELECTOR_ReallocBlock(sel, ptr, size);
-        SelectorAccessRights16(sel, 1, selflags);
+        SelectorAccessRights16(sel, 1, descflags);
     }
     else
         sel = SELECTOR_AllocBlock( ptr, size, selflags );
