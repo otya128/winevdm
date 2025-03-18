@@ -2202,6 +2202,8 @@ UINT16 WINAPI GlobalGetAtomName16(ATOM nAtom, LPSTR lpBuffer, INT16 nSize)
     /* win32 wow32:if specify a small buffer, GlobalGetAtomName returns 0 */
     /* win16      :if specify a small buffer, GlobalGetAtomName returns max(0, nSize - 1) */
     UINT len = GlobalGetAtomNameA(nAtom, buffer, 256);
+    if (!len)
+        return 0;
     if (len + 1 <= nSize)
     {
         memcpy(lpBuffer, buffer, len + 1);

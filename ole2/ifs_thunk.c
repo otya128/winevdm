@@ -2146,3 +2146,43 @@ DWORD STDMETHODCALLTYPE IMessageFilter_32_16_HandleInComingCall(IMessageFilter *
     return result32__;
 }
 #endif
+#ifdef IFS1632_OVERWRITE_IDataObject_DAdvise
+HRESULT CDECL IDataObject_16_32_DAdvise(SEGPTR This, SEGPTR args16_pformatetc, DWORD args16_advf, SEGPTR args16_pAdvSink, SEGPTR args16_pdwConnection)
+{
+    IDataObject *iface32 = (IDataObject*)get_interface32(This);
+    HRESULT result__ = {0};
+    TYP16_HRESULT result16__ = {0};
+    FORMATETC * args32_pformatetc;
+    DWORD args32_advf;
+    IAdviseSink * args32_pAdvSink;
+    DWORD args32_pdwConnection = {0};
+    MAP_PTR_FORMATETC16_32(args32_pformatetc, args16_pformatetc);
+    MAP_DWORD16_32(args32_advf, args16_advf);
+    args32_pAdvSink = iface16_32(&IID_IAdviseSink, args16_pAdvSink);
+    if (args32_pformatetc->ptd)
+    {
+        IPersist *pPersist;
+        iface32->lpVtbl->QueryInterface(iface32, &IID_IPersist, &pPersist);
+        if (pPersist)
+        {
+            CLSID clsid;
+            if (SUCCEEDED(pPersist->lpVtbl->GetClassID(pPersist, &clsid)) && CoIsOle1Class(&clsid))
+            {
+                HeapFree(GetProcessHeap(), 0, args32_pformatetc->ptd);
+                args32_pformatetc->ptd = NULL;
+            }
+            pPersist->lpVtbl->Release(pPersist);
+        }
+    }
+    TRACE("(%04x:%04x(%p),%08x,%08x,%08x,%08x)\n", SELECTOROF(This), OFFSETOF(This), iface32, args16_pformatetc, args16_advf, args16_pAdvSink, args16_pdwConnection);
+    result__ = (HRESULT)iface32->lpVtbl->DAdvise(iface32, args32_pformatetc, args32_advf, args32_pAdvSink, &args32_pdwConnection);
+    MAP_HRESULT32_16(result16__, result__);
+    UNMAP_PTR_FORMATETC16_32(args32_pformatetc, args16_pformatetc);
+    UNMAP_DWORD16_32(args32_advf, args16_advf);
+    if (args16_pdwConnection)
+    {
+        MAP_DWORD32_16((*(TYP16_DWORD*)MapSL(args16_pdwConnection)), args32_pdwConnection);
+    }
+    return result16__;
+}
+#endif
