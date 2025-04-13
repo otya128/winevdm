@@ -425,8 +425,6 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
     case DRV_CLOSE:
     case DRV_DISABLE:
     case DRV_FREE:
-    case ICM_ABOUT:
-    case ICM_CONFIGURE:
     case ICM_COMPRESS_END:
     case ICM_DECOMPRESS_END:
     case ICM_DECOMPRESSEX_END:
@@ -436,14 +434,21 @@ static LPVOID MSVIDEO_MapMsg16To32(UINT msg, LPDWORD lParam1, LPDWORD lParam2)
     case ICM_DRAW_REALIZE:
     case ICM_DRAW_RENDERBUFFER:
     case ICM_DRAW_END:
+    case 0x4016: // not documented
         break;
     case DRV_OPEN:
     case ICM_GETDEFAULTQUALITY:
     case ICM_GETQUALITY:
+    case ICM_GETSTATE:
     case ICM_SETSTATE:
     case ICM_DRAW_WINDOW:
     case ICM_GETBUFFERSWANTED:
+    case ICM_GETDEFAULTKEYFRAMERATE:
         *lParam1 = (DWORD)MapSL(*lParam1);
+        break;
+    case ICM_ABOUT:
+    case ICM_CONFIGURE:
+        *lParam1 = HWND_32(*lParam1);
         break;
     case ICM_GETINFO:
         {
@@ -713,6 +718,10 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
     case DRV_OPEN:
         lp2 = (DWORD)MapLS((void*)lp2);
         break;
+    case ICM_ABOUT:
+    case ICM_CONFIGURE:
+        lp1 = HWND_16(lp1);
+        break;
     case ICM_GETINFO:
     {
         ICINFO16 *ici16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICINFO16));
@@ -782,6 +791,7 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
     case ICM_DRAW_QUERY:
     case ICM_SETSTATE:
     case ICM_DRAW_WINDOW:
+    case ICM_GETDEFAULTKEYFRAMERATE:
         lp1 = (LPARAM)(MapLS(lp1));
         break;
     case ICM_DRAW:
@@ -811,6 +821,10 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
     case ICM_DRAW_REALIZE:
         lp1 = (LPARAM)(HDC_16(lp1));
         break;
+    case ICM_COMPRESS_GET_FORMAT:
+    case ICM_COMPRESS_GET_SIZE:
+    case ICM_COMPRESS_QUERY:
+    case ICM_COMPRESS_BEGIN:
     case ICM_DECOMPRESS_QUERY:
     case ICM_DECOMPRESS_GET_FORMAT:
     case ICM_DECOMPRESS_GET_PALETTE:
@@ -818,6 +832,59 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         lp1 = (LPARAM)(MapLS(lp1));
         lp2 = (LPARAM)(MapLS(lp2));
         break;
+    case ICM_COMPRESS:
+    {
+        ICCOMPRESS *icc16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICCOMPRESS));
+        ICCOMPRESS *icc = lp1;
+
+        DWORD size = icc->lpbiInput->biSizeImage;
+        int count = (size + 0xffff) / 0x10000;
+        WORD insel = AllocSelectorArray16(count);
+        for (int i = 0; i < count; i++)
+        {
+            SetSelectorBase(insel + (i << __AHSHIFT), (DWORD)icc->lpInput + i * 0x10000);
+            SetSelectorLimit16(insel + (i << __AHSHIFT), size - 1);
+            size -= 0x10000;
+        }
+        size = icc->lpbiOutput->biSizeImage;
+        count = (size + 0xffff) / 0x10000;
+        WORD outsel = AllocSelectorArray16(count);
+        for (int i = 0; i < count; i++)
+        {
+            SetSelectorBase(outsel + (i << __AHSHIFT), (DWORD)icc->lpOutput + i * 0x10000);
+            SetSelectorLimit16(outsel + (i << __AHSHIFT), size - 1);
+            size -= 0x10000;
+        }
+        WORD prevsel = 0;
+        if (icc->lpbiPrev)
+        {
+            size = icc->lpbiPrev->biSizeImage;
+            count = (size + 0xffff) / 0x10000;
+            prevsel = AllocSelectorArray16(count);
+            for (int i = 0; i < count; i++)
+            {
+                SetSelectorBase(prevsel + (i << __AHSHIFT), (DWORD)icc->lpPrev + i * 0x10000);
+                SetSelectorLimit16(prevsel + (i << __AHSHIFT), size - 1);
+                size -= 0x10000;
+            }
+        }
+        
+        icc16->dwFlags = icc->dwFlags;
+        icc16->lpbiInput = MapLS(icc->lpbiInput);
+        icc16->lpInput = insel << 16;
+        icc16->lpbiOutput = MapLS(icc->lpbiOutput);
+        icc16->lpOutput = outsel << 16;
+        icc16->lpckid = MapLS(icc->lpckid);
+        icc16->lpdwFlags = MapLS(icc->lpdwFlags);
+        icc16->lFrameNum = icc->lFrameNum;
+        icc16->dwFrameSize = icc->dwFrameSize;
+        icc16->lpbiPrev = prevsel ? MapLS(icc->lpbiPrev) : NULL;
+        icc16->lpPrev = prevsel ? prevsel << 16 : 0;
+
+        lp1 = (LPARAM)(MapLS(icc16));
+        lp2 = sizeof(ICCOMPRESS);
+        break;
+    } 
     case ICM_DECOMPRESS:
     {
         ICDECOMPRESS *icdec16 = HeapAlloc(GetProcessHeap(), 0, sizeof(ICDECOMPRESS));
@@ -906,8 +973,36 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
     case ICM_DRAW_QUERY:
     case ICM_SETSTATE:
     case ICM_DRAW_WINDOW:
+    case ICM_GETDEFAULTKEYFRAMERATE:
         UnMapLS(lp1);
         break;
+    case ICM_COMPRESS:
+    {
+        ICCOMPRESS *icc16 = MapSL(lp1);
+        WORD sel = SELECTOROF(icc16->lpInput);
+        int count = (GetSelectorLimit16(sel) + 0xffff) / 0x10000;
+        for (int i = 0; i < count; i++)
+            FreeSelector16(sel + (i << __AHSHIFT));
+        sel = SELECTOROF(icc16->lpOutput);
+        count = (GetSelectorLimit16(sel) + 0xffff) / 0x10000;
+        for (int i = 0; i < count; i++)
+            FreeSelector16(sel + (i << __AHSHIFT));
+        if (icc16->lpbiPrev)
+        {
+            sel = SELECTOROF(icc16->lpPrev);
+            count = (GetSelectorLimit16(sel) + 0xffff) / 0x10000;
+            for (int i = 0; i < count; i++)
+                FreeSelector16(sel + (i << __AHSHIFT));
+            UnMapLS(icc16->lpbiPrev);
+        }
+        UnMapLS(lp1);
+        UnMapLS(icc16->lpbiInput);
+        UnMapLS(icc16->lpbiOutput);
+        UnMapLS(icc16->lpckid);
+        UnMapLS(icc16->lpdwFlags);
+        HeapFree(GetProcessHeap(), 0, icc16);
+        break;
+    }
     case ICM_DECOMPRESS:
     {
         ICDECOMPRESS *icdec16 = MapSL(lp1);
@@ -937,6 +1032,10 @@ static  LRESULT CALLBACK  IC_Callback3216(DWORD pfn16, HIC hic, HDRVR hdrv, UINT
         HeapFree(GetProcessHeap(), 0, icd16);
         break;
     }
+    case ICM_COMPRESS_GET_SIZE:
+    case ICM_COMPRESS_GET_FORMAT:
+    case ICM_COMPRESS_QUERY:
+    case ICM_COMPRESS_BEGIN:
     case ICM_DECOMPRESS_QUERY:
     case ICM_DECOMPRESS_GET_FORMAT:
     case ICM_DECOMPRESS_GET_PALETTE:
