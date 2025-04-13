@@ -1925,7 +1925,7 @@ HMENU16 WINAPI LoadMenuIndirect16( SEGPTR segtemplate )
     BOOL oldFormat;
     HMENU hMenu;
     WORD version, offset;
-    LPVOID template = MapSL(segtemplate);
+    LPCSTR template = MapSL(segtemplate);
     LPCSTR p = template;
 
     TRACE("(%p)\n", template );
