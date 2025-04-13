@@ -1283,7 +1283,7 @@ HMENU16 WINAPI LoadMenu16( HINSTANCE16 instance, LPCSTR name )
     instance = GetExePtr( instance );
     if (!(hRsrc = FindResource16( instance, name, (LPSTR)RT_MENU ))) return 0;
     if (!(handle = LoadResource16( instance, hRsrc ))) return 0;
-    hMenu = LoadMenuIndirect16(LockResource16(handle));
+    hMenu = LoadMenuIndirect16(K32WOWGlobalLock16(handle));
     FreeResource16( handle );
     return hMenu;
 }
@@ -1827,9 +1827,11 @@ HMENU16 WINAPI LookupMenuHandle16( HMENU16 hmenu, INT16 id )
 }
 
 
-static LPCSTR parse_menu_resource( LPCSTR res, HMENU hMenu, BOOL oldFormat )
+static LPCSTR parse_menu_resource( SEGPTR segres, HMENU hMenu, BOOL oldFormat )
 {
     WORD flags, id = 0;
+    LPCSTR res = MapSL(segres);
+    LPCSTR start = res;
     LPCSTR str;
     BOOL end_flag;
 
@@ -1857,16 +1859,18 @@ static LPCSTR parse_menu_resource( LPCSTR res, HMENU hMenu, BOOL oldFormat )
         }
         str = res;
         res += strlen(str) + 1;
+        if (flags & MF_OWNERDRAW) str = segres + (str - start);
         if (flags & MF_POPUP)
         {
             HMENU hSubMenu = CreatePopupMenu();
             if (!hSubMenu) return NULL;
-            if (!(res = parse_menu_resource( res, hSubMenu, oldFormat ))) return NULL;
+            if (!(res = parse_menu_resource( segres + (res - start), hSubMenu, oldFormat ))) return NULL;
             AppendMenuA( hMenu, flags, (UINT_PTR)hSubMenu, str );
         }
         else  /* Not a popup */
         {
-            AppendMenuA( hMenu, flags, id, *str ? str : NULL );
+            LPCSTR newitem = flags & MF_OWNERDRAW ? str : (*str ? str : NULL);
+            AppendMenuA( hMenu, flags, id, newitem );
         }
     } while (!end_flag);
     return res;
@@ -1916,11 +1920,12 @@ HMENU WINAPI LoadOldMenuIndirect16(LPCVOID *template)
 /**********************************************************************
  *	    LoadMenuIndirect    (USER.220)
  */
-HMENU16 WINAPI LoadMenuIndirect16( LPCVOID template )
+HMENU16 WINAPI LoadMenuIndirect16( SEGPTR segtemplate )
 {
     BOOL oldFormat;
     HMENU hMenu;
     WORD version, offset;
+    LPVOID template = MapSL(segtemplate);
     LPCSTR p = template;
 
     TRACE("(%p)\n", template );
@@ -1948,7 +1953,7 @@ HMENU16 WINAPI LoadMenuIndirect16( LPCVOID template )
     }
 
     if (!(hMenu = CreateMenu())) return 0;
-    if (!parse_menu_resource( p, hMenu, oldFormat ))
+    if (!parse_menu_resource( segtemplate + (p - template), hMenu, oldFormat ))
     {
         DestroyMenu( hMenu );
         return 0;

@@ -2368,7 +2368,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             dis.itemState     = dis32->itemState;
             dis.hwndItem      = HWND_16( dis32->hwndItem );
             dis.hDC           = HDC_16(dis32->hDC);
-            dis.itemData = dis32->CtlType == ODT_MENU ? MapLS(dis32->itemData) : dis32->itemData;
+            dis.itemData      = dis32->itemData;
             dis.rcItem.left   = dis32->rcItem.left;
             dis.rcItem.top    = dis32->rcItem.top;
             dis.rcItem.right  = dis32->rcItem.right;
@@ -2376,7 +2376,6 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             lParam = MapLS( &dis );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
-            if (dis32->CtlType == ODT_MENU) UnMapLS( dis.itemData );
         }
         break;
     case WM_MEASUREITEM:
@@ -2394,11 +2393,10 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
             else mis.itemID = mis32->itemID;
             mis.itemWidth  = mis32->itemWidth;
             mis.itemHeight = mis32->itemHeight;
-            mis.itemData   = mis32->CtlType == ODT_MENU ? MapLS(mis32->itemData) : mis32->itemData;
+            mis.itemData   = mis32->itemData;
             lParam = MapLS( &mis );
             ret = callback( HWND_16(hwnd), msg, wParam, lParam, result, arg );
             UnMapLS( lParam );
-            if (mis32->CtlType == ODT_MENU) UnMapLS( mis.itemData );
             mis32->itemWidth  = (INT16)mis.itemWidth;
             mis32->itemHeight = mis.itemHeight;
         }
