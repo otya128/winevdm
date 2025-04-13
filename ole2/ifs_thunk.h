@@ -1062,4 +1062,7 @@ HRESULT CDECL ITypeLib_16_32_FindName(SEGPTR This, SEGPTR args16_szNameBuf, DWOR
 #define IFS3216_OVERWRITE_IMessageFilter_HandleInComingCall
 DWORD STDMETHODCALLTYPE IMessageFilter_32_16_HandleInComingCall(IMessageFilter *This, DWORD dwCallType,HTASK htaskCaller,DWORD dwTickCount,LPINTERFACEINFO lpInterfaceInfo);
 
+#define IFS1632_OVERWRITE_IDataObject_DAdvise
+HRESULT CDECL IDataObject_16_32_DAdvise(SEGPTR This, SEGPTR args16_pformatetc, DWORD args16_advf, SEGPTR args16_pAdvSink, SEGPTR args16_pdwConnection);
+
 #endif
