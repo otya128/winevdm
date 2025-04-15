@@ -108,6 +108,26 @@ static COLORREF check_colorref(COLORREF color)
     return color;
 }
 
+// convert the colorref to a 8bpp dib compatible index value using the rules above
+// GDI should just look up PALETTERGB in the dib palette
+static COLORREF convert_colorref(COLORREF color)
+{
+    int type = color >> 24;
+    int index;
+    switch (type)
+    {
+        case 0:
+            index = GetNearestPaletteIndex(GetStockObject(DEFAULT_PALETTE), color);
+            if (index >= 10) index += 236;
+            return DIBINDEX(index);
+        case 1:
+            return DIBINDEX(color & 0xff);
+    }
+    return color;
+}
+     
+
+
 static void set_dib_colors(HDC hdc)
 {
     PALETTEENTRY pal[256] = {0};
@@ -1276,9 +1296,10 @@ BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
         }
         if (dstdib && (dib.dsBm.bmBitsPixel == 1))
         {
-            // make sure that when a mono bitmap is combined with a 8bpp dib, fg color is 0 and bg color is 0xff
-            COLORREF txcolor = SetTextColor(hdcdst32, DIBINDEX(0));
-            COLORREF bkcolor = SetBkColor(hdcdst32, DIBINDEX(255));
+            COLORREF txcolor = GetTextColor(hdcdst32);
+            COLORREF bkcolor = GetBkColor(hdcdst32);
+            SetTextColor(hdcdst32, convert_colorref(txcolor));
+            SetBkColor(hdcdst32, convert_colorref(bkcolor));
             BOOL16 ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
             SetTextColor(hdcdst32, txcolor);
             SetBkColor(hdcdst32, bkcolor);
@@ -1286,12 +1307,9 @@ BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
         }
         if (srcdib && (dibdst.dsBm.bmBitsPixel == 1))
         {
-            COLORREF txcolor = GetTextColor(hdcsrc32);
             COLORREF bkcolor = GetBkColor(hdcsrc32);
-            if ((txcolor >> 24) == 1) SetTextColor(hdcsrc32, DIBINDEX(txcolor & 0xff));
-            if ((bkcolor >> 24) == 1) SetBkColor(hdcsrc32, DIBINDEX(bkcolor & 0xff));
+            SetBkColor(hdcsrc32, convert_colorref(bkcolor));
             BOOL16 ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
-            SetTextColor(hdcsrc32, txcolor);
             SetBkColor(hdcsrc32, bkcolor);
             return ret;
         }
@@ -3784,7 +3802,18 @@ UINT16 WINAPI GetPaletteEntries16( HPALETTE16 hpalette, UINT16 start,
 
 static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
 {
-    RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+    BOOL found = FALSE;
+    DWORD *wndlist = (DWORD *)lparam;
+    for (int j = 1; j <= wndlist[0]; j++)
+    {
+        if (wndlist[j] == hwnd)
+        {
+            found = TRUE;
+            break;
+        }
+    }
+    if (!found)
+        RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
     return FALSE;
 }
 
@@ -3793,6 +3822,7 @@ BOOL update_palette(HPALETTE16 hpalette)
     HPALETTE hpal32 = HPALETTE_32(hpalette);
     if (GetObjectType(hpal32) != OBJ_PAL) return;
     DWORD *dclist = GetPtr16(hpalette, 1);
+    DWORD *wndlist = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (dclist[0] + 1) * 4);
     for (int i = 1; i < dclist[0]; i++)
     {
         if (dclist[i])
@@ -3803,10 +3833,24 @@ BOOL update_palette(HPALETTE16 hpalette)
                 dclist[i] = 0;
                 continue;
             }
-            if (WindowFromDC(hdc32))
+            HWND hwnd = WindowFromDC(hdc32);
+            if (hwnd)
             {
-                HWND hwnd = WindowFromDC(hdc32);
-                RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+                BOOL found = FALSE;
+                for (int j = 1; j <= wndlist[0]; j++)
+                {
+                    if (wndlist[j] == hwnd)
+                    {
+                        found = TRUE;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    wndlist[wndlist[0] + 1] = hwnd;
+                    wndlist[0]++;
+                    RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+                }
             }
             else if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
             {
@@ -3819,7 +3863,8 @@ BOOL update_palette(HPALETTE16 hpalette)
         }
     }
     if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (hpal32 == get_realized_palette()))
-        EnumThreadWindows(GetCurrentThreadId(), paint_all_windows, NULL);
+        EnumThreadWindows(GetCurrentThreadId(), paint_all_windows, wndlist);
+    HeapFree(GetProcessHeap(), 0, wndlist);
 }
 
 /***********************************************************************
@@ -4185,32 +4230,32 @@ INT16 WINAPI SetDIBits16( HDC16 hdc, HBITMAP16 hbitmap, UINT16 startscan,
     HBITMAP hbitmap32 = HBITMAP_32(hbitmap);
     if (krnl386_get_compat_mode("256color"))
     {
-        // the conversion from 8bpp->1 on winxp+ (even in 256 color mode) is different than win31/95 and wine
+        // the conversion from 8bpp->1bpp on winxp+ (even in 256 color mode) is different than win31/95 and wine
         // the problem shows in The Even More Incredible Machine where the sprites are almost completely masked out
-        // this does it like wine
-        // TODO: other wrong color conversions, top down dibs
+        // the cause is that nt scans the dib pallette for the back color and marks the first found match as the
+        // only index to be 1 and all others are 0, win31 does the match by checking every pixel so if there are 
+        // multiple colors that match the back color nt will ignore all but one while win31 will find them all
+        // TEMIM hits this problem, by converting to 32bpp the issue is bypassed
+        // TODO: SetDIBitsFromDevice, 4bpp dibs may also be affected
         BITMAP bmap;
         int ret = GetObject(hbitmap32, sizeof(BITMAP), &bmap);
-        if ((bmap.bmPlanes == 1) && (bmap.bmBitsPixel == 1) && (info->bmiHeader.biBitCount == 8) &&
-            (info->bmiHeader.biPlanes == 1) && (info->bmiHeader.biCompression == BI_RGB) && (coloruse == DIB_RGB_COLORS))
+        if ((bmap.bmPlanes == 1) && (bmap.bmBitsPixel == 1) && (info->bmiHeader.biBitCount == 8))
         {
-            int bytewidth = (info->bmiHeader.biWidth + 3) & ~3;
-            HDC hdc32 = CreateCompatibleDC(HDC_32(hdc));
-            SelectObject(hdc32, hbitmap32);
-            int start = bmap.bmHeight - lines - startscan;
-            for (int y = 0; y < lines; y++)
-            {
-                for (int x = 0; x < info->bmiHeader.biWidth; x++)
-                {
-                    RGBQUAD *color = &info->bmiColors[((unsigned char *)bits)[((lines - y - 1) * bytewidth) + x]];
-                    if (SetPixel(hdc32, x, y + start, RGB(color->rgbRed, color->rgbGreen, color->rgbBlue)) == -1)
-                    {
-                        DeleteDC(hdc32);
-                        return y;
-                    }
-                }
-            }
-            DeleteDC(hdc32);
+            HDC hdcscr = GetDC(NULL);
+            HDC hdcsrc = CreateCompatibleDC(hdcscr);
+            HDC hdcdst = HDC_32(hdc);
+            HBITMAP hbmp = CreateCompatibleBitmap(hdcscr, info->bmiHeader.biWidth, info->bmiHeader.biHeight);
+            HBITMAP origbmp1 = SelectObject(hdcsrc, hbmp);
+            int start = info->bmiHeader.biHeight - lines - startscan;
+            ReleaseDC(hdcscr, NULL);
+            SaveDC(hdcdst);
+            SelectObject(hdcdst, hbitmap32);
+            SetDIBits(hdcsrc, hbmp, startscan, lines, bits, info, coloruse);
+            BitBlt(hdcdst, 0, start, info->bmiHeader.biWidth, lines, hdcsrc, 0, start, SRCCOPY);
+            SelectObject(hdcsrc, origbmp1);
+            DeleteObject(hbmp);
+            DeleteDC(hdcsrc);
+            RestoreDC(hdcdst, -1);
             return lines;
         }
     }
