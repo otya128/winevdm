@@ -2176,7 +2176,7 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
                     // lpcreateparams fixup for the dialog item extra bytes
                     char class[10];
                     HWND roothwnd = GetAncestor(hwnd, GA_ROOT);
-                    int ret = GetClassName(roothwnd, &class, 10);
+                    int ret = GetClassNameA(roothwnd, &class, 10);
                     // if a window is created with a dialog as it's parent lpCreateParams can still be a SEGPTR
                     __TRY
                     {
