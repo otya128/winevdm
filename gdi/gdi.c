@@ -1679,16 +1679,18 @@ HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
 {
     if (krnl386_get_compat_mode("256color") && (bpp == 8) && (planes == 1))
     {
-        HDC dc = GetDC(NULL);
         HBITMAP16 ret;
         if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
         {
-            ret = CreateCompatibleBitmap16(HDC_16(dc), width, height);
+            HDC16 dc = CreateCompatibleDC16(NULL);
+            ret = CreateCompatibleBitmap16(dc, width, height);
             if (bits)
                 SetBitmapBits(HBITMAP_32(ret), width * height, bits);
+            DeleteDC16(dc);
         }
         else
         {
+            HDC dc = GetDC(NULL);
             HBITMAP ret32 = CreateCompatibleBitmap(dc, width, height);
             if (bits)
             {
@@ -1706,8 +1708,8 @@ HBITMAP16 WINAPI CreateBitmap16( INT16 width, INT16 height, UINT16 planes,
                 HeapFree(GetProcessHeap(), 0, bmap);
             }
             ret = HBITMAP_16(ret32);
+            ReleaseDC(NULL, dc);
         }
-        ReleaseDC(NULL, dc);
         return ret;
     }
     else if ((planes == 1) && (bpp > 8))
