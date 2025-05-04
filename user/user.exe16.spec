@@ -217,7 +217,7 @@
 217 pascal -ret16 LookupMenuHandle(word s_word) LookupMenuHandle16
 218 pascal -ret16 DialogBoxIndirect(word word word segptr) DialogBoxIndirect16
 219 pascal -ret16 CreateDialogIndirect(word segptr word segptr) CreateDialogIndirect16
-220 pascal -ret16 LoadMenuIndirect(ptr) LoadMenuIndirect16
+220 pascal -ret16 LoadMenuIndirect(segptr) LoadMenuIndirect16
 221 pascal -ret16 ScrollDC(word s_word s_word ptr ptr word ptr) ScrollDC16
 222 pascal -ret16 GetKeyboardState(ptr) GetKeyboardState16
 223 pascal -ret16 SetKeyboardState(ptr) SetKeyboardState16
