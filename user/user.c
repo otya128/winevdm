@@ -2323,9 +2323,6 @@ UINT16 WINAPI RealizePalette16( HDC16 hdc )
         if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE)
             && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY) && (GetObjectType(hdc32) == OBJ_DC))
             set_realized_palette(hdc32);
-        HWND hwnd = WindowFromDC(hdc32);
-        if (hwnd && krnl386_get_config_int("otvdm", "RealizeRedraw", FALSE))
-            RedrawWindow(hwnd, NULL, NULL, RDW_INTERNALPAINT);
     }
         
     return UserRealizePalette(hdc32);
