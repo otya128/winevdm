@@ -63,6 +63,7 @@ void WINAPI K32WOWHandle16DestroyHint(HANDLE handle, WOW_HANDLE_TYPE type);
 BOOL16 WINAPI IsOldWindowsTask(HINSTANCE16 hInst);
 BYTE get_aflags(HMODULE16 hModule);
 ULONG WINAPI get_windows_build();
+LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 /* size of buffer needed to store an atom string */
 #define ATOM_BUFFER_SIZE 256
 
@@ -132,7 +133,8 @@ BOOL CALLBACK remove_wndproc(HWND hwnd, LPARAM lparam)
     {
         TRACE("HWND %x WNDPROC removed\n", hwnd);
         EnumChildWindows(hwnd, remove_wndproc, lparam);
-        SetWindowLongPtrA(hwnd, GWLP_WNDPROC, DefWindowProcA);
+        if (GetWindowLongPtrA(hwnd, GWL_WNDPROC) == (LONG_PTR)WindowProc16)
+            SetWindowLongPtrA(hwnd, GWLP_WNDPROC, DefWindowProcA);
     }
     return TRUE;
 }
@@ -1705,7 +1707,6 @@ LRESULT get_message_callback(HWND16 hwnd, UINT16 msg, WPARAM16 wp, LPARAM lp,
 LRESULT call_window_proc16(HWND16 hwnd, UINT16 msg, WPARAM16 wParam, LPARAM lParam,
     LRESULT *result, void *arg);
 LRESULT CALLBACK DlgProcCall16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK WindowProc16(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK DlgProc(HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam);
 WNDPROC get_classinfo_wndproc(const char *class);
 /**********************************************************************
