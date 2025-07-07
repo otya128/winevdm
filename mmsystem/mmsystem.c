@@ -284,6 +284,34 @@ DWORD WINAPI timeGetTime16(void)
  * ###################################################
  */
 
+typedef struct
+{
+    char *ptr;
+    UINT flags;
+} sound_info_t;
+
+DWORD WINAPI play_sound_thread(LPVOID param)
+{
+    sound_info_t *si = (sound_info_t *)param;
+    char *ptr = si->ptr;
+    UINT flags = si->flags;
+    if ((si->flags & SND_RESOURCE) == SND_RESOURCE)
+    {
+        flags = (flags & ~SND_RESOURCE) | SND_MEMORY;
+        ptr = LockResource16(si->ptr);
+    }
+    else if (si->flags & SND_FILENAME)
+        flags = (flags & ~SND_FILENAME) | SND_MEMORY;
+
+    DWORD ret = PlaySoundA(ptr, 0, flags);
+
+    if ((si->flags & SND_RESOURCE) == SND_RESOURCE) FreeResource16(si->ptr);
+    else if (si->flags & SND_FILENAME) HeapFree(GetProcessHeap(), 0, si->ptr);
+
+    HeapFree(GetProcessHeap(), 0, param);
+    return ret;
+}
+
 /**************************************************************************
  * 				PlaySound		[MMSYSTEM.3]
  */
@@ -291,6 +319,14 @@ BOOL16 WINAPI PlaySound16(LPCSTR pszSound, HMODULE16 hmod, DWORD fdwSound)
 {
     BOOL16	retv;
     DWORD	lc;
+    char	buf[36];
+
+    if (pszSound && ((fdwSound & SND_RESOURCE) == SND_MEMORY) && (*(DWORD *)(pszSound + 4) < 36))
+    {
+        memset(buf, 0, 36);
+        memcpy(buf, pszSound, *(DWORD *)(pszSound + 4));
+        pszSound = buf;
+    }
 
     if ((fdwSound & SND_RESOURCE) == SND_RESOURCE)
     {
@@ -299,16 +335,47 @@ BOOL16 WINAPI PlaySound16(LPCSTR pszSound, HMODULE16 hmod, DWORD fdwSound)
 
         if (!(res = FindResource16( hmod, pszSound, "WAVE" ))) return FALSE;
         if (!(handle = LoadResource16( hmod, res ))) return FALSE;
-        pszSound = LockResource16(handle);
-        fdwSound = (fdwSound & ~SND_RESOURCE) | SND_MEMORY;
-        /* FIXME: FreeResource16 */
+        pszSound = handle;
+    }
+    if ((!(fdwSound & (SND_MEMORY | SND_ALIAS | SND_ALIAS_ID | SND_RESOURCE | SND_FILENAME)) || 
+        (fdwSound & SND_FILENAME)) && pszSound)
+    {
+        DWORD size;
+        HANDLE fh = CreateFileA(pszSound, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (fh != INVALID_HANDLE_VALUE)
+        {
+            LARGE_INTEGER size = {0};
+            if (GetFileSizeEx(fh, &size))
+            {
+                if (!size.u.HighPart)
+                {
+                    if (pszSound = (LPCSTR)HeapAlloc(GetProcessHeap(), 0, size.u.LowPart))
+                    {
+                        ReadFile(fh, pszSound, size.u.LowPart, NULL, NULL);
+                        fdwSound |= SND_FILENAME;
+                    }
+                }
+                else pszSound = NULL;
+            }
+            CloseHandle(fh);
+        }
+        if (!pszSound || ((fh == INVALID_HANDLE_VALUE) && (fdwSound & SND_FILENAME)))
+            return FALSE;
     }
 
-    ReleaseThunkLock(&lc);
-    retv = PlaySoundA(pszSound, 0, fdwSound);
-    RestoreThunkLock(lc);
+    sound_info_t *si = (sound_info_t *)HeapAlloc(GetProcessHeap(), 0, sizeof(sound_info_t));
+    si->ptr = pszSound;
+    si->flags = fdwSound & ~SND_ASYNC;
 
-    return retv;
+    if (fdwSound & SND_ASYNC)
+    {
+        HANDLE thread = CreateThread(NULL, 0, &play_sound_thread, si, 0, NULL);
+        if (!thread) return FALSE;
+        CloseHandle(thread);
+        Sleep(1);
+        return TRUE;
+    }
+    return play_sound_thread(si);
 }
 
 /**************************************************************************
@@ -316,23 +383,7 @@ BOOL16 WINAPI PlaySound16(LPCSTR pszSound, HMODULE16 hmod, DWORD fdwSound)
  */
 BOOL16 WINAPI sndPlaySound16(LPCSTR lpszSoundName, UINT16 uFlags)
 {
-    BOOL16	retv;
-    DWORD	lc;
-    char	buf[36];
-    if (lpszSoundName && (uFlags & SND_MEMORY) && (*(DWORD *)(lpszSoundName + 4) < 36))
-    {
-        memset(buf, 0, 36);
-        memcpy(buf, lpszSoundName, *(DWORD *)(lpszSoundName + 4));
-        lpszSoundName = buf;
-    }
-
-    ReleaseThunkLock(&lc);
-    retv = sndPlaySoundA(lpszSoundName, uFlags);
-    if ((uFlags & SND_ASYNC) && retv)
-        Sleep(1);
-    RestoreThunkLock(lc);
-
-    return retv;
+    return PlaySound16(lpszSoundName, 0, uFlags);
 }
 
 /* ###################################################
