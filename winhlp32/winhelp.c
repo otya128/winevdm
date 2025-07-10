@@ -582,6 +582,7 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, WINEHELP *wh, BOOL w32)
                 MACRO_JumpHash(ptr, "main", 0);
             }
             break;
+        case HELP_PARTIALKEY:
         case HELP_KEY:
         {
             HLPFILE *hlpfile = WINHELP_LookupHelpFile(ptr);
@@ -628,7 +629,6 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, WINEHELP *wh, BOOL w32)
 
         /* case HELP_WM_HELP: */
         /* case HELP_SETPOPUP_POS: */
-        /* case HELP_PARTIALKEY: */
         /* case HELP_SETWINPOS: */
         default:
             WINE_FIXME("Unhandled command (%x) for remote winhelp control\n", wh->command);
