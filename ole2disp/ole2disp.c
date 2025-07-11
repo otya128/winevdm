@@ -349,6 +349,118 @@ HRESULT WINAPI SafeArrayDestroyData16(SAFEARRAY16 *sa)
     return S_OK;
 }
 
+HRESULT WINAPI SafeArrayPtrOfIndex16(SEGPTR segsa, LONG *rgIndices, SEGPTR *ppvData)
+{
+  USHORT dim;
+  ULONG cell = 0, dimensionSize = 1;
+  SAFEARRAYBOUND16* psab;
+  LONG c1;
+  SAFEARRAY16 *psa = MapSL(segsa);
+
+  TRACE("(%p,%p,%p)\n", psa, rgIndices, ppvData);
+  
+  /* The general formula for locating the cell number of an entry in an n
+   * dimensional array (where cn = coordinate in dimension dn) is:
+   *
+   * c1 + c2 * sizeof(d1) + c3 * sizeof(d2) ... + cn * sizeof(c(n-1))
+   *
+   * We calculate the size of the last dimension at each step through the
+   * dimensions to avoid recursing to calculate the last dimensions size.
+   */
+  if (!psa || !rgIndices || !ppvData)
+    return E_INVALIDARG;
+
+  psab = psa->rgsabound + psa->cDims - 1;
+  c1 = *rgIndices++;
+
+  if (c1 < psab->lLbound || c1 >= psab->lLbound + (LONG)psab->cElements)
+    return DISP_E_BADINDEX; /* Initial index out of bounds */
+
+  for (dim = 1; dim < psa->cDims; dim++)
+  {
+    dimensionSize *= psab->cElements;
+
+    psab--;
+
+    if (!psab->cElements ||
+        *rgIndices < psab->lLbound ||
+        *rgIndices >= psab->lLbound + (LONG)psab->cElements)
+    return DISP_E_BADINDEX; /* Index out of bounds */
+
+    cell += (*rgIndices - psab->lLbound) * dimensionSize;
+    rgIndices++;
+  }
+
+  cell += (c1 - psa->rgsabound[psa->cDims - 1].lLbound);
+
+  *ppvData = safearray_ptrofindex(segsa, cell, psa->cbElements);
+  return S_OK;
+}
+
+HRESULT WINAPI SafeArrayGetElement16(SEGPTR segsa, LONG *rgIndices, void *pvData)
+{
+  HRESULT hRet;
+  SAFEARRAY16 *psa = MapSL(segsa);
+
+  TRACE("(%p,%p,%p)\n", psa, rgIndices, pvData);
+    
+  if (!psa || !rgIndices || !pvData)
+    return E_INVALIDARG;
+
+  hRet = safearray_lock(psa);
+
+  if (SUCCEEDED(hRet))
+  {
+    PVOID lpvSrc;
+    SEGPTR slpvSrc;
+
+    hRet = SafeArrayPtrOfIndex16(segsa, rgIndices, &slpvSrc);
+    lpvSrc = MapSL(slpvSrc);
+
+    if (SUCCEEDED(hRet))
+    {
+      if (psa->fFeatures & FADF_VARIANT)
+      {
+        VARIANT16 *lpVariant = lpvSrc;
+        VARIANT16 *lpDest = pvData;
+
+        /* The original content of pvData is ignored. */
+        V_VT(lpDest) = VT_EMPTY;
+        hRet = VariantCopy16(lpDest, lpVariant);
+        if (FAILED(hRet)) FIXME("VariantCopy failed with %#lx.\n", hRet);
+      }
+      else if (psa->fFeatures & FADF_BSTR)
+      {
+        SEGPTR *lpBstr = lpvSrc;
+        SEGPTR *lpDest = pvData;
+
+        if (*lpBstr)
+        {
+          *lpDest = SysAllocStringByteLen16(MapSL(*lpBstr), SysStringByteLen16(*lpDest));
+          if (!*lpDest)
+            hRet = E_OUTOFMEMORY;
+        }
+        else
+          *lpDest = NULL;
+      }
+      else if (psa->fFeatures & (FADF_UNKNOWN|FADF_DISPATCH))
+      {
+        SEGPTR *src_unk = lpvSrc;
+        SEGPTR *dest_unk = pvData;
+
+        if (*src_unk)
+          IUnknown16_AddRef(*src_unk);
+        *dest_unk = *src_unk;
+      }
+      else
+        /* Copy the data over */
+        memcpy(pvData, lpvSrc, psa->cbElements);
+    }
+    SafeArrayUnlock16(psa);
+  }
+  return hRet;
+}
+
 HRESULT WINAPI SafeArrayCopy16(SAFEARRAY16 *sa, SAFEARRAY16 **ppsaout)
 {
     FIXME("(%p,%p) stub!\n", sa, ppsaout);

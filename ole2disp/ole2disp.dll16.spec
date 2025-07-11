@@ -22,7 +22,7 @@
 22 pascal SafeArrayUnlock(ptr) SafeArrayUnlock16
 23 pascal SafeArrayAccessData(ptr ptr) SafeArrayAccessData16
 24 pascal SafeArrayUnaccessData(ptr) SafeArrayUnaccessData16
-25 stub SAFEARRAYGETELEMENT
+25 pascal SafeArrayGetElement(segptr ptr ptr) SafeArrayGetElement16
 26 stub SAFEARRAYPUTELEMENT
 27 pascal SafeArrayCopy(ptr ptr) SafeArrayCopy16
 28 pascal DispGetParam(ptr word word ptr ptr) DispGetParam16
@@ -106,7 +106,7 @@
 106 stub VARBOOLFROMDISP
 107 stub DOINVOKEMETHOD
 108 pascal VariantChangeTypeEx(ptr ptr long word word) VariantChangeTypeEx16
-109 stub SAFEARRAYPTROFINDEX
+109 pascal SafeArrayPtrOfIndex(segptr ptr ptr) SafeArrayPtrOfIndex16
 110 pascal SetErrorInfo(long segptr) SetErrorInfo16
 111 pascal GetErrorInfo(long ptr)  GetErrorInfo16
 112 pascal CreateErrorInfo(ptr) CreateErrorInfo16
