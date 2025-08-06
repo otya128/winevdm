@@ -556,6 +556,23 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
     return !(pNewArena->handle ^ handle & ~1) ? handle : pNewArena->handle;
 }
 
+static void check_gptr(HANDLE src)
+{
+    HANDLE dst;
+    BOOL valid = FALSE;
+    if ((DWORD)dst & 4)
+    {
+        if (GlobalFlags(dst) != GMEM_INVALID_HANDLE)
+            valid = TRUE;
+    }
+    else
+    {
+        if (HeapValidate(GetProcessHeap(), 0, dst))
+            valid = TRUE;
+    }
+    if (valid)
+        GlobalFree(src);
+}
 
 /***********************************************************************
  *           GlobalFree     (KERNEL.17)
@@ -588,7 +605,7 @@ HGLOBAL16 WINAPI GlobalFree16(
     HGLOBAL ddehndl = GLOBAL_GetLink(handle);
     if (!GLOBAL_FreeBlock( handle )) return handle;  /* failed */
     HeapFree( get_win16_heap(), 0, ptr );
-    if (ddehndl) GlobalFree(ddehndl);
+    if (ddehndl) check_gptr(ddehndl);
     return 0;
 }
 
