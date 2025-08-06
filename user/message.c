@@ -1479,7 +1479,32 @@ static void convert_dde_msg_32_to_16(int msg, HANDLE16 handle)
         *(HANDLE16 *)data = convert_cb_data_32_16(format, *(HANDLE *)data, FALSE);
     GlobalUnlock16(handle);
 }
-        
+
+static void check_gptr(HANDLE16 src)
+{
+    HANDLE dst;
+    if (!src) return;
+    if (dst = GLOBAL_GetLink(src))
+    {
+        BOOL valid = FALSE;
+        if ((DWORD)dst & 4)
+        {
+            if (GlobalFlags(dst) != GMEM_INVALID_HANDLE)
+                valid = TRUE;
+        }
+        else
+        {
+            if (HeapValidate(GetProcessHeap(), 0, dst))
+                valid = TRUE;
+        }
+        if (!valid)
+        {
+            GLOBAL_SetLink(src, 0);
+            GlobalFree16(src);
+        }
+    }
+}
+
 /**********************************************************************
  *	     WINPROC_CallProc16To32A
  */
@@ -1864,13 +1889,15 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             convert_dde_msg_16_to_32(msg, lo32);
             lParam = PackDDElParam( msg, lo32, topic16_32(HIWORD(lParam)) );
             ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
+            check_gptr(lo16);
         }
-        break; /* FIXME don't know how to free allocated memory (handle)  !! */
+        break;
     case WM_DDE_ACK:
         {
             UINT_PTR lo = LOWORD(lParam);
             UINT_PTR hi = HIWORD(lParam);
             int flag = 0;
+            UINT_PTR hi16 = 0;
             char buf[256];
 
             if (hi >= 0xc000 && GlobalGetAtomNameA(hi, buf, 256) > 0) flag |= 1;
@@ -1892,17 +1919,23 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
                 WARN("DDE_ACK: %lx both atom and handle... choosing handle\n", hi);
                 /* fall through */
             case 2:
+                hi16 = hi;
                 hi = convert_handle_16_to_32(hi, GMEM_DDESHARE);
                 break;
             }
             lParam = PackDDElParam( WM_DDE_ACK, lo, hi );
             ret = callback( hwnd32, msg, (WPARAM)WIN_Handle32(wParam), lParam, result, arg );
+            if (flag >= 2) check_gptr(hi16);
         }
-        break; /* FIXME don't know how to free allocated memory (handle) !! */
+        break;
     case WM_DDE_EXECUTE:
-        lParam = convert_handle_16_to_32( HIWORD(lParam), GMEM_DDESHARE );
-        ret = callback( hwnd32, msg, (WPARAM)HWND_32(wParam), lParam, result, arg );
-        break; /* FIXME don't know how to free allocated memory (handle) !! */
+        {
+            UINT_PTR hi16 = HIWORD(lParam);
+            lParam = convert_handle_16_to_32( hi16, GMEM_DDESHARE );
+            ret = callback( hwnd32, msg, (WPARAM)HWND_32(wParam), lParam, result, arg );
+            check_gptr(hi16);
+        }
+        break;
     case WM_PAINTCLIPBOARD:
     case WM_SIZECLIPBOARD:
         FIXME_(msg)( "message %04x needs translation\n", msg );
