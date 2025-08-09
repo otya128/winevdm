@@ -766,3 +766,10 @@ INT16 CALLBACK ItemCallBack16(LPOLECLIENT client, OLE_NOTIFICATION16 notif, SEGP
     // oleobject must have been created with GetObject
     return ItemCallBack(client, notif, &find_oleobject(oleobject)->obj);
 }
+
+BOOL WINAPI DllEntryPoint16(DWORD reason, HINSTANCE16 inst, WORD ds, WORD heap, DWORD reserved1, WORD reserved2)
+{
+    // olesvr32 has a bug where it will fail to load again if it is unloaded so force it to stay loaded
+    LoadLibraryA("olesvr32.dll");
+    return TRUE;
+}
