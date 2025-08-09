@@ -21,3 +21,4 @@
 29 stub DELETECLIENTINFO
 30 stub SENDRENAMEMSG
 31 stub ENUMFORTERMINATE
+32 pascal -ret16 DllEntryPoint(long word word word long word) DllEntryPoint16
