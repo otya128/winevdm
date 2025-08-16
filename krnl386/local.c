@@ -1017,7 +1017,7 @@ notify_done:
 	    if (call_notify_func(pInfo->notify, LN_OUTOFMEM, ds - 20, size)) /* FIXME: "size" correct ? (should indicate bytes needed) */
 		goto notify_done;
 #endif
-            ERR( "not enough space in %s heap %04x for %d bytes\n",
+            WARN( "not enough space in %s heap %04x for %d bytes\n",
                  get_heap_name(ds), ds, size );
 	    return 0;
 	}
@@ -1026,7 +1026,7 @@ notify_done:
 	arena = LOCAL_FindFreeBlock( ds, size, flags );
     }
     if (arena == 0) {
-        ERR( "not enough space in %s heap %04x for %d bytes\n",
+        WARN( "not enough space in %s heap %04x for %d bytes\n",
              get_heap_name(ds), ds, size );
 #if 0
         /* FIXME: "size" correct ? (should indicate bytes needed) */
