@@ -580,6 +580,7 @@ DWORD WINAPI VerFindFile16( UINT16 flags, LPSTR lpszFilename,
     UINT *pcurDirLen = NULL, *pdestDirLen = NULL;
     DWORD retv;
     char buf[MAX_PATH];
+    char systemdir[MAX_PATH];
     lpszFilename = krnl386_search_executable_file(lpszFilename, buf, MAX_PATH, TRUE);
 
     if (lpuCurDirLen) {
@@ -590,6 +591,12 @@ DWORD WINAPI VerFindFile16( UINT16 flags, LPSTR lpszFilename,
         destDirLen = *lpuDestDirLen;
         pdestDirLen = &destDirLen;
     }
+    if (flags & VFFF_ISSHAREDFILE) {
+        RedirectSystemDir("c:\\windows\\system", systemdir, MAX_PATH);
+        lpszAppDir = systemdir;
+        flags &= ~VFFF_ISSHAREDFILE;
+    }
+    
     retv = VerFindFileA( flags, lpszFilename, lpszWinDir, lpszAppDir,
                                 lpszCurDir, pcurDirLen, lpszDestDir, pdestDirLen );
     if (lpuCurDirLen)
