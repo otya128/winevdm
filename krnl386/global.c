@@ -558,16 +558,15 @@ HGLOBAL16 WINAPI GlobalReAlloc16(
 
 static void check_gptr(HANDLE src)
 {
-    HANDLE dst;
     BOOL valid = FALSE;
-    if ((DWORD)dst & 4)
+    if ((DWORD)src & 4)
     {
-        if (GlobalFlags(dst) != GMEM_INVALID_HANDLE)
+        if (GlobalFlags(src) != GMEM_INVALID_HANDLE)
             valid = TRUE;
     }
     else
     {
-        if (HeapValidate(GetProcessHeap(), 0, dst))
+        if (HeapValidate(GetProcessHeap(), 0, src))
             valid = TRUE;
     }
     if (valid)
