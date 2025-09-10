@@ -64,7 +64,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;
-winmm.lib;user32.lib</AdditionalDependencies>
+winmm.lib;user32.lib;ntdll.lib;advapi32.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
 mmsystem.def
@@ -92,7 +92,7 @@ mmsystem.def
 mmsystem.def
       </ModuleDefinitionFile>
       <AdditionalDependencies>$(OutDir)winecrt0.lib;$(OutDir)libwine.lib;$(OutDir)krnl386.lib;
-winmm.lib;user32.lib</AdditionalDependencies>
+winmm.lib;user32.lib;ntdll.lib;advapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -101,6 +101,7 @@ winmm.lib;user32.lib</AdditionalDependencies>
     <ClCompile Include="message16.c" />
     <ClCompile Include="mmio16.c" />
     <ClCompile Include="mmsystem.c" />
+    <ClCompile Include="playsound.c" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="mmsystem.dll16.obj" />
