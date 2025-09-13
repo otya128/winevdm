@@ -563,7 +563,7 @@ BOOL16 WINAPI PlaySound16(LPCSTR pszSoundA, HMODULE16 hmod, DWORD fdwSound)
 /**************************************************************************
  * 				sndPlaySoundA		[WINMM.@]
  */
-BOOL16 WINAPI sndPlaySound16(LPCSTR pszSoundA, UINT uFlags)
+BOOL16 WINAPI sndPlaySound16(LPCSTR pszSoundA, UINT16 uFlags)
 {
     uFlags &= SND_RESOURCE|SND_ALIAS_ID|SND_FILENAME|SND_ASYNC|SND_LOOP|SND_MEMORY|SND_NODEFAULT|SND_NOSTOP|SND_SYNC;
     return MULTIMEDIA_PlaySound(pszSoundA, 0, uFlags, FALSE);
