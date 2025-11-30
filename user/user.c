@@ -3834,9 +3834,17 @@ SEGPTR WINAPI AnsiNext16(SEGPTR current)
 SEGPTR WINAPI AnsiPrev16( SEGPTR sstart, SEGPTR current )
 {
     char *ptr = MapSL(current);
+    SEGPTR sptr = current - 1;
+    ptr--;
     if (sstart == current) return current;
-    if ((sstart != (current - 1)) && IsDBCSLeadByte(ptr - 2)) return current - 2;
-    return current - 1;
+    while (sptr != sstart)
+    {
+        ptr--;
+        if (!IsDBCSLeadByte(*ptr)) break;
+        sptr--;
+    }
+    if ((current - sptr) & 1) return current - 1;
+    return current - 2;
 }
 
 
