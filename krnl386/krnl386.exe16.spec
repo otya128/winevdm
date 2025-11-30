@@ -418,7 +418,7 @@
 #509 stub WOWKILLREMOTETASK
 511 stub WOWKILLREMOTETASK
 512 stub WOWQUERYDEBUG
-513 pascal LoadLibraryEx32W(ptr long long) LoadLibraryEx32W16   # Both NT/95
+513 pascal LoadLibraryEx32W(str long long) LoadLibraryEx32W16   # Both NT/95
 514 pascal FreeLibrary32W(long) FreeLibrary32W16                # Both NT/95
 515 pascal GetProcAddress32W(long str) GetProcAddress32W16      # Both NT/95
 516 pascal GetVDMPointer32W(segptr word) GetVDMPointer32W16     # Both NT/95
