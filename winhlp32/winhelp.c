@@ -1187,7 +1187,12 @@ BOOL WINHELP_CreateHelpWindow(WINHELP_WNDPAGE* wpage, int nCmdShow, BOOL remembe
     {
         HLPFILE_MACRO  *macro;
         for (macro = wpage->page->file->first_macro; macro; macro = macro->next)
+        {
+            // don't jump to contents on every page load
+            if (!strcmp(macro->lpszMacro, "Contents()"))
+                continue;
             MACRO_ExecuteMacro(win, macro->lpszMacro);
+        }
 
         for (macro = wpage->page->first_macro; macro; macro = macro->next)
             MACRO_ExecuteMacro(win, macro->lpszMacro);
