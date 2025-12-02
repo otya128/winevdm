@@ -3012,6 +3012,16 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     return ret;
 }
 
+static BOOL CALLBACK win16_windows(HWND hwnd, LPARAM lp)
+{
+    MSG *msg = (MSG *)lp;
+    char class[256];
+    LRESULT result;
+    GetClassNameA(hwnd, class, 256);
+    if (!strncmp(class, LOCAL_CLASS_PREFIX, strlen(LOCAL_CLASS_PREFIX)))
+        SendMessageTimeoutA(hwnd, msg->message, msg->wParam, msg->lParam, SMTO_ABORTIFHUNG, 1000, &result);
+    return TRUE;
+}
 
 static LRESULT send_message_timeout_callback( HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,
                                       LRESULT *result, void *arg )
@@ -3021,17 +3031,32 @@ static LRESULT send_message_timeout_callback( HWND hwnd, UINT msg, WPARAM wp, LP
     ReleaseThunkLock(&count);
     if (hwnd == HWND_BROADCAST)
     {
-        int timeout = 1000;
-        switch (msg)
+        // Windows 11 24H2 disabled broadcasting WM_USER and WM_APP messages
+        // so send it ourselves to all winevdm top level windows
+        if ((get_windows_build() >= 26100) && (msg >= WM_USER) && (msg < 0xC000))
         {
-            case WM_PALETTECHANGED:
-            case WM_SYSCOLORCHANGE:
-            case WM_FONTCHANGE:
-            case WM_SETTINGCHANGE:
-                timeout = 100;
-                break;
+            MSG message;
+            message.hwnd = hwnd;
+            message.message = msg;
+            message.wParam = wp;
+            message.lParam = lp;
+            *result = 0;
+            success = EnumWindows(win16_windows, (LPARAM)&message);
         }
-        success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_ABORTIFHUNG, timeout, result);
+        else
+        {
+            int timeout = 1000;
+            switch (msg)
+            {
+                case WM_PALETTECHANGED:
+                case WM_SYSCOLORCHANGE:
+                case WM_FONTCHANGE:
+                case WM_SETTINGCHANGE:
+                    timeout = 100;
+                    break;
+            }
+            success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_ABORTIFHUNG, timeout, result);
+        }
     }
     else
         success = SendMessageTimeoutA(hwnd, msg, wp, lp, SMTO_NORMAL, 1000, result);
