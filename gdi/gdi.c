@@ -141,37 +141,33 @@ static void set_dib_colors(HDC hdc)
     SetDIBColorTable(hdc, 0, 256, &pal);
 }
 
-// if the first 10 colors in the palette are not
-// the system colors then the colors need to be shifted
-// (1 color if syspaluse == SYSPAL_NOSTATIC);
+// some programs such as pirates use a palette with start offset 0
+// but the bitmap offsets every pixel by 10.  this is used to shortcut the
+// foreground palette reindex after realization.  it works because windows
+// will store the bitmap using foreground indexes but createbitmap and
+// setbitmapbits bypasses that.  other programs such as darkseed 
+// check the value of the foreground indexes before calling setbitmapbits.
+// to make it work we'd have to reimplement all of gdi so just add a hack here
 static void set_dib_colors_for_screen(HDC hdc)
 {
+    char modulename[32];
+    GetModuleName16(GetCurrentTask(), modulename, 32);
+    if (strcmp(modulename, "WINPIR")) return set_dib_colors(hdc);
     PALETTEENTRY pal[256] = {0};
     PALETTEENTRY syspal[10];
-    if (syspaluse == SYSPAL_NOSTATIC256) return set_dib_colors(hdc);
-    int syscolors = syspaluse == SYSPAL_STATIC ? 10 : 1;
-    int skip = 0;
-    GetSystemPaletteEntries(hdc, 0, syscolors, &syspal);
-    GetPaletteEntries(GetCurrentObject(hdc, OBJ_PAL), 0, 256, &pal);
-    for (int i = 0; i < syscolors; i++)
-    {
-        if (((DWORD *)syspal)[i] != ((DWORD *)pal)[i])
-        {
-            skip = syscolors;
-            break;
-        }
-    }
     PALETTEENTRY tmp;
-    for (int i = 255 - skip; i >= 0; i--)
+    GetPaletteEntries(GetCurrentObject(hdc, OBJ_PAL), 0, 256, &pal);
+    GetSystemPaletteEntries(hdc, 0, 10, &syspal);
+    for (int i = 235; i >= 0; i--)
     {
         tmp.peBlue = pal[i].peRed;
         tmp.peGreen = pal[i].peGreen;
         tmp.peRed = pal[i].peBlue;
-        pal[i + skip].peRed = tmp.peRed;
-        pal[i + skip].peGreen = tmp.peGreen;
-        pal[i + skip].peBlue = tmp.peBlue;
+        pal[i + 10].peRed = tmp.peRed;
+        pal[i + 10].peGreen = tmp.peGreen;
+        pal[i + 10].peBlue = tmp.peBlue;
     }
-    for (int i = 0; i < skip; i++)
+    for (int i = 0; i < 10; i++)
     {
         pal[i].peBlue = syspal[i].peRed;
         pal[i].peGreen = syspal[i].peGreen;
@@ -4321,7 +4317,7 @@ HBITMAP16 WINAPI CreateDIBitmap16( HDC16 hdc, const BITMAPINFOHEADER * header,
         HBITMAP hbmp = HDC_32(ret);
         HBITMAP oldbmp = SelectObject(hdc232, hbmp);
         if (GetObjectType(HDC_32(hdc)) == OBJ_DC)
-           set_dib_colors_for_screen(hdc232);
+           set_dib_colors(hdc232);
         SetDIBits(hdc232, hbmp, 0, data->bmiHeader.biHeight, bits, bmp ? bmp : data, coloruse);
         SelectObject(hdc232, oldbmp);
         DeleteDC16(hdc2);
