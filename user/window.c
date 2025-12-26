@@ -711,6 +711,15 @@ HDC16 WINAPI BeginPaint16( HWND16 hwnd, LPPAINTSTRUCT16 lps )
     lps->fIncUpdate     = ps.fIncUpdate;
     if (IsOldWindowsTask(GetCurrentTask()) && !(get_aflags(GetExePtr(GetCurrentTask())) & NE_AFLAGS_WIN2_PROTMODE) && (GetCurrentObject(ps.hdc, OBJ_FONT) == GetStockObject(SYSTEM_FONT)))
         SelectObject(ps.hdc, GetStockObject(SYSTEM_FIXED_FONT));
+    // check the hdc is in the cache becuase it was removed and deleted
+    for (int i = 0; i < 5; i++)
+    {
+        if (dcc.dcs[i] == lps->hdc)
+        {
+            dcc.dcs[i] = 0;
+            dcc.wnds[i] = 0;
+        }
+    }
     return lps->hdc;
 }
 
