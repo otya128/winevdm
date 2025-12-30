@@ -293,7 +293,12 @@ HGLOBAL16 GLOBAL_Alloc( UINT16 flags, DWORD size, HGLOBAL16 hOwner, unsigned cha
     }
 
     if (flags & GMEM_ZEROINIT) memset( ptr, 0, size );
-    else ((char *)ptr)[size - 1] = 0xff; // some programs depend on the block not being cleared
+    else if (size > 100) // some programs depend on the block not being cleared also work around bug in procyan2
+    {
+        for (int i = 1; i < 22; i++)
+            ((char *)ptr)[size - i] = 0xff;
+    }
+    else ((char *)ptr)[size - 1] = 0xff;
     return handle;
 }
 WORD GLOBAL_GetSegNum(HGLOBAL16 hg)

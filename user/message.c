@@ -4993,6 +4993,17 @@ static void UB_Message(HWND hwnd, HDC hDC, UINT action)
     SendMessageW(parent, WM_COMMAND, MAKEWPARAM(GetWindowLongW(hwnd, GWLP_ID), action), hwnd);
 }
 
+static LRESULT UB_DefWndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
+{
+    LRESULT ret = 0;
+    WNDPROC origwndproc = (WNDPROC)GetPropA(hwnd, "origwndproc");
+    if (origwndproc)
+        ret = origwndproc(hwnd, umsg, wparam, lparam);
+    else
+        ret = DefWindowProcW(hwnd, umsg, wparam, lparam);
+    return ret;
+}
+
 static LRESULT UB_WndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
 {
     LRESULT ret = 0;
@@ -5012,7 +5023,7 @@ static LRESULT UB_WndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
             EndPaint(hwnd, &paint);
             break;
         }
-        case WM_SETFOCUS:
+/*        case WM_SETFOCUS:
         {
             HDC hdc = GetDC(hwnd);
             UB_Message(hwnd, hdc, BN_SETFOCUS);
@@ -5025,19 +5036,20 @@ static LRESULT UB_WndProc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
             UB_Message(hwnd, hdc, BN_KILLFOCUS);
             ReleaseDC(hwnd, hdc);
             break;
+        }*/
+        case BM_SETSTATE:
+        {
+            HDC hdc = GetDC(hwnd);
+            ret = UB_DefWndProc(hwnd, BM_SETSTATE, wparam, lparam);
+            UB_Message(hwnd, hdc, wparam ? BN_PUSHED : BN_UNPUSHED);
+            break;
         }
         case WM_LBUTTONDBLCLK:
             SendMessageW(GetParent(hwnd), WM_COMMAND, MAKEWPARAM(GetWindowLongW(hwnd, GWLP_ID), BN_DOUBLECLICKED), hwnd);
             break;
         default:
-        {
-            WNDPROC origwndproc = (WNDPROC)GetPropA(hwnd, "origwndproc");
-            if (origwndproc)
-                ret = origwndproc(hwnd, umsg, wparam, lparam);
-            else
-                ret = DefWindowProcW(hwnd, umsg, wparam, lparam);
+            ret = UB_DefWndProc(hwnd, umsg, wparam, lparam);
             break;
-        }
     }
     return ret;
 }
