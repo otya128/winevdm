@@ -7,6 +7,21 @@ if (NOT(MSVC))
     string(APPEND CMAKE_CXX_FLAGS " -Wno-narrowing ")
 else()
     add_definitions(-DUSE_COMPILER_EXCEPTIONS -Dinline=__inline)
+	
+	# Using /MT avoids dynamically linking against the MSVC runtime libraries
+	set(CompilerFlags
+		CMAKE_CXX_FLAGS
+		CMAKE_CXX_FLAGS_DEBUG
+		CMAKE_CXX_FLAGS_RELEASE
+		CMAKE_CXX_FLAGS_RELWITHDEBINFO
+		CMAKE_C_FLAGS
+		CMAKE_C_FLAGS_DEBUG
+		CMAKE_C_FLAGS_RELEASE
+		CMAKE_C_FLAGS_RELWITHDEBINFO
+	)
+	foreach(CompilerFlag ${CompilerFlags})
+		string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+	endforeach()
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

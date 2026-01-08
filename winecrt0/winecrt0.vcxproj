@@ -91,6 +91,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;WIN32;_WINDOWS;_X86_;__WINESRC__;__i386__;USE_COMPILER_EXCEPTIONS;HAVE_STRNCASECMP;HAVE__STRNICMP;_WINTERNL_;NtCurrentTeb=NtCurrentTeb__;inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../wine</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -121,6 +122,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;WIN32;_WINDOWS;_X86_;__WINESRC__;__i386__;USE_COMPILER_EXCEPTIONS;HAVE_STRNCASECMP;HAVE__STRNICMP;_WINTERNL_;NtCurrentTeb=NtCurrentTeb__;inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../wine</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
