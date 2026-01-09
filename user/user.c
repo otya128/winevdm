@@ -3394,6 +3394,7 @@ INT16 WINAPI wvsprintf16( LPSTR buffer, LPCSTR spec, VA_LIST16 args )
     __EXCEPT_ALL
     {
     }
+    __ENDTRY
     return p - buffer;
 }
 
