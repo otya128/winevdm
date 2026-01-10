@@ -3395,7 +3395,7 @@ INT16 WINAPI wvsprintf16( LPSTR buffer, LPCSTR spec, VA_LIST16 args )
     {
     }
     __ENDTRY
-    return p - buffer;
+    return ret;
 }
 
 
