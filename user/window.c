@@ -2167,7 +2167,7 @@ BOOL16 WINAPI SetWindowPos16( HWND16 hwnd, HWND16 hwndInsertAfter,
                 flags &= ~SWP_NOREDRAW;
             }
         }
-        if (!(flags & SWP_NOMOVE))
+        if (!(flags & SWP_NOMOVE) && !(flags & SWP_NOSIZE))
         {
             GetClientRect(hwnd32, &rect);
             if ((cx != rect.right) || (cy != rect.bottom))
