@@ -67,7 +67,7 @@ static struct list saved_regions = LIST_INIT( saved_regions );
 
 static HPALETTE16 hPrimaryPalette;
 static UINT16 syspaluse = SYSPAL_STATIC;
-static HGDIOBJ16 stock[STOCK_LAST + 1] = {0};
+static HGDIOBJ16 stock[STOCK_LAST + 2] = {0};
 
 void WINAPI DibMapGlobalMemory(WORD sel, void *base, DWORD size);
 void WINAPI DibUnmapGlobalMemory(void *base, DWORD size);
@@ -2228,7 +2228,7 @@ BOOL16 WINAPI DeleteObject16( HGDIOBJ16 obj )
         haxmvm_DeleteObject = haxmvm ? (BOOL(*)(HGDIOBJ))GetProcAddress(haxmvm, "haxmvm_DeleteObject") : NULL;
         init = TRUE;
     }
-    for (int i = 0; i <= STOCK_LAST; i++)
+    for (int i = 0; i <= STOCK_LAST + 1; i++)
         if (obj == stock[i]) return TRUE;
     if (type == OBJ_BITMAP) free_segptr_bits( obj );
     else if ((type == OBJ_PAL) && GetPtr16(object, 1))
@@ -5496,6 +5496,10 @@ BOOL WINAPI DllEntryPoint(DWORD fdwReason, HINSTANCE hinstDLL, WORD ds,
             }
             ret = FindNextFileA(file, &fileinfo);
         } while (ret);
+        for (int i = 0; i <= STOCK_LAST; i++) GetStockObject16(i);
+        HDC dc = CreateCompatibleDC(NULL);
+        stock[STOCK_LAST + 1] = HGDIOBJ_16(GetCurrentObject(dc, OBJ_BITMAP));
+        DeleteDC(dc);
         FindClose(file);
         break;
     }
