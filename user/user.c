@@ -3297,96 +3297,105 @@ INT16 WINAPI wvsprintf16( LPSTR buffer, LPCSTR spec, VA_LIST16 args )
     LPCSTR lpcstr_view = NULL;
     INT int_view;
     SEGPTR seg_str;
+    INT16 ret = 0;
 
-    while (*spec)
+    __TRY
     {
-        if (*spec != '%') { *p++ = *spec++; continue; }
-        spec++;
-        if (*spec == '%') { *p++ = *spec++; continue; }
-        spec += parse_format( spec, &format );
-        switch(format.type)
+        while (*spec)
         {
-        case WPR_CHAR:
-            char_view = VA_ARG16( args, CHAR );
-            len = format.precision = 1;
-            break;
-        case WPR_STRING:
-            seg_str = VA_ARG16( args, SEGPTR );
-            if (IsBadReadPtr16( seg_str, 1 )) lpcstr_view = "";
-            else lpcstr_view = MapSL( seg_str );
-            if (!lpcstr_view) lpcstr_view = "(null)";
-            for (len = 0; !format.precision || (len < format.precision); len++)
-                if (!lpcstr_view[len]) break;
-            format.precision = len;
-            break;
-        case WPR_SIGNED:
-            if (format.flags & WPRINTF_LONG) int_view = VA_ARG16( args, INT );
-            else int_view = VA_ARG16( args, INT16 );
-            len = sprintf( number, "%d", int_view );
-            break;
-        case WPR_UNSIGNED:
-            if (format.flags & WPRINTF_LONG) int_view = VA_ARG16( args, UINT );
-            else int_view = VA_ARG16( args, UINT16 );
-            len = sprintf( number, "%u", int_view );
-            break;
-        case WPR_HEXA:
-            if (format.flags & WPRINTF_LONG) int_view = VA_ARG16( args, UINT );
-            else int_view = VA_ARG16( args, UINT16 );
-            len = sprintf( number, (format.flags & WPRINTF_UPPER_HEX) ? "%X" : "%x", int_view);
-            break;
-        case WPR_UNKNOWN:
-            continue;
-        }
-        if (format.precision < len) format.precision = len;
-        if (format.flags & WPRINTF_LEFTALIGN) format.flags &= ~WPRINTF_ZEROPAD;
-        if ((format.flags & WPRINTF_ZEROPAD) && (format.width > format.precision))
-            format.precision = format.width;
-        if ((format.flags & WPRINTF_PREFIX_HEX) && (format.type == WPR_HEXA)) len += 2;
+            if (*spec != '%') { *p++ = *spec++; continue; }
+            spec++;
+            if (*spec == '%') { *p++ = *spec++; continue; }
+            spec += parse_format( spec, &format );
+            switch(format.type)
+            {
+                case WPR_CHAR:
+                    char_view = VA_ARG16( args, CHAR );
+                    len = format.precision = 1;
+                    break;
+                case WPR_STRING:
+                    seg_str = VA_ARG16( args, SEGPTR );
+                    if (IsBadReadPtr16( seg_str, 1 )) lpcstr_view = "";
+                    else lpcstr_view = MapSL( seg_str );
+                    if (!lpcstr_view) lpcstr_view = "(null)";
+                    for (len = 0; !format.precision || (len < format.precision); len++)
+                        if (!lpcstr_view[len]) break;
+                    format.precision = len;
+                    break;
+                case WPR_SIGNED:
+                    if (format.flags & WPRINTF_LONG) int_view = VA_ARG16( args, INT );
+                    else int_view = VA_ARG16( args, INT16 );
+                    len = sprintf( number, "%d", int_view );
+                    break;
+                case WPR_UNSIGNED:
+                    if (format.flags & WPRINTF_LONG) int_view = VA_ARG16( args, UINT );
+                    else int_view = VA_ARG16( args, UINT16 );
+                    len = sprintf( number, "%u", int_view );
+                    break;
+                case WPR_HEXA:
+                    if (format.flags & WPRINTF_LONG) int_view = VA_ARG16( args, UINT );
+                    else int_view = VA_ARG16( args, UINT16 );
+                    len = sprintf( number, (format.flags & WPRINTF_UPPER_HEX) ? "%X" : "%x", int_view);
+                    break;
+                case WPR_UNKNOWN:
+                    continue;
+            }
+            if (format.precision < len) format.precision = len;
+            if (format.flags & WPRINTF_LEFTALIGN) format.flags &= ~WPRINTF_ZEROPAD;
+            if ((format.flags & WPRINTF_ZEROPAD) && (format.width > format.precision))
+                format.precision = format.width;
+            if ((format.flags & WPRINTF_PREFIX_HEX) && (format.type == WPR_HEXA)) len += 2;
 
-        sign = 0;
-        if (!(format.flags & WPRINTF_LEFTALIGN))
-            for (i = format.precision; i < format.width; i++) *p++ = ' ';
-        switch(format.type)
-        {
-        case WPR_CHAR:
-            *p = char_view;
-            /* wsprintf16 ignores null characters */
-            if (*p != '\0') p++;
-            else if (format.width > 1) *p++ = ' ';
-            break;
-        case WPR_STRING:
-            if (len) memcpy( p, lpcstr_view, len );
-            p += len;
-            break;
-        case WPR_HEXA:
-            if (format.flags & WPRINTF_PREFIX_HEX)
+            sign = 0;
+            if (!(format.flags & WPRINTF_LEFTALIGN))
+                for (i = format.precision; i < format.width; i++) *p++ = ' ';
+            switch(format.type)
             {
-                *p++ = '0';
-                *p++ = (format.flags & WPRINTF_UPPER_HEX) ? 'X' : 'x';
-                len -= 2;
+                case WPR_CHAR:
+                    *p = char_view;
+                    /* wsprintf16 ignores null characters */
+                    if (*p != '\0') p++;
+                    else if (format.width > 1) *p++ = ' ';
+                    break;
+                case WPR_STRING:
+                    if (len) memcpy( p, lpcstr_view, len );
+                    p += len;
+                    break;
+                case WPR_HEXA:
+                    if (format.flags & WPRINTF_PREFIX_HEX)
+                    {
+                        *p++ = '0';
+                        *p++ = (format.flags & WPRINTF_UPPER_HEX) ? 'X' : 'x';
+                        len -= 2;
+                    }
+                    /* fall through */
+                case WPR_SIGNED:
+                    /* Transfer the sign now, just in case it will be zero-padded*/
+                    if (number[0] == '-')
+                    {
+                        *p++ = '-';
+                        sign = 1;
+                    }
+                    /* fall through */
+                case WPR_UNSIGNED:
+                    for (i = len; i < format.precision; i++) *p++ = '0';
+                    if (len > sign) memcpy( p, number + sign, len - sign );
+                    p += len-sign;
+                    break;
+                case WPR_UNKNOWN:
+                    continue;
             }
-            /* fall through */
-        case WPR_SIGNED:
-            /* Transfer the sign now, just in case it will be zero-padded*/
-            if (number[0] == '-')
-            {
-                *p++ = '-';
-                sign = 1;
-            }
-            /* fall through */
-        case WPR_UNSIGNED:
-            for (i = len; i < format.precision; i++) *p++ = '0';
-            if (len > sign) memcpy( p, number + sign, len - sign );
-            p += len-sign;
-            break;
-        case WPR_UNKNOWN:
-            continue;
+            if (format.flags & WPRINTF_LEFTALIGN)
+                for (i = format.precision; i < format.width; i++) *p++ = ' ';
         }
-        if (format.flags & WPRINTF_LEFTALIGN)
-            for (i = format.precision; i < format.width; i++) *p++ = ' ';
+        *p = 0;
+        ret = p - buffer;
     }
-    *p = 0;
-    return p - buffer;
+    __EXCEPT_ALL
+    {
+    }
+    __ENDTRY
+    return ret;
 }
 
 
