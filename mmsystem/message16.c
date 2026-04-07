@@ -970,6 +970,8 @@ static LRESULT CALLBACK MMSYSTDRV_Callback3216(struct mmsystdrv_thunk* thunk, HD
         PostThreadMessageA(thunk->callback, wMsg, (WPARAM)hDev, dwParam1);
         break;
     case CALLBACK_FUNCTION:
+        if ((wMsg == MM_MOM_OPEN) || (wMsg == MM_MIM_OPEN))
+            return TRUE;
         /* 16 bit func, call it */
         TRACE("Function (16 bit) %x!\n", thunk->callback);
 
