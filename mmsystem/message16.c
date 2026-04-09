@@ -343,10 +343,10 @@ static MMSYSTEM_MapType	MMSYSTDRV_MidiOut_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 	    *lpParam1 = (DWORD)mh32;
 	    *lpParam2 = offsetof(MIDIHDR,dwOffset);
 	    /* dwBufferLength can be reduced between prepare & write */
-	    if (wMsg == MODM_LONGDATA && mh32->dwBufferLength < mh16->dwBufferLength) {
+/*	    if (wMsg == MODM_LONGDATA && mh32->dwBufferLength < mh16->dwBufferLength) {
 		ERR("Size of buffer has been increased from %d to %d, keeping initial value\n",
 		    mh32->dwBufferLength, mh16->dwBufferLength);
-	    } else
+	    } else*/
                 mh32->dwBufferLength = mh16->dwBufferLength;
 	    ret = MMSYSTEM_MAP_OKMEM;
 	}
