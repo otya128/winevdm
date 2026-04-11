@@ -5221,8 +5221,8 @@ void InitHook()
     InitNewThreadHook();
 }
 
-static WNDPROC *orig_listbox_proc;
-static WNDPROC *orig_combobox_proc;
+static WNDPROC orig_listbox_proc;
+static WNDPROC orig_combobox_proc;
 
 static LRESULT WINAPI listbox_win11_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
@@ -5307,10 +5307,10 @@ BOOL WINAPI DllMain(
         if (get_windows_build() >= 26100)
         {
             HWND lbhwnd = CreateWindowExA(0, "LISTBOX", "", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, 0, 0);
-            (INT_PTR)orig_listbox_proc = SetClassLongPtrA(lbhwnd, GCL_WNDPROC, listbox_win11_proc);
+            orig_listbox_proc = (WNDPROC)SetClassLongPtrA(lbhwnd, GCL_WNDPROC, listbox_win11_proc);
             DestroyWindow(lbhwnd);
             HWND cbhwnd = CreateWindowExA(0, "COMBOBOX", "", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, 0, 0);
-            (INT_PTR)orig_combobox_proc = SetClassLongPtrA(cbhwnd, GCL_WNDPROC, combobox_win11_proc);
+            orig_combobox_proc = (WNDPROC)SetClassLongPtrA(cbhwnd, GCL_WNDPROC, combobox_win11_proc);
             DestroyWindow(lbhwnd);
         }
     }
