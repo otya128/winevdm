@@ -5221,8 +5221,8 @@ void InitHook()
     InitNewThreadHook();
 }
 
-static WNDPROC orig_listbox_proc;
-static WNDPROC orig_combobox_proc;
+static WNDPROC *orig_listbox_proc;
+static WNDPROC *orig_combobox_proc;
 
 static LRESULT WINAPI listbox_win11_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
