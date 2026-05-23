@@ -946,13 +946,13 @@ UINT16 WINAPI midiInOpen16(HMIDIIN16* lphMidiIn, UINT16 uDeviceID,
     HMIDIIN	hmid;
     UINT 	ret;
     struct mmsystdrv_thunk*     thunk;
+    DWORD dwFlags32 = (dwFlags & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
 
     if (!(thunk = MMSYSTDRV_AddThunk(dwCallback, dwFlags, MMSYSTDRV_MIDIIN)))
     {
         return MMSYSERR_NOMEM;
     }
-    dwFlags = (dwFlags & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
-    ret = midiInOpen(&hmid, uDeviceID, (DWORD)thunk, dwInstance, dwFlags);
+    ret = midiInOpen(&hmid, uDeviceID, (DWORD)thunk, dwInstance, dwFlags32);
     if (ret == MMSYSERR_NOERROR)
     {
         if (lphMidiIn) *lphMidiIn = HMIDIIN_16(hmid);
