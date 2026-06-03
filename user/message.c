@@ -1585,8 +1585,6 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
             CLIENTCREATESTRUCT c32;
             BOOL mdichild = GetWindowLongW(hwnd32, GWL_EXSTYLE) & WS_EX_MDICHILD ? TRUE : FALSE;
             BOOL mdiclient = is_mdiclient(hwnd, hwnd32) || (call_window_proc_callback == callback && is_mdiclient_wndproc(arg));
-            BOOL fixlistbox = (get_windows_build() >= 26100) && (window_type_table[hwnd] == (BYTE)WINDOW_TYPE_LISTBOX) && (msg == WM_CREATE) && (callback != call_window_proc_callback);
-
             CREATESTRUCT16to32A( hwnd32, cs16, &cs );
             if (mdichild)
             {
@@ -1601,27 +1599,7 @@ LRESULT WINPROC_CallProc16To32A( winproc_callback_t callback, HWND16 hwnd, UINT1
                 c32.hWindowMenu = HMENU_32(c16->hWindowMenu);
                 cs.lpCreateParams = (LPVOID)&c32;
             }
-            // some programs set ws_hscroll when they want ws_vscroll
-            // this appears to work in win31 but Windows 11 24H2 broke the compatbility
-            if (fixlistbox)
-            {
-                if (cs.style & WS_HSCROLL)
-                {
-                    cs.style |= WS_VSCROLL;
-                    SetWindowLongW(hwnd32, GWL_STYLE, cs.style);
-                }
-            }
             ret = callback( hwnd32, msg, wParam, (LPARAM)&cs, result, arg );
-            // some programs expect the listbox to be resized in create 
-            // again Windows 11 24H2 broke the compatbility
-            if (fixlistbox)
-            {
-                cs.x -= 1;
-                cs.y -= 1;
-                cs.cx += 2;
-                cs.cy += 2;
-                SetWindowPos(hwnd32, 0, cs.x, cs.y, cs.cx, cs.cy, SWP_NOZORDER);
-            }
             if (mdiclient || mdichild)
                 cs.lpCreateParams = cs16->lpCreateParams;
             CREATESTRUCT32Ato16( hwnd32, &cs, cs16 );
@@ -5087,14 +5065,11 @@ LRESULT CALLBACK CBTHook(int nCode, WPARAM wParam, LPARAM lParam)
             WNDPROC origwndproc = SetWindowLongW(hWnd, GWL_WNDPROC, UB_WndProc);
             SetPropA(hWnd, "origwndproc", (HANDLE)origwndproc);
         }
-        // 24H2 will make integral height listboxes the wrong size
-        // TODO: correct the height
-        if ((get_windows_build() >= 26100) && (window_type_table[HWND_16(hWnd)] == (BYTE)WINDOW_TYPE_LISTBOX) && (create->lpcs->style & LBS_OWNERDRAWFIXED))
+        if ((get_windows_build() >= 26100) && (window_type_table[HWND_16(hWnd)] == (BYTE)WINDOW_TYPE_COMBOBOX))
         {
-            create->lpcs->style |= LBS_NOINTEGRALHEIGHT;
+            create->lpcs->style |= CBS_NOINTEGRALHEIGHT;
             SetWindowLongA(hWnd, GWL_STYLE, create->lpcs->style);
-        }
-	
+        }	
     }
     else if((nCode == HCBT_MINMAX) && (lParam == SW_MAXIMIZE) && (GetWindowLongA(wParam, GWL_STYLE) & WS_MAXIMIZE))
         SetPropA(wParam, "WindowMaximized", 1);
@@ -5246,6 +5221,67 @@ void InitHook()
     InitNewThreadHook();
 }
 
+static WNDPROC orig_listbox_proc;
+static WNDPROC orig_combobox_proc;
+
+static LRESULT WINAPI listbox_win11_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    LRESULT ret;
+    switch (msg)
+    {
+        case WM_CREATE:
+        {
+            // some programs set ws_hscroll when they want ws_vscroll
+            // this appears to work in win31 but Windows 11 24H2 broke the compatbility
+            CREATESTRUCT *cs = lparam;
+            if (cs->style & WS_HSCROLL)
+                cs->style |= WS_VSCROLL;
+            // 24H2 will make integral height listboxes the wrong size
+            // TODO: correct the height
+            cs->style |= LBS_NOINTEGRALHEIGHT;
+            SetWindowLongA(hwnd, GWL_STYLE, cs->style);
+            break;
+        }
+    }
+            
+    ret = CallWindowProcA(orig_listbox_proc, hwnd, msg, wparam, lparam);
+
+    switch (msg)
+    {
+        case WM_CREATE:
+        {
+            // some programs expect the listbox to be resized in create 
+            // again Windows 11 24H2 broke the compatbility
+            CREATESTRUCT *cs = lparam;
+            cs->x -= 1;
+            cs->y -= 1;
+            cs->cx += 2;
+            cs->cy += 2;
+            SetWindowPos(hwnd, 0, cs->x, cs->y, cs->cx, cs->cy, SWP_NOZORDER);
+        }
+    }
+    return ret;
+}
+
+static LRESULT WINAPI combobox_win11_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    LRESULT ret;
+    switch (msg)
+    {
+        case WM_NCCREATE:
+        {
+            // doing this in WM_CREATE has weird effects
+            CREATESTRUCT *cs = lparam;
+            cs->style |= CBS_NOINTEGRALHEIGHT;
+            SetWindowLongA(hwnd, GWL_STYLE, cs->style);
+            break;
+        }
+    }
+            
+    ret = CallWindowProcA(orig_combobox_proc, hwnd, msg, wparam, lparam);
+    return ret;
+}
+
 void WINAPI ShellDDEInit(BOOL bInit);
 #include "wine/winbase16.h"
 BOOL WINAPI DllMain(
@@ -5268,11 +5304,29 @@ BOOL WINAPI DllMain(
         separate_taskbar = krnl386_get_config_int("otvdm", "SeparateTaskbar", SEPARATE_TASKBAR_SEPARATE);
         ShellDDEInit(TRUE);
         dialogmsgthunk = GlobalAddAtomA("dialogmsgthunk");
+        if (get_windows_build() >= 26100)
+        {
+            HWND lbhwnd = CreateWindowExA(0, "LISTBOX", "", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, 0, 0);
+            orig_listbox_proc = (WNDPROC)SetClassLongPtrA(lbhwnd, GCL_WNDPROC, listbox_win11_proc);
+            DestroyWindow(lbhwnd);
+            HWND cbhwnd = CreateWindowExA(0, "COMBOBOX", "", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, 0, 0);
+            orig_combobox_proc = (WNDPROC)SetClassLongPtrA(cbhwnd, GCL_WNDPROC, combobox_win11_proc);
+            DestroyWindow(lbhwnd);
+        }
     }
     if (fdwReason == DLL_PROCESS_DETACH)
     {
         ShellDDEInit(FALSE);
         GlobalDeleteAtom(dialogmsgthunk);
+        if (get_windows_build() >= 26100)
+        {
+            HWND lbhwnd = CreateWindowExA(0, "LISTBOX", "", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, 0, 0);
+            SetClassLongPtrA(lbhwnd, GCL_WNDPROC, orig_listbox_proc);
+            DestroyWindow(lbhwnd);
+            HWND cbhwnd = CreateWindowExA(0, "COMBOBOX", "", 0, 0, 0, 0, 0, HWND_MESSAGE, 0, 0, 0);
+            SetClassLongPtrA(cbhwnd, GCL_WNDPROC, orig_combobox_proc);
+            DestroyWindow(cbhwnd);
+        }
     }
     return TRUE;
 }
