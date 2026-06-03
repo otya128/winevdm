@@ -325,6 +325,27 @@ void WINAPI OutputDebugStr16(LPCSTR str)
     OutputDebugStringA( str );
 }
 
+// send a synchronous message that might have other mmsystem calls
+// most will cause a MMSYSERR_HANDLEBUSY so do the callback after open or close returns
+// TODO: how to make close work as the handle doesn't exist after it returns success but 
+// the callback shouldn't happen if it fails
+static void send_func_message(DWORD callback, HDRVR16 hDev, UINT wMsg, DWORD instance, DWORD param1, DWORD param2)
+{
+    WORD args[8];
+    DWORD ret;
+    
+    args[7] = hDev;
+    args[6] = wMsg;
+    args[5] = HIWORD(instance);
+    args[4] = LOWORD(instance);
+    args[3] = HIWORD(param1);
+    args[2] = LOWORD(param1);
+    args[1] = HIWORD(param2);
+    args[0] = LOWORD(param2);
+
+    WOWCallback16Ex(callback, WCB16_PASCAL, sizeof(args), args, &ret);
+}
+
 /* ###################################################
  * #                    MIXER                        #
  * ###################################################
@@ -708,6 +729,8 @@ UINT16 WINAPI midiOutGetErrorText16(UINT16 uError, LPSTR lpText, UINT16 uSize)
     return midiOutGetErrorTextA(uError, lpText, uSize);
 }
 
+
+
 /**************************************************************************
  * 				midiOutOpen    		[MMSYSTEM.204]
  */
@@ -717,17 +740,20 @@ UINT16 WINAPI midiOutOpen16(HMIDIOUT16* lphMidiOut, UINT16 uDeviceID,
     HMIDIOUT	                hmo;
     UINT	                ret;
     struct mmsystdrv_thunk*     thunk;
+    DWORD dwFlags32 = (dwFlags & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
+
 
     if (!(thunk = MMSYSTDRV_AddThunk(dwCallback, dwFlags, MMSYSTDRV_MIDIOUT)))
     {
         return MMSYSERR_NOMEM;
     }
-    dwFlags = (dwFlags & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
-    ret = midiOutOpen(&hmo, (INT16)uDeviceID, (DWORD)thunk, dwInstance, dwFlags);
+    ret = midiOutOpen(&hmo, (INT16)uDeviceID, (DWORD)thunk, dwInstance, dwFlags32);
     if (ret == MMSYSERR_NOERROR)
     {
         if (lphMidiOut != NULL) *lphMidiOut = HMIDIOUT_16(hmo);
         MMSYSTDRV_SetHandle(thunk, (void*)hmo);
+        if ((dwFlags & CALLBACK_TYPEMASK) == CALLBACK_FUNCTION)
+            send_func_message(dwCallback, HMIDIOUT_16(hmo), MOM_OPEN, dwInstance, 0, 0);
     }
     else MMSYSTDRV_DeleteThunk(thunk);
     return ret;
@@ -920,17 +946,19 @@ UINT16 WINAPI midiInOpen16(HMIDIIN16* lphMidiIn, UINT16 uDeviceID,
     HMIDIIN	hmid;
     UINT 	ret;
     struct mmsystdrv_thunk*     thunk;
+    DWORD dwFlags32 = (dwFlags & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
 
     if (!(thunk = MMSYSTDRV_AddThunk(dwCallback, dwFlags, MMSYSTDRV_MIDIIN)))
     {
         return MMSYSERR_NOMEM;
     }
-    dwFlags = (dwFlags & ~CALLBACK_TYPEMASK) | CALLBACK_FUNCTION;
-    ret = midiInOpen(&hmid, uDeviceID, (DWORD)thunk, dwInstance, dwFlags);
+    ret = midiInOpen(&hmid, uDeviceID, (DWORD)thunk, dwInstance, dwFlags32);
     if (ret == MMSYSERR_NOERROR)
     {
         if (lphMidiIn) *lphMidiIn = HMIDIIN_16(hmid);
         MMSYSTDRV_SetHandle(thunk, (void*)hmid);
+        if ((dwFlags & CALLBACK_TYPEMASK) == CALLBACK_FUNCTION)
+            send_func_message(dwCallback, HMIDIIN_16(hmid), MIM_OPEN, dwInstance, 0, 0);
     }
     else MMSYSTDRV_DeleteThunk(thunk);
     return ret;
