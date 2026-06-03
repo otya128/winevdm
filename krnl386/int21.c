@@ -2629,6 +2629,12 @@ static void INT21_Ioctl_Block( CONTEXT *context )
         case 0x0860: /* get device parameters */
             /* FIXME: we're faking some values here */
             /* used by w4wgrp's winfile */
+            if (drivetype == DRIVE_CDROM) /* mscdex returns failure */
+            {
+                SET_AX(context, ERROR_INVALID_FUNCTION);
+                SET_CFLAG(context);
+                break;
+            }
             memset(dataptr, 0, 0x20); /* DOS 6.22 uses 0x20 bytes */
             dataptr[0] = 0x04;
             dataptr[6] = 0; /* media type */
