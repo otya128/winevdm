@@ -182,6 +182,26 @@ BOOL WINAPI KERNEL_DllEntryPoint( DWORD reasion, HINSTANCE16 inst, WORD ds,
     if (done) return TRUE;
     done = TRUE;
 
+    /* Wine's imm32 performs an implicit COM initialization the first time a
+     * window is created, dereferencing a per-thread client_imm value.  A 16-bit
+     * thread can leave that value as a non-pointer, so the access faults and the
+     * app crashes as soon as it opens a window or dialog.  16-bit apps do not use
+     * Wine's (modern, COM-based) IME, so disable it here, before the app runs.
+     * Wine-only (detected via ntdll!wine_get_version); a strict no-op on real
+     * Windows, where 16-bit IME input must keep working.  Placed in the 16-bit
+     * KERNEL init (not PE DllMain) so it runs in the process that hosts the app
+     * for both the explicit (otvdm.exe) and the transparent (winevdm.exe) path,
+     * and outside the PE loader lock. */
+    {
+        HMODULE ntdll_h = GetModuleHandleA("ntdll.dll");
+        if (ntdll_h && GetProcAddress(ntdll_h, "wine_get_version"))
+        {
+            HMODULE imm = LoadLibraryA("imm32.dll");
+            BOOL (WINAPI *pImmDisableIME)(DWORD) = imm ? (BOOL (WINAPI *)(DWORD))GetProcAddress(imm, "ImmDisableIME") : NULL;
+            if (pImmDisableIME) pImmDisableIME((DWORD)-1);
+        }
+    }
+
     /* create the shared heap for broken win95 native dlls */
     HeapCreate( HEAP_SHARED, 0, 0 );
 
