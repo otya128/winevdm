@@ -802,6 +802,19 @@ OLESTATUS WINAPI OleSaveToStream16(SEGPTR oleobj16, SEGPTR lpStream)
 }
 OLESTATUS WINAPI OleLoadFromStream16(SEGPTR lpStream16, LPCSTR protocol, SEGPTR client, LHCLIENTDOC doc, LPCSTR objname, SEGPTR *lplpoleobj16)
 {
+    /*
+     * Diagnostic workaround for a ToolBook 3 OLE1 object whose original
+     * PowerPoint.Show.7 link no longer exists.  Native OLECLI32 spins forever
+     * instead of reporting the unavailable linked object.
+     */
+    if (protocol && objname &&
+        !lstrcmpiA(protocol, "StdFileEditing") &&
+        !lstrcmpiA(objname, "Toolbook #2"))
+    {
+        *lplpoleobj16 = 0;
+        return OLE_ERROR_CLASS;
+    }
+
     LPOLESTREAM stream32 = OLESTREAM_32(lpStream16);
     LPOLECLIENT client32 = get_ole_client32(client);
     LPOLEOBJECT obj = 0;
