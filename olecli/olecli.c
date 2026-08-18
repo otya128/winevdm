@@ -805,7 +805,17 @@ OLESTATUS WINAPI OleLoadFromStream16(SEGPTR lpStream16, LPCSTR protocol, SEGPTR 
     LPOLESTREAM stream32 = OLESTREAM_32(lpStream16);
     LPOLECLIENT client32 = get_ole_client32(client);
     LPOLEOBJECT obj = 0;
+    DWORD count;
+
+    /*
+     * OleLoadFromStream may synchronously call the OLESTREAM and OLECLIENT
+     * callbacks supplied by the Win16 application.  Keeping the thunk lock
+     * held here deadlocks when OLECLI32 re-enters ToolBook through those
+     * callbacks.  OleCreate16 and OleActivate16 already follow this pattern.
+     */
+    ReleaseThunkLock(&count);
     OLESTATUS result = OleLoadFromStream(stream32, protocol, client32, doc, objname, &obj);
+    RestoreThunkLock(count);
     *lplpoleobj16 = OLEOBJ16(obj);
     return result;
 }
