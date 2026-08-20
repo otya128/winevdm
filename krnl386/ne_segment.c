@@ -418,9 +418,17 @@ BOOL NE_LoadSegment( NE_MODULE *pModule, WORD segnum )
     else if (!(pSeg->flags & NE_SEGFLAGS_ITERATED))
     {
         void *mem = GlobalLock16(pSeg->hSeg);
-        if (!NE_READ_DATA( pModule, mem, pos, size ))
-            return FALSE;
-        pos += size;
+        /* A data segment with a zero on-disk length but a non-zero minalloc is
+           BSS: there is nothing to read. Reading `size` == minsize bytes here
+           would pull unrelated bytes from the file into the segment, over-
+           writing the GMEM_ZEROINIT-cleared memory (which crashed e.g.
+           Borland's pstream::types BSS segment -> Interrupt 0D #GP). */
+        if (pSeg->size || !pSeg->minsize)
+        {
+            if (!NE_READ_DATA( pModule, mem, pos, size ))
+                return FALSE;
+            pos += size;
+        }
     }
     else
     {
