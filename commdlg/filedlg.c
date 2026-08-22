@@ -36,6 +36,9 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(commdlg);
 #define MAX_THUNK 5
+#ifndef edt1
+#define edt1 0x0480
+#endif
 COMMDLGTHUNK *thunk_array;
 UINT WMFILEOK;
 UINT WMHELPMSG;
@@ -47,9 +50,68 @@ UINT WMWOWDirChange;
 LPDLGTEMPLATEA resource_to_dialog32(HINSTANCE16 hInst, LPCSTR name, WORD *res);
 LPDLGTEMPLATEA handle_to_dialog32(HGLOBAL16 hg, WORD *res);
 
+static void sync_fileok_ofn16(COMMDLGTHUNK *thunk, HWND hwnd, OPENFILENAMEA *ofn32)
+{
+    LPOPENFILENAME16 lpofn;
+    LPSTR file;
+    UINT max_file;
+    UINT len;
+    UINT file_offset = 0;
+    UINT file_extension = 0;
+    UINT i;
+
+    if (!thunk) return;
+
+    lpofn = MapSL(thunk->segofn16);
+    if (!lpofn) return;
+
+    file = ofn32 && ofn32->lpstrFile ? ofn32->lpstrFile : MapSL(lpofn->lpstrFile);
+    max_file = ofn32 && ofn32->nMaxFile ? ofn32->nMaxFile : lpofn->nMaxFile;
+    if (!file || !max_file) return;
+
+    if (!file[0])
+        GetDlgItemTextA(hwnd, edt1, file, max_file);
+    len = (UINT)min(strlen(file), max_file - 1);
+
+    if (ofn32 && ofn32->nFileOffset)
+    {
+        file_offset = ofn32->nFileOffset;
+        file_extension = ofn32->nFileExtension;
+    }
+    else
+    {
+        for (i = 0; i < len; i++)
+        {
+            if (file[i] == '\\' || file[i] == '/' || file[i] == ':')
+                file_offset = i + 1;
+        }
+
+        for (i = len; i > file_offset; i--)
+        {
+            if (file[i - 1] == '.')
+            {
+                file_extension = i;
+                break;
+            }
+        }
+    }
+
+    lpofn->nFileOffset = file_offset;
+    lpofn->nFileExtension = file_extension;
+    if (ofn32)
+    {
+        ofn32->nFileOffset = file_offset;
+        ofn32->nFileExtension = file_extension;
+        if (ofn32->nFilterIndex)
+            lpofn->nFilterIndex = ofn32->nFilterIndex;
+    }
+}
+
 LRESULT WINAPI DIALOG_CallDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC16 proc);
 static UINT_PTR CALLBACK thunk_hook(COMMDLGTHUNK *thunk, HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
+    if (msg == WMFILEOK) sync_fileok_ofn16(thunk, hwnd, (OPENFILENAMEA *)lp);
+
     /* window message hook? */
     if (msg == WM_INITDIALOG || msg == WMFILEOK || msg == WMHELPMSG || msg == WMFINDMSG || msg == WMCOLOROK || msg == WMSHAREVI)
     {
@@ -288,9 +350,13 @@ BOOL16 WINAPI GetOpenFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 
     if (lpofn->Flags & OFN_ENABLEHOOK)
     {
-        ofn32.lpfnHook = (LPOFNHOOKPROC)allocate_thunk(ofn, (SEGPTR)lpofn->lpfnHook);
-        ((COMMDLGTHUNK*)ofn32.lpfnHook)->ofn16 = ofn16;
-        if (!ofn32.lpfnHook)
+        COMMDLGTHUNK *thunk = allocate_thunk(ofn, (SEGPTR)lpofn->lpfnHook);
+        if (thunk)
+        {
+            thunk->ofn16 = ofn16;
+            ofn32.lpfnHook = (LPOFNHOOKPROC)thunk;
+        }
+        else
         {
             ERR("could not allocate GetOpenFileName16 thunk\n");
             ofn32.lpfnHook = dummy_hook;
@@ -379,9 +445,13 @@ BOOL16 WINAPI GetSaveFileName16( SEGPTR ofn ) /* [in/out] address of structure w
 
     if (lpofn->Flags & OFN_ENABLEHOOK)
     {
-        ofn32.lpfnHook = (LPOFNHOOKPROC)allocate_thunk(ofn, (SEGPTR)lpofn->lpfnHook);
-        ((COMMDLGTHUNK*)ofn32.lpfnHook)->ofn16 = ofn16;
-        if (!ofn32.lpfnHook)
+        COMMDLGTHUNK *thunk = allocate_thunk(ofn, (SEGPTR)lpofn->lpfnHook);
+        if (thunk)
+        {
+            thunk->ofn16 = ofn16;
+            ofn32.lpfnHook = (LPOFNHOOKPROC)thunk;
+        }
+        else
         {
             ERR("could not allocate GetOpenFileName16 thunk\n");
             ofn32.lpfnHook = dummy_hook;
