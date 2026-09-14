@@ -548,6 +548,7 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, WINEHELP *wh, BOOL w32)
         case HELP_QUIT:
             MACRO_Exit();
             break;
+        case HELP_FORCEFILE: /* TODO: do nothing if ptr already open */
         case HELP_CONTENTS:
             if (ptr)
             {
@@ -572,7 +573,6 @@ static LRESULT  WINHELP_HandleCommand(HWND hSrcWnd, WINEHELP *wh, BOOL w32)
                 MACRO_PopupContext(ptr, wh->data);
             }
             break;
-        /* case HELP_FORCEFILE:*/
         /* case HELP_CONTEXTMENU: */
         case HELP_FINDER:
             /* in fact, should be the topic dialog box */
