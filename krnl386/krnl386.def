@@ -162,6 +162,7 @@ EXPORTS
   GlobalReAlloc16 @156
   InitTask16 @157
   IsBadReadPtr16 @158
+  IsBadCodePtr16
   IsTask16 @159
   LoadModule16 @160
   LoadResource16 @161

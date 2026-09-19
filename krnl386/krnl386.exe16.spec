@@ -712,6 +712,7 @@
 @ stdcall -arch=win32 GlobalReAlloc16(long long long)
 @ stdcall -arch=win32 InitTask16(ptr)
 @ stdcall -arch=win32 IsBadReadPtr16(long long)
+@ stdcall -arch=win32 IsBadCodePtr16(long)
 @ stdcall -arch=win32 IsTask16(long)
 @ stdcall -arch=win32 LoadModule16(str ptr)
 @ stdcall -arch=win32 LoadResource16(long long)

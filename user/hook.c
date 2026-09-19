@@ -922,6 +922,7 @@ HHOOK WINAPI SetWindowsHookEx16(INT16 id, HOOKPROC16 proc, HINSTANCE16 hInst, HT
     struct hook_entry *entry;
 
     TRACE("(%d,%04x:%04x,%04x,%04x)\n", id, SELECTOROF(proc), OFFSETOF(proc), hInst, hTask);
+    if(IsBadCodePtr16(proc)) return 0;
     if (id < WH_MINHOOK || id > WH_MAXHOOK16) return 0;
     if (!hook_procs[index])
     {
