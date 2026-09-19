@@ -61,6 +61,7 @@
 #include "mmreg.h"
 
 #include "wine/debug.h"
+#include "../krnl386/kernel16_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(mmsys);
 WINE_DECLARE_DEBUG_CHANNEL(relay);
@@ -276,6 +277,8 @@ MMRESULT16 WINAPI timeEndPeriod16(UINT16 wPeriod)
  */
 DWORD WINAPI timeGetTime16(void)
 {
+    // timeGetTime sets es to mmsystem data segment and doesn't restore it
+    CURRENT_STACK16->es = 0;
     return timeGetTime();
 }
 
