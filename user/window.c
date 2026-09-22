@@ -898,7 +898,9 @@ BOOL16 WINAPI DestroyWindow16( HWND16 hwnd )
 {
     DWORD count;
     BOOL result;
-    HMENU16 hmenu16 = GetMenu16(hwnd);
+    HMENU16 hmenu16 = NULL;
+    HWND hwnd32 = HWND_32(hwnd);
+    if(!GetMenu(hwnd32)) hmenu16 = GetMenu16(hwnd);
     ReleaseThunkLock(&count);
     result = DestroyWindow(WIN_Handle32(hwnd));
     RestoreThunkLock(count);
