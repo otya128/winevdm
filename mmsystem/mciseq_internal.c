@@ -222,6 +222,47 @@ BOOL OTVDM_MCISEQ_IsInternalDevice(UINT wDevID)
 
 /* --- entry points used by mci16.c --- */
 
+/* Placed after the include of mcimidi_wine.inc on purpose: WARN/TRACE only become macros once
+ * that file has pulled in Wine's debug header, and calling WARN above it compiles to a reference
+ * to an undefined function named WARN. */
+
+/* winmm owns the last step of an MCI command, not the driver. When a driver returns
+ * MCI_RESOURCE_RETURNED it has also packed dwReturn with MAKEMCIRESOURCE(api_value, resource_id)
+ * -- MAKELRESULT puts the value the caller wants in the low word -- and winmm hands the caller 0
+ * after translating it. We call the driver directly, so nobody does that for us and the app sees
+ * the bare 0x00010000 as an MCI error code.
+ *
+ * That is not hypothetical: with midiseq=internal the Win16 MPLAYER ran MCI_GETDEVCAPS twice,
+ * received 0x00010000 both times (traced in the forced-internal run), concluded the device could
+ * not play, and stopped issuing commands - the device itself had opened perfectly. Every
+ * MCI_RESOURCE_RETURNED site in mcimidi_wine.inc belongs to MIDI_mciStatus (L1345-1410) and
+ * MIDI_mciGetDevCaps (L1447-1487), so both messages need their value rewritten; a run of this
+ * code with only MCI_GETDEVCAPS handled logged exactly one such warning, for MCI_STATUS_MODE.
+ * Status items that return a plain number (LENGTH, POSITION) leave the flag clear and are
+ * therefore untouched. MCI_RESOURCE_DRIVER is not used by this driver at all. */
+static DWORD otvdm_mciseq_unwrap(DWORD r, UINT wMsg, DWORD_PTR parms32)
+{
+    if (r == MCI_RESOURCE_RETURNED)
+    {
+        if (wMsg == MCI_GETDEVCAPS && parms32)
+        {
+            LPMCI_GETDEVCAPS_PARMS parms = (LPMCI_GETDEVCAPS_PARMS)parms32;
+
+            parms->dwReturn = LOWORD(parms->dwReturn);
+        }
+        else if (wMsg == MCI_STATUS && parms32)
+        {
+            LPMCI_STATUS_PARMS parms = (LPMCI_STATUS_PARMS)parms32;
+
+            parms->dwReturn = LOWORD((DWORD)parms->dwReturn);
+        }
+        else
+            WARN("sequencer returned a resource for message %04x: not translated\n", wMsg);
+        return 0;
+    }
+    return r;
+}
+
 DWORD OTVDM_MCISEQ_Open(DWORD dwFlags, DWORD_PTR parms32)
 {
     OTVDM_MCISEQ_SLOT *slot = slot_alloc();
@@ -287,7 +328,7 @@ DWORD OTVDM_MCISEQ_Send(UINT wDevID, UINT wMsg, DWORD dwFlags, DWORD_PTR parms32
      * in mciSendCommand16 go to the host. Translate on the way in. */
     if (wMsg == MCI_CLOSE) wMsg = MCI_CLOSE_DRIVER;
 
-    return MCIMIDI_DriverProc(wDevID, 0, wMsg, dwFlags, parms32);
+    return otvdm_mciseq_unwrap(MCIMIDI_DriverProc(wDevID, 0, wMsg, dwFlags, parms32), wMsg, parms32);
 }
 
 BOOL OTVDM_MCISEQ_Close(UINT wDevID)
