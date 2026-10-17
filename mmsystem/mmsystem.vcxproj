@@ -98,6 +98,7 @@ winmm.lib;user32.lib;ntdll.lib;advapi32.lib</AdditionalDependencies>
   <ItemGroup>
     <ClCompile Include="driver.c" />
     <ClCompile Include="mci16.c" />
+    <ClCompile Include="mciseq_internal.c" />
     <ClCompile Include="message16.c" />
     <ClCompile Include="mmio16.c" />
     <ClCompile Include="mmsystem.c" />

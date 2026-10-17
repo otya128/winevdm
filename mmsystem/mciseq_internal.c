@@ -1,5 +1,5 @@
 /*
- * otvdm / winevdm: in-tree MCI sequencer (P2).
+ * otvdm / winevdm: in-tree MCI sequencer.
  *
  * WHY THIS FILE EXISTS
  * --------------------
@@ -38,8 +38,8 @@
  * all that is left. MCI notifications carry the device id in lParam, and by then the app
  * knows the id we returned.
  *
- * mmsystem/CMakeLists.txt scopes one extra include directory (../wine/windows) to this file
- * only, because Wine's mmddk.h lives there and MinGW ships no mmddk.h.
+ * mmsystem/CMakeLists.txt adds ../wine/windows to this file's include path on MinGW
+ * because Wine's mmddk.h lives there and MinGW ships no mmddk.h; MSVC takes that header from the Windows SDK.
  *
  * LICENCE: the included source is LGPL 2.1+; its original copyright header inside
  * mcimidi_wine.inc must be preserved, and the package documentation must note the origin.
@@ -54,8 +54,21 @@
 #include "winnls.h"
 #include "wingdi.h"
 #include "winuser.h"
-#include "wownt32.h"
+#ifndef _MSC_VER
+#include "wownt32.h"   /* Wine-only header: not part of the Windows SDK */
+#endif
 #include "mmsystem.h"
+#ifdef _MSC_VER
+/* The Windows SDK's mmddk.h only defines MCI_OPEN_DRIVER_PARMS; Wine's A/W split adds the W
+   variant that the vendored sequencer source refers to. Supply it so the same source compiles
+   with either toolchain (layout matches Wine's). */
+typedef struct {
+    UINT    wDeviceID;
+    LPWSTR  lpstrParams;
+    UINT    wCustomCommandTable;
+    UINT    wType;
+} MCI_OPEN_DRIVER_PARMSW, *LPMCI_OPEN_DRIVER_PARMSW;
+#endif
 #include "mmddk.h"
 #include "mciseq_internal.h"
 
