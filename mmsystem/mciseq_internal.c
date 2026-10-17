@@ -225,6 +225,26 @@ DWORD OTVDM_MCISEQ_Open(DWORD dwFlags, DWORD_PTR parms32)
 
     /* hand our device id back to the app, exactly as mciSendCommandW would */
     ((LPMCI_OPEN_PARMSW)parms32)->wDeviceID = slot->id;
+
+    /* The driver's own default is the MIDI mapper (wmm->wPort = MIDI_MAPPER), and modern
+     * Windows no longer provides one: MIDI_player's midiOutOpen then fails and it returns at
+     * once, leaving the device reporting MCI_MODE_PLAY forever without ever sounding.
+     * Measured on a current machine through this very code: default port -> MCI_PLAY with
+     * MCI_WAIT returns 338 after 0 ms; port 0 -> returns 0 after 2422 ms for a 2 s file,
+     * i.e. it really plays. So point the driver at the first real MIDI out unit, which is
+     * what "the system default interface" means now that the mapper is gone.
+     */
+    if (midiOutGetNumDevs() > 0)
+    {
+        MCI_SEQ_SET_PARMS setp;
+
+        memset(&setp, 0, sizeof(setp));
+        setp.dwPort = 0;
+        MCIMIDI_DriverProc(slot->id, 0, MCI_SET, MCI_SEQ_SET_PORT, (LPARAM)&setp);
+    }
+    else
+        WARN("no host MIDI out device available: playback will not sound\n");
+
     TRACE("sequencer opened as device %u\n", slot->id);
     return 0;
 }
