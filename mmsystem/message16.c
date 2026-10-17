@@ -326,7 +326,7 @@ static MMSYSTEM_MapType	MMSYSTDRV_MidiOut_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 		mh32->dwFlags = mh16->dwFlags;
 		mh16->reserved = (MIDIHDR16*)mh32; /* for reuse in unprepare and write */
 		*lpParam1 = (DWORD)mh32;
-		*lpParam2 = offsetof(MIDIHDR,dwOffset); /* old size, without dwOffset */
+		*lpParam2 = sizeof(MIDIHDR);	/* host winmm checks this size for a MIDI stream handle, the 16 bit struct size gets rejected */
 
 		ret = MMSYSTEM_MAP_OKMEM;
 	    } else {
@@ -341,7 +341,7 @@ static MMSYSTEM_MapType	MMSYSTDRV_MidiOut_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 	    LPMIDIHDR		mh32 = (MIDIHDR*)mh16->reserved;
 
 	    *lpParam1 = (DWORD)mh32;
-	    *lpParam2 = offsetof(MIDIHDR,dwOffset);
+	    *lpParam2 = sizeof(MIDIHDR);
 	    /* dwBufferLength can be reduced between prepare & write */
 /*	    if (wMsg == MODM_LONGDATA && mh32->dwBufferLength < mh16->dwBufferLength) {
 		ERR("Size of buffer has been increased from %d to %d, keeping initial value\n",
