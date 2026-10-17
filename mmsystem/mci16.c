@@ -53,6 +53,8 @@
 #include "mciavi.h"
 #include "../msvideo/vfw16.h"
 
+#include "mciseq_internal.h"
+
 #include "wine/debug.h"
 
 #ifndef MCI_OPEN_DRIVER
@@ -975,6 +977,10 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
         {
             MCI_GETDEVCAPS_PARMS devcaps = {0};
             devcaps.dwItem = MCI_GETDEVCAPS_DEVICE_TYPE;
+            /* For a device the in-tree sequencer owns this goes to the host winmm, which does
+             * not know our ids, so the query is meaningless for it: the digital video special
+             * case below is simply not taken and MCI_WAIT is handed to the driver, which
+             * blocks on its own. */
             mciSendCommandA(wDevID, MCI_GETDEVCAPS, MCI_GETDEVCAPS_ITEM, &devcaps);
             // handle the wait ourselves so to prevent the thread from being blocked for 300ms
             if (devcaps.dwReturn == MCI_DEVTYPE_DIGITAL_VIDEO)
@@ -1009,7 +1015,29 @@ DWORD WINAPI mciSendCommand16(UINT16 wDevID, UINT16 wMsg, DWORD dwParam1, DWORD 
             if (wndwait)
                 ((MCI_GENERIC_PARMS *)dwParam2)->dwCallback = wndwait;
             ReleaseThunkLock(&count);
-            dwRet = mciSendCommandW(wDevID, wMsg, dwParam1, dwParam2);
+            /* devices we own never go to the host winmm, and a sequencer open the host
+             * cannot serve falls back to the in-tree driver (see mciseq_internal.c). The
+             * fallback is what gives 16 bit MIDI playback a sound path when the host has no
+             * working sequencer; [otvdm] midiseq=internal in otvdm.ini forces it. */
+            if (OTVDM_MCISEQ_IsInternalDevice(wDevID))
+            {
+                if (wMsg == MCI_CLOSE)
+                    dwRet = OTVDM_MCISEQ_Close(wDevID) ? 0 : MCIERR_INVALID_DEVICE_ID;
+                else
+                    dwRet = OTVDM_MCISEQ_Send(wDevID, wMsg, dwParam1, dwParam2);
+            }
+            else if (wMsg == MCI_OPEN && OTVDM_MCISEQ_IsSequencerOpen(dwParam1, dwParam2))
+            {
+                dwRet = 1;
+                if (OTVDM_MCISEQ_Forced())
+                    dwRet = OTVDM_MCISEQ_Open(dwParam1, dwParam2);
+                if (dwRet)
+                    dwRet = mciSendCommandW(wDevID, wMsg, dwParam1, dwParam2);
+                if (dwRet)
+                    dwRet = OTVDM_MCISEQ_Open(dwParam1, dwParam2);
+            }
+            else
+                dwRet = mciSendCommandW(wDevID, wMsg, dwParam1, dwParam2);
             RestoreThunkLock(count);
             if (res == MMSYSTEM_MAP_OKMEM)
             {
