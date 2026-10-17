@@ -58,6 +58,7 @@
 
 #include "wine/list.h"
 #include "wine/winuser16.h"
+#include "wine/winbase16.h"
 #include "winemm16.h"
 #include "mmreg.h"
 
@@ -688,6 +689,78 @@ DWORD WINAPI auxOutMessage16(UINT16 uDeviceID, UINT16 uMessage, DWORD dw1, DWORD
  * ###################################################
  */
 
+/* [otvdm] midiconfig=<index or part of a device name> in otvdm.ini picks which host
+ * MIDI out device the 16 bit MIDI mapper (-1) lands on. Only the mapper is redirected,
+ * so an app naming a device index explicitly is untouched, and winmm still chooses
+ * when the key is absent or unusable.
+ */
+static char midi_upper(char c)
+{
+    return (c >= 'a' && c <= 'z') ? c - 0x20 : c;
+}
+
+static BOOL midi_name_contains(const char *name, const char *want)
+{
+    size_t i, j, wlen = strlen(want);
+
+    if (!wlen) return FALSE;
+    for (i = 0; name[i]; i++)
+    {
+        for (j = 0; j < wlen; j++)
+            if (midi_upper(name[i + j]) != midi_upper(want[j])) break;
+        if (j == wlen) return TRUE;
+    }
+    return FALSE;
+}
+
+static UINT midi_index_from_string(const char *s)
+{
+    UINT value = 0;
+
+    if (*s < '0' || *s > '9') return (UINT)-1;
+    while (*s >= '0' && *s <= '9')
+    {
+        value = value * 10 + (*s++ - '0');
+        if (value > 0xFFFF) return (UINT)-1;   /* absurd index, not a device number */
+    }
+    return *s ? (UINT)-1 : value;
+}
+
+static UINT midi_map_host_device(UINT dev_id)
+{
+    CHAR cfg[32];
+    MIDIOUTCAPSA moc;
+    UINT num, i, index;
+
+    if (dev_id != (UINT)MIDI_MAPPER) return dev_id;
+    if (!krnl386_get_config_string("otvdm", "midiconfig", "", cfg, sizeof(cfg))) return dev_id;
+
+    num = midiOutGetNumDevs();
+    index = midi_index_from_string(cfg);
+    if (index != (UINT)-1)
+    {
+        if (index < num)
+        {
+            TRACE("midiconfig=%s -> host midi device %u\n", cfg, index);
+            return index;
+        }
+        WARN("midiconfig=%s: host has %u midi device(s), keeping the midi mapper\n", cfg, num);
+        return dev_id;
+    }
+
+    for (i = 0; i < num; i++)
+    {
+        if (midiOutGetDevCapsA(i, &moc, sizeof(moc)) != MMSYSERR_NOERROR) continue;
+        if (midi_name_contains(moc.szPname, cfg))
+        {
+            TRACE("midiconfig=%s -> host midi device %u [%s]\n", cfg, i, moc.szPname);
+            return i;
+        }
+    }
+    WARN("midiconfig=%s: no host midi device matches, keeping the midi mapper\n", cfg);
+    return dev_id;
+}
+
 /**************************************************************************
  * 				midiOutGetNumDevs	[MMSYSTEM.201]
  */
@@ -751,7 +824,7 @@ UINT16 WINAPI midiOutOpen16(HMIDIOUT16* lphMidiOut, UINT16 uDeviceID,
     {
         return MMSYSERR_NOMEM;
     }
-    ret = midiOutOpen(&hmo, (INT16)uDeviceID, (DWORD)thunk, dwInstance, dwFlags32);
+    ret = midiOutOpen(&hmo, midi_map_host_device((INT16)uDeviceID), (DWORD)thunk, dwInstance, dwFlags32);
     if (ret == MMSYSERR_NOERROR)
     {
         if (lphMidiOut != NULL) *lphMidiOut = HMIDIOUT_16(hmo);
@@ -1111,7 +1184,9 @@ MMRESULT16 WINAPI midiStreamOpen16(HMIDISTRM16* phMidiStrm, LPUINT16 devid,
 
     if (!phMidiStrm || !devid)
 	return MMSYSERR_INVALPARAM;
-    devid32 = *devid;
+    /* the app's device id is a WORD; the midi mapper is -1, so it must be sign extended
+     * (a zero extended 0xFFFF is rejected by winmm as a bad device id) */
+    devid32 = midi_map_host_device((INT16)*devid);
 
     if (!(thunk = MMSYSTDRV_AddThunk(dwCallback, fdwOpen, MMSYSTDRV_MIDIOUT)))
     {
@@ -1147,7 +1222,7 @@ MMRESULT16 WINAPI midiStreamOut16(HMIDISTRM16 hMidiStrm, LPMIDIHDR16 lpMidiHdr, 
      * so the driver only ever sees the 32 bit shadow MODM_PREPARE built for it
      */
     if (!(mh32 = MMSYSTDRV_MidiHdr_Get32Shadow(lpMidiHdr))) return MIDIERR_UNPREPARED;
-    return midiStreamOut(HMIDISTRM_32(hMidiStrm), mh32, offsetof(MIDIHDR, dwOffset));
+    return midiStreamOut(HMIDISTRM_32(hMidiStrm), mh32, sizeof(MIDIHDR));
 }
 
 /**************************************************************************
