@@ -80,6 +80,7 @@ extern  void                    MMSYSTDRV_DeleteThunk(struct mmsystdrv_thunk* th
 extern  void                    MMSYSTDRV_SetHandle(struct mmsystdrv_thunk* thunk, void* h) DECLSPEC_HIDDEN;
 extern  void                    MMSYSTDRV_CloseHandle(void* h) DECLSPEC_HIDDEN;
 extern  DWORD                   MMSYSTDRV_Message(void* h, UINT msg, DWORD_PTR param1, DWORD_PTR param2) DECLSPEC_HIDDEN;
+extern  LPMIDIHDR               MMSYSTDRV_MidiHdr_Get32Shadow(LPMIDIHDR16 mh16) DECLSPEC_HIDDEN;
 
 #define WINE_MMTHREAD_CREATED	0x4153494C	/* "BSIL" */
 #define WINE_MMTHREAD_DELETED	0xDEADDEAD

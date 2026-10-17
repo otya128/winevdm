@@ -27,6 +27,7 @@
  */
 
 #include <stdarg.h>
+#include <stddef.h>
 #include <string.h>
 
 #define NONAMELESSUNION
@@ -1133,8 +1134,16 @@ MMRESULT16 WINAPI midiStreamOpen16(HMIDISTRM16* phMidiStrm, LPUINT16 devid,
  */
 MMRESULT16 WINAPI midiStreamOut16(HMIDISTRM16 hMidiStrm, LPMIDIHDR16 lpMidiHdr, UINT16 cbMidiHdr)
 {
-    return midiStreamOut(HMIDISTRM_32(hMidiStrm), (LPMIDIHDR)lpMidiHdr,
-		         cbMidiHdr);
+    LPMIDIHDR	mh32;
+
+    TRACE("(%04X, %p, %d)\n", hMidiStrm, lpMidiHdr, cbMidiHdr);
+
+    if (!lpMidiHdr) return MMSYSERR_INVALPARAM;
+    /* the app's header is a MIDIHDR16 whose lpData is still a 16 bit pointer,
+     * so the driver only ever sees the 32 bit shadow MODM_PREPARE built for it
+     */
+    if (!(mh32 = MMSYSTDRV_MidiHdr_Get32Shadow(lpMidiHdr))) return MIDIERR_UNPREPARED;
+    return midiStreamOut(HMIDISTRM_32(hMidiStrm), mh32, offsetof(MIDIHDR, dwOffset));
 }
 
 /**************************************************************************

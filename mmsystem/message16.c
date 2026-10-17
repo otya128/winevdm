@@ -362,6 +362,22 @@ static MMSYSTEM_MapType	MMSYSTDRV_MidiOut_Map16To32W  (UINT wMsg, DWORD_PTR* lpP
 }
 
 /**************************************************************************
+ * 				MMSYSTDRV_MidiHdr_Get32Shadow	[internal]
+ *
+ * The 32 bit shadow a 16 bit MIDIHDR got when MODM_PREPARE mapped it (its
+ * address is parked in the header's reserved field), NULL when the header was
+ * never prepared. dwBufferLength is refreshed because a buffer may have been
+ * shrunk between prepare and write, see MODM_LONGDATA above.
+ */
+LPMIDIHDR MMSYSTDRV_MidiHdr_Get32Shadow(LPMIDIHDR16 mh16)
+{
+    LPMIDIHDR	mh32 = (LPMIDIHDR)mh16->reserved;
+
+    if (mh32) mh32->dwBufferLength = mh16->dwBufferLength;
+    return mh32;
+}
+
+/**************************************************************************
  * 				MMSYSTDRV_MidiOut_UnMap16To32W	[internal]
  */
 static  MMSYSTEM_MapType	MMSYSTDRV_MidiOut_UnMap16To32W(UINT wMsg, DWORD_PTR* lpParam1, DWORD_PTR* lpParam2, MMRESULT fn_ret)
