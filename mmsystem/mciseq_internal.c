@@ -303,13 +303,16 @@ DWORD OTVDM_MCISEQ_Open(DWORD dwFlags, DWORD_PTR parms32)
     /* hand our device id back to the app, exactly as mciSendCommandW would */
     ((LPMCI_OPEN_PARMSW)parms32)->wDeviceID = slot->id;
 
-    /* The driver's own default is the MIDI mapper (wmm->wPort = MIDI_MAPPER), and modern
-     * Windows no longer provides one: MIDI_player's midiOutOpen then fails and it returns at
-     * once, leaving the device reporting MCI_MODE_PLAY forever without ever sounding.
+    /* The driver's own default port is MIDI_MAPPER, stored in a 16 bit field, so it becomes
+     * 0xFFFF - an id that no MIDI output unit has. MIDI_player's midiOutOpen then fails with
+     * MMSYSERR_BADDEVICEID, mmr2mci() translates that into MCIERR_SEQ_PORT_NONEXISTENT, and the
+     * player returns at once, leaving the device reporting MCI_MODE_PLAY forever without ever
+     * sounding. The mapper itself is not the problem: midiOutOpen(MIDI_MAPPER) still succeeds on
+     * a current machine (measured); it is simply not a real MIDI out unit id.
      * Measured on a current machine through this very code: default port -> MCI_PLAY with
-     * MCI_WAIT returns 338 after 0 ms; port 0 -> returns 0 after 2422 ms for a 2 s file,
+     * MCI_WAIT returns 338 after 0 ms; port 0 -> returns 0 after 2328 ms for a 2 s file,
      * i.e. it really plays. So point the driver at the first real MIDI out unit, which is
-     * what "the system default interface" means now that the mapper is gone.
+     * what "the system default interface" means here.
      */
     if (midiOutGetNumDevs() > 0)
     {
