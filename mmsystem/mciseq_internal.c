@@ -206,11 +206,15 @@ BOOL OTVDM_MCISEQ_IsSequencerOpen(DWORD dwFlags, DWORD_PTR parms32)
      * otvdm: "mciSendCommand16 (0000, MCI_OPEN, 00000600, ...)"). Without this branch the
      * fallback would never engage on the most common path there is, so recognise the same
      * extensions here. Only the extension decides: the host is still asked first and, should it
-     * fail, these files are exactly the ones the in-tree sequencer can read.
+     * fail, these files are exactly the ones the in-tree sequencer can read. The extension list
+     * follows the environment's own win.ini: a Windows 3.1 install lists both "mid=sequencer"
+     * and "rmi=sequencer" under [mci extensions], so .rmi has to be recognised here too or those
+     * files would silently get no fallback.
      */
     if ((dwFlags & MCI_OPEN_ELEMENT) && parms->lpstrElementName)
         return wide_ends_ci(parms->lpstrElementName, L".mid") ||
-               wide_ends_ci(parms->lpstrElementName, L".midi");
+               wide_ends_ci(parms->lpstrElementName, L".midi") ||
+               wide_ends_ci(parms->lpstrElementName, L".rmi");
 
     return FALSE;
 }
