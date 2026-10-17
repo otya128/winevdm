@@ -1139,6 +1139,10 @@ MMRESULT16 WINAPI midiStreamOut16(HMIDISTRM16 hMidiStrm, LPMIDIHDR16 lpMidiHdr, 
     TRACE("(%04X, %p, %d)\n", hMidiStrm, lpMidiHdr, cbMidiHdr);
 
     if (!lpMidiHdr) return MMSYSERR_INVALPARAM;
+    /* reserved belongs to the application, so a header that was never prepared can
+     * still hold a stale value there: test the documented flag before trusting it
+     */
+    if (!(lpMidiHdr->dwFlags & MHDR_PREPARED)) return MIDIERR_UNPREPARED;
     /* the app's header is a MIDIHDR16 whose lpData is still a 16 bit pointer,
      * so the driver only ever sees the 32 bit shadow MODM_PREPARE built for it
      */
