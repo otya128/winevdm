@@ -159,6 +159,25 @@ static BOOL wide_contains_ci(LPCWSTR hay, LPCWSTR needle)
     return FALSE;
 }
 
+static BOOL wide_ends_ci(LPCWSTR s, LPCWSTR suffix)
+{
+    int n = 0, m = 0, i;
+
+    if (!s || !suffix) return FALSE;
+    while (s[n]) n++;
+    while (suffix[m]) m++;
+    if (m == 0 || n < m) return FALSE;
+    for (i = 0; i < m; i++)
+    {
+        WCHAR a = s[n - m + i], b = suffix[i];
+
+        if (a >= 'A' && a <= 'Z') a += 'a' - 'A';
+        if (b >= 'A' && b <= 'Z') b += 'a' - 'A';
+        if (a != b) return FALSE;
+    }
+    return TRUE;
+}
+
 BOOL OTVDM_MCISEQ_Forced(void)
 {
     char cfg[32];
@@ -179,6 +198,19 @@ BOOL OTVDM_MCISEQ_IsSequencerOpen(DWORD dwFlags, DWORD_PTR parms32)
 
     if ((dwFlags & (MCI_OPEN_TYPE | MCI_OPEN_TYPE_ID)) == MCI_OPEN_TYPE)
         return wide_contains_ci(parms->lpstrDeviceType, L"sequencer");
+
+    /* When the caller names no device type, Windows derives it from the element's extension:
+     * win.ini's [mci extensions] section maps "mid" to the sequencer, and that is how every
+     * 16 bit player we could test actually opens a file - MPLAYER sends MCI_OPEN with
+     * MCI_OPEN_ELEMENT|MCI_OPEN_ALIAS and nothing else (observed with WINEDEBUG=+mmsys under
+     * otvdm: "mciSendCommand16 (0000, MCI_OPEN, 00000600, ...)"). Without this branch the
+     * fallback would never engage on the most common path there is, so recognise the same
+     * extensions here. Only the extension decides: the host is still asked first and, should it
+     * fail, these files are exactly the ones the in-tree sequencer can read.
+     */
+    if ((dwFlags & MCI_OPEN_ELEMENT) && parms->lpstrElementName)
+        return wide_ends_ci(parms->lpstrElementName, L".mid") ||
+               wide_ends_ci(parms->lpstrElementName, L".midi");
 
     return FALSE;
 }
