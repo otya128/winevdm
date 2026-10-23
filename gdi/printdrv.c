@@ -200,7 +200,6 @@ INT16 WINAPI SizePQ16(HPQ16 hPQ, INT16 sizechange)
  * that used LPR/LPD.  For simplicity print jobs will be sent to a file for
  * now.
  */
-#ifdef HAVE_UNISTD_H
 typedef struct PRINTJOB
 {
     char	*pszOutput;
@@ -208,8 +207,14 @@ typedef struct PRINTJOB
     HDC16  	hDC;
     HANDLE16 	hHandle;
     int		nIndex;
+#ifdef HAVE_UNISTD_H
     int		fd;
     pid_t       pid;
+#else
+    HANDLE      hFile;
+    HANDLE      hPrinter;
+    BOOL        isPrinter;
+#endif
 } PRINTJOB, *PPRINTJOB;
 #define MAX_PRINT_JOBS 1
 #define SP_OK 1
@@ -221,7 +226,7 @@ static PPRINTJOB FindPrintJobFromHandle(HANDLE16 hHandle)
 {
     return gPrintJobsTable[0];
 }
-#endif
+
 #ifdef HAVE_UNISTD_H
 
 static int CreateSpoolFile(LPCSTR pszOutput, pid_t *out_pid)
@@ -343,6 +348,35 @@ static int FreePrintJob(HANDLE16 hJob)
     }
     return nRet;
 }
+#else /* !HAVE_UNISTD_H: native Windows implementation */
+static int FreePrintJob(HANDLE16 hJob)
+{
+    int nRet = SP_ERROR;
+    PPRINTJOB pPrintJob;
+
+    pPrintJob = FindPrintJobFromHandle(hJob);
+    if (pPrintJob != NULL)
+    {
+	nRet = SP_OK;
+	gPrintJobsTable[pPrintJob->nIndex] = NULL;
+	HeapFree(GetProcessHeap(), 0, pPrintJob->pszOutput);
+	HeapFree(GetProcessHeap(), 0, pPrintJob->pszTitle);
+	if (pPrintJob->isPrinter)
+	{
+	    if (pPrintJob->hPrinter)
+	    {
+	        EndDocPrinter(pPrintJob->hPrinter);
+	        ClosePrinter(pPrintJob->hPrinter);
+	    }
+	}
+	else
+	{
+	    if (pPrintJob->hFile != INVALID_HANDLE_VALUE) CloseHandle(pPrintJob->hFile);
+	}
+	HeapFree(GetProcessHeap(), 0, pPrintJob);
+    }
+    return nRet;
+}
 #endif
 
 /**********************************************************************
@@ -392,8 +426,82 @@ HPJOB16 WINAPI OpenJob16(LPCSTR lpOutput, LPCSTR lpTitle, HDC16 hDC)
     }
     TRACE("return %04x\n", hHandle);
     return hHandle;
+#else
+    HPJOB16 hHandle = (HPJOB16)SP_ERROR;
+    PPRINTJOB pPrintJob;
+    HANDLE hPrinter = NULL;
+    HANDLE hFile = INVALID_HANDLE_VALUE;
+    BOOL isPrinter = FALSE;
+
+    TRACE("'%s' '%s' %04x\n", lpOutput, lpTitle, hDC);
+
+    if (lpOutput == NULL || *lpOutput == '\0')
+        return hHandle;
+
+    if (gPrintJobsTable[0] != NULL)
+        return hHandle;
+
+    /* lpOutput is normally a Windows printer name (as chosen in Print Setup).
+     * Try opening it as a real printer and starting a RAW print job on it;
+     * if that fails, fall back to treating it as a plain output file path
+     * (this preserves the existing "print to file" behaviour). */
+    if (OpenPrinterA((LPSTR)lpOutput, &hPrinter, NULL))
+    {
+        DOC_INFO_1A docInfo;
+        docInfo.pDocName = (LPSTR)(lpTitle && *lpTitle ? lpTitle : "otvdm print job");
+        docInfo.pOutputFile = NULL;
+        docInfo.pDatatype = "RAW";
+        if (StartDocPrinterA(hPrinter, 1, (LPBYTE)&docInfo))
+        {
+            isPrinter = TRUE;
+        }
+        else
+        {
+            WARN("StartDocPrinter failed for '%s' (error %lu)\n", lpOutput, GetLastError());
+            ClosePrinter(hPrinter);
+            hPrinter = NULL;
+        }
+    }
+
+    if (!isPrinter)
+    {
+        hFile = CreateFileA(lpOutput, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hFile == INVALID_HANDLE_VALUE)
+        {
+            WARN("Failed to open '%s' as printer or file (error %lu)\n", lpOutput, GetLastError());
+            return hHandle;
+        }
+    }
+
+    pPrintJob = HeapAlloc(GetProcessHeap(), 0, sizeof(PRINTJOB));
+    if (pPrintJob == NULL)
+    {
+        WARN("Memory exhausted!\n");
+        if (isPrinter) { EndDocPrinter(hPrinter); ClosePrinter(hPrinter); }
+        else CloseHandle(hFile);
+        return hHandle;
+    }
+
+    hHandle = 1;
+    pPrintJob->pszOutput = HeapAlloc(GetProcessHeap(), 0, strlen(lpOutput) + 1);
+    strcpy(pPrintJob->pszOutput, lpOutput);
+    pPrintJob->pszTitle = NULL;
+    if (lpTitle)
+    {
+        pPrintJob->pszTitle = HeapAlloc(GetProcessHeap(), 0, strlen(lpTitle) + 1);
+        strcpy(pPrintJob->pszTitle, lpTitle);
+    }
+    pPrintJob->hDC = hDC;
+    pPrintJob->nIndex = 0;
+    pPrintJob->hHandle = hHandle;
+    pPrintJob->isPrinter = isPrinter;
+    pPrintJob->hPrinter = hPrinter;
+    pPrintJob->hFile = hFile;
+    gPrintJobsTable[pPrintJob->nIndex] = pPrintJob;
+
+    TRACE("return %04x\n", hHandle);
+    return hHandle;
 #endif
-	FIXME("stub");
 }
 
 /**********************************************************************
@@ -402,7 +510,6 @@ HPJOB16 WINAPI OpenJob16(LPCSTR lpOutput, LPCSTR lpTitle, HDC16 hDC)
  */
 INT16 WINAPI CloseJob16(HPJOB16 hJob)
 {
-#ifdef HAVE_UNISTD_H
     int nRet = SP_ERROR;
     PPRINTJOB pPrintJob;
 
@@ -415,7 +522,6 @@ INT16 WINAPI CloseJob16(HPJOB16 hJob)
 	nRet  = 1;
     }
     return nRet;
-#endif
 }
 
 /**********************************************************************
@@ -452,6 +558,28 @@ INT16 WINAPI WriteSpool16(HPJOB16 hJob, LPSTR lpData, INT16 cch)
 #endif
     }
     return nRet;
+#else
+    int nRet = SP_ERROR;
+    PPRINTJOB pPrintJob;
+    DWORD written = 0;
+
+    TRACE("%04x %p %04x\n", hJob, lpData, cch);
+
+    pPrintJob = FindPrintJobFromHandle(hJob);
+    if (pPrintJob != NULL && cch)
+    {
+        BOOL ok;
+        if (pPrintJob->isPrinter)
+            ok = WritePrinter(pPrintJob->hPrinter, lpData, cch, &written);
+        else
+            ok = WriteFile(pPrintJob->hFile, lpData, cch, &written, NULL);
+
+        if (!ok || written != (DWORD)cch)
+            nRet = SP_OUTOFDISK;
+        else
+            nRet = cch;
+    }
+    return nRet;
 #endif
 }
 
@@ -484,11 +612,21 @@ INT16 WINAPI WriteDialog16(HPJOB16 hJob, LPSTR lpMsg, INT16 cchMsg)
  */
 INT16 WINAPI DeleteJob16(HPJOB16 hJob, INT16 nNotUsed)
 {
-    int nRet;
+    int nRet = SP_ERROR;
+    PPRINTJOB pPrintJob;
 
     TRACE("%04x\n", hJob);
 
-    //nRet = FreePrintJob(hJob);
+    pPrintJob = FindPrintJobFromHandle(hJob);
+    if (pPrintJob != NULL)
+    {
+#ifndef HAVE_UNISTD_H
+        if (pPrintJob->isPrinter && pPrintJob->hPrinter)
+            AbortPrinter(pPrintJob->hPrinter);
+#endif
+        FreePrintJob(hJob);
+        nRet = SP_OK;
+    }
     return nRet;
 }
 
