@@ -659,6 +659,8 @@ static HANDLE create_file_OF( LPCWSTR path, INT mode )
  */
 HFILE16 WINAPI WIN16_OpenFile16( LPCSTR name, SEGPTR ofs, UINT16 mode )
 {
+    /* Win 3.1 validates the file name pointer and fails instead of faulting */
+    if (name && !(mode & OF_REOPEN) && IsBadStringPtrA(name, OFS_MAXPATHNAME)) return HFILE_ERROR16;
     CURRENT_STACK16->es = SELECTOROF(ofs);
     return OpenFile16(name, MapSL(ofs), mode);
 }
