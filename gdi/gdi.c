@@ -3826,8 +3826,11 @@ static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
 
 BOOL update_palette(HPALETTE16 hpalette)
 {
+    static BOOL in_update_palette = FALSE;
     HPALETTE hpal32 = HPALETTE_32(hpalette);
+    if (in_update_palette) return;
     if (GetObjectType(hpal32) != OBJ_PAL) return;
+    in_update_palette = TRUE;
     DWORD *dclist = GetPtr16(hpalette, 1);
     DWORD *wndlist = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (dclist[0] + 1) * 4);
     for (int i = 1; i < dclist[0]; i++)
@@ -3872,6 +3875,7 @@ BOOL update_palette(HPALETTE16 hpalette)
     if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (hpal32 == get_realized_palette()))
         EnumThreadWindows(GetCurrentThreadId(), paint_all_windows, wndlist);
     HeapFree(GetProcessHeap(), 0, wndlist);
+    in_update_palette = FALSE;
 }
 
 /***********************************************************************
