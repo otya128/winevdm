@@ -3,7 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
     <!-- AsmPath should point the directory containing as.exe(binutils), bison.exe and flex.exe -->
-    <AsmPath>C:\msys32\usr\bin\</AsmPath>
+    <AsmPath>c:\msys64\usr\bin\</AsmPath>
   </PropertyGroup>
   <PropertyGroup>
     <_PropertySheetDisplayName>MacroPropertySheet</_PropertySheetDisplayName>

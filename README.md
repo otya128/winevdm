@@ -31,9 +31,11 @@ See [otvdm.ini](otvdm.ini).
 
 # How to compile(Visual Studio)
 
-+ Install Visual Studio 2017
-+ Edit PropertySheet.props
-+ Compile
++ Install Visual Studio 2017 (the Build Tools for Visual Studio 2017 is enough too)
++ Install MSYS2
++ Install the GNU Assembler, Flex and Bison in MSYS2 (`pacman -S flex binutils bison`)
++ Edit PropertySheet.props to point to the MSYS2 installation directory
++ Compile (either in VS2017 or the x86 Native Tools Command Prompt for VS 2017 using `msbuild otvdm.sln /p:Configuration=Debug /p:Platform=Win32`)
 
 # How to compile(cmake)
 
