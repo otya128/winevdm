@@ -2906,6 +2906,11 @@ LRESULT WINPROC_CallProc32ATo16( winproc_callback16_t callback, HWND hwnd, UINT 
     case WM_MOUSEWHEEL:
     case WM_SYSTIMER:
     case WM_TIMER:
+        if (msg == WM_TIMER && HIWORD(wParam) == HIWORD(SYSTEM_TIMER_FLAG))
+        {
+            ret = callback(HWND_16(hwnd), WM_SYSTIMER, LOWORD(wParam), lParam, result, arg);
+            break;
+        }
         if (!HIWORD(wParam))
         {
             ret = callback(HWND_16(hwnd), msg, wParam, lParam, result, arg);
