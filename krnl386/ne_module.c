@@ -717,6 +717,7 @@ static HMODULE16 build_module( const void *mapping, SIZE_T mapping_size, LPCSTR 
     for (i = ne_header->ne_cseg; i > 0; i--, pSeg++)
     {
         memcpy( pData, pSeg, sizeof(*pSeg) );
+        ((SEGTABLEENTRY *)pData)->flags &= ~2;  // clear NE_SEGFLAGS_ALLOCATED when loading
         pData += sizeof(SEGTABLEENTRY);
     }
 
