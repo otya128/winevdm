@@ -903,7 +903,7 @@ void WINAPI InitTask16( CONTEXT *context )
     NE_DllProcessAttach( pTask->hModule );
 
     /* Registers on return are:
-     * ax     1 if OK, 0 on error
+     * ax     PDB selector if OK, 0 on error
      * cx     stack limit in bytes
      * dx     cmdShow parameter
      * si     instance handle of the previous instance
@@ -916,7 +916,7 @@ void WINAPI InitTask16( CONTEXT *context )
     *(WORD *)MapSL(ptr) = 0;
     context->Esp -= 2;
 
-    context->Eax = 1;
+    context->Eax = (WORD)pTask->hPDB;
 
     if (!pTask->pdb.cmdLine[0]) context->Ebx = 0x80;
     else
