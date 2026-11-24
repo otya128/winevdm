@@ -41,6 +41,8 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(user);
 
+BOOL virtual_screen_origin(POINT *org); /* window.c */
+
 /* handle to handle 16 conversions */
 #define HANDLE_16(h32)		HWND_16(h32) /* (LOWORD(h32)) */
 #define HGDIOBJ_16(h32)		HDC_16(h32) /* (LOWORD(h32)) */
@@ -678,11 +680,13 @@ BOOL16 WINAPI ClipCursor16( const RECT16 *rect )
 {
     RECT rect32;
 
+    POINT org;
     if (!rect) return ClipCursor( NULL );
     rect32.left   = rect->left;
     rect32.top    = rect->top;
     rect32.right  = rect->right;
     rect32.bottom = rect->bottom;
+    if (virtual_screen_origin(&org)) OffsetRect(&rect32, org.x, org.y);
     return ClipCursor( &rect32 );
 }
 
@@ -694,10 +698,24 @@ BOOL16 WINAPI GetCursorPos16( POINT16 *pt )
 {
     POINT pos;
     if (!pt) return FALSE;
+    POINT org;
     GetCursorPos(&pos);
-    pt->x = pos.x;
-    pt->y = pos.y;
+    virtual_screen_origin(&org);
+    pt->x = pos.x - org.x;
+    pt->y = pos.y - org.y;
     return TRUE;
+}
+
+
+/***********************************************************************
+ *		GetMessagePos (USER.119)
+ */
+DWORD WINAPI GetMessagePos16(void)
+{
+    DWORD pos = GetMessagePos();
+    POINT org;
+    if (!virtual_screen_origin(&org)) return pos;
+    return MAKELONG((SHORT)LOWORD(pos) - org.x, (SHORT)HIWORD(pos) - org.y);
 }
 
 
@@ -724,7 +742,9 @@ HCURSOR16 WINAPI SetCursor16(HCURSOR16 hCursor)
  */
 void WINAPI SetCursorPos16( INT16 x, INT16 y )
 {
-    SetCursorPos( x, y );
+    POINT org;
+    virtual_screen_origin(&org);
+    SetCursorPos( x + org.x, y + org.y );
 }
 
 
@@ -2446,7 +2466,9 @@ void WINAPI GetClipCursor16( RECT16 *rect )
     if (rect)
     {
         RECT rect32;
+        POINT org;
         GetClipCursor( &rect32 );
+        if (virtual_screen_origin(&org)) OffsetRect(&rect32, -org.x, -org.y);
         rect->left   = rect32.left;
         rect->top    = rect32.top;
         rect->right  = rect32.right;

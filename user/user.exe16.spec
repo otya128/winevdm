@@ -115,7 +115,7 @@
 116 pascal -ret16 PostAppMessage(word word word long) PostAppMessage16
 117 pascal -ret16 WindowFromDC(word) WindowFromDC16 # not in W1.1, W2.0
 118 pascal -ret16 RegisterWindowMessage(str) RegisterWindowMessageA
-119 pascal   GetMessagePos() GetMessagePos
+119 pascal   GetMessagePos() GetMessagePos16
 120 pascal   GetMessageTime() GetMessageTime
 121 pascal   SetWindowsHook(s_word segptr) SetWindowsHook16
 122 pascal   CallWindowProc(segptr word word word long) CallWindowProc16
