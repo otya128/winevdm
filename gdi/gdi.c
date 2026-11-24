@@ -375,6 +375,26 @@ static void shadow_stretchblt(HDC dst32, INT x, INT y, INT w, INT h, HDC src32, 
     if (n) SetDIBColorTable(src32, 0, n, saved);
 }
 
+/* Reading from the screen into an 8-bit bitmap: on a 256-color card the screen holds palette
+   indices, so copy the indices from the shadow instead of matching true-color pixels against a
+   palette (which fails when the realized palette is a blank one, as in Dr. Brain's puzzles). */
+static BOOL shadow_read_screen(HDC dst32, INT x, INT y, INT w, INT h, HDC src32, INT xs, INT ys, INT ws, INT hs, DWORD rop, BOOL16 *ret)
+{
+    struct palette_shadow *sh;
+    RGBQUAD saved[256];
+    UINT n;
+    if (!shadow_enabled() || !is_8bit_dib_dc(dst32)) return FALSE;
+    sh = shadow_get(src32, FALSE);
+    if (!sh) return FALSE;
+    shadow_sync_dc(sh, src32);
+    SelectClipRgn(sh->hdc, NULL);
+    n = GetDIBColorTable(dst32, 0, 256, saved);
+    SetDIBColorTable(dst32, 0, 256, shadow_identity);
+    *ret = StretchBlt(dst32, x, y, w, h, sh->hdc, xs, ys, ws, hs, rop);
+    if (n) SetDIBColorTable(dst32, 0, n, saved);
+    return TRUE;
+}
+
 static BYTE shadow_color_index(COLORREF color)
 {
     HPALETTE pal;
@@ -1643,6 +1663,11 @@ static BOOL16 StretchBlt16_impl( HDC16 hdcDst, INT16 xDst, INT16 yDst,
     HDC hdcsrc32 = HDC_32(hdcSrc);
     HDC hdcdst32 = HDC_32(hdcDst);
     shadow_stretchblt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
+    {
+        BOOL16 r;
+        if (shadow_read_screen(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop, &r))
+            return r;
+    }
     if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdcsrc32, TECHNOLOGY) == DT_RASDISPLAY))
     {
         DIBSECTION dib, dibdst;
