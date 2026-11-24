@@ -41,6 +41,8 @@
 
 WINE_DEFAULT_DEBUG_CHANNEL(user);
 
+BOOL virtual_screen_origin(POINT *org); /* window.c */
+
 /* handle to handle 16 conversions */
 #define HANDLE_16(h32)		HWND_16(h32) /* (LOWORD(h32)) */
 #define HGDIOBJ_16(h32)		HDC_16(h32) /* (LOWORD(h32)) */
@@ -678,11 +680,13 @@ BOOL16 WINAPI ClipCursor16( const RECT16 *rect )
 {
     RECT rect32;
 
+    POINT org;
     if (!rect) return ClipCursor( NULL );
     rect32.left   = rect->left;
     rect32.top    = rect->top;
     rect32.right  = rect->right;
     rect32.bottom = rect->bottom;
+    if (virtual_screen_origin(&org)) OffsetRect(&rect32, org.x, org.y);
     return ClipCursor( &rect32 );
 }
 
@@ -694,10 +698,24 @@ BOOL16 WINAPI GetCursorPos16( POINT16 *pt )
 {
     POINT pos;
     if (!pt) return FALSE;
+    POINT org;
     GetCursorPos(&pos);
-    pt->x = pos.x;
-    pt->y = pos.y;
+    virtual_screen_origin(&org);
+    pt->x = pos.x - org.x;
+    pt->y = pos.y - org.y;
     return TRUE;
+}
+
+
+/***********************************************************************
+ *		GetMessagePos (USER.119)
+ */
+DWORD WINAPI GetMessagePos16(void)
+{
+    DWORD pos = GetMessagePos();
+    POINT org;
+    if (!virtual_screen_origin(&org)) return pos;
+    return MAKELONG((SHORT)LOWORD(pos) - org.x, (SHORT)HIWORD(pos) - org.y);
 }
 
 
@@ -724,7 +742,9 @@ HCURSOR16 WINAPI SetCursor16(HCURSOR16 hCursor)
  */
 void WINAPI SetCursorPos16( INT16 x, INT16 y )
 {
-    SetCursorPos( x, y );
+    POINT org;
+    virtual_screen_origin(&org);
+    SetCursorPos( x + org.x, y + org.y );
 }
 
 
@@ -2312,6 +2332,12 @@ retry:
 /***********************************************************************
  *		RealizePalette (USER.283)
  */
+static BOOL CALLBACK post_palette_changed(HWND hwnd, LPARAM realizer)
+{
+    PostMessageA(hwnd, WM_PALETTECHANGED, (WPARAM)realizer, 0);
+    return TRUE;
+}
+
 UINT16 WINAPI RealizePalette16( HDC16 hdc )
 {
     HDC hdc32 = HDC_32(hdc);
@@ -2319,7 +2345,20 @@ UINT16 WINAPI RealizePalette16( HDC16 hdc )
     {
         if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE)
             && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY) && (GetObjectType(hdc32) == OBJ_DC))
+        {
+            HPALETTE before = realizedpal;
             set_realized_palette(hdc32);
+            /* On a 256-color display, a foreground realization that changes the system
+               palette is followed by WM_PALETTECHANGED to the top-level windows (Dr. Brain
+               pumps it explicitly). The true-color desktop never sends it, so emulate it.
+               otvdm.ini: PaletteChangedMessage=0 turns this off. */
+            if (realizedpal != before && krnl386_get_config_int("otvdm", "PaletteChangedMessage", TRUE))
+            {
+                HWND realizer = WindowFromDC(hdc32);
+                if (realizer) realizer = GetAncestor(realizer, GA_ROOT);
+                EnumThreadWindows(GetCurrentThreadId(), post_palette_changed, (LPARAM)realizer);
+            }
+        }
     }
         
     return UserRealizePalette(hdc32);
@@ -2427,7 +2466,9 @@ void WINAPI GetClipCursor16( RECT16 *rect )
     if (rect)
     {
         RECT rect32;
+        POINT org;
         GetClipCursor( &rect32 );
+        if (virtual_screen_origin(&org)) OffsetRect(&rect32, -org.x, -org.y);
         rect->left   = rect32.left;
         rect->top    = rect32.top;
         rect->right  = rect32.right;

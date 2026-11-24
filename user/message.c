@@ -68,6 +68,8 @@ When EDIT received WM_KILLFOCUS, EDIT sent this message to COMBOBOX.
 #define EM_ENABLEFEATURE        0x00DA
 #endif
 WINE_DEFAULT_DEBUG_CHANNEL(msg);
+
+BOOL virtual_screen_origin(POINT *org); /* window.c */
 WINE_DECLARE_DEBUG_CHANNEL(message);
 BOOL is_win_menu_disallowed(DWORD style);
 ULONG WINAPI get_windows_build();
@@ -3297,8 +3299,12 @@ BOOL16 WINAPI PeekMessage32_16( MSG32_16 *msg16, HWND16 hwnd16,
         return PeekMessage32_16(msg16, hwnd16, first, last, flags, wHaveParamHigh);
     }
     msg16->msg.time    = msg.time;
-    msg16->msg.pt.x    = (INT16)msg.pt.x;
-    msg16->msg.pt.y    = (INT16)msg.pt.y;
+    {
+        POINT org; /* windowed full screen: screen coordinates are relative to the game window */
+        virtual_screen_origin(&org);
+        msg16->msg.pt.x    = (INT16)(msg.pt.x - org.x);
+        msg16->msg.pt.y    = (INT16)(msg.pt.y - org.y);
+    }
     if (wHaveParamHigh) msg16->wParamHigh = HIWORD(msg.wParam);
     WINPROC_CallProc32ATo16( get_message_callback, msg.hwnd, msg.message, msg.wParam, msg.lParam,
                              &remove, &msg16->msg );
@@ -3481,8 +3487,12 @@ BOOL16 WINAPI GetMessage32_16( MSG32_16 *msg16, HWND16 hwnd16, UINT16 first,
         return GetMessage32_16(msg16, hwnd16, first, last, wHaveParamHigh);
     }
     msg16->msg.time    = msg.time;
-    msg16->msg.pt.x    = (INT16)msg.pt.x;
-    msg16->msg.pt.y    = (INT16)msg.pt.y;
+    {
+        POINT org; /* windowed full screen: screen coordinates are relative to the game window */
+        virtual_screen_origin(&org);
+        msg16->msg.pt.x    = (INT16)(msg.pt.x - org.x);
+        msg16->msg.pt.y    = (INT16)(msg.pt.y - org.y);
+    }
     if (wHaveParamHigh) msg16->wParamHigh = HIWORD(msg.wParam);
     WINPROC_CallProc32ATo16( get_message_callback, msg.hwnd, msg.message, msg.wParam, msg.lParam,
                              &remove, &msg16->msg );

@@ -79,6 +79,23 @@ BOOL is_win_menu_disallowed(DWORD style)
 
 static HWND16 hwndSysModal;
 
+/* Windowed full screen (see CreateWindowEx16): the converted window's client area is the
+   program's "screen". Screen coordinates passed to or returned from the program are
+   translated so that the client area's top-left corner is (0,0). */
+static HWND windowed_fullscreen_hwnd;
+
+BOOL virtual_screen_origin(POINT *org)
+{
+    org->x = org->y = 0;
+    if (!windowed_fullscreen_hwnd) return FALSE;
+    if (!IsWindow(windowed_fullscreen_hwnd))
+    {
+        windowed_fullscreen_hwnd = NULL;
+        return FALSE;
+    }
+    return ClientToScreen(windowed_fullscreen_hwnd, org);
+}
+
 
 static struct list class_list = LIST_INIT( class_list );
 
@@ -594,8 +611,10 @@ HWND16 WINAPI WindowFromPoint16( POINT16 pt )
 {
     POINT pt32;
 
-    pt32.x = pt.x;
-    pt32.y = pt.y;
+    POINT org;
+    virtual_screen_origin(&org);
+    pt32.x = pt.x + org.x;
+    pt32.y = pt.y + org.y;
     return HWND_16( WindowFromPoint( pt32 ) );
 }
 
@@ -618,6 +637,8 @@ void WINAPI GetWindowRect16( HWND16 hwnd, LPRECT16 rect )
 
     if (GetWindowRect( WIN_Handle32(hwnd), &rect32 ))
     {
+        POINT org;
+        if (virtual_screen_origin(&org)) OffsetRect(&rect32, -org.x, -org.y);
         rect->left   = rect32.left;
         rect->top    = rect32.top;
         rect->right  = rect32.right;
@@ -2248,7 +2269,15 @@ void WINAPI MapWindowPoints16( HWND16 hwndFrom, HWND16 hwndTo, LPPOINT16 lppt, U
         ppt[i].x = lppt[i].x;
         ppt[i].y = lppt[i].y;
     }
-    MapWindowPoints( WIN_Handle32(hwndFrom), WIN_Handle32(hwndTo), ppt, count );
+    {
+        POINT org;
+        BOOL virt = virtual_screen_origin(&org);
+        if (virt && !hwndFrom)
+            for (i = 0; i < count; i++) { ppt[i].x += org.x; ppt[i].y += org.y; }
+        MapWindowPoints( WIN_Handle32(hwndFrom), WIN_Handle32(hwndTo), ppt, count );
+        if (virt && !hwndTo)
+            for (i = 0; i < count; i++) { ppt[i].x -= org.x; ppt[i].y -= org.y; }
+    }
     for (i = 0; i < count; i++)
     {
         lppt[i].x = ppt[i].x;
@@ -3160,6 +3189,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
     char buffer[256];
     HWND hwnd;
     BOOL release = FALSE;
+    BOOL windowed_fullscreen = FALSE;
     DWORD count;
 
     if (instance == NULL)
@@ -3179,6 +3209,21 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
 
     if (!(style & (WS_POPUP | WS_CHILD)))
         style |= WS_CAPTION;
+
+    /* Windowed full screen: with the 640X480 compat mode the program sees a 640x480 screen.
+       A borderless top-level popup covering that whole screen (a game taking over the display)
+       is shown as a normal movable window whose client area is the 640x480 "screen".
+       Off by default; enable with WindowedFullscreen=1 in the [otvdm] section of otvdm.ini. */
+    if ((style & WS_POPUP) && !(style & WS_CHILD) && !parent &&
+        ((style & WS_CAPTION) != WS_CAPTION) &&
+        (cs.x != CW_USEDEFAULT) && (cs.cx != CW_USEDEFAULT) &&
+        (cs.x <= 0) && (cs.y <= 0) && (cs.x + cs.cx >= 640) && (cs.y + cs.cy >= 480) &&
+        krnl386_get_compat_mode("640X480") &&
+        krnl386_get_config_int("otvdm", "WindowedFullscreen", FALSE))
+    {
+        style = (style & ~(WS_POPUP | WS_MAXIMIZE | WS_THICKFRAME | WS_MAXIMIZEBOX)) | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+        windowed_fullscreen = TRUE; /* size is computed below, once exStyle is final */
+    }
 
     // make windows 1.0 programs appear in a usable window
     if ((GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x201) && !(style & WS_CHILD))
@@ -3202,6 +3247,19 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         if (((style & (WS_CAPTION | WS_SIZEBOX)) == WS_CAPTION) && !(style & WS_CHILD) && !(exStyle & (WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE)) &&
             (GetExpWinVer16(GetExePtr(GetCurrentTask())) < 0x400))
             exStyle |= WS_EX_STATICEDGE;
+    }
+
+    if (windowed_fullscreen)
+    {
+        RECT rc = { 0, 0, 640, 480 }, work;
+        /* the 24H2 static edge above does not end up adding a border here */
+        AdjustWindowRectEx(&rc, style, FALSE, exStyle & ~WS_EX_STATICEDGE);
+        cs.cx = rc.right - rc.left;
+        cs.cy = rc.bottom - rc.top;
+        if (!SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, FALSE))
+            SetRect(&work, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+        cs.x = work.left + max(0, (work.right - work.left - cs.cx) / 2);
+        cs.y = work.top + max(0, (work.bottom - work.top - cs.cy) / 2);
     }
 
     /* Create the window */
@@ -3265,6 +3323,7 @@ HWND16 WINAPI CreateWindowEx16( DWORD exStyle, LPCSTR className,
         return NULL;
     }
 
+    if (windowed_fullscreen) windowed_fullscreen_hwnd = hwnd;
     HWND16 hWnd16 = HWND_16(hwnd);
 	InitWndProc16(hwnd, hWnd16);
     SetWindowHInst16(hWnd16, instance);

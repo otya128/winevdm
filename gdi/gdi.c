@@ -31,6 +31,7 @@
 #include "winspool.h"
 #undef ExtDeviceMode
 #include "wine/wingdi16.h"
+
 #include "wine/list.h"
 #if 0
 #include "wine/gdi_driver.h"
@@ -196,6 +197,409 @@ static BOOL is_blank_palette(HPALETTE hpal)
             return FALSE;
     }
     return TRUE;
+}
+
+/*
+ * 8-bit shadow screen (DIBPalette mode).
+ *
+ * On a real 256-color display a palette change (AnimatePalette/SetPaletteEntries)
+ * recolors the pixels already on screen. With DIBPalette the screen is true color,
+ * so update_palette() used to ask every window to repaint itself. Games that only
+ * erase in WM_PAINT and redraw from their game loop (e.g. The Lost Mind of Dr. Brain)
+ * then flash black on every palette step.
+ *
+ * Here every blit of an 8-bit bitmap to a window is mirrored into an 8bpp DIB that
+ * keeps palette indices. When the realized palette changes, the shadow is blitted to
+ * the window with the new colors instead of forcing a repaint.
+ * otvdm.ini: PaletteShadow=0 turns this off.
+ */
+void *GetPtr16(WORD hdl16, int type);
+
+#define MAX_SHADOWS 8
+struct palette_shadow
+{
+    HWND hwnd;
+    HDC hdc;
+    HBITMAP bmp, oldbmp;
+    int width, height;
+};
+static struct palette_shadow shadows[MAX_SHADOWS];
+static RGBQUAD shadow_identity[256];
+
+static BOOL shadow_enabled(void)
+{
+    static int enabled = -1;
+    if (enabled == -1)
+    {
+        int i;
+        for (i = 0; i < 256; i++)
+        {
+            shadow_identity[i].rgbRed = shadow_identity[i].rgbGreen = shadow_identity[i].rgbBlue = (BYTE)i;
+            shadow_identity[i].rgbReserved = 0;
+        }
+        enabled = krnl386_get_config_int("otvdm", "PaletteShadow", TRUE) &&
+                  krnl386_get_config_int("otvdm", "DIBPalette", FALSE) &&
+                  krnl386_get_compat_mode("256color");
+    }
+    return enabled;
+}
+
+static void shadow_free(struct palette_shadow *sh)
+{
+    if (sh->hdc)
+    {
+        SelectObject(sh->hdc, sh->oldbmp);
+        DeleteDC(sh->hdc);
+    }
+    if (sh->bmp) DeleteObject(sh->bmp);
+    memset(sh, 0, sizeof(*sh));
+}
+
+static BOOL is_8bit_dib_dc(HDC hdc32)
+{
+    DIBSECTION dib;
+    HBITMAP hbmp;
+    if (GetObjectType(hdc32) != OBJ_MEMDC) return FALSE;
+    hbmp = GetCurrentObject(hdc32, OBJ_BITMAP);
+    if (GetObject(hbmp, sizeof(DIBSECTION), &dib) != sizeof(DIBSECTION)) return FALSE;
+    return (dib.dsBmih.biBitCount == 8) && !dib.dshSection && (GetPtr16(HBITMAP_16(hbmp), 1) == (void *)0xd1b00001);
+}
+
+static BOOL is_mono_dc(HDC hdc32)
+{
+    BITMAP bm;
+    if (GetObjectType(hdc32) != OBJ_MEMDC) return FALSE;
+    if (GetObject(GetCurrentObject(hdc32, OBJ_BITMAP), sizeof(bm), &bm) < (int)sizeof(bm)) return FALSE;
+    return bm.bmBitsPixel == 1 && bm.bmPlanes == 1;
+}
+
+static BYTE shadow_color_index(COLORREF color);
+
+static struct palette_shadow *shadow_get(HDC hdc32, BOOL create)
+{
+    HWND hwnd;
+    RECT rc;
+    int i, w, h;
+    struct palette_shadow *sh = NULL, *slot = NULL;
+
+    if (GetObjectType(hdc32) != OBJ_DC) return NULL;
+    hwnd = WindowFromDC(hdc32);
+    if (!hwnd) return NULL;
+    for (i = 0; i < MAX_SHADOWS; i++)
+    {
+        if (shadows[i].hwnd && !IsWindow(shadows[i].hwnd)) shadow_free(&shadows[i]);
+        if (shadows[i].hwnd == hwnd) sh = &shadows[i];
+        else if (!shadows[i].hwnd && !slot) slot = &shadows[i];
+    }
+    if (!GetClientRect(hwnd, &rc)) return sh;
+    w = rc.right - rc.left;
+    h = rc.bottom - rc.top;
+    if (sh && sh->width == w && sh->height == h) return sh;
+    if (!create && !sh) return NULL;
+    if (w <= 0 || h <= 0) return sh;
+    if (sh) shadow_free(sh);
+    else if (!slot) return NULL;
+    else sh = slot;
+    {
+        struct { BITMAPINFOHEADER hdr; RGBQUAD colors[256]; } bmi = {0};
+        void *bits;
+        bmi.hdr.biSize = sizeof(BITMAPINFOHEADER);
+        bmi.hdr.biWidth = w;
+        bmi.hdr.biHeight = -h;
+        bmi.hdr.biPlanes = 1;
+        bmi.hdr.biBitCount = 8;
+        bmi.hdr.biCompression = BI_RGB;
+        bmi.hdr.biClrUsed = 256;
+        memcpy(bmi.colors, shadow_identity, sizeof(shadow_identity));
+        sh->bmp = CreateDIBSection(NULL, (BITMAPINFO *)&bmi, DIB_RGB_COLORS, &bits, NULL, 0);
+        if (!sh->bmp) { memset(sh, 0, sizeof(*sh)); return NULL; }
+        memset(bits, 0, (size_t)((w + 3) & ~3) * h);
+        sh->hdc = CreateCompatibleDC(NULL);
+        sh->oldbmp = SelectObject(sh->hdc, sh->bmp);
+        SetStretchBltMode(sh->hdc, COLORONCOLOR);
+        sh->hwnd = hwnd;
+        sh->width = w;
+        sh->height = h;
+    }
+    return sh;
+}
+
+/* give the shadow DC the same coordinate mapping and clipping as the window DC */
+static void shadow_sync_dc(struct palette_shadow *sh, HDC hdc32)
+{
+    POINT pt;
+    HRGN rgn = CreateRectRgn(0, 0, 0, 0);
+    GetWindowOrgEx(hdc32, &pt);
+    SetWindowOrgEx(sh->hdc, pt.x, pt.y, NULL);
+    GetViewportOrgEx(hdc32, &pt);
+    SetViewportOrgEx(sh->hdc, pt.x, pt.y, NULL);
+    if (GetClipRgn(hdc32, rgn) == 1) SelectClipRgn(sh->hdc, rgn);
+    else SelectClipRgn(sh->hdc, NULL);
+    DeleteObject(rgn);
+}
+
+/* mirror a blit from an 8-bit bitmap to a window, keeping palette indices */
+static void shadow_stretchblt(HDC dst32, INT x, INT y, INT w, INT h, HDC src32, INT xs, INT ys, INT ws, INT hs, DWORD rop)
+{
+    RGBQUAD saved[256];
+    UINT n;
+    struct palette_shadow *sh;
+
+    if (!shadow_enabled()) return;
+    if (is_mono_dc(src32))
+    {
+        /* monochrome masks (SRCAND/SRCPAINT sprites): on an 8-bit device bit 0 becomes
+           the text color and bit 1 the background color, as palette indices */
+        COLORREF oldtx, oldbk;
+        BYTE tx, bk;
+        sh = shadow_get(dst32, FALSE);
+        if (!sh) return;
+        tx = shadow_color_index(GetTextColor(dst32));
+        bk = shadow_color_index(GetBkColor(dst32));
+        shadow_sync_dc(sh, dst32);
+        oldtx = SetTextColor(sh->hdc, RGB(tx, tx, tx));
+        oldbk = SetBkColor(sh->hdc, RGB(bk, bk, bk));
+        StretchBlt(sh->hdc, x, y, w, h, src32, xs, ys, ws, hs, rop);
+        SetTextColor(sh->hdc, oldtx);
+        SetBkColor(sh->hdc, oldbk);
+        return;
+    }
+    if (!is_8bit_dib_dc(src32)) return;
+    sh = shadow_get(dst32, TRUE);
+    if (!sh) return;
+    shadow_sync_dc(sh, dst32);
+    /* identical, unique color tables on both sides -> an exact index copy */
+    n = GetDIBColorTable(src32, 0, 256, saved);
+    SetDIBColorTable(src32, 0, 256, shadow_identity);
+    StretchBlt(sh->hdc, x, y, w, h, src32, xs, ys, ws, hs, rop);
+    if (n) SetDIBColorTable(src32, 0, n, saved);
+}
+
+/* Reading from the screen into an 8-bit bitmap: on a 256-color card the screen holds palette
+   indices, so copy the indices from the shadow instead of matching true-color pixels against a
+   palette (which fails when the realized palette is a blank one, as in Dr. Brain's puzzles). */
+static BOOL shadow_read_screen(HDC dst32, INT x, INT y, INT w, INT h, HDC src32, INT xs, INT ys, INT ws, INT hs, DWORD rop, BOOL16 *ret)
+{
+    struct palette_shadow *sh;
+    RGBQUAD saved[256];
+    UINT n;
+    if (!shadow_enabled() || !is_8bit_dib_dc(dst32)) return FALSE;
+    sh = shadow_get(src32, FALSE);
+    if (!sh) return FALSE;
+    shadow_sync_dc(sh, src32);
+    SelectClipRgn(sh->hdc, NULL);
+    n = GetDIBColorTable(dst32, 0, 256, saved);
+    SetDIBColorTable(dst32, 0, 256, shadow_identity);
+    *ret = StretchBlt(dst32, x, y, w, h, sh->hdc, xs, ys, ws, hs, rop);
+    if (n) SetDIBColorTable(dst32, 0, n, saved);
+    return TRUE;
+}
+
+static BYTE shadow_color_index(COLORREF color)
+{
+    HPALETTE pal;
+    if ((color >> 24) == 1) return (BYTE)(color & 0xff); /* PALETTEINDEX */
+    /* static system colors: black is index 0 and white index 255 on a 256-color device */
+    if ((color & 0xffffff) == 0) return 0;
+    if ((color & 0xffffff) == 0xffffff) return 255;
+    pal = get_realized_palette();
+    return (BYTE)GetNearestPaletteIndex(pal, color & 0xffffff);
+}
+
+static void shadow_fillrgn(HDC dst32, HRGN rgn, HBRUSH brush)
+{
+    LOGBRUSH lb;
+    HBRUSH b;
+    BYTE idx;
+    struct palette_shadow *sh;
+
+    if (!shadow_enabled()) return;
+    sh = shadow_get(dst32, FALSE);
+    if (!sh) return;
+    if (GetObject(brush, sizeof(lb), &lb) != sizeof(lb) || lb.lbStyle != BS_SOLID) return;
+    idx = shadow_color_index(lb.lbColor);
+    b = CreateSolidBrush(RGB(idx, idx, idx));
+    shadow_sync_dc(sh, dst32);
+    FillRgn(sh->hdc, rgn, b);
+    DeleteObject(b);
+}
+
+/*
+ * Emulated hardware palette. On a real 256-color card RealizePalette loads the palette
+ * into the card and immediately recolors everything already on screen; changing the
+ * realized palette (AnimatePalette/SetPaletteEntries) does the same. Dr. Brain switches
+ * between several palettes and expects the screen to follow each RealizePalette.
+ * RealizePalette lives in user.exe16, so the change is noticed on the next drawing call.
+ */
+static HPALETTE hw_pal, hw_last_realized;
+static BOOL hw_dirty; /* the card palette changed since the last shadow refresh */
+#define MAX_HW_OWNERS 16
+static HPALETTE hw_owners[MAX_HW_OWNERS]; /* palettes whose PC_RESERVED entries hold card slots */
+
+static BOOL hw_is_owner(HPALETTE hpal)
+{
+    int i;
+    for (i = 0; i < MAX_HW_OWNERS; i++)
+        if (hw_owners[i] == hpal) return TRUE;
+    return FALSE;
+}
+
+static void hw_add_owner(HPALETTE hpal)
+{
+    int i;
+    if (hw_is_owner(hpal)) return;
+    for (i = 0; i < MAX_HW_OWNERS; i++)
+        if (!hw_owners[i] || GetObjectType(hw_owners[i]) != OBJ_PAL) { hw_owners[i] = hpal; return; }
+}
+
+/* write one entry into the card */
+static void hw_set(HPALETTE hw, UINT i, const PALETTEENTRY *pe)
+{
+    PALETTEENTRY cur;
+    if (i < 10 || i >= 246) return; /* static colors never change */
+    GetPaletteEntries(hw, i, 1, &cur);
+    if (memcmp(&cur, pe, 3))
+    {
+        PALETTEENTRY e = *pe;
+        e.peFlags = 0;
+        SetPaletteEntries(hw, i, 1, &e);
+        hw_dirty = TRUE;
+    }
+}
+
+/* Foreground RealizePalette as the Windows palette manager does it (identity-mapped
+   palettes): PC_RESERVED / PC_NOCOLLAPSE entries get their slot in the card; ordinary
+   entries whose color already exists in the card just map to it and change nothing.
+   (Dr. Brain realizes an almost black palette with no flags between scenes; on a real
+   card that leaves the screen alone.) */
+static void hw_realize(HPALETTE hw, HPALETTE real)
+{
+    PALETTEENTRY pe[256], card[256];
+    UINT i, j, n, reserved = 0;
+    BOOL dirty = hw_dirty;
+    n = GetPaletteEntries(real, 0, 256, pe);
+    GetPaletteEntries(hw, 0, 256, card);
+    hw_dirty = FALSE;
+    for (i = 0; i < n; i++)
+    {
+        if (pe[i].peFlags & PC_EXPLICIT) continue;
+        if (pe[i].peFlags & (PC_RESERVED | PC_NOCOLLAPSE))
+        {
+            if (pe[i].peFlags & PC_RESERVED) reserved++;
+            hw_set(hw, i, &pe[i]);
+            continue;
+        }
+        for (j = 0; j < 256; j++)
+            if (!memcmp(&card[j], &pe[i], 3)) break;
+        if (j == 256) hw_set(hw, i, &pe[i]);
+    }
+    if (reserved) hw_add_owner(real);
+    hw_dirty |= dirty;
+}
+
+static HPALETTE hw_palette(void)
+{
+    HPALETTE real = get_realized_palette();
+    if (!hw_pal)
+    {
+        /* the 20 static system colors always sit in slots 0-9 and 246-255 */
+        struct { WORD ver, num; PALETTEENTRY e[256]; } lp = { 0x300, 256 };
+        PALETTEENTRY sys[20];
+        int i, n = GetPaletteEntries(GetStockObject(DEFAULT_PALETTE), 0, 20, sys);
+        for (i = 0; i < n && i < 20; i++)
+        {
+            lp.e[i < 10 ? i : i + 236] = sys[i];
+            lp.e[i < 10 ? i : i + 236].peFlags = 0;
+        }
+        hw_pal = CreatePalette((LOGPALETTE *)&lp);
+    }
+    if (real != hw_last_realized)
+    {
+        hw_last_realized = real;
+        if (real != GetStockObject(DEFAULT_PALETTE))
+            hw_realize(hw_pal, real);
+    }
+    return hw_pal;
+}
+
+/* a logical palette was changed by AnimatePalette/SetPaletteEntries */
+static void hw_palette_update(HPALETTE hpal, UINT start, UINT count, BOOL animate)
+{
+    PALETTEENTRY pe[256];
+    HPALETTE hw;
+    UINT i, n;
+    if (!shadow_enabled() || start >= 256) return;
+    hw = hw_palette();
+    if (count > 256 - start) count = 256 - start;
+    n = GetPaletteEntries(hpal, start, count, pe);
+    if (animate)
+    {
+        /* AnimatePalette changes the card through the slots the palette's PC_RESERVED
+           entries got when it was realized, even if another palette was realized since */
+        if (!hw_is_owner(hpal) && hpal != hw_last_realized) return;
+        for (i = 0; i < n; i++)
+            if (pe[i].peFlags & PC_RESERVED) hw_set(hw, start + i, &pe[i]);
+    }
+    else if (hpal == hw_last_realized)
+    {
+        /* SetPaletteEntries on the realized palette: otvdm has always shown this at once */
+        for (i = 0; i < n; i++) hw_set(hw, start + i, &pe[i]);
+    }
+}
+
+static void shadow_refresh_all(void);
+
+/* called after drawing to the screen: follow a RealizePalette that happened since */
+static void shadow_check_realize(void)
+{
+    if (!shadow_enabled()) return;
+    hw_palette();
+    if (hw_dirty) shadow_refresh_all();
+}
+
+/* does this window belong to the same top-level window as a shadowed window? */
+static BOOL shadow_covers(HWND hwnd)
+{
+    int i;
+    HWND root;
+    if (!shadow_enabled()) return FALSE;
+    root = GetAncestor(hwnd, GA_ROOT);
+    for (i = 0; i < MAX_SHADOWS; i++)
+        if (shadows[i].hwnd && IsWindow(shadows[i].hwnd) && GetAncestor(shadows[i].hwnd, GA_ROOT) == root)
+            return TRUE;
+    return FALSE;
+}
+
+/* recolor every shadowed window with the emulated card palette */
+static void shadow_refresh_all(void)
+{
+    int i;
+    HPALETTE pal;
+    if (!shadow_enabled()) return;
+    if (get_realized_palette() == GetStockObject(DEFAULT_PALETTE)) return;
+    pal = hw_palette();
+    hw_dirty = FALSE;
+    for (i = 0; i < MAX_SHADOWS; i++)
+    {
+        struct palette_shadow *sh = &shadows[i];
+        HPALETTE oldpal;
+        HDC wdc;
+        if (!sh->hwnd) continue;
+        if (!IsWindow(sh->hwnd)) { shadow_free(sh); continue; }
+        if (!IsWindowVisible(sh->hwnd) || IsIconic(sh->hwnd)) continue;
+        SetWindowOrgEx(sh->hdc, 0, 0, NULL);
+        SetViewportOrgEx(sh->hdc, 0, 0, NULL);
+        SelectClipRgn(sh->hdc, NULL);
+        oldpal = SelectPalette(sh->hdc, pal, FALSE);
+        set_dib_colors_for_screen(sh->hdc);
+        /* a fresh cache DC: the window may have CS_OWNDC with the app's own state */
+        wdc = GetDCEx(sh->hwnd, NULL, DCX_CACHE | DCX_CLIPSIBLINGS |
+                      ((GetWindowLongA(sh->hwnd, GWL_STYLE) & WS_CLIPCHILDREN) ? DCX_CLIPCHILDREN : 0));
+        BitBlt(wdc, 0, 0, sh->width, sh->height, sh->hdc, 0, 0, SRCCOPY);
+        ReleaseDC(sh->hwnd, wdc);
+        SelectPalette(sh->hdc, oldpal, FALSE);
+        SetDIBColorTable(sh->hdc, 0, 256, shadow_identity);
+    }
 }
 
 /*
@@ -1251,13 +1655,19 @@ BOOL16 WINAPI BitBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst, INT16 width,
 /***********************************************************************
  *           StretchBlt    (GDI.35)
  */
-BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
+static BOOL16 StretchBlt16_impl( HDC16 hdcDst, INT16 xDst, INT16 yDst,
                             INT16 widthDst, INT16 heightDst,
                             HDC16 hdcSrc, INT16 xSrc, INT16 ySrc,
                             INT16 widthSrc, INT16 heightSrc, DWORD rop )
 {
     HDC hdcsrc32 = HDC_32(hdcSrc);
     HDC hdcdst32 = HDC_32(hdcDst);
+    shadow_stretchblt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
+    {
+        BOOL16 r;
+        if (shadow_read_screen(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop, &r))
+            return r;
+    }
     if (krnl386_get_compat_mode("256color") && krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (GetDeviceCaps(hdcsrc32, TECHNOLOGY) == DT_RASDISPLAY))
     {
         DIBSECTION dib, dibdst;
@@ -1265,7 +1675,7 @@ BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
         int count = GetObject(hbmp, sizeof(DIBSECTION), &dib);
         HBITMAP hbmpdst = GetCurrentObject(hdcdst32, OBJ_BITMAP);
         int countdst = GetObject(hbmpdst, sizeof(DIBSECTION), &dibdst);
-        BOOL srcdib, dstdib;
+        BOOL srcdib = FALSE, dstdib = FALSE;
 
         if ((count == sizeof(DIBSECTION)) && (dib.dsBmih.biBitCount == 8) && !dib.dshSection && (GetPtr16(HBITMAP_16(hbmp), 1) == 0xd1b00001))
             srcdib = TRUE;
@@ -1277,6 +1687,7 @@ BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
             HPALETTE realpal = get_realized_palette();
             if (realpal != GetStockObject(DEFAULT_PALETTE))
             {
+                if (shadow_enabled()) realpal = hw_palette();
                 HPALETTE oldpal = SelectPalette(hdcsrc32, realpal, FALSE);
                 set_dib_colors_for_screen(hdcsrc32);
                 BOOL16 ret = StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
@@ -1320,6 +1731,16 @@ BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
         }
     }
     return StretchBlt(hdcdst32, xDst, yDst, widthDst, heightDst, hdcsrc32, xSrc, ySrc, widthSrc, heightSrc, rop);
+}
+
+BOOL16 WINAPI StretchBlt16( HDC16 hdcDst, INT16 xDst, INT16 yDst,
+                            INT16 widthDst, INT16 heightDst,
+                            HDC16 hdcSrc, INT16 xSrc, INT16 ySrc,
+                            INT16 widthSrc, INT16 heightSrc, DWORD rop )
+{
+    BOOL16 ret = StretchBlt16_impl(hdcDst, xDst, yDst, widthDst, heightDst, hdcSrc, xSrc, ySrc, widthSrc, heightSrc, rop);
+    if (GetObjectType(HDC_32(hdcDst)) == OBJ_DC) shadow_check_realize();
+    return ret;
 }
 
 
@@ -1606,7 +2027,11 @@ BOOL16 WINAPI RestoreDC16( HDC16 hdc, INT16 level )
  */
 BOOL16 WINAPI FillRgn16( HDC16 hdc, HRGN16 hrgn, HBRUSH16 hbrush )
 {
-    return FillRgn( HDC_32(hdc), HRGN_32(hrgn), HBRUSH_32(hbrush) );
+    BOOL16 ret;
+    shadow_fillrgn( HDC_32(hdc), HRGN_32(hrgn), HBRUSH_32(hbrush) );
+    ret = FillRgn( HDC_32(hdc), HRGN_32(hrgn), HBRUSH_32(hbrush) );
+    if (GetObjectType(HDC_32(hdc)) == OBJ_DC) shadow_check_realize();
+    return ret;
 }
 
 
@@ -3807,6 +4232,13 @@ UINT16 WINAPI GetPaletteEntries16( HPALETTE16 hpalette, UINT16 start,
     return GetPaletteEntries( HPALETTE_32(hpalette), start, count, entries );
 }
 
+/* with the palette shadow the window is recolored from the shadow instead of repainted */
+static void palette_redraw(HWND hwnd)
+{
+    if (shadow_covers(hwnd)) return;
+    RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+}
+
 static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
 {
     BOOL found = FALSE;
@@ -3820,7 +4252,7 @@ static WINAPI paint_all_windows(HWND hwnd, LPARAM lparam)
         }
     }
     if (!found)
-        RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+        palette_redraw(hwnd);
     return FALSE;
 }
 
@@ -3856,7 +4288,7 @@ BOOL update_palette(HPALETTE16 hpalette)
                 {
                     wndlist[wndlist[0] + 1] = hwnd;
                     wndlist[0]++;
-                    RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+                    palette_redraw(hwnd);
                 }
             }
             else if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE))
@@ -3871,6 +4303,8 @@ BOOL update_palette(HPALETTE16 hpalette)
     }
     if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE) && (hpal32 == get_realized_palette()))
         EnumThreadWindows(GetCurrentThreadId(), paint_all_windows, wndlist);
+    /* recolor the screen if the card palette changed */
+    shadow_check_realize();
     HeapFree(GetProcessHeap(), 0, wndlist);
 }
 
@@ -3881,6 +4315,7 @@ UINT16 WINAPI SetPaletteEntries16( HPALETTE16 hpalette, UINT16 start,
                                    UINT16 count, const PALETTEENTRY *entries )
 {
     UINT16 ret = SetPaletteEntries( HPALETTE_32(hpalette), start, count, entries );
+    hw_palette_update(HPALETTE_32(hpalette), start, count, FALSE);
     if (GetPtr16(hpalette, 1)) update_palette(hpalette);
     return ret;
 }
@@ -3902,6 +4337,7 @@ void WINAPI AnimatePalette16( HPALETTE16 hpalette, UINT16 StartIndex,
                               UINT16 NumEntries, const PALETTEENTRY* PaletteColors)
 {
     AnimatePalette(HPALETTE_32(hpalette), StartIndex, NumEntries, PaletteColors);
+    hw_palette_update(HPALETTE_32(hpalette), StartIndex, NumEntries, TRUE);
     if (GetPtr16(hpalette, 1)) update_palette(hpalette);
 }
 
