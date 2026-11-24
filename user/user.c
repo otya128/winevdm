@@ -2312,6 +2312,12 @@ retry:
 /***********************************************************************
  *		RealizePalette (USER.283)
  */
+static BOOL CALLBACK post_palette_changed(HWND hwnd, LPARAM realizer)
+{
+    PostMessageA(hwnd, WM_PALETTECHANGED, (WPARAM)realizer, 0);
+    return TRUE;
+}
+
 UINT16 WINAPI RealizePalette16( HDC16 hdc )
 {
     HDC hdc32 = HDC_32(hdc);
@@ -2319,7 +2325,20 @@ UINT16 WINAPI RealizePalette16( HDC16 hdc )
     {
         if (krnl386_get_config_int("otvdm", "DIBPalette", FALSE)
             && (GetDeviceCaps(hdc32, TECHNOLOGY) == DT_RASDISPLAY) && (GetObjectType(hdc32) == OBJ_DC))
+        {
+            HPALETTE before = realizedpal;
             set_realized_palette(hdc32);
+            /* On a 256-color display, a foreground realization that changes the system
+               palette is followed by WM_PALETTECHANGED to the top-level windows (Dr. Brain
+               pumps it explicitly). The true-color desktop never sends it, so emulate it.
+               otvdm.ini: PaletteChangedMessage=0 turns this off. */
+            if (realizedpal != before && krnl386_get_config_int("otvdm", "PaletteChangedMessage", TRUE))
+            {
+                HWND realizer = WindowFromDC(hdc32);
+                if (realizer) realizer = GetAncestor(realizer, GA_ROOT);
+                EnumThreadWindows(GetCurrentThreadId(), post_palette_changed, (LPARAM)realizer);
+            }
+        }
     }
         
     return UserRealizePalette(hdc32);
